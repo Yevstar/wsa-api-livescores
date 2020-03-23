@@ -1,0 +1,30 @@
+<html>
+<head>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <style>
+        .container {
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <% if (locals.error) { %>
+        <div class="alert alert-danger" role="alert">
+            <%= error %>
+        </div>
+    <% } %>
+
+    <form method="post" action="change">
+        <input type="hidden" name="token" value="<%= token %>">
+        <div class="form-group">
+            <label for="password1">New Password</label>
+            <input type="password" class="form-control" id="password1" name="password" placeholder="New Password">
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+</div>
+</body>
+</html>

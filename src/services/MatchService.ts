@@ -1,0 +1,304 @@
+import {Service} from "typedi";
+import BaseService from "./BaseService";
+import {Match} from "../models/Match";
+import {Brackets, DeleteResult} from "typeorm-plus";
+import {MatchResultType} from "../models/MatchResultType";
+import {GamePosition} from "../models/GamePosition";
+import {GameStat} from "../models/GameStat";
+import {MatchEvent} from "../models/MatchEvent";
+import {IncidentType} from "../models/IncidentType";
+import {Incident} from "../models/Incident";
+import {Lineup} from "../models/Lineup";
+import {MatchUmpires} from "../models/MatchUmpires";
+import {IncidentPlayer} from "../models/IncidentPlayer";
+import {IncidentMedia} from "../models/IncidentMedia";
+
+@Service()
+export default class MatchService extends BaseService<Match> {
+
+    modelName(): string {
+        return Match.name;
+    }
+
+    private filterByClubTeam(competitionId: number = undefined, clubIds: number[] = [], teamIds: number[] = [], query) {
+        this.addDefaultJoin(query);
+        if (competitionId || (teamIds && teamIds.length > 0) || (clubIds && clubIds.length > 0)) {
+            query.andWhere(new Brackets(qb => {
+                if (competitionId) qb.orWhere("match.competitionId = :competitionId", {competitionId});
+                if (teamIds && teamIds.length > 0) {
+                    qb.orWhere("(match.team1Id in (:teamIds) or match.team2Id in (:teamIds))", {teamIds});
+                }
+                if (clubIds && clubIds.length > 0) {
+                    qb.orWhere("(team1.clubId in (:clubIds) or team2.clubId in (:clubIds))", {clubIds});
+                }
+            }));
+        }
+    }
+
+    private addDefaultJoin(query) {
+        query.innerJoinAndSelect('match.team1', 'team1')
+            .innerJoinAndSelect('match.team2', 'team2')
+            .innerJoinAndSelect('match.venueCourt', 'venueCourt')
+            .innerJoinAndSelect('match.division', 'division')
+            .innerJoinAndSelect('match.competition', 'competition')
+            .leftJoinAndSelect('match.round', 'round')
+            .leftJoinAndSelect('competition.location', 'location')
+            .leftJoinAndSelect('competition.competitionVenues', 'competitionVenue')
+            .leftJoinAndSelect('venueCourt.venue', 'venue')
+            .andWhere('match.deleted_at is null');
+    }
+
+    public async findByMnb(): Promise<Match[]> {
+        return this.entityManager.createQueryBuilder(Match, 'match')
+            .innerJoin('match.competition', 'competition')
+            .select(['match', 'competition', 'competition.mnbUser',
+                'competition.mnbPassword', 'competition.mnbUrl'])
+            .andWhere('match.mnbMatchId IS NOT NULL AND match.mnbMatchId != \'111\' ' +
+                'AND match.mnbPushed IS NULL AND DATE_ADD(match.startTime, INTERVAL 30 MINUTE) <= NOW()')
+            .andWhere('match.deleted_at is null')
+            .getMany();
+    }
+
+    public async findMatchById(id: number): Promise<Match> {
+        let query = this.entityManager.createQueryBuilder(Match, 'match')
+            .andWhere('match.id = :id', {id});
+        this.addDefaultJoin(query);
+        return query.getOne();
+    }
+
+    public async findAdminMatchById(
+        matchId: number = undefined,
+    ): Promise<any> {
+        let response = {
+            match: Match,
+            umpires: MatchUmpires,
+            team1players: [],
+            team2players: []
+        }
+        let result = await this.entityManager.query("call wsa.usp_get_match(?)",[matchId]);
+        if(result!= null && result[0]!= null) {
+            response.match = result[0];
+            response.umpires = result[1];
+            response.team1players = result[2];
+            response.team2players = result[3];
+            return response;
+        } else {
+          return [];
+        }
+    }
+
+    public async findMatchByIds(ids: number[]): Promise<Match[]> {
+        let query = this.entityManager.createQueryBuilder(Match, 'match')
+            .andWhere('match.id in (:ids)', {ids});
+        this.addDefaultJoin(query);
+        return query.getMany();
+    }
+
+    public async findByParam(from: Date, to: Date, teamIds: number[] = [], playerIds: number[],
+        competitionId: number, clubIds: number[], matchEnded: boolean,
+        matchStatus: ("STARTED" | "PAUSED" | "ENDED")[], offset: number = undefined, limit: number = undefined): Promise<any> {
+        
+        let query = await this.entityManager.createQueryBuilder(Match, 'match');
+        if (from) query.andWhere("match.startTime >= :from", { from });
+        if (to) query.andWhere("match.startTime <= :to", { to });
+
+        this.filterByClubTeam(competitionId, clubIds, teamIds, query);
+        if (matchEnded != undefined) query.andWhere("match.matchEnded is :matchEnded", { matchEnded });
+        if (matchStatus) query.andWhere("match.matchStatus in (:matchStatus)", { matchStatus });
+        query.orderBy('match.startTime', 'ASC');
+        
+        // return query.paginate(offset,limit).getMany();
+        // switched to skip and limit function as with paginate(offset,limit) with offset 0, typeorm-plus gives the value 
+        // in negative as offset creating an error within query
+        if (limit) {
+            const matchCount = await query.getCount();
+            const result = await query.skip(offset).take(limit).getMany();
+            return {matchCount,result}
+        } else {
+            const matchCount =  null;
+            const result = await query.getMany();
+            return {matchCount,result}
+        }
+    }
+
+    public async getMatchResultTypes(): Promise<MatchResultType[]> {
+        return this.entityManager.createQueryBuilder(MatchResultType, 'mr')
+            .getMany();
+    }
+
+    public async loadHomeLive(clubIds: number[], teamIds: number[] = []): Promise<Match[]> {
+        let query = this.entityManager.createQueryBuilder(Match, 'match');
+        this.filterByClubTeam(undefined, clubIds, teamIds, query);
+        query.andWhere(new Brackets(qb => {
+            qb.andWhere("match.matchStatus is null")
+                .andWhere("match.startTime < (now())")
+                .orWhere("match.matchStatus != 'ENDED'")
+        }));
+        query.orderBy('match.startTime', 'ASC');
+        return query.getMany()
+    }
+
+    public async loadHomeUpcoming(clubIds: number[], teamIds: number[], upcomingStartTimeRange: number): Promise<Match[]> {
+        let query = this.entityManager.createQueryBuilder(Match, 'match');
+        this.filterByClubTeam(undefined, clubIds, teamIds, query);
+        query.andWhere(new Brackets(qb => {
+            qb.andWhere("match.startTime > now()");
+            if (upcomingStartTimeRange) {
+                qb.andWhere("match.startTime < (now() + interval :upcomingStartTimeRange minute )",
+                    {upcomingStartTimeRange});
+            }
+            qb.andWhere("match.matchStatus is null");
+        }));
+
+        query.orderBy('match.startTime', 'ASC');
+        return query.getMany();
+    }
+
+    public async loadHomeEnded(clubIds: number[], teamIds: number[], endTimeRange: number) {
+        let query = this.entityManager.createQueryBuilder(Match, 'match');
+        this.filterByClubTeam(undefined, clubIds, teamIds, query);
+        query.andWhere(new Brackets(qb => {
+            qb.andWhere("match.endTime > (now() - interval :endTimeRange minute )", {endTimeRange})
+                .andWhere("match.endTime < (now())")
+                .andWhere("match.matchStatus = 'ENDED'");
+        }));
+        query.orderBy('match.endTime', 'ASC');
+        return query.getMany();
+    }
+
+    public async loadCompetitionAndDate(competitionId: number, start: Date, end: Date, live: boolean): Promise<Match[]> {
+        let query = this.entityManager.createQueryBuilder(Match, 'match');
+        this.addDefaultJoin(query);
+        query.andWhere("match.competitionId = :id", {id: competitionId});
+        if (live) {
+            query.andWhere("match.matchStatus = 'STARTED'");
+        } else {
+            query.andWhere("match.matchStatus is null");
+        }
+        if (start) query.andWhere("match.startTime >= :start", {start});
+        if (end) query.andWhere("match.startTime <= :end", {end});
+        query.orderBy('match.startTime', 'ASC');
+        return query.getMany()
+    }
+
+    public async loadGamePositions() {
+        return this.entityManager.createQueryBuilder(GamePosition, 'gp').getMany();
+    }
+
+    public async loadGameStats() {
+        return this.entityManager.createQueryBuilder(GameStat, 'gs').getMany();
+    }
+
+    public async loadIncidentTypes() {
+        return this.entityManager.createQueryBuilder(IncidentType, 'it').getMany();
+    }
+
+    public async saveIncident(incident: Incident): Promise<Incident> {
+        return this.entityManager.save(incident);
+    }
+
+    public async findIncidentsByParam(matchId: number, competitionId: number, teamId: number, playerId: number,
+                                      incidentTypeId: number): Promise<Incident[]> {
+        let query = this.entityManager.createQueryBuilder(Incident, 'i')
+            .innerJoin(IncidentPlayer, 'pi', 'pi.incidentId = i.id')
+            .andWhere('i.teamId = :teamId', {teamId})
+            .andWhere('pi.playerId = :playerId', {playerId});
+
+        if (competitionId) query.andWhere("i.competitionId = :competitionId", {competitionId});
+        if (matchId) query.andWhere("i.matchId = :matchId", {matchId});
+        if (incidentTypeId) query.andWhere("i.incidentTypeId = :incidentTypeId", {incidentTypeId});
+        return query.getMany()
+    }
+
+    public async findLineupsByParam(matchId: number, competitionId: number, teamId: number, playerId: number,
+                                    positionId: number): Promise<Lineup[]> {
+        let query = this.entityManager.createQueryBuilder(Lineup, 'lu')
+            .andWhere('lu.matchId = :matchId', {matchId})
+            .andWhere('lu.teamId = :teamId', {teamId});
+
+        if (competitionId) query.andWhere("lu.competitionId = :competitionId", {competitionId});
+        if (playerId) query.andWhere("lu.playerId = :playerId", {playerId});
+        if (positionId) query.andWhere("lu.positionId = :positionId", {positionId});
+        return query.getMany()
+    }
+
+    public async batchSaveLineups(lineups: Lineup[]) {
+        return this.entityManager.save(Lineup.name, lineups);
+    }
+
+    public async batchSavePlayersIncident(incidents: IncidentPlayer[]) {
+        return this.entityManager.save(IncidentPlayer.name, incidents);
+    }
+
+    public async deleteLineups(matchId: number, teamId: number) {
+        return this.entityManager.createQueryBuilder().delete().from(Lineup)
+            .andWhere("matchId = :matchId and teamId = :teamId", {matchId, teamId}).execute();
+    }
+
+    public async saveIncidentMedia(media: IncidentMedia[]) {
+        return this.entityManager.save(media);
+    }
+
+    public createIncidentMedia(id: number, userId: number, url: string, type: string): IncidentMedia {
+        let media = new IncidentMedia();
+        media.incidentId = id;
+        media.mediaUrl = url;
+        media.mediaType = type;
+        media.userId = userId;
+        return media;
+    }
+
+    public async logMatchEvent(matchId: number, category: string, type: string, period: number, eventTimestamp: Date,
+                               userId: number,
+                               attribute1Key: string = undefined, attribute1Value: string = undefined,
+                               attribute2Key: string = undefined, attribute2Value: string = undefined) {
+        let me = new MatchEvent();
+        me.matchId = matchId;
+        me.eventCategory = category;
+        me.type = type;
+        me.eventTimestamp = eventTimestamp;
+        me.period = period;
+        if (attribute1Key) {
+            me.attribute1Key = attribute1Key;
+            me.attribute1Value = attribute1Value;
+        }
+        if (attribute2Key) {
+            me.attribute2Key = attribute2Key;
+            me.attribute2Value = attribute2Value;
+        }
+        me.userId = userId;
+        me.source = 'app';
+        return this.entityManager.insert(MatchEvent, me);
+    }
+
+    public async logLiteMatchEvent(matchId: number, category: string, type: string, period: number,
+                                   eventTimestamp: Date, userId: number) {
+        let me = new MatchEvent();
+        me.matchId = matchId;
+        me.eventCategory = category;
+        me.type = type;
+        me.period = period;
+        me.userId = userId;
+        me.source = 'app';
+        return this.entityManager.insert(MatchEvent, me);
+    }
+
+    public async findByDate(from: Date, to: Date): Promise<Match[]> {
+        let query = this.entityManager.createQueryBuilder(Match, 'match');
+        if (from) query.andWhere("match.startTime >= :from", { from });
+        if (to) query.andWhere("match.startTime <= :to", { to });
+        return query.getMany()
+    }
+
+     public async findByRound(roundId: number): Promise<Match[]> {
+        let query = this.entityManager.createQueryBuilder(Match, 'match');
+        query.andWhere("match.round = :roundId", { roundId });
+        return query.getMany();
+    }
+    
+    public async softDelete(id: number, userId:number): Promise<DeleteResult> {
+        let query = this.entityManager.createQueryBuilder(Match, 'match');
+        query.andWhere("match.id = :id", { id });
+        return query.softDelete().execute();
+    }
+}

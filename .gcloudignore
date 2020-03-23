@@ -1,0 +1,8 @@
+idea/
+node_modules/
+sql/
+.env*
+.git/
+.gitignore
+app.yaml
+*.iml

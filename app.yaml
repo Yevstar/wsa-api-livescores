@@ -1,0 +1,19 @@
+runtime: nodejs10
+instance_class: F4_1G
+automatic_scaling:
+  max_instances: 10
+  max_pending_latency: 70ms
+  min_pending_latency: 30ms
+
+env_variables:
+  LOG_NAME: world-sport-action/api
+  LOG_LEVEL: debug
+  SECRET: VTB9wKmchJT
+  MYSQL_SOCKET_PATH: /cloudsql/world-sport-action:australia-southeast1:world-sport-action-dev
+  MYSQL_USER: root
+  MYSQL_PASSWORD: KEzHi3KpvBblh9ah
+  MYSQL_DATABASE: wsa2
+  SENDGRID_API_KEY: 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
+  SERVER_URL: https://world-sport-action.appspot.com
+  MAIL_USERNAME: admin@worldsportaction.com
+  MAIL_PASSWORD: NLSwebadm1n
