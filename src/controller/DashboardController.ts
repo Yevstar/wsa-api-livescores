@@ -15,7 +15,7 @@ export class IncidentControllerController extends BaseController {
             const today = new Date();
             const yesterday = (d => new Date(d.setDate(d.getDate() - 1)))(new Date);
             responseObject.incident = await this.incidentService.getIncidentsForDashBoard(competitionId, yesterday, today);
-            responseObject.news = await this.newsService.findNewsByEntityTypeId(competitionId);
+            responseObject.news = await this.newsService.findNewsByEntityId(competitionId);
             responseObject.match = await this.matchService.findByParam(yesterday, today, null, null, competitionId, null, null, null, null, null);
             responseObject.match = responseObject.match.result;
             return responseObject;

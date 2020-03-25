@@ -206,7 +206,7 @@ export class TeamController extends BaseController {
                         { name: 'save_error', message: 'Logo not saved, try again later.' });
             }
 
-        } else {
+        } else if (isNullOrEmpty(teamData.logoUrl)) {
             let organisation = await this.clubService.findById(savedTeam.organisationId);
             if (organisation.logoUrl) {
                 savedTeam.logoUrl = organisation.logoUrl;
@@ -214,8 +214,6 @@ export class TeamController extends BaseController {
                 return savedTeam;
             }
         }
-
-        
     }
 
     @Authorized()

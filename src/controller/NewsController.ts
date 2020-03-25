@@ -72,7 +72,7 @@ export class NewsController extends BaseController {
                             if (fileUploaded) {
                                 n.newsVideo = fileUploaded.url;
                             } else {
-                                return response.status(400).send({ errorCode: 5, name: 'save_error', message: 'News Video not saved, Try again later.' });
+                                return response.status(400).send({ errorCode: 5, name: 'save_error', message: 'News Video not saved, try again later.' });
                             }
                         } else {
                             return response.status(400).send({ errorCode: 4, name: 'validation_error', message: 'File mime type not supported' });
@@ -157,6 +157,7 @@ export class NewsController extends BaseController {
                 }
                 
                 news.published_at = new Date();
+                news.isActive = true;
                 await this.newsService.createOrUpdate(news);
 
                 return response.status(200).send({success: true});

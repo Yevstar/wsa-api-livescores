@@ -40,10 +40,11 @@ export default class NewsService extends BaseService<News> {
         }
     }
 
-    public async findNewsByEntityTypeId(entityTypeId:number):Promise<any> {
+    public async findNewsByEntityId(entityId:number):Promise<any> {
              let query = this.entityManager.createQueryBuilder(News, 'news')
                 .select('distinct news.*')
-                query.andWhere("news.entityTypeId = :entityTypeId", {entityTypeId})
+                query.andWhere("news.entityId = :entityId", {entityId})
+                .andWhere("news.entityTypeId = 1")
                 .andWhere("news.deleted_at is null")
                 .andWhere("news.news_expire_date is not null")
                 .andWhere("news.isActive = 1")

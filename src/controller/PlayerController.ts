@@ -35,7 +35,7 @@ export class PlayerController extends BaseController {
     @Authorized()
     @Post('/')
     async create(
-        @Body() player: Player,
+        @Body() player: any,
         @UploadedFile("photo") file: Express.Multer.File,
         @Res() response: Response
     ) {
@@ -47,11 +47,14 @@ export class PlayerController extends BaseController {
         }
         p.firstName = player.firstName;
         p.lastName = player.lastName;
-        p.dateOfBirth = player.dateOfBirth;
         p.phoneNumber = player.phoneNumber;
         p.mnbPlayerId = player.mnbPlayerId;
         p.teamId = player.teamId;
         p.competitionId = player.competitionId;
+
+        var dateParts = (player.dateOfBirth).split("-");
+        var dateObject = new Date(+dateParts[2], dateParts[1] - 1, +dateParts[0]); 
+        p.dateOfBirth = new Date(dateObject);
 
         if (player) {
             if (file) {

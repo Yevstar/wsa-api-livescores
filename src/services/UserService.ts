@@ -55,9 +55,9 @@ export default class UserService extends BaseService<User> {
             .getRawOne();
     }
 
-    public async deleteRolesByUser(userId: number, inputEntityId: number, linkedEntityTypeId: number) {
+    public async deleteRolesByUser(userId: number, roleId:number, inputEntityId: number, inputEntityTypeId: number, linkedEntityTypeId: number) {
         try {
-            let result = await this.entityManager.query("call wsa_users.usp_delete_entity_roles_by_user(?,?,?)",[userId, inputEntityId, linkedEntityTypeId]);
+            let result = await this.entityManager.query("call wsa_users.usp_delete_entity_roles_by_user(?,?,?,?)",[userId, roleId, inputEntityId, inputEntityTypeId, linkedEntityTypeId]);
             return result[0];
         } catch(error) {
             throw error;
@@ -115,7 +115,7 @@ export default class UserService extends BaseService<User> {
                         </head>
                         <body>
                             <p>Hi ${receiverData.firstName} ${receiverData.lastName},
-                            <p>${userData.firstName} ${userData.lastName} has invited you to score for team ${teamData.name} Netball game. Click <a href="${url}">here</a> to download the Netball Live Scores App and start scoring. 
+                            <p>${userData.firstName} ${userData.lastName} has invited you to score for team ${teamData[0].name} Netball game. Click <a href="${url}">here</a> to download the Netball Live Scores App and start scoring. 
                             <p>Your password is {{${password}}} - you can change it when you log in if you would like.
                             <p>We hope you enjoy using Netball Live Scores.
                             <p>The Netball Live Scores Team

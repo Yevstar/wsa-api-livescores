@@ -402,9 +402,6 @@ export class UserController extends BaseController {
         @Body() managerData: User,
         @Res() response: Response) {
 
-        //let managerData: User = managerAndTeams.manager;
-        //let teamsData: Team[] = managerAndTeams.teams;
-
         if (isNullOrEmpty(managerData.email) 
             || isNullOrEmpty(managerData.firstName) 
             || isNullOrEmpty(managerData.lastName) 
@@ -451,7 +448,7 @@ export class UserController extends BaseController {
 
         // existing user - delete existing team assignments
         if (!newUser) {
-            await this.userService.deleteRolesByUser(managerData.id, competitionId, EntityType.TEAM);
+            await this.userService.deleteRolesByUser(managerData.id, Role.MANAGER, competitionId, EntityType.COMPETITION, EntityType.TEAM);
         }
 
         // assign teams
@@ -470,59 +467,79 @@ export class UserController extends BaseController {
         return newUser;
     }
 
-
     @Authorized()
     @Post('/member')
     async addMember(
         @HeaderParam("authorization") user: User,
-        @QueryParam("userId") userId: number,
-        @QueryParam('teamId', { required: true }) teamId: number,
-        @Body() member: User,
+        @QueryParam('competitionId', { required: true }) competitionId: number,
+        @Body() userData: User,
         @Res() response: Response) {
 
-        if (isNullOrEmpty(member.email) || isNullOrEmpty(member.firstName) || isNullOrEmpty(member.lastName) || isNullOrEmpty(member.mobileNumber)) {
+        if (isNullOrEmpty(userData.email) 
+            || isNullOrEmpty(userData.firstName) 
+            || isNullOrEmpty(userData.lastName) 
+            || isNullOrEmpty(userData.mobileNumber)) {
             return response
                 .status(422)
-                .send({ name: 'validation_error', message: 'Not all required field filled' });
+                .send({ name: 'validation_error', message: 'Not all required fields filled' });
         }
 
-        const existing = await this.userService.findByEmail(member.email);
-        if (existing) {
-            logger.info(`User ${member.email} already exists.`);
-            return response
-                .status(400).send({
-                    name: 'validation_error',
-                    message: 'A user or member with that email address already exists.'
-                });
+        var newUser = false;
+        // if new user, search for user
+        if (!userData.id) {
+            const foundUser = await this.userService.findByEmail(userData.email);
+            // if user exists in our database, validate the rest of their details
+            if (foundUser) {
+                if (foundUser.firstName == userData.firstName 
+                    && foundUser.lastName == userData.lastName 
+                    && foundUser.mobileNumber == userData.mobileNumber) {
+                    userData.id = foundUser.id;
+                } else {
+                    return response
+                    .status(400).send({
+                        name: 'validation_error',
+                        message: 'A user with this email address already exists however other details do not match'
+                    });
+                }
+            } else {
+                // create user
+                newUser = true;
 
-        } else {
+                var password = Math.random().toString(36).slice(-8);
+                userData.password = md5(password);
+                const saved = await this.userService.createOrUpdate(userData);
+                logger.info(`Manager ${userData.email} signed up.`);
+                
+                if (!isArrayEmpty(userData.teams)) {
+                    let competitionData = await this.competitionService.findById(competitionId)
+                    this.userService.sentMail(user, userData.teams, competitionData, 'member', saved, password);
+                }
 
-            var password = Math.random().toString(36).slice(-8);
-            member.password = md5(password);
-            const saved = await this.userService.createOrUpdate(member);
-            logger.info(`Member ${member.email} signed up.`);
-            let ure = new UserRoleEntity();
-            ure.roleId = 5; //Member
-            ure.entityId = teamId
-
-            if (userId)
-                ure.userId = userId;
-            else
-                ure.userId = saved.id
-
-            await this.ureService.createOrUpdate(ure);
-            let teamData = await this.teamService.findById(teamId);
-
-            if (teamData) {
-                let competitionData = await this.competitionService.findById(teamData.competitionId)
-                this.userService.sentMail(user, teamData, competitionData, 'member', saved, password);
+                userData.id = saved.id;
             }
+        } 
 
-            return teamData;
-
+        // existing user - delete existing team assignments
+        if (!newUser) {
+            await this.userService.deleteRolesByUser(userData.id, Role.MEMBER, userData.teams[0].id, EntityType.TEAM, EntityType.TEAM);
         }
 
+        // assign teams
+        let ureArray = [];
+        for (let i of userData.teams) {
+            let ure = new UserRoleEntity();
+            ure.roleId = Role.MEMBER;
+            ure.entityId = i.id;
+            ure.entityTypeId = EntityType.TEAM;
+            ure.userId = userData.id
+            ure.createdBy = user.id;
+            ureArray.push(ure)
+        }
+        await this.ureService.batchCreateOrUpdate(ureArray);
+        
+        return newUser;
     }
+
 
     @Authorized()
     @Post('/admin')
