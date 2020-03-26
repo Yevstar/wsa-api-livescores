@@ -437,7 +437,7 @@ export class UserController extends BaseController {
                 const saved = await this.userService.createOrUpdate(managerData);
                 logger.info(`Manager ${managerData.email} signed up.`);
                 
-                if (!isArrayEmpty(managerData.teams)) {
+                if (isArrayEmpty(managerData.teams)) {
                     let competitionData = await this.competitionService.findById(competitionId)
                     this.userService.sentMail(user, managerData.teams, competitionData, 'manager', saved, password);
                 }
@@ -510,7 +510,7 @@ export class UserController extends BaseController {
                 const saved = await this.userService.createOrUpdate(userData);
                 logger.info(`Manager ${userData.email} signed up.`);
                 
-                if (!isArrayEmpty(userData.teams)) {
+                if (isArrayEmpty(userData.teams)) {
                     let competitionData = await this.competitionService.findById(competitionId)
                     this.userService.sentMail(user, userData.teams, competitionData, 'member', saved, password);
                 }

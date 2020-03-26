@@ -129,25 +129,29 @@ export class BaseController {
           usersCollectionRef.doc(user.firebaseUID).set({
               'avatar': user.photoUrl,
               'email': user.email,
-              'name': `${user.firstName} ${user.lastName}`,
+              'firstName': user.firstName,
+              'lastName': user.lastName,
               'uid': user.firebaseUID,
               'searchKeywords': [
                   `${user.firstName} ${user.lastName}`,
                   user.firstName,
                   user.lastName,
-              ],
+                  user.email
+              ]
           });
         } else if (update) {
           usersCollectionRef.doc(user.firebaseUID).update({
             'avatar': user.photoUrl,
             'email': user.email,
-            'name': `${user.firstName} ${user.lastName}`,
+            'firstName': user.firstName,
+            'lastName': user.lastName,
             'uid': user.firebaseUID,
             'searchKeywords': [
                 `${user.firstName} ${user.lastName}`,
                 user.firstName,
                 user.lastName,
-            ],
+                user.email
+            ]
           });
         }
     }

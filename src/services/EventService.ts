@@ -5,6 +5,11 @@ import {Brackets} from "typeorm-plus";
 import {Event} from "../models/Event";
 import {EventInvitee} from "../models/EventInvitee";
 import {EventOccurrence} from "../models/EventOccurrence";
+import {Role} from "../models/security/Role";
+import {EntityType} from "../models/security/EntityType";
+import {isArrayEmpty} from "../utils/Utils";
+// import {UserRoleEntity} from "../models/security/UserRoleEntity";
+// import {LinkedEntities} from "../models/views/LinkedEntities";
 
 @Service()
 export default class EventService extends BaseService<Event> {
@@ -13,16 +18,32 @@ export default class EventService extends BaseService<Event> {
         return Event.name;
     }
 
-    public async findByParams(
-        entityId: number
+    public async findUserEventOccurrences(
+        userId: number
     ): Promise<EventOccurrence[]> {
-        let query = this.entityManager
-            .createQueryBuilder(EventOccurrence, "eo")
-            .select('distinct eo.*')
-            .where("eo.eventId in (:entityId)", {
-                entityId
-            });
-        return query.getRawMany();
+        let roleIds = [Role.MANAGER, Role.PLAYER];
+        let entityTypeIds = [EntityType.TEAM, EntityType.USER];
+
+        let result = await this.entityManager.query(
+          "call wsa.usp_get_eventOccurrences(?, ?, ?, ?)",[
+            userId,
+            EntityType.USER,
+            roleIds.toString(),
+            entityTypeIds.toString()
+          ]);
+        if (isArrayEmpty(result)) {
+          return result[0];
+        } else {
+          return [];
+        }
+    }
+
+    public async findEventsById(ids: number[]): Promise<Event[]> {
+        let query = this.entityManager.createQueryBuilder(Event, 'e')
+                        .leftJoinAndSelect('e.venue', 'venue')
+                        .leftJoinAndSelect('e.venueCourt', 'venueCourt')
+                        .andWhere('e.id in (:ids)', {ids: ids});
+        return query.getMany();
     }
 
     public async createEvent(event, user) {
@@ -44,7 +65,7 @@ export default class EventService extends BaseService<Event> {
         return this.entityManager.insert(Event, me);
     }
 
-    public async creatEventOccurrence(eventId: number, allDay: boolean, startTime: Date, endTime: Date,
+    public async createEventOccurrence(eventId: number, allDay: boolean, startTime: Date, endTime: Date,
                                                 created_by: number) {
         let me = new EventOccurrence();
         me.eventId = eventId;
@@ -56,7 +77,7 @@ export default class EventService extends BaseService<Event> {
         return this.entityManager.insert(EventOccurrence, me);
     }
 
-    public async creatEventInvitee(eventId: number, entityId: number, entityTypeId: number ) {
+    public async createEventInvitee(eventId: number, entityId: number, entityTypeId: number ) {
         let me = new EventInvitee();
         me.eventId = eventId;
         me.entityId = entityId;

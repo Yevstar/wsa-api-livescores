@@ -1,5 +1,6 @@
-import {BaseEntity, Column, Entity, PrimaryGeneratedColumn} from 'typeorm-plus';
-import {IsBoolean, IsNumber, IsString, IsDate} from "class-validator";
+import {BaseEntity, Column, Entity, PrimaryGeneratedColumn, OneToOne, JoinColumn} from 'typeorm-plus';
+import {IsBoolean, IsNumber, IsString, IsDate, ValidateNested} from "class-validator";
+import {Event} from "../models/Event";
 
 @Entity('eventOccurrence')
 export class EventOccurrence extends BaseEntity {
@@ -23,11 +24,11 @@ export class EventOccurrence extends BaseEntity {
     @IsDate()
     @Column()
     endTime: Date;
-    
+
     @IsNumber()
     @Column()
     created_by: number;
-    
+
     @IsDate()
     @Column()
     created_at: Date;
@@ -35,8 +36,13 @@ export class EventOccurrence extends BaseEntity {
     @IsDate()
     @Column()
     updated_at: Date;
-     
+
     @IsDate()
     @Column()
     deleted_at: Date;
+
+    @ValidateNested()
+    @OneToOne(type => Event)
+    @JoinColumn()
+    event: Event;
 }

@@ -7,11 +7,11 @@ import {IsDate, IsNumber, IsString} from "class-validator";
 @Entity('wsa_users.entityType')
 export class EntityType extends BaseEntity {
 
-    public static COMPETITION = 1;
-    public static CLUB = 2;
-    public static TEAM = 3;
-    public static USER = 4;
-    public static PLAYER = 5;
+    public static COMPETITION: number = 1;
+    public static CLUB: number = 2;
+    public static TEAM: number = 3;
+    public static USER: number = 4;
+    public static PLAYER: number = 5;
 
     @IsNumber()
     @PrimaryGeneratedColumn()

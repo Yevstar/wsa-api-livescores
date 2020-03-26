@@ -12,6 +12,8 @@ import {Lineup} from "../models/Lineup";
 import {MatchUmpires} from "../models/MatchUmpires";
 import {IncidentPlayer} from "../models/IncidentPlayer";
 import {IncidentMedia} from "../models/IncidentMedia";
+import {RequestFilter} from "../models/RequestFilter";
+import {paginationData, stringTONumber } from "../utils/Utils";
 
 @Service()
 export default class MatchService extends BaseService<Match> {
@@ -181,6 +183,20 @@ export default class MatchService extends BaseService<Match> {
         return query.getMany()
     }
 
+    public async loadAdmin(competitionId: number, requestFilter: RequestFilter): Promise<any> {
+        let result = await this.entityManager.query("call wsa.usp_get_matches(?,?,?)",
+            [competitionId, requestFilter.paging.offset, requestFilter.paging.limit]);
+
+            if (result != null) {
+                let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
+                let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);
+                responseObject["matches"] = result[0];
+                return responseObject;
+            } else {
+                return [];
+            }
+    }
+
     public async loadGamePositions() {
         return this.entityManager.createQueryBuilder(GamePosition, 'gp').getMany();
     }
@@ -301,4 +317,5 @@ export default class MatchService extends BaseService<Match> {
         query.andWhere("match.id = :id", { id });
         return query.softDelete().execute();
     }
+
 }

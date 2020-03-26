@@ -39,24 +39,43 @@ export class PlayerController extends BaseController {
         @UploadedFile("photo") file: Express.Multer.File,
         @Res() response: Response
     ) {
-        // changed the type of player from "Player" to any as id should be integer for edit mode 
-        // and while using formdata content-type id is of type string
-        let p = new Player();
-        if (player.id) {
-            p.id = stringTONumber(player.id);;
-        }
-        p.firstName = player.firstName;
-        p.lastName = player.lastName;
-        p.phoneNumber = player.phoneNumber;
-        p.mnbPlayerId = player.mnbPlayerId;
-        p.teamId = player.teamId;
-        p.competitionId = player.competitionId;
+      if (player) {
+            // changed the type of player from "Player" to any as id should be integer for edit mode
+            // and while using formdata content-type id is of type string
+            let p = new Player();
+            if (player.id) {
+                p.id = stringTONumber(player.id);;
+            }
 
-        var dateParts = (player.dateOfBirth).split("-");
-        var dateObject = new Date(+dateParts[2], dateParts[1] - 1, +dateParts[0]); 
-        p.dateOfBirth = new Date(dateObject);
+            // Getting existing player for the id if we have a player already
+            // for checking with email so we can update invite status.
+            let existingPlayer = await this.playerService.findById(p.id);
 
-        if (player) {
+            p.firstName = player.firstName;
+            p.lastName = player.lastName;
+            p.phoneNumber = player.phoneNumber;
+            p.mnbPlayerId = player.mnbPlayerId;
+            p.teamId = player.teamId;
+            p.competitionId = player.competitionId;
+            p.positionId = player.positionId;
+            p.shirt = player.shirt;
+            p.phoneNumber = player.phoneNumber;
+            p.nameFilter = player.nameFilter;
+            p.mnbPlayerId = player.mnbPlayerId;
+
+            if (existingPlayer && existingPlayer.email === player.email) {
+              p.email = player.email;
+              p.inviteStatus = player.inviteStatus;
+            } else {
+              p.email = player.email;
+              p.inviteStatus = null;
+            }
+
+            if (player.dateOfBirth) {
+                const dateParts = (player.dateOfBirth).split("-");
+                const dateObject = new Date(+dateParts[2], dateParts[1] - 1, +dateParts[0]);
+                p.dateOfBirth = new Date(dateObject);
+            }
             if (file) {
                 if (isPhoto(file.mimetype)) {
                     let filename = `/media/${player.competitionId}/${player.teamId}/${player.id}_${timestamp()}.${fileExt(file.originalname)}`;
@@ -75,7 +94,7 @@ export class PlayerController extends BaseController {
                 }
             }
             let saved = await this.playerService.createOrUpdate(p);
-            return await this.playerService.findById(saved.id);
+            return this.playerService.findById(saved.id);
         } else {
             return response.status(400).send({ name: 'validation_error', message: 'Player required' });
         }
@@ -157,7 +176,7 @@ export class PlayerController extends BaseController {
                         let teamId = await this.teamService.findByNameAndCompetition(i.team, competitionId)
                         if (teamId) {
                             //var parts =i.DOB.split('/');
-                            //var dateOfBirth = new Date(parts[0], parts[1] - 1, parts[2]); 
+                            //var dateOfBirth = new Date(parts[0], parts[1] - 1, parts[2]);
 
                             let playerObj = new Player();
                             playerObj.teamId = teamId[0].id;

@@ -45,7 +45,7 @@ export default class CompetitionService extends BaseService<Competition> {
             [userId, requestFilter.paging.limit, requestFilter.paging.offset]);
 
             if (result != null) {
-                let totalCount = result[1].find(x=>x).totalCount;
+                let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
                 let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);
                 responseObject["competitions"] = result[0];
                 return responseObject;

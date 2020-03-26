@@ -9,7 +9,6 @@ import {authToken, fileExt, isNullOrEmpty, timestamp} from "../utils/Utils";
 
 @JsonController('/event')
 export class EventController  extends BaseController {
-
     @Authorized()
     @Get('/id/:id')
     async get(@Param("id") id: number) {
@@ -18,10 +17,18 @@ export class EventController  extends BaseController {
 
     @Authorized()
     @Get("/occurrences")
-    async find(
+    async findOccurrences(
         @HeaderParam("authorization") user: User,
     ): Promise<EventOccurrence[]> {
-        return this.eventService.findByParams(user.id);
+        return this.eventService.findUserEventOccurrences(user.id);
+    }
+
+    @Authorized()
+    @Get("/byIds")
+    async findEvents(
+      @QueryParam("ids") ids: number[],
+    ): Promise<Event[]> {
+      return this.eventService.findEventsById(ids);
     }
 
     @Authorized()
@@ -29,40 +36,46 @@ export class EventController  extends BaseController {
     async create(
         @Body() event: Event,
         @HeaderParam("authorization") user: User,
-        @Res() response: Response)
-        {
-            if (event.frequency === 'Weekly')
-            {
-                var eventID = await this.eventService.createEvent(event, user.id);
-                for (let i = 0; i < event.repeatNumber; i++)
-                {
-                    var startTime = new Date(event.startTime);
-                    startTime.setDate(startTime.getDate() + event.repeatNumber * 7);
-                    var endTime = new Date(event.endTime);
-                    endTime.setDate(endTime.getDate() + event.repeatNumber * 7);
-                    await this.eventService.creatEventOccurrence(eventID['identifiers'][0].id , event.allDay , startTime, endTime, user.id);
-                }
-                await this.eventService.creatEventInvitee(eventID['identifiers'][0].id ,event['invitees'][0].entityId, event['invitees'][0].entityTypeId);
-            }
-            else if (event.frequency === 'Daily')
-            {
-                var eventID = await this.eventService.createEvent(event, user.id);
-                for (let i = 0; i < event.repeatNumber; i++)
-                {
-                    var startTime = new Date(event.startTime);
-                    startTime.setDate(startTime.getDate() + event.repeatNumber);
-                    var endTime = new Date(event.endTime);
-                    endTime.setDate(endTime.getDate() + event.repeatNumber);
+        @Res() response: Response
+    ) {
+          const savedEvent = await this.eventService.createEvent(event, user.id);
+          this.eventService.createEventInvitee(
+              savedEvent['identifiers'][0].id,
+              event['invitees'][0].entityId,
+              event['invitees'][0].entityTypeId
+          );
 
-                    await this.eventService.creatEventOccurrence(eventID['identifiers'][0].id, event.allDay , startTime, endTime, user.id);
+          if (event.frequency.toLowerCase() === Event.WEEKLY.toLowerCase() ||
+              event.frequency.toLowerCase() === Event.DAILY.toLowerCase()) {
+                const dateIncrementBy =
+                    event.frequency.toLowerCase() === Event.WEEKLY ? 7 : 1;
+                const promises = [];
+
+                for (let i = 0; i < event.repeatNumber; i++) {
+                    let startTime = new Date(event.startTime);
+                    startTime.setDate(startTime.getDate() + (i * dateIncrementBy));
+                    let endTime = new Date(event.endTime);
+                    endTime.setDate(endTime.getDate() + (i * dateIncrementBy));
+
+                    promises.push(
+                      this.eventService.createEventOccurrence(
+                        savedEvent['identifiers'][0].id ,
+                        event.allDay ,
+                        startTime,
+                        endTime,
+                        user.id
+                      )
+                    );
                 }
-                await this.eventService.creatEventInvitee(eventID['identifiers'][0].id ,event['invitees'][0].entityId, event['invitees'][0].entityTypeId);
-            }
-            else
-            {
-                var eventID = await this.eventService.createEvent(event, user.id);
-                await this.eventService.creatEventOccurrence(eventID['identifiers'][0].id, event.allDay , event.startTime, event.endTime, user.id);
-                await this.eventService.creatEventInvitee(eventID['identifiers'][0].id ,event['invitees'][0].entityId, event['invitees'][0].entityTypeId);
+                await Promise.all(promises);
+            } else {
+                await this.eventService.createEventOccurrence(
+                  savedEvent['identifiers'][0].id,
+                  event.allDay ,
+                  event.startTime,
+                  event.endTime,
+                  user.id
+                );
             }
             return response.status(200).send({ "success" : true});
         }

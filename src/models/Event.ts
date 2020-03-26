@@ -1,8 +1,12 @@
-import {BaseEntity, Column, Entity, PrimaryGeneratedColumn} from 'typeorm-plus';
-import {IsBoolean, IsNumber, IsString, IsDate} from "class-validator";
+import {BaseEntity, Column, Entity, PrimaryGeneratedColumn, OneToOne, JoinColumn} from 'typeorm-plus';
+import {IsBoolean, IsNumber, IsString, IsDate, ValidateNested} from "class-validator";
+import {Venue} from './Venue';
+import {VenueCourt} from './VenueCourt';
 
 @Entity()
 export class Event extends BaseEntity {
+    public static WEEKLY: string = 'weekly';
+    public static DAILY: string = 'daily';
 
     @IsNumber()
     @PrimaryGeneratedColumn()
@@ -67,4 +71,14 @@ export class Event extends BaseEntity {
     @IsDate()
     @Column()
     deleted_at: Date;
+
+    @ValidateNested()
+    @OneToOne(type => Venue)
+    @JoinColumn()
+    venue: Venue;
+
+    @ValidateNested()
+    @OneToOne(type => VenueCourt)
+    @JoinColumn()
+    venueCourt: VenueCourt;
 }

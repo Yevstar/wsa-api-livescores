@@ -27,6 +27,7 @@ import {Incident} from "../models/Incident";
 import {Lineup} from "../models/Lineup";
 import {IncidentPlayer} from "../models/IncidentPlayer";
 import {Round} from "../models/Round";
+import {RequestFilter} from "../models/RequestFilter";
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
@@ -143,6 +144,21 @@ export class MatchController extends BaseController {
             return {live, upcoming, ended};
         } else {
             return {live: [], upcoming: [], ended: []}
+        }
+    }
+
+    @Post('/admin')
+    async admin(
+        @QueryParam('competitionId') competitionId: number,
+        @Body() requestFilter: RequestFilter,
+        @Res() response: Response
+    ): Promise<any> {
+        // Add all teams of supplied players.
+        if (competitionId && requestFilter) {
+            return this.matchService.loadAdmin(competitionId, requestFilter);
+        } else {
+            return response.status(200).send(
+                {name: 'search_error', message: `Required fields are missing`});
         }
     }
 

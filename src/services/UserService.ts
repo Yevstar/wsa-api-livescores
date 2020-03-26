@@ -160,8 +160,8 @@ export default class UserService extends BaseService<User> {
             port: 587,
             secure: false, // true for 465, false for other ports
             auth: {
-                user: process.env.AUTHEMAIL, // generated ethereal user
-                pass: process.env.AUTHPASSWORD // generated ethereal password
+                user: process.env.MAIL_USERNAME, // generated ethereal user
+                pass: process.env.MAIL_PASSWORD // generated ethereal password
             },
 
             tls: {

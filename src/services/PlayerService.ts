@@ -1,8 +1,8 @@
 import {Service} from "typedi";
 import BaseService from "./BaseService";
 import {Player} from "../models/Player";
-import {RequestFilter} from "../models/RequestFilter";
 import {PlayerMinuteTracking} from "../models/PlayerMinuteTracking";
+import {RequestFilter} from "../models/RequestFilter";
 import {paginationData, stringTONumber } from "../utils/Utils";
 
 @Service()
@@ -100,7 +100,7 @@ export default class PlayerService extends BaseService<Player> {
             [competitionId, aggregate, requestFilter.paging.limit, requestFilter.paging.offset]);
 
             if (result != null) {
-                let totalCount = result[1].find(x=>x).totalCount;
+                let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
                 let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);
                 responseObject["stats"] = result[0];
                 return responseObject;
@@ -125,7 +125,7 @@ export default class PlayerService extends BaseService<Player> {
         [competitionId, requestFilter.paging.offset, requestFilter.paging.limit]);
 
         if (result != null) {
-            let totalCount = result[1].find(x=>x).totalCount;
+            let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
             let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);
             responseObject["stats"] = result[0];
             return responseObject;
