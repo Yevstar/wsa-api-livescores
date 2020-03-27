@@ -36,17 +36,13 @@ export class User extends BaseEntity {
     @Column()
     dateOfBirth: Date;
 
-    // @IsString()
-    // @Column()
-    // gender: string;
-
     @IsNumber()
     @Column()
     genderRefId: number;
 
-    // @IsNumber()
-    // @Column()
-    // type: number;
+    @IsNumber()
+    @Column()
+    statusRefId: number;
 
     @IsString()
     @Column({select: false})

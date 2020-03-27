@@ -10,6 +10,10 @@ export class Player extends BaseEntity {
     @PrimaryGeneratedColumn()
     id: number;
 
+    @IsNumber()
+    @Column()
+    userId: number;
+    
     @IsString()
     @Column()
     firstName: string;

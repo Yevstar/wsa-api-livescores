@@ -150,12 +150,13 @@ export class MatchController extends BaseController {
     @Post('/admin')
     async admin(
         @QueryParam('competitionId') competitionId: number,
+        @QueryParam('teamId') teamId: number,
         @Body() requestFilter: RequestFilter,
         @Res() response: Response
     ): Promise<any> {
         // Add all teams of supplied players.
         if (competitionId && requestFilter) {
-            return this.matchService.loadAdmin(competitionId, requestFilter);
+            return this.matchService.loadAdmin(competitionId, teamId, requestFilter);
         } else {
             return response.status(200).send(
                 {name: 'search_error', message: `Required fields are missing`});

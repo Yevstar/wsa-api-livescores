@@ -106,7 +106,11 @@ export class BaseController {
 
     protected async updateFirebaseData(user: User, password: string) {
         user.password = password;
-        let fbUser = await this.firebaseService.loadUserByUID(user.firebaseUID);
+        let fbUser;
+        if (user.firebaseUID) {
+          fbUser = await this.firebaseService.loadUserByUID(user.firebaseUID);
+        }
+
         if (!fbUser || !fbUser.uid) {
             fbUser = await this.firebaseService.createUser(user.email, password);
         } else {
@@ -121,13 +125,18 @@ export class BaseController {
     }
 
     protected async checkFirestoreDatabase(user, update = false) {
+      if (user.firebaseUID) {
         let db = admin.firestore();
         let usersCollectionRef = await db.collection('users');
         let queryRef = usersCollectionRef.where('uid', '==', user.firebaseUID);
         let querySnapshot = await queryRef.get();
         if (querySnapshot.empty) {
+          if (user.photoUrl) {
+            usersCollectionRef.doc(user.firebaseUID).set({
+                'avatar': user.photoUrl
+            });
+          }
           usersCollectionRef.doc(user.firebaseUID).set({
-              'avatar': user.photoUrl,
               'email': user.email,
               'firstName': user.firstName,
               'lastName': user.lastName,
@@ -140,8 +149,12 @@ export class BaseController {
               ]
           });
         } else if (update) {
+          if (user.photoUrl) {
+            usersCollectionRef.doc(user.firebaseUID).update({
+              'avatar': user.photoUrl
+            });
+          }
           usersCollectionRef.doc(user.firebaseUID).update({
-            'avatar': user.photoUrl,
             'email': user.email,
             'firstName': user.firstName,
             'lastName': user.lastName,
@@ -154,5 +167,6 @@ export class BaseController {
             ]
           });
         }
+      }
     }
 }

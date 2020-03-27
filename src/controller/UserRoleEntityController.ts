@@ -19,67 +19,97 @@ export class UserRoleEntityController extends BaseController {
 
         let player = await this.playerService.findById(id);
         let playerRole = await this.userService.getRole("player");
-        let playerEntityType = await this.userService.getEntityType("PLAYER");
+        let teamEntityType = await this.userService.getEntityType("TEAM");
 
         let ure = new UserRoleEntity();
-        ure.entityTypeId = playerEntityType;
-        ure.entityId = id;
+        ure.entityTypeId = teamEntityType;
+        ure.entityId = player.teamId;
         ure.roleId = playerRole;
         ure.userId = user.id;
-        let savedUre = await this.ureService.createOrUpdate(ure);
+        ure.createdBy = user.id;
+
         player.inviteStatus = "REGISTERED";
-        this.playerService.createOrUpdate(player);
-        await this.notifyChangeRole(ure);
-        return this.ureService.findById(savedUre.id);
+        player.userId = user.id;
+
+        let playerURE = await this.ureService.createOrUpdate(ure);
+
+        await this.playerService.createOrUpdate(player);
+        await this.notifyChangeRole(playerURE);
+
+        return response.status(200).send({success: true});
     }
 
     @Authorized()
-    @Post('/linkChildUser')
-    async linkChildUser (
+    @Post('/linkChildPlayer')
+    async linkChildPlayer (
         @HeaderParam("authorization") user: User,
         @QueryParam("id", {required: true}) id: number,
         @Res() response: Response) {
 
+        const promises = [];
+
         let player = await this.playerService.findById(id);
         let parentRole = await this.userService.getRole("parent");
+        let playerRole = await this.userService.getRole("player");
         let userEntityType = await this.userService.getEntityType("USER");
+        let teamEntityType = await this.userService.getEntityType("TEAM");
+
+        var childUser;
+        if (player.userId != null || player.userId != undefined) {
+          childUser = await this.userService.findById(player.userId);
+        }
+        if (childUser == null || childUser == undefined) {
+          /// Creating user for player if doesn't exist for the email in the db
+          let email = `player${player.id}@wsa.com`;
+
+          const childUserPassword = md5('password');
+
+          childUser = new User();
+          childUser.email = email;
+          childUser.password = childUserPassword;
+          childUser.firstName = player.firstName;
+          childUser.lastName = player.lastName;
+          childUser.dateOfBirth = player.dateOfBirth;
+          childUser.statusRefId = 0;
+
+          childUser = await this.userService.createOrUpdate(childUser);
+          player.userId = childUser.id;
+
+          promises.push(
+            this.updateFirebaseData(childUser, childUserPassword)
+          );
+        }
 
         let ure = new UserRoleEntity();
         ure.entityTypeId = userEntityType;
-        ure.entityId = id;
+        ure.entityId = childUser.id;
         ure.roleId = parentRole;
         ure.userId = user.id;
-        let savedUre = await this.ureService.createOrUpdate(ure);
+        ure.createdBy = user.id;
+
+        let parentURE = await this.ureService.createOrUpdate(ure);
+
+        let newUserURE = new UserRoleEntity();
+        newUserURE.entityTypeId = teamEntityType;
+        newUserURE.entityId = player.teamId;
+        newUserURE.roleId = playerRole; // Player
+        newUserURE.userId = childUser.id;
+        newUserURE.createdBy = user.id;
+
+        promises.push(
+          this.ureService.createOrUpdate(newUserURE)
+        );
+
         player.inviteStatus = "REGISTERED";
-        this.playerService.createOrUpdate(player);
 
-        /// Creating user for player if doesn't exist for the email in the db
-        let email = `player${player.id}@wsa.com`;
-        const existing = await this.userService.findByEmail(email);
-        if (!existing) {
-          const newUserPassword = md5('password');
-          let newUser = new User();
-          newUser.email = email;
-          newUser.password = newUserPassword;
-          newUser.firstName = player.firstName;
-          newUser.lastName = player.lastName;
-          newUser.dateOfBirth = player.dateOfBirth;
-          let savedUser = await this.userService.createOrUpdate(newUser);
+        promises.push(
+          this.playerService.createOrUpdate(player)
+        );
 
-          await this.updateFirebaseData(newUser, newUserPassword);
+        await Promise.all(promises);
+        await this.notifyChangeRole(parentURE);
 
-          let newUserURE = new UserRoleEntity();
-          newUserURE.entityTypeId = EntityType.TEAM;
-          newUserURE.entityId = player.teamId;
-          newUserURE.roleId = Role.PLAYER; // Player
-          newUserURE.userId = savedUser.id;
-          newUserURE.createdBy = user.id;
-          this.ureService.createOrUpdate(newUserURE);
-        }
-
-        await this.notifyChangeRole(ure);
-
-        return this.ureService.findById(savedUre.id);
+        return response.status(200).send({success: true});
     }
 
 
