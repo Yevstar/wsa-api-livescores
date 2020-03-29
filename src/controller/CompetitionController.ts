@@ -221,4 +221,13 @@ export class CompetitionController extends BaseController {
         return data;
 
     }
+
+    @Authorized()
+    @Get('/venueCourt')
+    async findVenueCourt(
+        @QueryParam('competitionId') competitionId: number,
+        @QueryParam('name') name: string
+    ) {
+        return await this.competitionVenueService.findByCourtName(name, competitionId);
+    }
 }

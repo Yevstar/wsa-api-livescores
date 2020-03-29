@@ -36,7 +36,7 @@ export default class CompetitionVenueService extends BaseService<CompetitionVenu
         .select(['vc.id as id'])
         .innerJoin(Venue, 'v', '(v.id = vc.venueId)')
         .innerJoin(CompetitionVenue, 'cv', '(cv.venueId = v.id)')
-        .andWhere('cv.id = :competitionId', { competitionId })
+        .andWhere('cv.competitionId = :competitionId', { competitionId })
         .andWhere("vc.name = :name", { name });
     return query.getMany();
   }

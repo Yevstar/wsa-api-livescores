@@ -1035,7 +1035,9 @@ export class MatchController extends BaseController {
                 match.mainBreakDuration = i.mainBreakDuration;
                 match.mnbMatchId = i.mnbMatchId;
                 match.roundId = roundData.id;
-                match.venueCourtId = venueData.id;
+                if (venueData && venueData[0] != null) {
+                    match.venueCourtId = venueData[0].id;
+                }
                 match.team1Score = 0;
                 match.team2Score = 0;
 
