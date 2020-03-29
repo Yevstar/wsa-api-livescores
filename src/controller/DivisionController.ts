@@ -57,6 +57,16 @@ export class DivisionController extends BaseController {
     }
 
     @Authorized()
+    @Get('/find')
+    async findByName(
+        @QueryParam('competitionId') competitionId: number,
+        @QueryParam('name') name: string
+    ): Promise<any> {
+        let data = await this.divisionService.findByName(name, competitionId)
+        return data;
+    }
+
+    @Authorized()
     @Post('/import')
     async importDivision(
         @UploadedFile("file", { required: true }) file: Express.Multer.File,

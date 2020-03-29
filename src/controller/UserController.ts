@@ -437,14 +437,16 @@ export class UserController extends BaseController {
                 const saved = await this.userService.createOrUpdate(managerData);
                 logger.info(`Manager ${managerData.email} signed up.`);
                 
-                if (!isArrayEmpty(managerData.teams)) {
+                if (isArrayEmpty(managerData.teams)) {
                     let competitionData = await this.competitionService.findById(competitionId)
                     this.userService.sentMail(user, managerData.teams, competitionData, 'manager', saved, password);
                 }
 
                 managerData.id = saved.id;
             }
-        } 
+        } else if (managerData.firstName && managerData.lastName && managerData.email) {
+            await this.userService.createOrUpdate(managerData);
+        }
 
         // existing user - delete existing team assignments
         if (!newUser) {
@@ -463,7 +465,7 @@ export class UserController extends BaseController {
             ureArray.push(ure)
         }
         await this.ureService.batchCreateOrUpdate(ureArray);
-        
+        await this.notifyChangeRole(managerData.id);
         return newUser;
     }
 
@@ -510,14 +512,16 @@ export class UserController extends BaseController {
                 const saved = await this.userService.createOrUpdate(userData);
                 logger.info(`Manager ${userData.email} signed up.`);
                 
-                if (!isArrayEmpty(userData.teams)) {
+                if (isArrayEmpty(userData.teams)) {
                     let competitionData = await this.competitionService.findById(competitionId)
                     this.userService.sentMail(user, userData.teams, competitionData, 'member', saved, password);
                 }
 
                 userData.id = saved.id;
             }
-        } 
+        } else if (userData.firstName && userData.lastName && userData.email) {
+            await this.userService.createOrUpdate(userData);
+        }
 
         // existing user - delete existing team assignments
         if (!newUser) {
@@ -536,7 +540,7 @@ export class UserController extends BaseController {
             ureArray.push(ure)
         }
         await this.ureService.batchCreateOrUpdate(ureArray);
-        
+        await this.notifyChangeRole(user.id);
         return newUser;
     }
 
@@ -633,6 +637,18 @@ export class UserController extends BaseController {
             this.userService.sentMail(user, "", "", "superAdmin", saved, password);
             return saved;
 
+        }
+    }
+
+    private async notifyChangeRole(userId: number) {
+        let tokens = (await this.deviceService.getUserDevices(userId)).map(device => device.deviceId);
+        if (tokens && tokens.length > 0) {
+            this.firebaseService.sendMessage({
+                tokens: tokens,
+                data: {
+                    type: 'user_role_updated'
+                }
+            })
         }
     }
 }

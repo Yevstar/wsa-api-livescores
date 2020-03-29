@@ -8,8 +8,6 @@ import {EventOccurrence} from "../models/EventOccurrence";
 import {Role} from "../models/security/Role";
 import {EntityType} from "../models/security/EntityType";
 import {isArrayEmpty} from "../utils/Utils";
-// import {UserRoleEntity} from "../models/security/UserRoleEntity";
-// import {LinkedEntities} from "../models/views/LinkedEntities";
 
 @Service()
 export default class EventService extends BaseService<Event> {
@@ -20,16 +18,14 @@ export default class EventService extends BaseService<Event> {
 
     public async findUserEventOccurrences(
         userId: number
-    ): Promise<EventOccurrence[]> {
-        let roleIds = [Role.MANAGER, Role.PLAYER];
-        let entityTypeIds = [EntityType.TEAM, EntityType.USER];
-
+    ): Promise<any> {
         let result = await this.entityManager.query(
-          "call wsa.usp_get_eventOccurrences(?, ?, ?, ?)",[
+          "call wsa.usp_get_eventOccurrences(?, ?, ?, ?, ?)",[
             userId,
-            EntityType.USER,
-            roleIds.toString(),
-            entityTypeIds.toString()
+            Role.MANAGER,
+            Role.PLAYER,
+            EntityType.TEAM,
+            EntityType.USER
           ]);
         if (isArrayEmpty(result)) {
           return result[0];

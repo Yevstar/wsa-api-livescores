@@ -59,8 +59,9 @@ export default class TeamService extends BaseService<Team> {
 
     public async findTeamsWithUsers(
         competitionId: number = undefined,
+        divisionId: number = undefined,
     ): Promise<Team[]> {
-        let result = await this.entityManager.query("call wsa.usp_get_teams(?)",[competitionId]);
+        let result = await this.entityManager.query("call wsa.usp_get_teams(?,?)",[competitionId, divisionId]);
         if (isArrayEmpty(result)) {
             if(result!= null && result[0]!= null) {
                 return result[0];
@@ -216,7 +217,7 @@ export default class TeamService extends BaseService<Team> {
             loggedInURL ${loggedInURL}`);
         let mailHtml = `${user.firstName} ${user.lastName} would like to invite
         you to use the Netball LiveScores App so that you can view team news,
-        messages and events. Ofcourse, this is in addition to viewing live
+        messages and events. Of course, this is in addition to viewing live
         scores, draws and ladders!
         <br><br> 1. If you don't have the App yet, download it from
         <a href=https://www.worldsportaction.com>worldsportaction.com</a>,

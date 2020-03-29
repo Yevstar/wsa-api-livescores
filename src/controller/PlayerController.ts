@@ -25,14 +25,6 @@ export class PlayerController extends BaseController {
     }
 
     @Authorized()
-    @Get('/byIds')
-    async playersByIds(
-      @QueryParam('playerIds') playerIds: number[],
-    ): Promise<Player[]> {
-        return this.playerService.findByIds(playerIds);
-    }
-
-    @Authorized()
     @Post('/')
     async create(
         @Body() player: any,

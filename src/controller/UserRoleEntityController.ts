@@ -6,6 +6,7 @@ import {User} from "../models/User";
 import { md5 } from "../utils/Utils";
 import {EntityType} from "../models/security/EntityType";
 import {Role} from "../models/security/Role";
+import admin from "firebase-admin";
 
 @JsonController('/ure')
 export class UserRoleEntityController extends BaseController {
@@ -16,6 +17,8 @@ export class UserRoleEntityController extends BaseController {
         @HeaderParam("authorization") user: User,
         @QueryParam("id", {required: true}) id: number,
         @Res() response: Response) {
+
+        const promises = [];
 
         let player = await this.playerService.findById(id);
         let playerRole = await this.userService.getRole("player");
@@ -33,7 +36,14 @@ export class UserRoleEntityController extends BaseController {
 
         let playerURE = await this.ureService.createOrUpdate(ure);
 
-        await this.playerService.createOrUpdate(player);
+        promises.push(
+          this.playerService.createOrUpdate(player)
+        );
+        promises.push(
+          this.addUserToTeamChat(player.teamId, user)
+        );
+        await Promise.all(promises);
+
         await this.notifyChangeRole(playerURE);
 
         return response.status(200).send({success: true});
@@ -61,22 +71,33 @@ export class UserRoleEntityController extends BaseController {
         if (childUser == null || childUser == undefined) {
           /// Creating user for player if doesn't exist for the email in the db
           let email = `player${player.id}@wsa.com`;
+          childUser = await this.userService.findByEmail(email);
+          if (childUser == null || childUser == undefined) {
+              const childUserPassword = md5('password');
 
-          const childUserPassword = md5('password');
+              childUser = new User();
+              childUser.email = email;
+              childUser.password = childUserPassword;
+              childUser.firstName = player.firstName;
+              childUser.lastName = player.lastName;
+              childUser.dateOfBirth = player.dateOfBirth;
+              childUser.statusRefId = 0;
 
-          childUser = new User();
-          childUser.email = email;
-          childUser.password = childUserPassword;
-          childUser.firstName = player.firstName;
-          childUser.lastName = player.lastName;
-          childUser.dateOfBirth = player.dateOfBirth;
-          childUser.statusRefId = 0;
-
-          childUser = await this.userService.createOrUpdate(childUser);
+              childUser = await this.userService.createOrUpdate(childUser);
+              promises.push(
+                this.updateFirebaseData(childUser, childUserPassword)
+              );
+          } else {
+              childUser.statusRefId = 0;
+              promises.push(
+                this.userService.createOrUpdate(childUser)
+              );
+          }
           player.userId = childUser.id;
-
+        } else {
+          childUser.statusRefId = 0;
           promises.push(
-            this.updateFirebaseData(childUser, childUserPassword)
+            this.userService.createOrUpdate(childUser)
           );
         }
 
@@ -98,6 +119,9 @@ export class UserRoleEntityController extends BaseController {
 
         promises.push(
           this.ureService.createOrUpdate(newUserURE)
+        );
+        promises.push(
+          this.addUserToTeamChat(player.teamId, childUser)
         );
 
         player.inviteStatus = "REGISTERED";
@@ -125,20 +149,17 @@ export class UserRoleEntityController extends BaseController {
         }
     }
 
-    @Post("/broadcast")
-    async broadcastUre(
-        @QueryParam("userId", {required: true}) userId: number,
-        @Res() response: Response
-    ) {
-        let tokens = (await this.deviceService.getUserDevices(userId)).map(device => device.deviceId);
-        if (tokens && tokens.length > 0) {
-            this.firebaseService.sendMessage({
-                tokens: tokens,
-                data: {
-                    type: 'user_role_updated'
-                }
-            })
-        }
-        return response.status(200).send({success: true});
+    private async addUserToTeamChat(teamId: number, user: User) {
+      let db = admin.firestore();
+      let chatsCollectionRef = await db.collection('chats');
+      let queryRef = chatsCollectionRef.where('teamId', '==', teamId);
+      let querySnapshot = await queryRef.get();
+
+      if (!querySnapshot.empty) {
+        let teamChatDoc = chatsCollectionRef.doc(`team${teamId.toString()}chat`);
+        teamChatDoc.update({
+          'uids': admin.firestore.FieldValue.arrayUnion(user.firebaseUID)
+        });
+      }
     }
 }

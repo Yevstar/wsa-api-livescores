@@ -63,9 +63,10 @@ export class RosterController extends BaseController {
         }
     }
 
-    @Authorized('assign_scorer')
+    @Authorized()
     @Delete('/')
-    async delete(@QueryParam("id") id: number, @Res() response: Response) {
+    async delete(@QueryParam("id") id: number, @Res() response: Response) { 
+        //TODO: Add back in assign_scorer authorisation
         let roster = await this.rosterService.findById(id);
         if (roster) {
             let tokens = (await this.deviceService.findScorerDeviceFromRoster(undefined, id)).map(device => device.deviceId);

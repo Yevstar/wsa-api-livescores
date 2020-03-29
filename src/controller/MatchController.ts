@@ -999,22 +999,22 @@ export class MatchController extends BaseController {
 
                 let timeZone = `${dateArray[2]}-${dateArray[1]}-${dateArray[0]}T${stringHr}:${min}`;
                 let a = new Date(timeZone);
-                let divisionData = await this.divisionService.findByName(i.Grade, competitionId);
+                let divisionData = await this.divisionService.findByName(i["Grade"], competitionId);
                 let team1Data = await this.teamService.findByNameAndCompetition(i["Home Team"], competitionId);
                 let team2Data = await this.teamService.findByNameAndCompetition(i["Away Team"], competitionId);
                 let roundData;
                 if (divisionData && divisionData[0] != null) {
-                    roundData = await this.roundService.findByName(competitionId, i.Round, divisionData[0].id);
+                    roundData = await this.roundService.findByName(competitionId, i["Round"], divisionData[0].id);
                 } else {
                     return response.status(400).send({
                         name: 'validation_error',
-                        message: `Update incident not supported`
+                        message: `Issue uploading matches`
                     });
                 }
 
                 if (!roundData) {
                     let round = new Round();
-                    let value = i.Round.split(" ")[1];
+                    let value = stringTONumber(i["Round"].split(" ")[1]);
                     round.competitionId = competitionId;
                     if (divisionData && divisionData[0] != null) {
                         round.divisionId = divisionData[0].id;

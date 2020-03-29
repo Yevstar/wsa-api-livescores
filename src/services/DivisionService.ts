@@ -38,8 +38,8 @@ export default class DivisionService extends BaseService<Division> {
     public async findByName(name?: string, competitionId?: number): Promise<Division[]> {
         let query = this.entityManager.createQueryBuilder(Division, 'd')
         if (name && competitionId) {
-            query = query.where('LOWER(d.name) like :name', { name: `${name.toLowerCase()}%` });
-            query = query.where('competitionId = :competitionId', { competitionId: `${competitionId}%` });
+            query = query.andWhere('LOWER(d.name) = :name', { name: `${name.toLowerCase()}` });
+            query = query.andWhere('competitionId = :competitionId', { competitionId: `${competitionId}%` });
             return query.getMany();
         } else {
             return [];

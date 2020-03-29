@@ -4,12 +4,13 @@ import { Team } from '../models/Team';
 import { Player } from '../models/Player'
 import { TeamLadder } from "../models/views/TeamLadder";
 import { BaseController } from "./BaseController";
-import {User} from "../models/User";
+import { User } from "../models/User";
 import { UserRoleEntity } from "../models/security/UserRoleEntity";
 import { Role } from "../models/security/Role";
 import { EntityType } from "../models/security/EntityType";
 import { isArrayEmpty, isNullOrEmpty, isPhoto, fileExt, md5, stringTONumber } from "../utils/Utils"
 import {logger} from '../logger';
+import admin from "firebase-admin";
 
 @JsonController('/teams')
 export class TeamController extends BaseController {
@@ -27,12 +28,18 @@ export class TeamController extends BaseController {
       @QueryParam("competitionId") competitionId: number,
       @QueryParam("teamName") teamName: string,
     ): Promise<Team[]> {
-      return this.teamService.findTeams(
+      let teamsList = await this.teamService.findTeams(
         teamId,
         clubId,
         competitionId,
         teamName
       );
+
+      await Promise.all(teamsList.map((team: Team) => {
+          return this.checkTeamFirestoreDatabase(team);
+      }));
+
+      return teamsList;
     }
 
     @Authorized()
@@ -46,9 +53,10 @@ export class TeamController extends BaseController {
 
     @Get('/list')
     async listCompetitionTeams(
-        @QueryParam('competitionId') competitionId: number
+        @QueryParam('competitionId') competitionId: number,
+        @QueryParam('divisionId') divisionId: number
     ): Promise<Team[]> {
-        return this.teamService.findTeamsWithUsers(competitionId);
+        return this.teamService.findTeamsWithUsers(competitionId, divisionId);
     }
 
     @Get('/')
@@ -115,7 +123,7 @@ export class TeamController extends BaseController {
             return response
                 .status(422)
                 .send({ name: 'validation_error', message: 'Not all required fields filled' });
-        } 
+        }
 
         if (!teamData.id) {
             const existing = await this.teamService.findByNameAndCompetition(teamData.name, teamData.competitionId);
@@ -128,7 +136,7 @@ export class TeamController extends BaseController {
                 });
             }
         }
-        
+
         let team = new Team();
         if (teamData.id) {
             team.id = stringTONumber(teamData.id);
@@ -144,7 +152,8 @@ export class TeamController extends BaseController {
         }
 
         let savedTeam = await this.teamService.createOrUpdate(team);
-        
+        this.checkTeamFirestoreDatabase(team);
+
         let managerIds: number[] = teamData.userIds? JSON.parse(teamData.userIds) : [];
         let savedUser: User;
         let password: string;
@@ -173,8 +182,8 @@ export class TeamController extends BaseController {
                 logger.info(`Manager ${managerInfo.email} signed up.`);
                 managerIds[managerIds.length + 1] = savedUser.id;
             }
-            
-        } 
+
+        }
 
         for (let managerId of managerIds) {
             if (managerId != 0) {
@@ -240,22 +249,48 @@ export class TeamController extends BaseController {
         let queryArr = [];
         for (let i of jsonObj) {
             if (i.name !== '') {
-                let divisionData = await this.divisionService.findByName(i.division, competitionId);
-                let clubData = await this.clubService.findByNameAndCompetitionId(i.club, competitionId);
+                let divisionData = await this.divisionService.findByName(i.Grade, competitionId);
+                let clubData = await this.clubService.findByNameAndCompetitionId(i.Organisation, competitionId);
                 let team = new Team();
-                team.name = i.team_name;
-                team.logoUrl = i.logo;
+                team.name = i.Team_Name;
+                team.logoUrl = i.Logo;
                 team.competitionId = competitionId;
                 if (divisionData.length > 0)
                     team.divisionId = divisionData[0].id; //DivisionData is an array
                 if (clubData.length > 0) {
-                    team.clubId = clubData[0].id; 
-                    team.organisationId = clubData[0].id; 
+                    team.clubId = clubData[0].id;
+                    team.organisationId = clubData[0].id;
                 }
                 queryArr.push(team);
             }
         }
         await this.teamService.batchCreateOrUpdate(queryArr);
+        await Promise.all(queryArr.map((team: Team) => {
+            return this.checkTeamFirestoreDatabase(team);
+        }));
         return response.status(200).send({ success: true });
+    }
+
+    private async checkTeamFirestoreDatabase(team: Team) {
+      let db = admin.firestore();
+      let teamsCollectionRef = await db.collection('teams');
+      let queryRef = teamsCollectionRef.where('id', '==', team.id);
+      let querySnapshot = await queryRef.get();
+
+      if (querySnapshot.empty) {
+        console.log('New');
+        teamsCollectionRef.doc(team.id.toString()).set({
+            'logoUrl': (team.logoUrl != null && team.logoUrl != undefined) ? team.logoUrl : null,
+            'id': team.id,
+            'name': team.name,
+        });
+      } else {
+        console.log('Update');
+        teamsCollectionRef.doc(team.id.toString()).update({
+          'logoUrl': (team.logoUrl != null && team.logoUrl != undefined) ? team.logoUrl : null,
+          'id': team.id,
+          'name': team.name,
+        });
+      }
     }
 }
