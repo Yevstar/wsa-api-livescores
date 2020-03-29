@@ -1002,9 +1002,11 @@ export class MatchController extends BaseController {
                 let divisionData = await this.divisionService.findByName(i["Grade"], competitionId);
                 let team1Data = await this.teamService.findByNameAndCompetition(i["Home Team"], competitionId);
                 let team2Data = await this.teamService.findByNameAndCompetition(i["Away Team"], competitionId);
+                let venueData = await this.competitionVenueService.findByCourtName(i["Venue"], competitionId);
                 let roundData;
                 if (divisionData && divisionData[0] != null) {
-                    roundData = await this.roundService.findByName(competitionId, i["Round"], divisionData[0].id);
+                    let rounds = await this.roundService.findByName(competitionId, i["Round"], divisionData[0].id);
+                    roundData = rounds[0];
                 } else {
                     return response.status(400).send({
                         name: 'validation_error',
@@ -1033,6 +1035,9 @@ export class MatchController extends BaseController {
                 match.mainBreakDuration = i.mainBreakDuration;
                 match.mnbMatchId = i.mnbMatchId;
                 match.roundId = roundData.id;
+                match.venueCourtId = venueData.id;
+                match.team1Score = 0;
+                match.team2Score = 0;
 
                 if (divisionData.length > 0)
                     match.divisionId = divisionData[0].id;

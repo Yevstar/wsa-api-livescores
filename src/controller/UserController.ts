@@ -402,18 +402,17 @@ export class UserController extends BaseController {
         @Body() managerData: User,
         @Res() response: Response) {
 
-        if (isNullOrEmpty(managerData.email) 
+        var newUser = false;
+        // if new user, search for user
+        if (!managerData.id) {
+            if (isNullOrEmpty(managerData.email) 
             || isNullOrEmpty(managerData.firstName) 
             || isNullOrEmpty(managerData.lastName) 
             || isNullOrEmpty(managerData.mobileNumber)) {
             return response
                 .status(422)
                 .send({ name: 'validation_error', message: 'Not all required fields filled' });
-        }
-
-        var newUser = false;
-        // if new user, search for user
-        if (!managerData.id) {
+            }
             const foundUser = await this.userService.findByEmail(managerData.email);
             // if user exists in our database, validate the rest of their details
             if (foundUser) {
@@ -477,7 +476,13 @@ export class UserController extends BaseController {
         @Body() userData: User,
         @Res() response: Response) {
 
-        if (isNullOrEmpty(userData.email) 
+        
+
+        var newUser = false;
+        // if new user, search for user
+        if (!userData.id) {
+
+            if (isNullOrEmpty(userData.email) 
             || isNullOrEmpty(userData.firstName) 
             || isNullOrEmpty(userData.lastName) 
             || isNullOrEmpty(userData.mobileNumber)) {
@@ -485,10 +490,7 @@ export class UserController extends BaseController {
                 .status(422)
                 .send({ name: 'validation_error', message: 'Not all required fields filled' });
         }
-
-        var newUser = false;
-        // if new user, search for user
-        if (!userData.id) {
+        
             const foundUser = await this.userService.findByEmail(userData.email);
             // if user exists in our database, validate the rest of their details
             if (foundUser) {

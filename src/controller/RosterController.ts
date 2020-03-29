@@ -189,5 +189,55 @@ export class RosterController extends BaseController {
         return response.status(200).send({success: true});
     }
 
+    // specific response to allow inline editing for admin
+    @Authorized()
+    @Post('/admin/assign')
+    async addAdminRoster(@Body() roster: Roster,
+                    @Res() response: Response) {
+        if (!roster) {
+            return response
+                .status(400).send({name: 'validation_error', message: 'Roster in body required.'});
+        }
+        let savedRoster = await this.rosterService.createOrUpdate(roster);
+        if (savedRoster) {
+            let tokens = (await this.deviceService.getUserDevices(savedRoster.userId)).map(device => device.deviceId);
+            if (tokens && tokens.length > 0) {
+                this.firebaseService.sendMessage({
+                    tokens: tokens,
+                    data: {type: 'add_scorer_match', rosterId: roster.id.toString(), matchId: roster.matchId.toString()}
+                })
+            }
+        }
+        return this.rosterService.findAdminRosterId(savedRoster.id);
+    }
+
+    // specific response to allow inline editing for admin
+    @Authorized()
+    @Delete('/admin')
+    async deleteAdminRoster(@QueryParam("id") id: number, @Res() response: Response) { 
+        let roster = await this.rosterService.findById(id);
+        if (roster) {
+            let tokens = (await this.deviceService.findScorerDeviceFromRoster(undefined, id)).map(device => device.deviceId);
+            let result = await this.rosterService.delete(roster);
+            if (result) {
+                if (tokens && tokens.length > 0) {
+                    this.firebaseService.sendMessageChunked({
+                        tokens: tokens,
+                        data: {
+                            type: 'remove_scorer_match',
+                            rosterId: id.toString(),
+                            matchId: roster.matchId.toString()
+                        }
+                    })
+                }
+                return null;
+            } else {
+                return response.status(200).send({delete: false});
+            }
+        } else {
+            return response.status(200).send({delete: false});
+        }
+    }
+
 }
 

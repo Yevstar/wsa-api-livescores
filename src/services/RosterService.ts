@@ -67,6 +67,16 @@ export default class RosterService extends BaseService<Roster> {
             .getOne();
     }
 
+    // to allow inline edit of rosters
+    public async findAdminRosterId(rosterId: number): Promise<any> {
+        let query = this.entityManager.createQueryBuilder(Roster, 'r')
+            .select(['distinct u.id as id', 'u.firstName as firstName', 'u.lastName as lastName',
+                'r.id as rosterId', 'r.status as rosterStatus'])
+            .innerJoin(User, 'u', '(u.id = r.userId)')
+            .andWhere("r.id = :rosterId", {rosterId});
+        return query.getRawOne();
+    }
+
     public async findByRole(competitionId: number, roleId: number): Promise<User[]> {
         let query = this.entityManager.createQueryBuilder(User, 'u')
             .select(['distinct u.id as id', 'u.email as email', 'u.firstName as firstName', 'u.lastName as lastName',
