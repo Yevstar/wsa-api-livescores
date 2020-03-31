@@ -49,8 +49,12 @@ export class TeamController extends BaseController {
         @HeaderParam("authorization") user: User)
     {
         this.deleteTeamFirestoreDatabase(id);
-        await this.ureService.deleteTeamUre(id, user.id);
-        await this.notifyChangeRole(user.id);
+        const deletdUREs = await this.ureService.deleteTeamUre(id, user.id);
+        await Promise.all(deletdUREs.map((ure: UserRoleEntity) => {
+            if (ure.userId != null || ure.userId != undefined) {
+                return this.notifyChangeRole(ure.userId);
+            }
+        }));
         return this.teamService.softDelete(id, user.id);
     }
 
@@ -211,8 +215,6 @@ export class TeamController extends BaseController {
             if (result) {
                 savedTeam.logoUrl = result['url'];
                 savedTeam = await this.teamService.createOrUpdate(savedTeam);
-                return savedTeam;
-
             } else {
                 return response
                     .status(400).send(
@@ -223,9 +225,9 @@ export class TeamController extends BaseController {
             if (organisation.logoUrl) {
                 savedTeam.logoUrl = organisation.logoUrl;
                 savedTeam = await this.teamService.createOrUpdate(savedTeam);
-                return savedTeam;
             }
-        } 
+        }
+        return savedTeam;
     }
 
     @Authorized()

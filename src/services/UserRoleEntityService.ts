@@ -22,12 +22,20 @@ export default class UserRoleEntityService extends BaseService<UserRoleEntity> {
         return query.execute();
     }
 
-    public async deleteTeamUre(teamId: number, userId: number){
-        return this.entityManager.createQueryBuilder(UserRoleEntity, 'userRoleEntity')
+    public async deleteTeamUre(teamId: number, userId: number): Promise<UserRoleEntity[]> {
+        let query = this.entityManager.createQueryBuilder(UserRoleEntity, 'ure')
+                      .andWhere('ure.isDeleted = 0')
+                      .andWhere('ure.entityId = :teamId', {teamId})
+                      .andWhere('ure.entityTypeId = :entityTypeId', {entityTypeId: EntityType.TEAM});
+        let updatedUREs = await query.getMany();
+
+        await this.entityManager.createQueryBuilder(UserRoleEntity, 'userRoleEntity')
         .update(UserRoleEntity)
         .set({isDeleted: 1, updatedBy: userId, updatedAt: new Date()})
         .andWhere('userRoleEntity.entityId = :teamId', {teamId})
         .andWhere('userRoleEntity.entityTypeId = :entityTypeId', {entityTypeId: EntityType.TEAM})
         .execute();
+
+        return updatedUREs;
     }
 }
