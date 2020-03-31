@@ -48,6 +48,9 @@ export class TeamController extends BaseController {
         @Param("id") id: number,
         @HeaderParam("authorization") user: User)
     {
+        this.deleteTeamFirestoreDatabase(id);
+        await this.ureService.deleteTeamUre(id, user.id);
+        await this.notifyChangeRole(user.id);
         return this.teamService.softDelete(id, user.id);
     }
 
@@ -150,7 +153,7 @@ export class TeamController extends BaseController {
             team.organisationId = stringTONumber(teamData.organisationId);
             team.clubId = stringTONumber(teamData.organisationId);
         }
-
+        team.logoUrl = teamData.logoUrl;
         let savedTeam = await this.teamService.createOrUpdate(team);
         this.checkTeamFirestoreDatabase(team);
 
@@ -193,6 +196,7 @@ export class TeamController extends BaseController {
                 ure.entityTypeId = EntityType.TEAM;
                 ure.userId = managerId;
                 await this.ureService.createOrUpdate(ure);
+                await this.notifyChangeRole(managerId);
             }
         }
 
@@ -214,15 +218,14 @@ export class TeamController extends BaseController {
                     .status(400).send(
                         { name: 'save_error', message: 'Logo not saved, try again later.' });
             }
-
-        } else if (isNullOrEmpty(teamData.logoUrl)) {
-            let organisation = await this.clubService.findById(savedTeam.organisationId);
+        } else if (isNullOrEmpty(teamData.logoUrl) && savedTeam.organisationId) {
+            let organisation = await this.clubService.findById(stringTONumber(savedTeam.organisationId));
             if (organisation.logoUrl) {
                 savedTeam.logoUrl = organisation.logoUrl;
                 savedTeam = await this.teamService.createOrUpdate(savedTeam);
                 return savedTeam;
             }
-        }
+        } 
     }
 
     @Authorized()
@@ -278,18 +281,47 @@ export class TeamController extends BaseController {
       let querySnapshot = await queryRef.get();
 
       if (querySnapshot.empty) {
-        console.log('New');
         teamsCollectionRef.doc(team.id.toString()).set({
             'logoUrl': (team.logoUrl != null && team.logoUrl != undefined) ? team.logoUrl : null,
             'id': team.id,
             'name': team.name,
+            'created_at': admin.firestore.FieldValue.serverTimestamp()
         });
       } else {
-        console.log('Update');
         teamsCollectionRef.doc(team.id.toString()).update({
           'logoUrl': (team.logoUrl != null && team.logoUrl != undefined) ? team.logoUrl : null,
           'id': team.id,
           'name': team.name,
+          'updated_at': admin.firestore.FieldValue.serverTimestamp()
+        });
+      }
+    }
+
+    private async deleteTeamFirestoreDatabase(teamId: number) {
+      let db = admin.firestore();
+
+      /// Check for the team in the teams collection
+      let teamsCollectionRef = await db.collection('teams');
+      let queryRef = teamsCollectionRef.where('id', '==', teamId);
+      let querySnapshot = await queryRef.get();
+
+      if (!querySnapshot.empty) {
+        teamsCollectionRef.doc(teamId.toString()).update({
+          'deleted_at': admin.firestore.FieldValue.serverTimestamp()
+        });
+      }
+
+      /// Check for the team chat for this particular team
+      let teamChatCollectionRef = await db.collection('chats');
+      // If any one changing the id it needs to be the same in the firestore
+      // and app side as well. Very critical change be sure.
+      const teamChatId: string = `team${teamId}chat`;
+      let chatQueryRef = teamChatCollectionRef.where('id', '==', teamChatId);
+      let chatQuerySnapshot = await chatQueryRef.get();
+
+      if (!chatQuerySnapshot.empty) {
+        teamChatCollectionRef.doc(teamChatId).update({
+          'deleted_at': admin.firestore.FieldValue.serverTimestamp()
         });
       }
     }

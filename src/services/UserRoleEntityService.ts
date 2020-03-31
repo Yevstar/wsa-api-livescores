@@ -18,7 +18,16 @@ export default class UserRoleEntityService extends BaseService<UserRoleEntity> {
             query.andWhere("entityTypeId = :entityTypeId", {entityTypeId});
         if (roleId) {
             query.andWhere("roleId = :roleId", {roleId});
-        } 
+        }
         return query.execute();
+    }
+
+    public async deleteTeamUre(teamId: number, userId: number){
+        return this.entityManager.createQueryBuilder(UserRoleEntity, 'userRoleEntity')
+        .update(UserRoleEntity)
+        .set({isDeleted: 1, updatedBy: userId, updatedAt: new Date()})
+        .andWhere('userRoleEntity.entityId = :teamId', {teamId})
+        .andWhere('userRoleEntity.entityTypeId = :entityTypeId', {entityTypeId: EntityType.TEAM})
+        .execute();
     }
 }

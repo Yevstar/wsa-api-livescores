@@ -44,7 +44,7 @@ export class UserRoleEntityController extends BaseController {
         );
         await Promise.all(promises);
 
-        await this.notifyChangeRole(playerURE);
+        await this.notifyChangeRole(playerURE.userId);
 
         return response.status(200).send({success: true});
     }
@@ -131,22 +131,9 @@ export class UserRoleEntityController extends BaseController {
         );
 
         await Promise.all(promises);
-        await this.notifyChangeRole(parentURE);
+        await this.notifyChangeRole(parentURE.userId);
 
         return response.status(200).send({success: true});
-    }
-
-
-    private async notifyChangeRole(ure) {
-        let tokens = (await this.deviceService.getUserDevices(ure.userId)).map(device => device.deviceId);
-        if (tokens && tokens.length > 0) {
-            this.firebaseService.sendMessage({
-                tokens: tokens,
-                data: {
-                    type: 'user_role_updated'
-                }
-            })
-        }
     }
 
     private async addUserToTeamChat(teamId: number, user: User) {
@@ -158,7 +145,8 @@ export class UserRoleEntityController extends BaseController {
       if (!querySnapshot.empty) {
         let teamChatDoc = chatsCollectionRef.doc(`team${teamId.toString()}chat`);
         teamChatDoc.update({
-          'uids': admin.firestore.FieldValue.arrayUnion(user.firebaseUID)
+          'uids': admin.firestore.FieldValue.arrayUnion(user.firebaseUID),
+          'updated_at': admin.firestore.FieldValue.serverTimestamp()
         });
       }
     }

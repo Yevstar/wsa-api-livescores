@@ -1,9 +1,9 @@
 import {
     Param,
     Authorized,
-    Post, 
-    Body, 
-    Res, 
+    Post,
+    Body,
+    Res,
     HeaderParam,
     Delete
  } from "routing-controllers";
@@ -38,7 +38,7 @@ export class CompetitionController extends BaseController {
     {
         return this.competitionService.softDelete(id, user.id);
     }
-    
+
     @Get('/')
     async find(
         @QueryParam('name') name: string,
@@ -72,7 +72,7 @@ export class CompetitionController extends BaseController {
             c.gameTimeTracking = stringToBoolean(competition.gameTimeTracking);
             c.positionTracking = stringToBoolean(competition.positionTracking);
             c.recordGoalAttempts = stringToBoolean(competition.recordGoalAttempts);
-            c.centrePassEnabled = stringToBoolean(competition.centrePassEnabled);   
+            c.centrePassEnabled = stringToBoolean(competition.centrePassEnabled);
             c.incidentsEnabled = stringToBoolean(competition.incidentsEnabled);
             c.attendanceRecordingType = competition.attendanceRecordingType;
             c.attendanceRecordingPeriod = competition.attendanceRecordingPeriod;
@@ -108,7 +108,7 @@ export class CompetitionController extends BaseController {
                         .status(400).send(
                             { name: 'save_error', message: 'Logo not saved, try again later.' });
                 }
-    
+
             } else {
                 /*let organisation = await this.clubService.findById(savedTeam.organisationId);
                 if (organisation.logoUrl) {
@@ -120,7 +120,7 @@ export class CompetitionController extends BaseController {
             }
 
             return saved;
-            
+
         } else {
             return response.status(200).send(
                 {name: 'search_error', message: `Required fields are missing`});
@@ -186,7 +186,7 @@ export class CompetitionController extends BaseController {
 
         const competitions = await this.competitionService.findByIds(competitionIds);
         const clubs = await this.clubService.findByIds(clubIds);
-        const teams = await this.teamService.findByIds(teamIds);
+        const teams = await this.teamService.findByTeamIds(teamIds);
         const players = await this.playerService.findByIds(playerIds);
 
         return {competitions, clubs, teams, players};

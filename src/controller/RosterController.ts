@@ -230,7 +230,7 @@ export class RosterController extends BaseController {
                         }
                     })
                 }
-                return null;
+                return response.status(200).send();
             } else {
                 return response.status(200).send({delete: false});
             }

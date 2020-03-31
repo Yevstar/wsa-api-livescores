@@ -405,9 +405,9 @@ export class UserController extends BaseController {
         var newUser = false;
         // if new user, search for user
         if (!managerData.id) {
-            if (isNullOrEmpty(managerData.email) 
-            || isNullOrEmpty(managerData.firstName) 
-            || isNullOrEmpty(managerData.lastName) 
+            if (isNullOrEmpty(managerData.email)
+            || isNullOrEmpty(managerData.firstName)
+            || isNullOrEmpty(managerData.lastName)
             || isNullOrEmpty(managerData.mobileNumber)) {
             return response
                 .status(422)
@@ -416,8 +416,8 @@ export class UserController extends BaseController {
             const foundUser = await this.userService.findByEmail(managerData.email);
             // if user exists in our database, validate the rest of their details
             if (foundUser) {
-                if (foundUser.firstName == managerData.firstName 
-                    && foundUser.lastName == managerData.lastName 
+                if (foundUser.firstName == managerData.firstName
+                    && foundUser.lastName == managerData.lastName
                     && foundUser.mobileNumber == managerData.mobileNumber) {
                     managerData.id = foundUser.id;
                 } else {
@@ -435,7 +435,7 @@ export class UserController extends BaseController {
                 managerData.password = md5(password);
                 const saved = await this.userService.createOrUpdate(managerData);
                 logger.info(`Manager ${managerData.email} signed up.`);
-                
+
                 if (isArrayEmpty(managerData.teams)) {
                     let competitionData = await this.competitionService.findById(competitionId)
                     this.userService.sentMail(user, managerData.teams, competitionData, 'manager', saved, password);
@@ -465,7 +465,7 @@ export class UserController extends BaseController {
         }
         await this.ureService.batchCreateOrUpdate(ureArray);
         await this.notifyChangeRole(managerData.id);
-        return newUser;
+        return response.status(200).send({success: true});
     }
 
     @Authorized()
@@ -476,26 +476,26 @@ export class UserController extends BaseController {
         @Body() userData: User,
         @Res() response: Response) {
 
-        
+
 
         var newUser = false;
         // if new user, search for user
         if (!userData.id) {
 
-            if (isNullOrEmpty(userData.email) 
-            || isNullOrEmpty(userData.firstName) 
-            || isNullOrEmpty(userData.lastName) 
+            if (isNullOrEmpty(userData.email)
+            || isNullOrEmpty(userData.firstName)
+            || isNullOrEmpty(userData.lastName)
             || isNullOrEmpty(userData.mobileNumber)) {
             return response
                 .status(422)
                 .send({ name: 'validation_error', message: 'Not all required fields filled' });
         }
-        
+
             const foundUser = await this.userService.findByEmail(userData.email);
             // if user exists in our database, validate the rest of their details
             if (foundUser) {
-                if (foundUser.firstName == userData.firstName 
-                    && foundUser.lastName == userData.lastName 
+                if (foundUser.firstName == userData.firstName
+                    && foundUser.lastName == userData.lastName
                     && foundUser.mobileNumber == userData.mobileNumber) {
                     userData.id = foundUser.id;
                 } else {
@@ -513,7 +513,7 @@ export class UserController extends BaseController {
                 userData.password = md5(password);
                 const saved = await this.userService.createOrUpdate(userData);
                 logger.info(`Manager ${userData.email} signed up.`);
-                
+
                 if (isArrayEmpty(userData.teams)) {
                     let competitionData = await this.competitionService.findById(competitionId)
                     this.userService.sentMail(user, userData.teams, competitionData, 'member', saved, password);
@@ -542,8 +542,8 @@ export class UserController extends BaseController {
             ureArray.push(ure)
         }
         await this.ureService.batchCreateOrUpdate(ureArray);
-        await this.notifyChangeRole(user.id);
-        return newUser;
+        await this.notifyChangeRole(userData.id);
+        return await this.userService.findById(userData.id);
     }
 
 
@@ -639,18 +639,6 @@ export class UserController extends BaseController {
             this.userService.sentMail(user, "", "", "superAdmin", saved, password);
             return saved;
 
-        }
-    }
-
-    private async notifyChangeRole(userId: number) {
-        let tokens = (await this.deviceService.getUserDevices(userId)).map(device => device.deviceId);
-        if (tokens && tokens.length > 0) {
-            this.firebaseService.sendMessage({
-                tokens: tokens,
-                data: {
-                    type: 'user_role_updated'
-                }
-            })
         }
     }
 }

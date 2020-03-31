@@ -293,6 +293,22 @@ export default class TeamService extends BaseService<Team> {
       if (teamName) {
           query.andWhere('LOWER(team.name) like :query', {query: `${teamName.toLowerCase()}%`});
       }
+
+      query.andWhere('team.deleted_at is null');
+
       return query.getMany();
+    }
+
+    public async findByTeamIds(ids: number[]): Promise<Team[]> {
+
+      if (isArrayEmpty(ids)) {
+        let query = this.entityManager.createQueryBuilder(Team, 'team')
+            .andWhere('team.id in (:ids)', {ids: ids})
+            .andWhere('team.deleted_at is null');
+
+        return query.getMany();
+      } else {
+        return [];
+      }
     }
 }

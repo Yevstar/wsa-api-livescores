@@ -31,7 +31,7 @@ export default class CompetitionVenueService extends BaseService<CompetitionVenu
       .execute();
   }
 
-  public async findByCourtName(name?: string, competitionId?: number): Promise<VenueCourt[]> {
+  public async findByCourtNameNotWorking(name?: string, competitionId?: number): Promise<any> {
     let query = this.entityManager.createQueryBuilder(VenueCourt, 'vc')
         .select(['vc.id as id'])
         .innerJoin(Venue, 'v', '(v.id = vc.venueId)')
@@ -39,6 +39,18 @@ export default class CompetitionVenueService extends BaseService<CompetitionVenu
         .andWhere('cv.competitionId = :competitionId', { competitionId })
         .andWhere("vc.name = :name", { name });
     return query.getMany();
+  }
+
+  // temp workaround as can't make the findByCourtNameNotWorking work!
+  public async findByCourtName(name?: string, competitionId?: number): Promise<any[]> {
+    return this.entityManager.query(
+        'select vc.id, vc.name' +
+        '    from wsa_common.venueCourt vc \n' +
+        '    inner join wsa_common.venue v on v.id = vc.venueId\n' +
+        '    inner join wsa.competitionVenue cv on cv.venueId = v.id\n' +
+        'where cv.competitionId = ? \n' +
+        '    and vc.name = ?;'
+        , [competitionId, name])
   }
 
 }

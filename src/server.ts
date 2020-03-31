@@ -45,25 +45,28 @@ async function checkFirebaseUser(user, password: string) {
 }
 
 async function checkFirestoreDatabase(user) {
-    let db = admin.firestore();
-    let usersCollectionRef = await db.collection('users');
-    let queryRef = usersCollectionRef.where('uid', '==', user.firebaseUID);
-    let querySnapshot = await queryRef.get();
-    if (querySnapshot.empty) {
-      let newDocRef = usersCollectionRef.doc(user.firebaseUID).set({
-        'avatar': user.photoUrl,
+  let db = admin.firestore();
+  let usersCollectionRef = await db.collection('users');
+  let queryRef = usersCollectionRef.where('uid', '==', user.firebaseUID);
+  let querySnapshot = await queryRef.get();
+  if (querySnapshot.empty) {
+    usersCollectionRef.doc(user.firebaseUID).set({
         'email': user.email,
         'firstName': user.firstName,
         'lastName': user.lastName,
         'uid': user.firebaseUID,
+        'avatar': (user.photoUrl != null && user.photoUrl != undefined) ?
+            user.photoUrl :
+            null,
+        'created_at': admin.firestore.FieldValue.serverTimestamp(),
         'searchKeywords': [
-          `${user.firstName} ${user.lastName}`,
-          user.firstName,
-          user.lastName,
-          user.email
+            `${user.firstName} ${user.lastName}`,
+            user.firstName,
+            user.lastName,
+            user.email
         ]
-      });
-    }
+    });
+  }
 }
 
 const handleCors = (router: Router) => router.use(cors({ /*credentials: true,*/ origin: true }));
