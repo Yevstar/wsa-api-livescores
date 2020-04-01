@@ -103,6 +103,21 @@ export default class UserService extends BaseService<User> {
                                 <p> The Netball Live Scores Team
                             </body>
                         </html>`
+            } else {
+                var teamNamesx = "";
+                html = `<!DOCTYPE html >
+                        <html>
+                            <head>
+                                <title>Registration Mail</title>
+                            </head>
+                            <body >
+                                <p>Hi ${receiverData.firstName} ${receiverData.lastName},
+                                <p> ${userData.firstName} ${userData.lastName} has advised us that you are the manager of the following teams: ${teamNamesx}. As ${competitionData.name} are using Live Scoring for this competition we require you to click <a href="${url}">here</a > to download the ${appName} App and start assigning who  will score your team’s matches. Please note, you can choose to give this responsibility to someone else or score the games yourself.
+                                <p> Your password is <b>${password}</b> - you can change it when you log in if you would like.
+                                <p> We hope you enjoy using Netball Live Scores.
+                                <p> The Netball Live Scores Team
+                            </body>
+                        </html>`
             }
 
         } else if (mailTo == 'member') {

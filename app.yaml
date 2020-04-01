@@ -13,7 +13,6 @@ env_variables:
   MYSQL_USER: root
   MYSQL_PASSWORD: KEzHi3KpvBblh9ah
   MYSQL_DATABASE: wsa2
-  SENDGRID_API_KEY: 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
   SERVER_URL: https://world-sport-action.appspot.com
   MAIL_USERNAME: admin@worldsportaction.com
   MAIL_PASSWORD: NLSwebadm1n
