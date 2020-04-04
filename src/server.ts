@@ -1,5 +1,6 @@
 import {Container} from "typedi";
 // TypeORM required.
+require("dotenv").config();
 import "reflect-metadata";
 import * as http from 'http';
 import {Action, getMetadataArgsStorage, useContainer, useExpressServer} from 'routing-controllers';

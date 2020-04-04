@@ -119,6 +119,40 @@ export class CompetitionController extends BaseController {
                 */
             }
 
+            // TODO set up default template
+            await this.competitionLadderSettingsService.deleteByCompetitionId(saved.id);
+            let ladderSettingsArray = [];
+            let cls = new CompetitionLadderSettings();
+            cls.competitionId = saved.id;
+            cls.resultTypeId = 1
+            cls.points = 3;
+            ladderSettingsArray.push(cls);
+            cls.resultTypeId = 2
+            cls.points = 2;
+            ladderSettingsArray.push(cls);
+            cls.resultTypeId = 3
+            cls.points = 1;
+            ladderSettingsArray.push(cls);
+            cls.resultTypeId = 4
+            cls.points = 2;
+            ladderSettingsArray.push(cls);
+            cls.resultTypeId = 5
+            cls.points = 0
+            ladderSettingsArray.push(cls);
+            cls.resultTypeId = 6
+            cls.points = 2;
+            ladderSettingsArray.push(cls);
+            cls.resultTypeId = 7
+            cls.points = 3;
+            ladderSettingsArray.push(cls);
+            cls.resultTypeId = 8
+            cls.points = 2;
+            ladderSettingsArray.push(cls);
+            cls.resultTypeId = 9
+            cls.points = 2
+            ladderSettingsArray.push(cls);
+            let ladder = await this.competitionLadderSettingsService.batchCreateOrUpdate(ladderSettingsArray)
+
             return saved;
 
         } else {

@@ -1,21 +1,35 @@
-import bunyan from "bunyan";
-import {LoggingBunyan} from "@google-cloud/logging-bunyan";
+import winston from "winston";
+import WinstonCloudWatch  from "winston-cloudwatch";
 
-const logger = bunyan.createLogger({
-    name: process.env.LOG_NAME || 'log',
-    level: process.env.LOG_LEVEL as bunyan.LogLevel,
-    src: true,
-    streams: streams()
+var NODE_ENV = process.env.NODE_ENV || 'local';
+
+const logger = winston.createLogger ({
+  format: winston.format.json(),
+  transports: [],
+  exitOnError: false
 });
 
-function streams(): bunyan.Stream[] {
-    if (process.env.NODE_ENV === "production") {
-        const loggingBunyan = new LoggingBunyan({
-            logName: process.env.LOG_NAME
-        });
-        return [loggingBunyan.stream("debug")];
-    }
-    return [{stream: process.stdout}];
+
+let config = {
+  level: process.env.LOG_LEVEL,
+  logGroupName: process.env.CLOUDWATCH_GROUP_NAME,
+  logStreamName: process.env.CLOUDWATCH_STREAM_NAME,
+  awsAccessKeyId: process.env.CLOUDWATCH_ACCESS_KEY_ID,
+  awsSecretKey: process.env.CLOUDWATCH_SECRET_ACCESS_KEY,
+  awsRegion:  process.env.CLOUDWATCH_REGION,
+  jsonMessage: true,
+  messageFormatter: function(item) {
+    return item.level + ': ' + item.msg + ' ' + JSON.stringify(item.meta)
+  }
+}
+
+if (NODE_ENV != 'local') {
+  logger.add(new WinstonCloudWatch(config));
+}
+else{
+  logger.add(new winston.transports.Console({
+    format: winston.format.simple()
+  }));
 }
 
 function wrapConsole() {

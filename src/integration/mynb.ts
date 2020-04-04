@@ -69,7 +69,7 @@ async function submitScore(mynetballMatchId: string,
         logger.info(`Submitted MYNB score: ${team1Score} ${team2Score} to ${mynetballMatchId}`);
 
     } catch (err) {
-        logger.error(`Error while submitting scores for match ${mynetballMatchId}`, err);
+        logger.error(`Error while submitting scores for match ${mynetballMatchId}`+err);
         throw Error(`Failed to submit scores to MyNetball.`);
     }
 
@@ -119,7 +119,7 @@ async function submitAttendance(
         await setTeamIds(page, team2Ids);
 
     } catch (err) {
-        logger.error(`Error while submitting attendance for match ${mynetballMatchId}`, err);
+        logger.error(`Error while submitting attendance for match ${mynetballMatchId}`+err);
         throw Error(`Failed to submit attendance to MyNetball.`);
     }
 

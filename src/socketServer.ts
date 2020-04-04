@@ -61,7 +61,7 @@ function onConnection(ws: ExtWebSocket) {
             const result = await processMessage(ws, JSON.parse(message));
             ws.send(result);
         } catch (err) {
-            logger.error(`Failed to process message from socket`, err);
+            logger.error(`Failed to process message from socket`+err);
         }
     });
 

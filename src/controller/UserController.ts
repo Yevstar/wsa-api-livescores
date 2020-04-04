@@ -235,7 +235,7 @@ export class UserController extends BaseController {
                 });
             }
         } catch (err) {
-            logger.error(`Password not changed ${user.email}`, err);
+            logger.error(`Password not changed ${user.email}`+err);
             return response.status(400).send({
                 name: 'change_error', message: 'Failed to change user password'
             });
