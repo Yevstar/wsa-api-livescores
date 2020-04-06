@@ -255,7 +255,7 @@ export class TeamController extends BaseController {
         for (let i of jsonObj) {
             if (i.Team_Name !== '') {
                 let teamData = await this.teamService.findByNameAndCompetition(i.Team_Name, competitionId);
-                if (!teamData) {
+                if (!isArrayEmpty(teamData)) {
                     let divisionData = await this.divisionService.findByName(i.Grade, competitionId);
                     let clubData = await this.clubService.findByNameAndCompetitionId(i.Organisation, competitionId);
                     let team = new Team();
