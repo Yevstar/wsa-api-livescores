@@ -253,20 +253,23 @@ export class TeamController extends BaseController {
         JSON.stringify(jsonObj);
         let queryArr = [];
         for (let i of jsonObj) {
-            if (i.name !== '') {
-                let divisionData = await this.divisionService.findByName(i.Grade, competitionId);
-                let clubData = await this.clubService.findByNameAndCompetitionId(i.Organisation, competitionId);
-                let team = new Team();
-                team.name = i.Team_Name;
-                team.logoUrl = i.Logo;
-                team.competitionId = competitionId;
-                if (divisionData.length > 0)
-                    team.divisionId = divisionData[0].id; //DivisionData is an array
-                if (clubData.length > 0) {
-                    team.clubId = clubData[0].id;
-                    team.organisationId = clubData[0].id;
+            if (i.Team_Name !== '') {
+                let teamData = await this.teamService.findByNameAndCompetition(i.Team_Name, competitionId);
+                if (!teamData) {
+                    let divisionData = await this.divisionService.findByName(i.Grade, competitionId);
+                    let clubData = await this.clubService.findByNameAndCompetitionId(i.Organisation, competitionId);
+                    let team = new Team();
+                    team.name = i.Team_Name;
+                    team.logoUrl = i.Logo;
+                    team.competitionId = competitionId;
+                    if (divisionData.length > 0)
+                        team.divisionId = divisionData[0].id; //DivisionData is an array
+                    if (clubData.length > 0) {
+                        team.clubId = clubData[0].id;
+                        team.organisationId = clubData[0].id;
+                    }
+                    queryArr.push(team);
                 }
-                queryArr.push(team);
             }
         }
         await this.teamService.batchCreateOrUpdate(queryArr);
