@@ -443,8 +443,12 @@ export class UserController extends BaseController {
 
                 managerData.id = saved.id;
             }
-        } else if (managerData.firstName && managerData.lastName && managerData.email) {
-            await this.userService.createOrUpdate(managerData);
+        } else if (managerData.firstName && managerData.lastName && managerData.mobileNumber) {
+            let foundUser = await this.userService.findById(managerData.id);
+            foundUser.firstName = managerData.firstName;
+            foundUser.lastName = managerData.lastName;
+            foundUser.mobileNumber = managerData.mobileNumber;
+            await this.userService.createOrUpdate(foundUser);
         }
 
         // existing user - delete existing team assignments
@@ -489,7 +493,7 @@ export class UserController extends BaseController {
             return response
                 .status(422)
                 .send({ name: 'validation_error', message: 'Not all required fields filled' });
-        }
+            }
 
             const foundUser = await this.userService.findByEmail(userData.email);
             // if user exists in our database, validate the rest of their details
@@ -521,8 +525,12 @@ export class UserController extends BaseController {
 
                 userData.id = saved.id;
             }
-        } else if (userData.firstName && userData.lastName && userData.email) {
-            await this.userService.createOrUpdate(userData);
+        } else if (userData.firstName && userData.lastName && userData.mobileNumber) {
+            let foundUser = await this.userService.findById(userData.id);
+            foundUser.firstName = userData.firstName;
+            foundUser.lastName = userData.lastName;
+            foundUser.mobileNumber = userData.mobileNumber;
+            await this.userService.createOrUpdate(foundUser);
         }
 
         // existing user - delete existing team assignments
