@@ -187,7 +187,7 @@ export class TeamController extends BaseController {
 
                 savedUser = await this.userService.createOrUpdate(managerInfo);
                 logger.info(`Manager ${managerInfo.email} signed up.`);
-                managerIds[managerIds.length - 1] = savedUser.id;
+                managerIds[managerIds.length] = savedUser.id;
             }
 
         }
