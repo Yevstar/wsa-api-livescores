@@ -161,7 +161,7 @@ export class TeamController extends BaseController {
         let savedTeam = await this.teamService.createOrUpdate(team);
         this.checkTeamFirestoreDatabase(team);
 
-        let managerIds: number[] = teamData.userIds? JSON.parse(teamData.userIds) : [];
+        let managerIds: number[] = teamData.userIds ? JSON.parse(teamData.userIds) : [];
         let savedUser: User;
         let password: string;
         if (teamData.email && teamData.firstName && teamData.lastName && teamData.mobileNumber) {
@@ -187,7 +187,7 @@ export class TeamController extends BaseController {
 
                 savedUser = await this.userService.createOrUpdate(managerInfo);
                 logger.info(`Manager ${managerInfo.email} signed up.`);
-                managerIds[managerIds.length + 1] = savedUser.id;
+                managerIds[managerIds.length - 1] = savedUser.id;
             }
 
         }
