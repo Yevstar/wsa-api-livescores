@@ -535,7 +535,7 @@ export class UserController extends BaseController {
 
         // existing user - delete existing team assignments
         if (!newUser) {
-            await this.userService.deleteRolesByUser(userData.id, Role.MEMBER, userData.teams[0].id, EntityType.TEAM, EntityType.TEAM);
+            await this.userService.deleteRolesByUser(userData.id, Role.MEMBER, competitionId, EntityType.TEAM, EntityType.TEAM);
         }
 
         // assign teams
