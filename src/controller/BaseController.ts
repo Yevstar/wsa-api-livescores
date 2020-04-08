@@ -112,9 +112,9 @@ export class BaseController {
         }
 
         if (!fbUser || !fbUser.uid) {
-            fbUser = await this.firebaseService.createUser(user.email, password);
+            fbUser = await this.firebaseService.createUser(user.email.toLowerCase(), password);
         } else {
-            fbUser = await this.firebaseService.updateUserByUID(user.firebaseUID, user.email, user.password);
+            fbUser = await this.firebaseService.updateUserByUID(user.firebaseUID, user.email.toLowerCase(), user.password);
         }
         if (fbUser && fbUser.uid) {
             user.firebaseUID = fbUser.uid;
@@ -132,7 +132,7 @@ export class BaseController {
         let querySnapshot = await queryRef.get();
         if (querySnapshot.empty) {
           usersCollectionRef.doc(user.firebaseUID).set({
-              'email': user.email,
+              'email': user.email.toLowerCase(),
               'firstName': user.firstName,
               'lastName': user.lastName,
               'uid': user.firebaseUID,
@@ -144,12 +144,12 @@ export class BaseController {
                   `${user.firstName} ${user.lastName}`,
                   user.firstName,
                   user.lastName,
-                  user.email
+                  user.email.toLowerCase()
               ]
           });
         } else if (update) {
           usersCollectionRef.doc(user.firebaseUID).update({
-            'email': user.email,
+            'email': user.email.toLowerCase(),
             'firstName': user.firstName,
             'lastName': user.lastName,
             'uid': user.firebaseUID,
@@ -161,7 +161,7 @@ export class BaseController {
                 `${user.firstName} ${user.lastName}`,
                 user.firstName,
                 user.lastName,
-                user.email
+                user.email.toLowerCase()
             ]
           });
         }

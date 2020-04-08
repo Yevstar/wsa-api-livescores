@@ -157,7 +157,7 @@ export default class FirebaseService {
 
     public async createUser(email: string, password: string): Promise<UserRecord> {
         return admin.auth().createUser({
-            email: email,
+            email: email.toLowerCase(),
             emailVerified: true,
             password: password
         })
@@ -184,7 +184,7 @@ export default class FirebaseService {
     }
 
     public async loadUserByEmail(email: string): Promise<UserRecord> {
-        return admin.auth().getUserByEmail(email)
+        return admin.auth().getUserByEmail(email.toLowerCase())
             .then(function(userRecord) {
                 logger.debug(`Successfully load user by email ${email}:`, userRecord.toJSON());
                 return userRecord;
@@ -197,7 +197,7 @@ export default class FirebaseService {
 
     public async updateUserByUID(uid: string, email: string, password: string): Promise<UserRecord> {
         return admin.auth().updateUser(uid,{
-            email: email,
+            email: email.toLowerCase(),
             emailVerified: true,
             password: password
         })
@@ -211,4 +211,3 @@ export default class FirebaseService {
             });
     }
 }
-

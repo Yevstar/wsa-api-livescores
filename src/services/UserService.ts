@@ -16,20 +16,20 @@ export default class UserService extends BaseService<User> {
     public async findByCredentials(email: string, password: string): Promise<User> {
         return this.entityManager.createQueryBuilder(User, 'user')
             .andWhere('LOWER(user.email) = :email and user.password = :password',
-                {email: email, password: password})
+                {email: email.toLowerCase(), password: password})
             .getOne();
     }
 
     public async findByEmail(email: string): Promise<User> {
         return this.entityManager.createQueryBuilder(User, 'user')
-            .andWhere('LOWER(user.email) = :email', {email: email})
+            .andWhere('LOWER(user.email) = :email', {email: email.toLowerCase()})
             .addSelect("user.password").addSelect("user.reset")
             .getOne();
     }
 
     public async userExist(email: string): Promise<number> {
         return this.entityManager.createQueryBuilder(User, 'user')
-            .where('user.email = :email', {email})
+            .where('LOWER(user.email) = :email', {email: email.toLowerCase()})
             .getCount()
     }
 
@@ -37,7 +37,7 @@ export default class UserService extends BaseService<User> {
         return this.entityManager.createQueryBuilder(User, 'user')
             .update(User)
             .set(user)
-            .andWhere('user.email = :email', {email})
+            .andWhere('LOWER(user.email) = :email', {email: email.toLowerCase()})
             .execute();
     }
 
@@ -71,7 +71,7 @@ export default class UserService extends BaseService<User> {
         let html = ``;
         let subject = 'Invite Mail';
         let appName = process.env.APP_NAME;
-        
+
         if (mailTo == 'manager') {
             if (teamData.length == 1) {
                 html = `<!DOCTYPE html >
@@ -128,14 +128,14 @@ export default class UserService extends BaseService<User> {
                         </head>
                         <body>
                             <p>Hi ${receiverData.firstName} ${receiverData.lastName},
-                            <p>${userData.firstName} ${userData.lastName} has invited you to score for team ${teamData[0].name} Netball game. Click <a href="${url}">here</a> to download the ${appName} App and start scoring. 
+                            <p>${userData.firstName} ${userData.lastName} has invited you to score for team ${teamData[0].name} Netball game. Click <a href="${url}">here</a> to download the ${appName} App and start scoring.
                             <p>Your password is <b>${password}</b> - you can change it when you log in if you would like.
                             <p>We hope you enjoy using Netball Live Scores.
                             <p>The Netball Live Scores Team
                         </body>
                     </html>`
 
-        } 
+        }
 
         const transporter = nodeMailer.createTransport({
             host: "smtp.gmail.com",
@@ -158,7 +158,7 @@ export default class UserService extends BaseService<User> {
                 name: "World Sport Action",
                 address: process.env.MAIL_USERNAME
             },
-            to: receiverData.email,
+            to: receiverData.email.toLowerCase(),
             replyTo: "donotreply@worldsportaction.com",
             subject: subject,
             html: html

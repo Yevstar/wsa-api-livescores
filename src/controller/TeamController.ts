@@ -165,7 +165,7 @@ export class TeamController extends BaseController {
         let savedUser: User;
         let password: string;
         if (teamData.email && teamData.firstName && teamData.lastName && teamData.mobileNumber) {
-            let foundUser = await this.userService.findByEmail(teamData.email);
+            let foundUser = await this.userService.findByEmail(teamData.email.toLowerCase());
             if (foundUser) {
                 if (foundUser.firstName == teamData.firstName && foundUser.lastName == teamData.lastName && foundUser.mobileNumber == teamData.mobileNumber) {
                     managerIds[0] = user.id;
@@ -180,7 +180,7 @@ export class TeamController extends BaseController {
                 let managerInfo = new User();
                 managerInfo.firstName = teamData.firstName;
                 managerInfo.lastName = teamData.lastName;
-                managerInfo.email = teamData.email;
+                managerInfo.email = teamData.email.toLowerCase();
                 managerInfo.mobileNumber = teamData.mobileNumber;
                 password = Math.random().toString(36).slice(-8);
                 managerInfo.password = md5(password);

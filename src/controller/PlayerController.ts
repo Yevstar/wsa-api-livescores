@@ -55,11 +55,11 @@ export class PlayerController extends BaseController {
             p.nameFilter = player.nameFilter;
             p.mnbPlayerId = player.mnbPlayerId;
 
-            if (existingPlayer && existingPlayer.email === player.email) {
-              p.email = player.email;
+            if (existingPlayer && existingPlayer.email.toLowerCase() === player.email.toLowerCase()) {
+              p.email = player.email.toLowerCase();
               p.inviteStatus = player.inviteStatus;
             } else {
-              p.email = player.email;
+              p.email = player.email.toLowerCase();
               p.inviteStatus = null;
             }
 
