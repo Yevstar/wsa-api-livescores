@@ -3,7 +3,10 @@ import {User} from "../models/User";
 import BaseService from "./BaseService";
 import {Role} from "../models/security/Role";
 import {EntityType} from "../models/security/EntityType";
-import { logger } from '../logger';
+import {UserRoleEntity} from "../models/security/UserRoleEntity";
+import {RoleFunction} from "../models/security/RoleFunction";
+import {Function} from "../models/security/Function";
+import {logger} from '../logger';
 import nodeMailer from "nodemailer";
 
 @Service()
@@ -62,6 +65,31 @@ export default class UserService extends BaseService<User> {
         } catch(error) {
             throw error;
         }
+    }
+
+    public async getUsersBySecurity(entityTypeId: number, entityId: number, userId: number,
+        sec: { functionId?: number, roleId?: number }): Promise<User[]> {
+        let query = this.entityManager.createQueryBuilder(User, 'u')
+        .select(['u.id as id'])
+        .innerJoin(UserRoleEntity, 'ure', 'u.id = ure.userId')
+        .innerJoin(RoleFunction, 'fr', 'fr.roleId = ure.roleId');
+
+        if (sec.functionId) {
+            let id = sec.functionId;
+            query.innerJoin(Function, 'f', 'f.id = fr.functionId')
+            .andWhere('f.id = :id', {id});
+        }
+
+        if (sec.roleId) {
+            let id = sec.roleId;
+            query.innerJoin(Role, 'r', 'r.id = fr.roleId')
+            .andWhere('r.id = :id', {id});
+        }
+
+        if (userId) {
+            query.andWhere('u.id = :userId', {userId});
+        }
+        return query.getRawMany();
     }
 
     public async sentMail(userData, teamData, competitionData, mailTo, receiverData, password) {
@@ -128,7 +156,7 @@ export default class UserService extends BaseService<User> {
                         </head>
                         <body>
                             <p>Hi ${receiverData.firstName} ${receiverData.lastName},
-                            <p>${userData.firstName} ${userData.lastName} has invited you to score for team ${teamData[0].name} Netball game. Click <a href="${url}">here</a> to download the ${appName} App and start scoring.
+                            <p>${userData.firstName} ${userData.lastName} has invited you to score for the ${competitionData.name} competition. Click <a href="${url}">here</a> to download the ${appName} App and start scoring.
                             <p>Your password is <b>${password}</b> - you can change it when you log in if you would like.
                             <p>We hope you enjoy using Netball Live Scores.
                             <p>The Netball Live Scores Team

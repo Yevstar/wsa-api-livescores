@@ -482,12 +482,9 @@ export class UserController extends BaseController {
         @Body() userData: User,
         @Res() response: Response) {
 
-
-
-        var newUser = false;
-        // if new user, search for user
+        var newToCompetition = true;
+        // if existing user wasn't provided, search for the user
         if (!userData.id) {
-
             if (isNullOrEmpty(userData.email)
             || isNullOrEmpty(userData.firstName)
             || isNullOrEmpty(userData.lastName)
@@ -513,18 +510,14 @@ export class UserController extends BaseController {
                 }
             } else {
                 // create user
-                newUser = true;
-
                 var password = Math.random().toString(36).slice(-8);
                 userData.email = userData.email.toLowerCase();
                 userData.password = md5(password);
                 const saved = await this.userService.createOrUpdate(userData);
                 logger.info(`Manager ${userData.email} signed up.`);
 
-                if (isArrayEmpty(userData.teams)) {
-                    let competitionData = await this.competitionService.findById(competitionId)
-                    this.userService.sentMail(user, userData.teams, competitionData, 'member', saved, password);
-                }
+                let competitionData = await this.competitionService.findById(competitionId)
+                this.userService.sentMail(user, null, competitionData, 'member', saved, password);
 
                 userData.id = saved.id;
             }
@@ -534,26 +527,26 @@ export class UserController extends BaseController {
             foundUser.lastName = userData.lastName;
             foundUser.mobileNumber = userData.mobileNumber;
             await this.userService.createOrUpdate(foundUser);
+
+            newToCompetition = false;
+        } 
+
+        // existing user - delete existing competition assignments
+        if (newToCompetition) {
+            let result = await this.userService.getUsersBySecurity(EntityType.COMPETITION, competitionId, userData.id, {roleId: Role.MEMBER});
+
+            if (!result) {
+                let ure = new UserRoleEntity();
+                ure.roleId = Role.MEMBER;
+                ure.entityId = competitionId;
+                ure.entityTypeId = EntityType.COMPETITION;
+                ure.userId = userData.id
+                ure.createdBy = user.id;
+                await this.ureService.createOrUpdate(ure);
+                await this.notifyChangeRole(userData.id);
+            }
         }
 
-        // existing user - delete existing team assignments
-        if (!newUser) {
-            await this.userService.deleteRolesByUser(userData.id, Role.MEMBER, competitionId, EntityType.TEAM, EntityType.TEAM);
-        }
-
-        // assign teams
-        let ureArray = [];
-        for (let i of userData.teams) {
-            let ure = new UserRoleEntity();
-            ure.roleId = Role.MEMBER;
-            ure.entityId = i.id;
-            ure.entityTypeId = EntityType.TEAM;
-            ure.userId = userData.id
-            ure.createdBy = user.id;
-            ureArray.push(ure)
-        }
-        await this.ureService.batchCreateOrUpdate(ureArray);
-        await this.notifyChangeRole(userData.id);
         return await this.userService.findById(userData.id);
     }
 
