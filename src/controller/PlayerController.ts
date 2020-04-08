@@ -72,9 +72,9 @@ export class PlayerController extends BaseController {
             }
 
             if (playerInput.dateOfBirth) {
-                const dateParts = (playerInput.dateOfBirth).split("-");
-                const dateObject = new Date(+dateParts[2], dateParts[1] - 1, +dateParts[0]);
-                p.dateOfBirth = new Date(dateObject);
+                if (playerInput.dateOfBirth.length > 6) {
+                    p.dateOfBirth = new Date(Date.parse(playerInput.dateOfBirth));
+                }
             }
             if (file) {
                 if (isPhoto(file.mimetype)) {
