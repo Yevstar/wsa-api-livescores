@@ -27,50 +27,54 @@ export class PlayerController extends BaseController {
     @Authorized()
     @Post('/')
     async create(
-        @Body() player: any,
+        @Body() playerInput: any,
         @UploadedFile("photo") file: Express.Multer.File,
         @Res() response: Response
     ) {
-      if (player) {
+      if (playerInput) {
             // changed the type of player from "Player" to any as id should be integer for edit mode
             // and while using formdata content-type id is of type string
             let p = new Player();
-            if (player.id) {
-                p.id = stringTONumber(player.id);;
+            if (playerInput.id) {
+                p.id = stringTONumber(playerInput.id);;
             }
 
             // Getting existing player for the id if we have a player already
             // for checking with email so we can update invite status.
             let existingPlayer = await this.playerService.findById(p.id);
 
-            p.firstName = player.firstName;
-            p.lastName = player.lastName;
-            p.phoneNumber = player.phoneNumber;
-            p.mnbPlayerId = player.mnbPlayerId;
-            p.teamId = player.teamId;
-            p.competitionId = player.competitionId;
-            p.positionId = player.positionId;
-            p.shirt = player.shirt;
-            p.phoneNumber = player.phoneNumber;
-            p.nameFilter = player.nameFilter;
-            p.mnbPlayerId = player.mnbPlayerId;
+            // web form is only sending back firstName, lastName, dateOfBirth, phoneNumber, mnbPlayerId, teamId, competitionId, photo
+            p.firstName = playerInput.firstName;
+            p.lastName = playerInput.lastName;
+            p.phoneNumber = playerInput.phoneNumber;
+            p.mnbPlayerId = playerInput.mnbPlayerId;
+            p.teamId = playerInput.teamId;
+            p.competitionId = playerInput.competitionId;
 
-            if (existingPlayer && existingPlayer.email.toLowerCase() === player.email.toLowerCase()) {
-              p.email = player.email.toLowerCase();
-              p.inviteStatus = player.inviteStatus;
-            } else {
-              p.email = player.email.toLowerCase();
-              p.inviteStatus = null;
+            if (playerInput.positionId || playerInput.shirt || playerInput.nameFilter ) {
+                p.positionId = playerInput.positionId;
+                p.shirt = playerInput.shirt;
+                p.nameFilter = playerInput.nameFilter;
             }
 
-            if (player.dateOfBirth) {
-                const dateParts = (player.dateOfBirth).split("-");
+            if (playerInput.email) {
+                if (existingPlayer && existingPlayer.email.toLowerCase() === playerInput.email.toLowerCase()) {
+                    p.email = playerInput.email.toLowerCase();
+                    p.inviteStatus = playerInput.inviteStatus;
+                  } else {
+                    p.email = playerInput.email.toLowerCase();
+                    p.inviteStatus = null;
+                  }
+            }
+
+            if (playerInput.dateOfBirth) {
+                const dateParts = (playerInput.dateOfBirth).split("-");
                 const dateObject = new Date(+dateParts[2], dateParts[1] - 1, +dateParts[0]);
                 p.dateOfBirth = new Date(dateObject);
             }
             if (file) {
                 if (isPhoto(file.mimetype)) {
-                    let filename = `/media/${player.competitionId}/${player.teamId}/${player.id}_${timestamp()}.${fileExt(file.originalname)}`;
+                    let filename = `/media/${playerInput.competitionId}/${playerInput.teamId}/${playerInput.id}_${timestamp()}.${fileExt(file.originalname)}`;
                     let result = await this.firebaseService.upload(filename, file);
                     if (result) {
                         p.photoUrl = result['url'];
