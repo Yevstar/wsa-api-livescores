@@ -533,9 +533,9 @@ export class UserController extends BaseController {
 
         // existing user - delete existing competition assignments
         if (newToCompetition) {
-            //let result = await this.userService.getUsersBySecurity(EntityType.COMPETITION, competitionId, userData.id, {roleId: Role.MEMBER});
+            let result = await this.userService.getUsersBySecurity(EntityType.COMPETITION, competitionId, userData.id, {roleId: Role.MEMBER});
 
-            //if (!result) {
+            if (!isArrayEmpty(result)) {
                 let ure = new UserRoleEntity();
                 ure.roleId = Role.MEMBER;
                 ure.entityId = competitionId;
@@ -544,7 +544,7 @@ export class UserController extends BaseController {
                 ure.createdBy = user.id;
                 await this.ureService.createOrUpdate(ure);
                 await this.notifyChangeRole(userData.id);
-            //}
+            }
         }
 
         return await this.userService.findById(userData.id);
