@@ -41,9 +41,13 @@ export class PlayerController extends BaseController {
 
             // Getting existing player for the id if we have a player already
             // for checking with email so we can update invite status.
-            let existingPlayer = await this.playerService.findById(p.id);
-
+            // Also ensure web doesn't overwrite details of the esisting player
             // web form is only sending back firstName, lastName, dateOfBirth, phoneNumber, mnbPlayerId, teamId, competitionId, photo
+            let existingPlayer = await this.playerService.findById(p.id);
+            if (existingPlayer) {
+                p = existingPlayer;
+            }
+
             p.firstName = playerInput.firstName;
             p.lastName = playerInput.lastName;
             p.phoneNumber = playerInput.phoneNumber;
