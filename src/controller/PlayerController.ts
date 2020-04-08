@@ -72,7 +72,11 @@ export class PlayerController extends BaseController {
             }
 
             if (playerInput.dateOfBirth) {
-                if (playerInput.dateOfBirth.length > 6) {
+                if (playerInput.dateOfBirth.length == 10) {
+                    const dateParts = (playerInput.dateOfBirth).split("-");
+                    const dateObject = new Date(+dateParts[2], dateParts[1] - 1, +dateParts[0]);
+                    p.dateOfBirth = new Date(dateObject);
+                } else {
                     p.dateOfBirth = new Date(Date.parse(playerInput.dateOfBirth));
                 }
             }
