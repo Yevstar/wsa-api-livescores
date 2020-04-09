@@ -7,6 +7,7 @@ import {EventInvitee} from "../models/EventInvitee";
 import {EventOccurrence} from "../models/EventOccurrence";
 import {authToken, fileExt, isNullOrEmpty, timestamp} from "../utils/Utils";
 import {EntityType} from "../models/security/EntityType";
+import * as _ from 'lodash';
 
 @JsonController('/event')
 export class EventController  extends BaseController {
@@ -43,8 +44,8 @@ export class EventController  extends BaseController {
     @Authorized()
     @Post('/')
     async create(
-        @Body() event: Event,
         @HeaderParam("authorization") user: User,
+        @Body() event: Event,
         @Res() response: Response
     ) {
           const savedEvent = await this.eventService.createEvent(event, user.id);
@@ -61,14 +62,14 @@ export class EventController  extends BaseController {
                 userInvitee
               );
             } else if (event['invitees'][index].entityTypeId == EntityType.TEAM) {
-              let userList = await this.userService.getUsersBySecurity(
+              let userList = await this.userService.getUsersByOptions(
                   event['invitees'][index].entityTypeId,
                   event['invitees'][index].entityId,
                   '',
                   {functionId: eventRecipientFunction.id}
               );
               if (userList) {
-                  userList.forEach(async (teamUser) => {
+                  userList.forEach(teamUser => {
                     if (teamUser.id != user.id) {
                       let userInvitee = new EventInvitee();
                       userInvitee.eventId = savedEvent['identifiers'][0].id;
@@ -87,7 +88,9 @@ export class EventController  extends BaseController {
           const eventInviteeNotificationPromises = [];
 
           if (inviteesList.length > 0) {
-              inviteesList.forEach(async userInvitee => {
+              let uniqueInviteesList = _.uniqBy(inviteesList, invitee => invitee.entityId);
+
+              uniqueInviteesList.forEach(async userInvitee => {
                 eventInviteePromises.push(
                   this.eventService.createEventInvitee(
                     userInvitee

@@ -6,11 +6,8 @@ import {Function} from "../models/security/Function";
 import {EntityType} from "../models/security/EntityType";
 import {UserRoleEntity} from "../models/security/UserRoleEntity";
 import {RoleFunction} from "../models/security/RoleFunction";
-import {Function} from "../models/security/Function";
 import {logger} from '../logger';
 import nodeMailer from "nodemailer";
-import {RoleFunction} from "../models/security/RoleFunction";
-import {UserRoleEntity} from "../models/security/UserRoleEntity";
 import {LinkedEntities} from "../models/views/LinkedEntities";
 import {Brackets} from "typeorm";
 
@@ -213,7 +210,7 @@ export default class UserService extends BaseService<User> {
         });
     }
 
-    public async getUsersBySecurity(entityTypeId: number, entityId: number, userName: string,
+    public async getUsersByOptions(entityTypeId: number, entityId: number, userName: string,
                                     sec: { functionId?: number, roleId?: number }): Promise<User[]> {
         let query = this.entityManager.createQueryBuilder(User, 'u')
             .select(['u.id as id', 'LOWER(u.email) as email', 'u.firstName as firstName', 'u.lastName as lastName',
