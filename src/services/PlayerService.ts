@@ -119,10 +119,10 @@ export default class PlayerService extends BaseService<Player> {
             'group by playerId', [competitionId, teamId]);
     }
 
-    public async listTeamPlayerActivity(competitionId: number, requestFilter: RequestFilter): Promise<any> {
+    public async listTeamPlayerActivity(competitionId: number, requestFilter: RequestFilter, status: string): Promise<any> {
 
-        let result = await this.entityManager.query("call wsa.usp_get_team_player_activity(?,?,?)",
-        [competitionId, requestFilter.paging.offset, requestFilter.paging.limit]);
+        let result = await this.entityManager.query("call wsa.usp_get_team_player_activity(?,?,?,?)",
+        [competitionId, status, requestFilter.paging.offset, requestFilter.paging.limit]);
 
         if (result != null) {
             let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;

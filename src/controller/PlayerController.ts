@@ -212,8 +212,9 @@ export class PlayerController extends BaseController {
     @Post('/activity')
     async listTeamPlayerActivity(
         @QueryParam('competitionId') competitionId: number,
+        @QueryParam('status') status: string,
         @Body() requestFilter: RequestFilter
     ): Promise<any[]> {
-        return this.playerService.listTeamPlayerActivity(competitionId, requestFilter);
+        return this.playerService.listTeamPlayerActivity(competitionId, requestFilter, status);
     }
 }

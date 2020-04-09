@@ -318,4 +318,24 @@ export default class MatchService extends BaseService<Match> {
         return query.softDelete().execute();
     }
 
+    public async findTodaysMatchByParam(from: Date, to: Date, teamIds: number[] = [], playerIds: number[],
+        competitionId: number, clubIds: number[], offset: number = undefined, limit: number = undefined): Promise<any> {
+
+        let query = await this.entityManager.createQueryBuilder(Match, 'match');
+        if (from) query.andWhere("match.startTime >= cast(:from as datetime)", { from });
+        if (to) query.andWhere("match.startTime < ( cast(:to as datetime) + INTERVAL 1 DAY )", { to });
+
+        this.filterByClubTeam(competitionId, clubIds, teamIds, query);
+        query.orderBy('match.startTime', 'ASC');
+
+        if (limit) {
+            const matchCount = await query.getCount();
+            const result = await query.skip(offset).take(limit).getMany();
+            return { matchCount, result }
+        } else {
+            const matchCount = null;
+            const result = await query.getMany();
+            return { matchCount, result }
+        }
+    }
 }
