@@ -80,7 +80,7 @@ export default class UserService extends BaseService<User> {
     public async getUsersBySecurity(entityTypeId: number, entityId: number, userId: number,
         sec: { functionId?: number, roleId?: number }): Promise<User[]> {
         let query = this.entityManager.createQueryBuilder(User, 'u')
-        .select(['u.id as id'])
+        .select('u.id as id')
         .innerJoin(UserRoleEntity, 'ure', 'u.id = ure.userId')
         .innerJoin(RoleFunction, 'fr', 'fr.roleId = ure.roleId');
 
