@@ -15,14 +15,16 @@ export default class RosterService extends BaseService<Roster> {
 
     public async findFullById(rosterId: number): Promise<Roster> {
         return this.entityManager.createQueryBuilder(Roster, 'roster')
-            .innerJoinAndSelect('roster.match', 'match')
-            .innerJoinAndSelect('match.team1', 'team1')
-            .innerJoinAndSelect('match.team2', 'team2')
-            .innerJoinAndSelect('match.venueCourt', 'venueCourt')
-            .innerJoinAndSelect('match.division', 'division')
-            .innerJoinAndSelect('match.competition', 'competition')
+            .leftJoinAndSelect('roster.match', 'match')
+            .leftJoinAndSelect('match.team1', 'team1')
+            .leftJoinAndSelect('match.team2', 'team2')
+            .leftJoinAndSelect('match.venueCourt', 'venueCourt')
+            .leftJoinAndSelect('match.division', 'division')
+            .leftJoinAndSelect('match.competition', 'competition')
             .leftJoinAndSelect('competition.location', 'location')
             .leftJoinAndSelect('venueCourt.venue', 'venue')
+            .leftJoinAndSelect('roster.eventOccurrence', 'eo')
+            .leftJoinAndSelect('eo.event', 'e')
             .andWhere('roster.id = :rosterId', {rosterId})
             .andWhere('match.deleted_at is null')
             .getOne();
@@ -41,6 +43,15 @@ export default class RosterService extends BaseService<Roster> {
             .andWhere('roster.userId = :userId', {userId})
             .andWhere('(match.matchStatus is null or match.matchStatus != :status)', {status: 'ENDED'})
             .andWhere('match.deleted_at is null')
+            .getMany();
+    }
+
+    public async findRosterEventByUser(userId: number): Promise<Roster[]> {
+      return this.entityManager.createQueryBuilder(Roster, 'roster')
+            .innerJoinAndSelect('roster.eventOccurrence', 'eo')
+            .innerJoinAndSelect('eo.event', 'e')
+            .andWhere('eo.deleted_at is null')
+            .andWhere('roster.userId = :userId', {userId})
             .getMany();
     }
 
@@ -101,4 +112,9 @@ export default class RosterService extends BaseService<Roster> {
         }
     }
 
+    public async findByEventOccurrence(eventOccurrenceId: number): Promise<Roster[]> {
+      return await this.entityManager.createQueryBuilder(Roster, 'r')
+              .andWhere("r.eventOccurrenceId = :id", {id: eventOccurrenceId})
+              .getMany();
+    }
 }

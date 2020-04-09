@@ -6,6 +6,7 @@ import {Event} from "../models/Event";
 import {EventInvitee} from "../models/EventInvitee";
 import {EventOccurrence} from "../models/EventOccurrence";
 import {authToken, fileExt, isNullOrEmpty, timestamp} from "../utils/Utils";
+import {EntityType} from "../models/security/EntityType";
 
 @JsonController('/event')
 export class EventController  extends BaseController {
@@ -32,6 +33,14 @@ export class EventController  extends BaseController {
     }
 
     @Authorized()
+    @Get("/eventInvitees")
+    async findEventInvitees(
+      @QueryParam("ids") ids: number[],
+    ): Promise<EventInvitee[]> {
+      return this.eventService.findEventInvitees(ids);
+    }
+
+    @Authorized()
     @Post('/')
     async create(
         @Body() event: Event,
@@ -39,11 +48,64 @@ export class EventController  extends BaseController {
         @Res() response: Response
     ) {
           const savedEvent = await this.eventService.createEvent(event, user.id);
-          this.eventService.createEventInvitee(
-              savedEvent['identifiers'][0].id,
-              event['invitees'][0].entityId,
-              event['invitees'][0].entityTypeId
-          );
+          const eventRecipientFunction = await this.userService.getFunction('event_recipient');
+
+          var inviteesList = [];
+          for (const index in event['invitees']) {
+            if (event['invitees'][index].entityTypeId == EntityType.USER) {
+              let userInvitee = new EventInvitee();
+              userInvitee.eventId = savedEvent['identifiers'][0].id;
+              userInvitee.entityId = event['invitees'][index].entityId;
+              userInvitee.entityTypeId = event['invitees'][index].entityTypeId;
+              inviteesList.push(
+                userInvitee
+              );
+            } else if (event['invitees'][index].entityTypeId == EntityType.TEAM) {
+              let userList = await this.userService.getUsersBySecurity(
+                  event['invitees'][index].entityTypeId,
+                  event['invitees'][index].entityId,
+                  '',
+                  {functionId: eventRecipientFunction.id}
+              );
+              if (userList) {
+                  userList.forEach(async (teamUser) => {
+                    if (teamUser.id != user.id) {
+                      let userInvitee = new EventInvitee();
+                      userInvitee.eventId = savedEvent['identifiers'][0].id;
+                      userInvitee.entityId = teamUser.id;
+                      userInvitee.entityTypeId = EntityType.USER;
+                      inviteesList.push(
+                        userInvitee
+                      );
+                    }
+                  });
+              }
+            }
+          }
+
+          const eventInviteePromises = [];
+          const eventInviteeNotificationPromises = [];
+
+          if (inviteesList.length > 0) {
+              inviteesList.forEach(async userInvitee => {
+                eventInviteePromises.push(
+                  this.eventService.createEventInvitee(
+                    userInvitee
+                  )
+                );
+                let tokens = (await this.deviceService.getUserDevices(userInvitee.entityId)).map(device => device.deviceId);
+                eventInviteeNotificationPromises.push(
+                  this.firebaseService.sendMessage({
+                      tokens: tokens,
+                      data: {
+                          type: 'new_event', entityTypeId: userInvitee.entityTypeId.toString(),
+                          entityId: userInvitee.entityId.toString(), eventOccurrenceId: userInvitee.eventId.toString()
+                        }
+                  })
+                );
+              });
+          }
+          await Promise.all(eventInviteePromises);
 
           if (event.frequency.toLowerCase() === Event.WEEKLY.toLowerCase() ||
               event.frequency.toLowerCase() === Event.DAILY.toLowerCase()) {
@@ -68,15 +130,17 @@ export class EventController  extends BaseController {
                     );
                 }
                 await Promise.all(promises);
-            } else {
-                await this.eventService.createEventOccurrence(
-                  savedEvent['identifiers'][0].id,
-                  event.allDay ,
-                  event.startTime,
-                  event.endTime,
-                  user.id
-                );
-            }
-            return response.status(200).send({ "success" : true});
+        } else {
+            await this.eventService.createEventOccurrence(
+                savedEvent['identifiers'][0].id,
+                event.allDay ,
+                event.startTime,
+                event.endTime,
+                user.id
+            );
         }
+
+        await Promise.all(eventInviteeNotificationPromises);
+        return response.status(200).send({ "success" : true});
+    }
 }

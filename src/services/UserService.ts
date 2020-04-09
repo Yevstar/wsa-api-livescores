@@ -2,12 +2,17 @@ import {Service} from "typedi";
 import {User} from "../models/User";
 import BaseService from "./BaseService";
 import {Role} from "../models/security/Role";
+import {Function} from "../models/security/Function";
 import {EntityType} from "../models/security/EntityType";
 import {UserRoleEntity} from "../models/security/UserRoleEntity";
 import {RoleFunction} from "../models/security/RoleFunction";
 import {Function} from "../models/security/Function";
 import {logger} from '../logger';
 import nodeMailer from "nodemailer";
+import {RoleFunction} from "../models/security/RoleFunction";
+import {UserRoleEntity} from "../models/security/UserRoleEntity";
+import {LinkedEntities} from "../models/views/LinkedEntities";
+import {Brackets} from "typeorm";
 
 @Service()
 export default class UserService extends BaseService<User> {
@@ -55,6 +60,14 @@ export default class UserService extends BaseService<User> {
         return this.entityManager.createQueryBuilder(EntityType, 'et')
             .select(['et.id as id', 'et.name as name'])
             .where('et.name = :entityTypeName', {entityTypeName})
+            .getRawOne();
+    }
+
+    public async getFunction(functionName: string): Promise<Function> {
+        return this.entityManager.createQueryBuilder(Function, 'fc')
+            .select(['fc.id as id', 'fc.name as name'])
+            .andWhere('fc.name = :functionName', {functionName})
+            .andWhere('fc.isDeleted = 0')
             .getRawOne();
     }
 
@@ -198,7 +211,44 @@ export default class UserService extends BaseService<User> {
             logger.info(`UserService - sendMail : ${err}, ${info}`);
             return Promise.resolve();
         });
+    }
 
+    public async getUsersBySecurity(entityTypeId: number, entityId: number, userName: string,
+                                    sec: { functionId?: number, roleId?: number }): Promise<User[]> {
+        let query = this.entityManager.createQueryBuilder(User, 'u')
+            .select(['u.id as id', 'LOWER(u.email) as email', 'u.firstName as firstName', 'u.lastName as lastName',
+                'u.mobileNumber as mobileNumber', 'u.genderRefId as genderRefId',
+                'u.marketingOptIn as marketingOptIn', 'u.photoUrl as photoUrl', 'u.firebaseUID as firebaseUID'])
+            .addSelect('concat(\'[\', group_concat(distinct JSON_OBJECT(\'entityTypeId\', ' +
+                'le.linkedEntityTypeId, \'entityId\', le.linkedEntityId, \'name\', le.linkedEntityName)),\']\') ' +
+                'as linkedEntity')
+            .innerJoin(UserRoleEntity, 'ure', 'u.id = ure.userId')
+            .innerJoin(RoleFunction, 'fr', 'fr.roleId = ure.roleId')
+            .innerJoin(LinkedEntities, 'le', 'le.linkedEntityTypeId = ure.entityTypeId AND ' +
+                'le.linkedEntityId = ure.entityId');
 
+        if (sec.functionId) {
+            let id = sec.functionId;
+            query.innerJoin(Function, 'f', 'f.id = fr.functionId')
+                .andWhere('f.id = :id', {id});
+        }
+
+        if (sec.roleId) {
+            let id = sec.roleId;
+            query.innerJoin(Role, 'r', 'r.id = fr.roleId')
+                .andWhere('r.id = :id', {id});
+        }
+
+        query.andWhere('le.inputEntityTypeId = :entityTypeId', {entityTypeId})
+            .andWhere('le.inputEntityId = :entityId', {entityId});
+
+        if (userName) {
+            query.andWhere(new Brackets(qb => {
+                qb.andWhere('LOWER(u.firstName) like :query', {query: `${userName.toLowerCase()}%`})
+                    .orWhere('LOWER(u.lastName) like :query', {query: `${userName.toLowerCase()}%`});
+            }));
+        }
+        query.groupBy('u.id');
+        return query.getRawMany()
     }
 }

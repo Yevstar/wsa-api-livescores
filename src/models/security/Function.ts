@@ -15,4 +15,7 @@ export class Function extends BaseEntity {
     @Column()
     name: string;
 
+    @IsNumber()
+    @Column({ default: 0 })
+    isDeleted: number;
 }

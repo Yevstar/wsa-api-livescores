@@ -3,6 +3,7 @@ import {Role} from "./Role";
 import {Match} from "../Match";
 import {Team} from "../Team";
 import {User} from "../User";
+import {EventOccurrence} from "../EventOccurrence";
 import {IsNumber} from "class-validator";
 
 @Entity()
@@ -43,6 +44,14 @@ export class Roster extends BaseEntity {
     @IsNumber()
     @Column()
     userId: number;
+
+    @OneToOne(type => EventOccurrence)
+    @JoinColumn()
+    eventOccurrence: EventOccurrence;
+
+    @IsNumber()
+    @Column()
+    eventOccurrenceId: number;
 
     @Column()
     status: "YES" | "NO" | "LATER" | "MAYBE";

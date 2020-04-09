@@ -73,13 +73,13 @@ export default class EventService extends BaseService<Event> {
         return this.entityManager.insert(EventOccurrence, me);
     }
 
-    public async createEventInvitee(eventId: number, entityId: number, entityTypeId: number ) {
-        let me = new EventInvitee();
-        me.eventId = eventId;
-        me.entityId = entityId;
-        me.entityTypeId = entityTypeId;
-
-        return this.entityManager.insert(EventInvitee, me);
+    public async createEventInvitee(eventInvitee: EventInvitee) {
+        return this.entityManager.insert(EventInvitee, eventInvitee);
     }
 
+    public async findEventInvitees(ids: number[]): Promise<EventInvitee[]> {
+        let query = this.entityManager.createQueryBuilder(EventInvitee, 'ei')
+                        .andWhere('ei.eventId in (:ids)', {ids: ids});
+        return query.getMany();
+    }
 }
