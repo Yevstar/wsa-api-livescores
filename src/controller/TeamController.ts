@@ -64,7 +64,7 @@ export class TeamController extends BaseController {
         @QueryParam('divisionId') divisionId: number,
         @QueryParam('search') search: string,
         @QueryParam('offset') offset: number,
-        @QueryParam('limit') limit: number): Promise<{ teams: Team[], page: {} }> {
+        @QueryParam('limit') limit: number): Promise<any> {
 
         if (search === undefined || search === null) search = '';
         if (offset === undefined || offset === null || limit === undefined || limit === null) {
@@ -74,7 +74,11 @@ export class TeamController extends BaseController {
 
         const teamData = await this.teamService.findTeamsWithUsers(competitionId, divisionId, search, offset, limit);
 
-        return { page: paginationData(parseInt(teamData.teamCount), limit, offset), teams: teamData.teams };
+        if (offset === 0 && limit ===0) {
+            return teamData.teams;
+        } else {
+            return { page: paginationData(parseInt(teamData.teamCount), limit, offset), teams: teamData.teams };
+        }
     }
 
     @Get('/')
