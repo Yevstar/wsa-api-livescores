@@ -338,4 +338,15 @@ export default class MatchService extends BaseService<Match> {
             return { matchCount, result }
         }
     }
+
+    public async getMatchDetailsForVenueCourtUpdate(competitionId: number,startTime: Date, endTime: Date, fromCourtIds: number[]): Promise<Match[]> {
+
+        let query = await this.entityManager.createQueryBuilder(Match, 'match');
+        if (startTime) query.andWhere("match.startTime >= cast(:startTime as datetime)", { startTime });
+        if (endTime) query.andWhere("match.endTime < cast(:endTime as datetime)", { endTime });
+        if (fromCourtIds) query.andWhere("match.venueCourtId in (:...fromCourtIds)", { fromCourtIds });
+        if (competitionId) query.andWhere("match.competitionId = :competitionId", { competitionId });
+        
+        return await query.getMany();
+    }
 }
