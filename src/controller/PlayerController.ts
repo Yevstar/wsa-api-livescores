@@ -4,7 +4,7 @@ import {User} from '../models/User';
 import {BaseController} from "./BaseController";
 import {Response} from "express";
 import * as  fastcsv from 'fast-csv';
-import { isPhoto, fileExt, timestamp, stringTONumber } from '../utils/Utils';
+import { isPhoto, fileExt, timestamp, stringTONumber, paginationData } from '../utils/Utils';
 import {RequestFilter} from "../models/RequestFilter";
 
 @JsonController('/players')
@@ -216,5 +216,23 @@ export class PlayerController extends BaseController {
         @Body() requestFilter: RequestFilter
     ): Promise<any[]> {
         return this.playerService.listTeamPlayerActivity(competitionId, requestFilter, status);
+    }
+
+    @Get('/admin')
+    async findPlayers(
+        @QueryParam('name') name: string,
+        @QueryParam('competitionId') competitionId: number,
+        @QueryParam('clubId') clubId: number,
+        @QueryParam('teamId') teamId: number,
+        @QueryParam('playUpFromAge') playUpFromAge: number,
+        @QueryParam('playUpFromGrade') playUpFromGrade: string,
+        @QueryParam('offset') offset: number,
+        @QueryParam('limit') limit: number): Promise<{ page: {}, players: Player[] }> {
+        const playerData = await this.playerService.findByParam(name, competitionId, clubId, teamId, playUpFromAge, playUpFromGrade, offset, limit);
+        if (offset !== null && offset !== undefined && limit !== null && limit !== undefined) {
+            return { page: paginationData(playerData.matchCount, limit, offset).page, players: playerData.result };
+        } else {
+            return { page: {}, players: playerData };
+        }
     }
 }
