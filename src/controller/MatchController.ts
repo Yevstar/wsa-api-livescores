@@ -163,6 +163,21 @@ export class MatchController extends BaseController {
         }
     }
 
+    @Post('/dashboard')
+    async loadDashboard(
+        @QueryParam('competitionId') competitionId: number,
+        @Body() requestFilter: RequestFilter,
+        @Res() response: Response
+    ): Promise<any> {
+        // Add all teams of supplied players.
+        if (competitionId && requestFilter) {
+            return this.matchService.loadDashboard(competitionId, new Date(), requestFilter);
+        } else {
+            return response.status(200).send(
+                {name: 'search_error', message: `Required fields are missing`});
+        }
+    }
+
     @Authorized()
     @Get('/competition')
     async byCompetition(

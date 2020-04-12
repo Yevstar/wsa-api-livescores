@@ -197,6 +197,20 @@ export default class MatchService extends BaseService<Match> {
             }
     }
 
+    public async loadDashboard(competitionId: number, startDate: Date, requestFilter: RequestFilter): Promise<any> {
+        let result = await this.entityManager.query("call wsa.usp_get_dashboard_matches(?,?,?,?)",
+            [competitionId, startDate, requestFilter.paging.offset, requestFilter.paging.limit]);
+
+            if (result != null) {
+                let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
+                let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);
+                responseObject["matches"] = result[0];
+                return responseObject;
+            } else {
+                return [];
+            }
+    }
+
     public async loadGamePositions() {
         return this.entityManager.createQueryBuilder(GamePosition, 'gp').getMany();
     }
