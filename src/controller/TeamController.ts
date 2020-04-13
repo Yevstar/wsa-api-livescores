@@ -8,7 +8,7 @@ import { User } from "../models/User";
 import { UserRoleEntity } from "../models/security/UserRoleEntity";
 import { Role } from "../models/security/Role";
 import { EntityType } from "../models/security/EntityType";
-import { isArrayEmpty, isNullOrEmpty, isPhoto, fileExt, md5, stringTONumber } from "../utils/Utils"
+import { isArrayEmpty, isNullOrEmpty, isPhoto, fileExt, md5, stringTONumber, paginationData } from "../utils/Utils"
 import {logger} from '../logger';
 import admin from "firebase-admin";
 
@@ -61,9 +61,24 @@ export class TeamController extends BaseController {
     @Get('/list')
     async listCompetitionTeams(
         @QueryParam('competitionId') competitionId: number,
-        @QueryParam('divisionId') divisionId: number
-    ): Promise<Team[]> {
-        return this.teamService.findTeamsWithUsers(competitionId, divisionId);
+        @QueryParam('divisionId') divisionId: number,
+        @QueryParam('search') search: string,
+        @QueryParam('offset') offset: number,
+        @QueryParam('limit') limit: number): Promise<any> {
+
+        if (search === undefined || search === null) search = '';
+        if (offset === undefined || offset === null || limit === undefined || limit === null) {
+            limit = 0;
+            offset = 0;
+        }
+
+        const teamData = await this.teamService.findTeamsWithUsers(competitionId, divisionId, search, offset, limit);
+
+        if (offset === 0 && limit ===0) {
+            return teamData.teams;
+        } else {
+            return { page: paginationData(parseInt(teamData.teamCount), limit, offset), teams: teamData.teams };
+        }
     }
 
     @Get('/')

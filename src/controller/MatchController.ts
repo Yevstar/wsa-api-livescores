@@ -1125,4 +1125,31 @@ export class MatchController extends BaseController {
         return response.status(200).send({ success: true });
 
     }
+
+    @Authorized()
+    @Post('/bulk/courts')
+    async bulkUpdateCourts(
+        @QueryParam('competitionId', { required: true }) competitionId: number,
+        @QueryParam('startTime', { required: true }) startTime: Date,
+        @QueryParam('endTime', { required: true }) endTime: Date,
+        @QueryParam('fromCourtIds', { required: true }) fromCourtIds: number[],
+        @QueryParam('toCourtId', { required: true }) toCourtId: number,
+        @Res() response: Response): Promise<any> {
+        const getMatches = await this.matchService.getMatchDetailsForVenueCourtUpdate(competitionId, startTime, endTime, fromCourtIds);
+        if (isArrayEmpty(getMatches)) {
+            const mArray = [];
+            for (let i of getMatches) {
+                let m = new Match();
+                m.id = i.id;
+                m.venueCourtId = toCourtId;
+                mArray.push(m);
+            }
+            
+            await this.matchService.batchCreateOrUpdate(mArray);
+
+            return response.status(200).send({success: true,message:"venue courts update successfully"});
+        } else {
+            return response.status(200).send({success: false,message:"cannot find matches within the provided duration"});
+        }
+    }
 }

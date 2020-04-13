@@ -13,7 +13,7 @@ export default class PlayerService extends BaseService<Player> {
     }
 
     public async findByParam(name: string, competitionId: number, clubId: number, teamId: number,
-                             playUpFromAge: number, playUpFromGrade: string, offset: number, limit: number): Promise<any> {
+        playUpFromAge: number, playUpFromGrade: string, offset: number, limit: number): Promise<any> {
         let query = this.entityManager.createQueryBuilder(Player, 'player')
             .innerJoinAndSelect("player.team", "team")
             .innerJoinAndSelect("team.division", "division")
@@ -22,27 +22,27 @@ export default class PlayerService extends BaseService<Player> {
 
         if (name) {
             query.andWhere('(LOWER(concat_ws(" ", player.firstName, player.lastName)) like :name)',
-                {name: `${name.toLowerCase()}%`});
+                { name: `%${name.toLowerCase()}%` });
         }
 
-        if (competitionId) query.andWhere('team.competitionId = :competitionId', {competitionId});
-        if (clubId) query.andWhere('club.id = :clubId', {clubId});
-        if (teamId) query.andWhere('team.id = :teamId', {teamId});
+        if (competitionId) query.andWhere('team.competitionId = :competitionId', { competitionId });
+        if (clubId) query.andWhere('club.id = :clubId', { clubId });
+        if (teamId) query.andWhere('team.id = :teamId', { teamId });
 
         if (playUpFromGrade && playUpFromAge) {
             let conditions = [];
             conditions.push(`(division.age < :age)`);
             conditions.push(`(division.age = :age and division.grade >= :grade)`);
             query.andWhere(`(${conditions.join(' or ')})`,
-                {age: playUpFromAge, grade: playUpFromGrade});
+                { age: playUpFromAge, grade: playUpFromGrade });
         }
-        if (offset) {
+        if (offset !== null && offset !== undefined && limit !== null && limit !== undefined) {
             // return query.paginate(offset,limit).getMany();
             // switched to skip and limit function as with paginate(offset,limit) with offset 0, typeorm-plus gives the value 
             // in negative as offset creating an error within query
             const matchCount = await query.getCount()
             const result = await query.skip(offset).take(limit).getMany();
-            return {matchCount,result}
+            return { matchCount, result }
         } else {
             return query.getMany();
         }
