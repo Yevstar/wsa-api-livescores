@@ -62,13 +62,15 @@ export class PlayerController extends BaseController {
             }
 
             if (playerInput.email) {
-                if (existingPlayer && existingPlayer.email.toLowerCase() === playerInput.email.toLowerCase()) {
-                    p.email = playerInput.email.toLowerCase();
-                    p.inviteStatus = playerInput.inviteStatus;
-                  } else {
+                if (existingPlayer &&
+                    existingPlayer.email &&
+                    existingPlayer.email.toLowerCase() === playerInput.email.toLowerCase()) {
+                        p .email = playerInput.email.toLowerCase();
+                        p.inviteStatus = playerInput.inviteStatus;
+                } else {
                     p.email = playerInput.email.toLowerCase();
                     p.inviteStatus = null;
-                  }
+                }
             }
 
             if (playerInput.dateOfBirth) {
