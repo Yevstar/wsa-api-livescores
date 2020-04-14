@@ -117,3 +117,7 @@ export function paginationData(totalCount: number, LIMIT: number, OFFSET: number
         }
     }
 }
+
+export function isNotNullAndUndefined(value: any): Boolean {
+    return value !== null && value !== undefined;
+}

@@ -870,10 +870,10 @@ export class MatchController extends BaseController {
                         myDate.setHours(myDate.getHours() - hours);
                     }
                     if (minutes) {
-                        myDate.setHours(myDate.getMinutes() - minutes);
+                        myDate.setMinutes(myDate.getMinutes() - minutes);
                     }
                     if (seconds) {
-                        myDate.setHours(myDate.getSeconds() - seconds);
+                        myDate.setSeconds(myDate.getSeconds() - seconds);
                     }
                     match.startTime = new Date(myDate);
                     arr.push(match)

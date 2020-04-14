@@ -235,4 +235,20 @@ export class PlayerController extends BaseController {
             return { page: {}, players: playerData };
         }
     }
+
+    @Authorized()
+    @Get('/export/teamattendance')
+    async exportTeamAttendance(
+        @HeaderParam("authorization") user: User,
+        @QueryParam('competitionId') competitionId: number,
+        @QueryParam('status') status: string,
+        @Res() response: Response) {
+
+        let teamAttendanceData = await this.playerService.listTeamPlayerActivity(competitionId, {paging:{offset:null,limit:null},search:''},status);
+        response.setHeader('Content-disposition', 'attachment; filename=teamattendance.csv');
+        response.setHeader('content-type', 'text/csv');
+        fastcsv.write(teamAttendanceData, { headers: true })
+            .on("finish", function () { })
+            .pipe(response);
+    }
 }

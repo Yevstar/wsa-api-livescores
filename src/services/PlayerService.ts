@@ -3,7 +3,7 @@ import BaseService from "./BaseService";
 import {Player} from "../models/Player";
 import {PlayerMinuteTracking} from "../models/PlayerMinuteTracking";
 import {RequestFilter} from "../models/RequestFilter";
-import {paginationData, stringTONumber } from "../utils/Utils";
+import {paginationData, stringTONumber, isNotNullAndUndefined } from "../utils/Utils";
 
 @Service()
 export default class PlayerService extends BaseService<Player> {
@@ -99,14 +99,22 @@ export default class PlayerService extends BaseService<Player> {
         let result = await this.entityManager.query("call wsa.usp_get_gametime(?,?,?,?)",
             [competitionId, aggregate, requestFilter.paging.limit, requestFilter.paging.offset]);
 
+            if (isNotNullAndUndefined(requestFilter.paging.limit) && isNotNullAndUndefined(requestFilter.paging.offset)) {
             if (result != null) {
-                let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
+                let totalCount = (result[1] && result[1].find(x => x)) ? result[1].find(x => x).totalCount : 0;
                 let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);
                 responseObject["stats"] = result[0];
                 return responseObject;
             } else {
                 return [];
             }
+        } else {
+            if (result != null) {
+                return result[0];
+            } else {
+                return [];
+            }
+        }
     }
 
     public async loadPlayersBorrows(competitionId: number, teamId: number) {
@@ -124,13 +132,21 @@ export default class PlayerService extends BaseService<Player> {
         let result = await this.entityManager.query("call wsa.usp_get_team_player_activity(?,?,?,?)",
         [competitionId, status, requestFilter.paging.offset, requestFilter.paging.limit]);
 
-        if (result != null) {
-            let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
-            let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);
-            responseObject["stats"] = result[0];
-            return responseObject;
+        if (isNotNullAndUndefined(requestFilter.paging.offset) && isNotNullAndUndefined(requestFilter.paging.limit)) {
+            if (result != null) {
+                let totalCount = (result[1] && result[1].find(x => x)) ? result[1].find(x => x).totalCount : 0;
+                let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);
+                responseObject["stats"] = result[0];
+                return responseObject;
+            } else {
+                return [];
+            }
         } else {
-            return [];
+            if (result != null) {
+                return result[0];
+            } else {
+                return [];
+            }
         }
     }
 

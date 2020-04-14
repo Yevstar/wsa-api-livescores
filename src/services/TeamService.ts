@@ -6,7 +6,7 @@ import { TeamLadder } from "../models/views/TeamLadder";
 import {User} from "../models/User";
 import {DeepLinkPlayer} from "../models/DeepLinkPlayer";
 import {logger} from '../logger';
-import { isArrayEmpty } from "../utils/Utils"
+import { isArrayEmpty, isNotNullAndUndefined, paginationData } from "../utils/Utils"
 import nodeMailer from "nodemailer";
 import {DeleteResult} from "typeorm-plus";
 
@@ -142,9 +142,11 @@ export default class TeamService extends BaseService<Team> {
         );
     }
 
-    public async scoringStatsByPlayer(competitionId: number, playerId: number, aggregate: ("ALL" | "MATCH")) {
+    public async scoringStatsByPlayer(competitionId: number, playerId: number, aggregate: ("ALL" | "MATCH"), offset: number, limit: number, search: string): Promise<any> {
         if (playerId) {
-            return this.entityManager.query(
+            const PARAMS = [playerId, playerId, playerId, competitionId];
+
+            let query =
                 'select\n' +
                 'SUM(IF(playerId = ?, goal, 0))         as own_goal,\n' +
                 'SUM(IF(playerId = ?, miss, 0))         as own_miss,\n' +
@@ -153,27 +155,84 @@ export default class TeamService extends BaseService<Team> {
                 'SUM(miss)                              as avg_miss,\n' +
                 'SUM(penalty_miss)                      as avg_penalty_miss\n' +
                 'from shootingStats\n' +
-                'where competitionId = ? ;', [playerId, playerId, playerId, competitionId]
-            );
+                'where competitionId = ? ';
+
+            const count = await this.entityManager.query('select count(*) as totalCount from ( ' + query + ' ) as t', PARAMS);
+
+            if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
+                query += ' limit ? offset ? ';
+                PARAMS.push(limit, offset);
+            }
+
+            const finalData =await  this.entityManager.query(query, PARAMS);
+            if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
+                return { count, finalData }
+            } else {
+                return finalData
+            }
         } else {
             if (aggregate == "ALL") {
-                return this.entityManager.query(
+                const PARAMS: any = [competitionId];
+
+                let query =
                     'select teamId, teamName, playerId, firstName, lastName, mnbPlayerId, gamePositionName, \n' +
                     'sum(goal) as goal, sum(miss) as miss, sum(penalty_miss) as penalty_miss,\n' +
                     'sum(goal) / (sum(goal) + if (sum(miss) is null, 0, sum(miss))) as goal_percent\n' +
                     'from shootingStats\n' +
-                    'where competitionId = ? \n' +
-                    'group by teamId, teamName, playerId, firstName, lastName, mnbPlayerId, gamePositionName;', [competitionId]
-                );
+                    'where competitionId = ? \n';
+
+                if (isNotNullAndUndefined(search) && search !== '') {
+                    query += ' and (LOWER(concat_ws(" ", firstName, lastName)) like ? ) \n';
+                    PARAMS.push(`%${search.toLowerCase()}%`);
+                }
+
+                const count = await this.entityManager.query('select count(*) as totalCount from ( ' + query + ' ) as t', PARAMS);
+
+                query += ' group by teamId, teamName, playerId, firstName, lastName, mnbPlayerId, gamePositionName ';
+
+                if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
+                    query += ' limit ? offset ? ';
+                    PARAMS.push(limit, offset);
+                }
+
+                const finalData = await this.entityManager.query(query, PARAMS);
+
+                if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
+                    return { count, finalData }
+                } else {
+                    return finalData
+                }
             } else {
-                return this.entityManager.query(
+                const PARAMS: any = [competitionId];
+
+                let query =
                     'select matchId, startTime, team1Name, team2Name, teamId, teamName, playerId, firstName, lastName, mnbPlayerId, gamePositionName, \n' +
                     'sum(goal) as goal, sum(miss) as miss, sum(penalty_miss) as penalty_miss,\n' +
                     'sum(goal) / (sum(goal) + if (sum(miss) is null, 0, sum(miss))) as goal_percent\n' +
                     'from shootingStats, `match` m\n' +
-                    'where shootingStats.competitionId = ? and m.id = matchId\n' +
-                    'group by matchId, team1Name, team2Name, teamId, teamName, playerId, firstName, lastName, mnbPlayerId, gamePositionName;', [competitionId]
-                );
+                    'where shootingStats.competitionId = ? and m.id = matchId \n'
+
+                if (isNotNullAndUndefined(search) && search !== '') {
+                    query += ' and (LOWER(concat_ws(" ", firstName, lastName)) like ? ) \n';
+                    PARAMS.push(`%${search.toLowerCase()}%`);
+                }
+
+                query += ' group by matchId, team1Name, team2Name, teamId, teamName, playerId, firstName, lastName, mnbPlayerId, gamePositionName '
+
+                const count = await this.entityManager.query('select count(*) as totalCount from ( ' + query + ' ) as t', PARAMS);
+
+                if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
+                    query += ' limit ? offset ? ';
+                    PARAMS.push(limit, offset);
+                }
+
+                const finalData = await this.entityManager.query(query, PARAMS);
+
+                if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
+                    return { count, finalData }
+                } else {
+                    return finalData
+                }
             }
         }
     }

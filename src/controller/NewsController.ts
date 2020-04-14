@@ -81,7 +81,8 @@ export class NewsController extends BaseController {
                 }
 
                 const savedNews = await this.newsService.createOrUpdate(n);
-                return response.status(200).send(savedNews);
+                const getNews = await this.newsService.findById(savedNews.id);
+                return response.status(200).send(getNews);
 
             } else {
                 return response.status(212).send({
