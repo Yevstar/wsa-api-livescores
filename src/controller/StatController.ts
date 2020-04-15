@@ -127,15 +127,32 @@ export class StatController extends BaseController {
         }
     }
 
-    @Authorized()
     @Get('/export/gametime')
     async exportTeamAttendance(
-        @HeaderParam("authorization") user: User,
         @QueryParam('competitionId', { required: true }) competitionId: number = undefined,
         @QueryParam('aggregate', { required: true }) aggregate: ("GAME" | "MATCH" | "PERIOD"),
         @Res() response: Response) {
 
         let gameTimeData = await this.playerService.loadGameTime(competitionId, aggregate, { paging: { offset: null, limit: null }, search: '' });
+
+        gameTimeData.map(e => {
+            e['Player Id'] = e.player.id;
+            e['First Name'] = e.firstName;
+            e['Last Name'] = e.lastName;
+            e['Team'] = e.team.name;
+            e['DIV'] = e.division.name;
+            e['Play Time'] = e.playTime;
+            e['Play %'] = (e.playTimeTeamMatches == 0 || e.playTimeTeamMatches == null) ? ("") : ((100 * (e.playTime / e.playTimeTeamMatches)).toFixed(2) + '%');
+            delete e.division;
+            delete e.player;
+            delete e.team;
+            delete e.firstName;
+            delete e.lastName;
+            delete e.playTime;
+            delete e.playTimeTeamMatches;
+            return e;
+        });
+
         response.setHeader('Content-disposition', 'attachment; filename=gametime.csv');
         response.setHeader('content-type', 'text/csv');
         fastcsv.write(gameTimeData, { headers: true })
@@ -143,7 +160,6 @@ export class StatController extends BaseController {
             .pipe(response);
     }
 
-    @Authorized()
     @Get('/export/scoringByPlayer')
     async exportScoringStatsByPlayer(
         @QueryParam('competitionId', { required: true }) competitionId: number,
@@ -154,6 +170,36 @@ export class StatController extends BaseController {
         if (competitionId) {
             if (search === null || search === undefined) search = '';
             let playerScoreData = await this.teamService.scoringStatsByPlayer(competitionId, playerId, aggregate, null, null, search);
+
+            playerScoreData.map(e => {
+                e['Match Id'] = e.matchId;
+                e['Date'] = e.startTime;
+                e['Team'] = e.teamName;
+                e['First Name'] = e.firstName;
+                e['Last Name'] = e.lastName;
+                e['Position'] = e.gamePositionName;
+                e['Misses'] = e.miss;
+                e['Goals'] = e.goal;
+                e['Goals %'] = e.startTime;
+
+                delete e.firstName;
+                delete e.gamePositionName;
+                delete e.goal;
+                delete e.goal_percent;
+                delete e.lastName;
+                delete e.matchId;
+                delete e.miss;
+                delete e.mnbPlayerId;
+                delete e.penalty_miss;
+                delete e.playerId;
+                delete e.startTime;
+                delete e.team1Name;
+                delete e.team2Name;
+                delete e.teamId;
+                delete e.teamName;
+                return e;
+            });
+
             response.setHeader('Content-disposition', 'attachment; filename=scoringByPlayer.csv');
             response.setHeader('content-type', 'text/csv');
             fastcsv.write(playerScoreData, { headers: true })

@@ -12,6 +12,10 @@ export class Competition extends BaseEntity {
 
     @IsString()
     @Column()
+    uniqueKey: string;
+
+    @IsString()
+    @Column()
     name: string;
 
     @IsString()

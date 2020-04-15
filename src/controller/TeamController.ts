@@ -8,7 +8,7 @@ import { User } from "../models/User";
 import { UserRoleEntity } from "../models/security/UserRoleEntity";
 import { Role } from "../models/security/Role";
 import { EntityType } from "../models/security/EntityType";
-import { isArrayEmpty, isNullOrEmpty, isPhoto, fileExt, md5, stringTONumber, paginationData } from "../utils/Utils"
+import { isArrayEmpty, isNullOrEmpty, isPhoto, fileExt, md5, stringTONumber, paginationData, isNotNullAndUndefined } from "../utils/Utils"
 import {logger} from '../logger';
 import admin from "firebase-admin";
 
@@ -95,7 +95,14 @@ export class TeamController extends BaseController {
         @QueryParam('teamIds') teamIds: number[],
         @QueryParam('divisionIds') divisionIds: number[],
         @QueryParam('competitionIds') competitionIds: number[],
+        @QueryParam('competitionKey') competitionUniqueKey: string,
     ): Promise<TeamLadder[]> {
+
+        if (isNotNullAndUndefined(competitionUniqueKey)) {
+            const getCompetitions = await this.competitionService.getCompetitionByUniquekey(competitionUniqueKey);
+            competitionIds = getCompetitions.id;
+        }
+        
         if (teamIds && !Array.isArray(teamIds)) teamIds = [teamIds];
         if (divisionIds && !Array.isArray(divisionIds)) divisionIds = [divisionIds];
         if (competitionIds && !Array.isArray(competitionIds)) competitionIds = [competitionIds];

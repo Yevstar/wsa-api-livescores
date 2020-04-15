@@ -22,12 +22,13 @@ import {Response} from "express";
 import {BaseController} from "./BaseController";
 import {logger} from "../logger";
 import {User} from "../models/User";
-import {contain, fileExt, isPhoto, isVideo, timestamp, stringTONumber, paginationData, isArrayEmpty} from "../utils/Utils";
+import {contain, fileExt, isPhoto, isVideo, timestamp, stringTONumber, paginationData, isArrayEmpty, isNotNullAndUndefined} from "../utils/Utils";
 import {Incident} from "../models/Incident";
 import {Lineup} from "../models/Lineup";
 import {IncidentPlayer} from "../models/IncidentPlayer";
 import {Round} from "../models/Round";
 import {RequestFilter} from "../models/RequestFilter";
+import * as fastcsv from 'fast-csv';
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
@@ -83,12 +84,14 @@ export class MatchController extends BaseController {
                 ...(await this.playerService.findByIds(playerIds)).map(player => player.teamId)
             ]);
         }
-        offset = stringTONumber(offset);
-        limit = stringTONumber(limit);
+        if(isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
+            offset = stringTONumber(offset);
+            limit = stringTONumber(limit);
+        }
 
         const matchFound = await this.matchService.findByParam(from, to, teamIds, playerIds, competitionId, clubIds, matchEnded, matchStatus, offset, limit);
         
-        if (matchFound && limit) {
+        if (isNotNullAndUndefined(matchFound.matchCount) && isNotNullAndUndefined(matchFound.result) && limit) {
             let responseObject = paginationData(stringTONumber(matchFound.matchCount), limit, offset)
             responseObject["matches"] = matchFound.result;
             return responseObject;
@@ -1151,5 +1154,80 @@ export class MatchController extends BaseController {
         } else {
             return response.status(200).send({success: false,message:"cannot find matches within the provided duration"});
         }
+    }
+
+    @Get('/export')
+    async exportMatches(
+        @QueryParam('from') from: Date,
+        @QueryParam('to') to: Date,
+        @QueryParam('teamIds') teamIds: number[] = [],
+        @QueryParam('playerIds') playerIds: number[],
+        @QueryParam('competitionId') competitionId: number,
+        @QueryParam('clubIds') clubIds: number[],
+        @QueryParam('matchEnded') matchEnded: boolean,
+        @QueryParam('matchStatus') matchStatus: ("STARTED" | "PAUSED" | "ENDED")[],
+        @QueryParam('offset') offset: number = undefined,
+        @QueryParam('limit') limit: number = undefined,
+        @Res() response: Response): Promise<any> {
+
+        const getMatchesData = await this.find(from, to, teamIds, playerIds, competitionId, clubIds, matchEnded, matchStatus, null, null);
+        
+        getMatchesData.map(e => {
+            e['Match Id'] = e.id;
+            e['Start Time'] = e.startTime;
+            e['Home'] = e.team1.name;
+            e['Away'] = e.team2.name;
+            e['Venue'] = e.venueCourt.venue.name;
+            e['Division'] = e.division.name;
+            e['Type'] = e.type === 'TWO_HALVES' ? 'Halves' : (e.type === 'SINGLE' ? 'Single' : (e.type === 'FOUR_QUARTERS' ? 'Quarters' : ''));
+            e['Score'] = e.team1Score + ':' + e.team2Score;
+            e['Match Duration'] = e.matchDuration;
+            e['Main Break'] = e.mainBreakDuration;
+            e['Quarter Break'] = e.breakDuration;
+            delete e.breakDuration
+            delete e.centrePassStatus
+            delete e.centrePassWonBy
+            delete e.competition
+            delete e.competitionId
+            delete e.created_at
+            delete e.deleted_at
+            delete e.division
+            delete e.divisionId
+            delete e.endTime
+            delete e.extraTimeDuration
+            delete e.mainBreakDuration
+            delete e.id
+            delete e.matchDuration
+            delete e.matchEnded
+            delete e.matchStatus
+            delete e.mnbMatchId
+            delete e.mnbPushed
+            delete e.originalStartTime
+            delete e.pauseStartTime
+            delete e.round
+            delete e.roundId
+            delete e.scorerStatus
+            delete e.startTime
+            delete e.team1
+            delete e.team1Id
+            delete e.team1ResultId
+            delete e.team1Score
+            delete e.team2Id
+            delete e.team2
+            delete e.team2ResultId
+            delete e.team2Score
+            delete e.totalPausedMs
+            delete e.type
+            delete e.updated_at
+            delete e.venueCourt
+            delete e.venueCourtId
+            return e;
+        });
+
+        response.setHeader('Content-disposition', 'attachment; filename=matches.csv');
+        response.setHeader('content-type', 'text/csv');
+        fastcsv.write(getMatchesData, { headers: true })
+            .on("finish", function () { })
+            .pipe(response);
     }
 }

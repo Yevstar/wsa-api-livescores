@@ -18,7 +18,7 @@ import {User} from "../models/User";
 import {BaseController} from "./BaseController";
 import {RequestFilter} from "../models/RequestFilter";
 import { CompetitionVenue } from "../models/CompetitionVenue";
-import { isPhoto, fileExt, stringTONumber, stringToBoolean, timestamp } from "../utils/Utils"
+import { isPhoto, fileExt, stringTONumber, stringToBoolean, timestamp, uuidv4 } from "../utils/Utils"
 
 
 @JsonController('/competitions')
@@ -85,6 +85,8 @@ export class CompetitionController extends BaseController {
             c.buzzerEnabled = stringToBoolean(competition.buzzerEnabled);
             c.warningBuzzerEnabled = stringToBoolean(competition.warningBuzzerEnabled);
 
+            if(c.id===0) c.uniqueKey = uuidv4();
+            
             let saved = await this.competitionService.createOrUpdate(c);
             await this.competitionVenueService.deleteByCompetitionId(saved.id);
             let cvArray = [];

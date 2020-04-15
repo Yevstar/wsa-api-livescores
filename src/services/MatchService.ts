@@ -13,7 +13,7 @@ import {MatchUmpires} from "../models/MatchUmpires";
 import {IncidentPlayer} from "../models/IncidentPlayer";
 import {IncidentMedia} from "../models/IncidentMedia";
 import {RequestFilter} from "../models/RequestFilter";
-import {paginationData, stringTONumber } from "../utils/Utils";
+import {paginationData, stringTONumber, isNotNullAndUndefined } from "../utils/Utils";
 
 @Service()
 export default class MatchService extends BaseService<Match> {
@@ -112,7 +112,7 @@ export default class MatchService extends BaseService<Match> {
         // return query.paginate(offset,limit).getMany();
         // switched to skip and limit function as with paginate(offset,limit) with offset 0, typeorm-plus gives the value 
         // in negative as offset creating an error within query
-        if (limit) {
+        if (isNotNullAndUndefined(limit) && isNotNullAndUndefined(offset)) {
             const matchCount = await query.getCount();
             const result = await query.skip(offset).take(limit).getMany();
             return {matchCount,result}

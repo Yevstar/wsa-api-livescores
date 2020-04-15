@@ -59,6 +59,11 @@ export default class CompetitionService extends BaseService<Competition> {
         return query.softDelete().execute();
     }
 
-   
+    public async getCompetitionByUniquekey(uniqueKey: string): Promise<any> {
+        let query = this.entityManager.createQueryBuilder(Competition, 'competition')
+        query.andWhere("competition.uniqueKey = :uniqueKey", { uniqueKey });
+        query.andWhere('competition.deleted_at is null')
+        return query.getOne();
+    }   
 }
 

@@ -238,15 +238,47 @@ export class PlayerController extends BaseController {
         }
     }
 
-    @Authorized()
     @Get('/export/teamattendance')
     async exportTeamAttendance(
-        @HeaderParam("authorization") user: User,
         @QueryParam('competitionId') competitionId: number,
         @QueryParam('status') status: string,
         @Res() response: Response) {
 
-        let teamAttendanceData = await this.playerService.listTeamPlayerActivity(competitionId, {paging:{offset:null,limit:null},search:''},status);
+        let teamAttendanceData = await this.playerService.listTeamPlayerActivity(competitionId, { paging: { offset: null, limit: null }, search: '' }, status);
+        teamAttendanceData(e => {
+            e['Match Id'] = e.matchId;
+            e['Start Time'] = e.startTime;
+            e['Team'] = e.team1name + ':' + e.team2name
+            e['Player Id'] = e.playerId
+            e['First Name'] = e.firstName
+            e['Last Name'] = e.lastName;
+            e['Division'] = e.divisionName
+            e['Status'] = e.status
+            e['Position'] = e.positionName;
+
+            delete e.activityTimestamp;
+            delete e.competitionId;
+            delete e.divisionName;
+            delete e.firstName;
+            delete e.lastName;
+            delete e.matchId;
+            delete e.mnbMatchId;
+            delete e.mnbPlayerId;
+            delete e.name;
+            delete e.period;
+            delete e.playerId;
+            delete e.positionName;
+            delete e.startTime;
+            delete e.status;
+            delete e.team1id;
+            delete e.team1name;
+            delete e.team2id;
+            delete e.team2name;
+            delete e.teamId;
+            delete e.userId;
+            return e;
+        });
+
         response.setHeader('Content-disposition', 'attachment; filename=teamattendance.csv');
         response.setHeader('content-type', 'text/csv');
         fastcsv.write(teamAttendanceData, { headers: true })
