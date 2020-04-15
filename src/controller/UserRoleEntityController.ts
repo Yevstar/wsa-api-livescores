@@ -84,9 +84,7 @@ export class UserRoleEntityController extends BaseController {
               childUser.statusRefId = 0;
 
               childUser = await this.userService.createOrUpdate(childUser);
-              promises.push(
-                this.updateFirebaseData(childUser, childUserPassword)
-              );
+              await this.updateFirebaseData(childUser, childUserPassword);
           } else {
               childUser.statusRefId = 0;
               promises.push(

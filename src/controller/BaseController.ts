@@ -106,9 +106,17 @@ export class BaseController {
 
     protected async updateFirebaseData(user: User, password: string) {
         user.password = password;
+
         let fbUser;
+        /// If there an existing firebaseUID get the firebase user via that
         if (user.firebaseUID) {
           fbUser = await this.firebaseService.loadUserByUID(user.firebaseUID);
+        } else {
+          /// Also we will check once if there an user alreay with that email
+          /// in-order to make sure we don't call create of firebase user
+          /// with an already existing email.
+          fbUser = await this.firebaseService.loadUserByEmail(user.email);
+          user.firebaseUID = fbUser.uid;
         }
 
         if (!fbUser || !fbUser.uid) {
