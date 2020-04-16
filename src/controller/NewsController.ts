@@ -41,7 +41,7 @@ export class NewsController extends BaseController {
         @UploadedFiles("newsMedia") newsMedia: any[],
         @Res() response: Response) {
         try {
-            // as there is an issue while updating the news, I have changed the type of body 
+            // as there is an issue while updating the news, I have changed the type of body
             // "id" should be integer while updation, so that I have split the body parameters to convert id into integer
             let n = new News();
             n.title = body.title;
@@ -110,7 +110,7 @@ export class NewsController extends BaseController {
             });
         }
     }
-    
+
     @Authorized("spectator")
     @Get("/")
     async findUserNews(
@@ -137,7 +137,7 @@ export class NewsController extends BaseController {
         let news = await this.newsService.findById(id);
         if (news) {
             let tokens = await this.deviceService.findDeviceForNews(news);
-            if (tokens) {
+            if (tokens && tokens.length > 0) {
                 let data = {
                     type: 'news_updated',
                     news_id: news.id.toString(),
@@ -156,7 +156,7 @@ export class NewsController extends BaseController {
                         data: data
                     });
                 }
-                
+
                 news.published_at = new Date();
                 news.isActive = true;
                 await this.newsService.createOrUpdate(news);

@@ -97,15 +97,17 @@ export class EventController  extends BaseController {
                   )
                 );
                 let tokens = (await this.deviceService.getUserDevices(userInvitee.entityId)).map(device => device.deviceId);
-                eventInviteeNotificationPromises.push(
-                  this.firebaseService.sendMessage({
-                      tokens: tokens,
-                      data: {
-                          type: 'new_event', entityTypeId: userInvitee.entityTypeId.toString(),
-                          entityId: userInvitee.entityId.toString(), eventOccurrenceId: userInvitee.eventId.toString()
-                        }
-                  })
-                );
+                if (tokens && tokens.length > 0) {
+                    eventInviteeNotificationPromises.push(
+                        this.firebaseService.sendMessage({
+                            tokens: tokens,
+                            data: {
+                                type: 'new_event', entityTypeId: userInvitee.entityTypeId.toString(),
+                                entityId: userInvitee.entityId.toString(), eventOccurrenceId: userInvitee.eventId.toString()
+                            }
+                        })
+                    );
+                }
               });
           }
           await Promise.all(eventInviteePromises);
