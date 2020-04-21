@@ -155,7 +155,7 @@ export class CompetitionController extends BaseController {
             ladderSettingsArray.push(cls);
             let ladder = await this.competitionLadderSettingsService.batchCreateOrUpdate(ladderSettingsArray)
 
-            return saved;
+            return this.competitionService.findById(saved.id);
 
         } else {
             return response.status(200).send(
@@ -168,10 +168,11 @@ export class CompetitionController extends BaseController {
     async loadAdmin(
         @HeaderParam("authorization") user: User,
         @Body() requestFilter: RequestFilter,
+        @QueryParam('organisationId') organisationId: number,
         @Res() response: Response
     ): Promise<any> {
         if (requestFilter) {
-            return this.competitionService.loadAdmin(user.id, requestFilter);
+            return this.competitionService.loadAdmin(user.id, requestFilter, organisationId);
         } else {
             return response.status(200).send(
                 {name: 'search_error', message: `Required fields are missing`});

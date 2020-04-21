@@ -1152,10 +1152,11 @@ export class MatchController extends BaseController {
 
             return response.status(200).send({success: true,message:"venue courts update successfully"});
         } else {
-            return response.status(200).send({success: false,message:"cannot find matches within the provided duration"});
+            return response.status(212).send({success: false,message:"cannot find matches within the provided duration"});
         }
     }
 
+    @Authorized()
     @Get('/export')
     async exportMatches(
         @QueryParam('from') from: Date,

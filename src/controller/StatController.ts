@@ -127,6 +127,7 @@ export class StatController extends BaseController {
         }
     }
 
+    @Authorized()
     @Get('/export/gametime')
     async exportTeamAttendance(
         @QueryParam('competitionId', { required: true }) competitionId: number = undefined,
@@ -160,6 +161,7 @@ export class StatController extends BaseController {
             .pipe(response);
     }
 
+    @Authorized()
     @Get('/export/scoringByPlayer')
     async exportScoringStatsByPlayer(
         @QueryParam('competitionId', { required: true }) competitionId: number,

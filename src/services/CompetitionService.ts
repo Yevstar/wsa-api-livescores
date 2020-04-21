@@ -40,9 +40,9 @@ export default class CompetitionService extends BaseService<Competition> {
         return query.getMany();
     }
     
-    public async loadAdmin(userId: number, requestFilter: RequestFilter): Promise<any> {
-        let result = await this.entityManager.query("call wsa.usp_get_competitions(?,?,?)",
-            [userId, requestFilter.paging.limit, requestFilter.paging.offset]);
+    public async loadAdmin(userId: number, requestFilter: RequestFilter, organisationId: number): Promise<any> {
+        let result = await this.entityManager.query("call wsa.usp_get_competitions(?,?,?,?)",
+            [userId, organisationId, requestFilter.paging.limit, requestFilter.paging.offset]);
 
             if (result != null) {
                 let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;

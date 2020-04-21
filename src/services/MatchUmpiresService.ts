@@ -3,7 +3,7 @@ import BaseService from "./BaseService";
 import {MatchUmpires} from "../models/MatchUmpires";
 import {Division} from "../models/Division";
 import {DeleteResult} from "typeorm-plus";
-import {RequestFilter} from "src/models/RequestFilter";
+import {RequestFilter} from "../models/RequestFilter";
 
 @Service()
 export default class MatchUmpiresService extends BaseService<MatchUmpires> {

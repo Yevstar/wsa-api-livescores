@@ -140,6 +140,7 @@ export class PlayerController extends BaseController {
         }
     }
 
+    @Authorized()
     @Get('/csv')
     async exportCSV(
         @QueryParam('competitionId') competitionId: number,
@@ -238,6 +239,7 @@ export class PlayerController extends BaseController {
         }
     }
 
+    @Authorized()
     @Get('/export/teamattendance')
     async exportTeamAttendance(
         @QueryParam('competitionId') competitionId: number,
@@ -245,7 +247,7 @@ export class PlayerController extends BaseController {
         @Res() response: Response) {
 
         let teamAttendanceData = await this.playerService.listTeamPlayerActivity(competitionId, { paging: { offset: null, limit: null }, search: '' }, status);
-        teamAttendanceData(e => {
+        teamAttendanceData.map(e => {
             e['Match Id'] = e.matchId;
             e['Start Time'] = e.startTime;
             e['Team'] = e.team1name + ':' + e.team2name
