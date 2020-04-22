@@ -25,7 +25,7 @@ export class StatController extends BaseController {
                 return this.playerService.loadPlayersPlayStat(teamId);
             }
         } else {
-        
+
             return response.status(200).send(
                 {name: 'search_error', message: `Team id required field`});
         }
@@ -97,7 +97,7 @@ export class StatController extends BaseController {
                 { name: 'search_error', message: `Required fields not filled` });
         }
     }
-    
+
     @Authorized()
     @Get('/incidentsByTeam')
     async incidentsByTeam(
@@ -111,7 +111,7 @@ export class StatController extends BaseController {
                 {name: 'search_error', message: `Required fields not filled`});
         }
     }
-    
+
     @Authorized()
     @Get('/borrowsFromTeam')
     async borrowsFromTeam(
@@ -208,7 +208,7 @@ export class StatController extends BaseController {
                 .on("finish", function () { })
                 .pipe(response);
         } else {
-            return response.status(200).send(
+            return response.status(212).send(
                 { name: 'search_error', message: `Required fields not filled` });
         }
     }

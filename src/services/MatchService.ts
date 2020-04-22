@@ -357,7 +357,7 @@ export default class MatchService extends BaseService<Match> {
 
         let query = await this.entityManager.createQueryBuilder(Match, 'match');
         if (startTime) query.andWhere("match.startTime >= cast(:startTime as datetime)", { startTime });
-        if (endTime) query.andWhere("match.endTime < cast(:endTime as datetime)", { endTime });
+        if (endTime) query.andWhere("match.startTime < cast(:endTime as datetime)", { endTime });
         if (fromCourtIds) query.andWhere("match.venueCourtId in (:...fromCourtIds)", { fromCourtIds });
         if (competitionId) query.andWhere("match.competitionId = :competitionId", { competitionId });
         
