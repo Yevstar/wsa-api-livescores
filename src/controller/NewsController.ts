@@ -147,7 +147,7 @@ export class NewsController extends BaseController {
                 };
                 if (silent) {
                     this.firebaseService.sendMessageChunked({tokens: tokens, data: data});
-                    news.isNotification = true;
+                    // news.isNotification = true;
                 } else {
                     this.firebaseService.sendMessageChunked({
                         tokens: tokens,
@@ -155,6 +155,7 @@ export class NewsController extends BaseController {
                         body: news.title,
                         data: data
                     });
+                    news.isNotification = true;
                 }
 
                 news.published_at = new Date();
