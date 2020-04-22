@@ -116,7 +116,9 @@ export class BaseController {
           /// in-order to make sure we don't call create of firebase user
           /// with an already existing email.
           fbUser = await this.firebaseService.loadUserByEmail(user.email);
-          user.firebaseUID = fbUser.uid;
+          if (fbUser && fbUser.uid) {
+            user.firebaseUID = fbUser.uid;
+          }
         }
 
         if (!fbUser || !fbUser.uid) {
@@ -128,7 +130,6 @@ export class BaseController {
             user.firebaseUID = fbUser.uid;
             await User.save(user);
         }
-
         await this.checkFirestoreDatabase(user, true);
     }
 
@@ -177,14 +178,16 @@ export class BaseController {
     }
 
     protected async notifyChangeRole(userId: number) {
-        let tokens = (await this.deviceService.getUserDevices(userId)).map(device => device.deviceId);
-        if (tokens && tokens.length > 0) {
-            this.firebaseService.sendMessage({
-                tokens: tokens,
-                data: {
-                    type: 'user_role_updated'
-                }
-            })
+        if (userId) {
+            let tokens = (await this.deviceService.getUserDevices(userId)).map(device => device.deviceId);
+            if (tokens && tokens.length > 0) {
+                this.firebaseService.sendMessage({
+                    tokens: tokens,
+                    data: {
+                        type: 'user_role_updated'
+                    }
+                });
+            }
         }
     }
 }
