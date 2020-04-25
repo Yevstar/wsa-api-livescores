@@ -181,6 +181,8 @@ async function start() {
         res.json(spec)
     });
 
+    server.timeout = 300000;
+
     server.listen(process.env.PORT, () => {
         logger.info(`Server listening on port ${process.env.PORT}`);
     });
