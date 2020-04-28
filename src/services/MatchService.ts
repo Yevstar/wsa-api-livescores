@@ -6,6 +6,7 @@ import {MatchResultType} from "../models/MatchResultType";
 import {GamePosition} from "../models/GamePosition";
 import {GameStat} from "../models/GameStat";
 import {MatchEvent} from "../models/MatchEvent";
+import {MatchPausedTime} from "../models/MatchPausedTime";
 import {IncidentType} from "../models/IncidentType";
 import {Incident} from "../models/Incident";
 import {Lineup} from "../models/Lineup";
@@ -47,6 +48,7 @@ export default class MatchService extends BaseService<Match> {
             .leftJoinAndSelect('competition.location', 'location')
             .leftJoinAndSelect('competition.competitionVenues', 'competitionVenue')
             .leftJoinAndSelect('venueCourt.venue', 'venue')
+            .leftJoinAndSelect('match.matchPausedTimes', 'matchPausedTimes')
             .andWhere('match.deleted_at is null');
     }
 
@@ -99,7 +101,7 @@ export default class MatchService extends BaseService<Match> {
     public async findByParam(from: Date, to: Date, teamIds: number[] = [], playerIds: number[],
         competitionId: number, clubIds: number[], matchEnded: boolean,
         matchStatus: ("STARTED" | "PAUSED" | "ENDED")[], offset: number = undefined, limit: number = undefined): Promise<any> {
-        
+
         let query = await this.entityManager.createQueryBuilder(Match, 'match');
         if (from) query.andWhere("match.startTime >= :from", { from });
         if (to) query.andWhere("match.startTime <= :to", { to });
@@ -108,9 +110,9 @@ export default class MatchService extends BaseService<Match> {
         if (matchEnded != undefined) query.andWhere("match.matchEnded is :matchEnded", { matchEnded });
         if (matchStatus) query.andWhere("match.matchStatus in (:matchStatus)", { matchStatus });
         query.orderBy('match.startTime', 'ASC');
-        
+
         // return query.paginate(offset,limit).getMany();
-        // switched to skip and limit function as with paginate(offset,limit) with offset 0, typeorm-plus gives the value 
+        // switched to skip and limit function as with paginate(offset,limit) with offset 0, typeorm-plus gives the value
         // in negative as offset creating an error within query
         if (isNotNullAndUndefined(limit) && isNotNullAndUndefined(offset)) {
             const matchCount = await query.getCount();
@@ -325,7 +327,7 @@ export default class MatchService extends BaseService<Match> {
         query.andWhere("match.round = :roundId", { roundId });
         return query.getMany();
     }
-    
+
     public async softDelete(id: number, userId:number): Promise<DeleteResult> {
         let query = this.entityManager.createQueryBuilder(Match, 'match');
         query.andWhere("match.id = :id", { id });
@@ -360,7 +362,21 @@ export default class MatchService extends BaseService<Match> {
         if (endTime) query.andWhere("match.startTime < cast(:endTime as datetime)", { endTime });
         if (fromCourtIds) query.andWhere("match.venueCourtId in (:...fromCourtIds)", { fromCourtIds });
         if (competitionId) query.andWhere("match.competitionId = :competitionId", { competitionId });
-        
+
         return await query.getMany();
+    }
+
+    public async logMatchPauseTime(
+        matchId: number,
+        period: number,
+        isBreak: boolean,
+        totalPausedMs: number) {
+          let matchPausedTime = new MatchPausedTime();
+          matchPausedTime.matchId = matchId;
+          matchPausedTime.period = period;
+          matchPausedTime.isBreak = isBreak;
+          matchPausedTime.totalPausedMs = totalPausedMs;
+
+          return this.entityManager.insert(MatchPausedTime, matchPausedTime);
     }
 }
