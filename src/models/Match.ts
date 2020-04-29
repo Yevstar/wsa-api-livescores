@@ -174,4 +174,7 @@ export class Match extends BaseEntity {
     @Column()
     updated_at: Date;
 
+    @IsString()
+    @Column()
+    resultStatus: "Draft" | "In Dispute" | "Final";
 }
