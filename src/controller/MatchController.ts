@@ -29,6 +29,7 @@ import {IncidentPlayer} from "../models/IncidentPlayer";
 import {Round} from "../models/Round";
 import {RequestFilter} from "../models/RequestFilter";
 import * as fastcsv from 'fast-csv';
+import {MatchPausedTime} from "../models/MatchPausedTime";
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
@@ -90,7 +91,7 @@ export class MatchController extends BaseController {
         }
 
         const matchFound = await this.matchService.findByParam(from, to, teamIds, playerIds, competitionId, clubIds, matchEnded, matchStatus, offset, limit);
-        
+
         if (isNotNullAndUndefined(matchFound.matchCount) && isNotNullAndUndefined(matchFound.result) && limit) {
             let responseObject = paginationData(stringTONumber(matchFound.matchCount), limit, offset)
             responseObject["matches"] = matchFound.result;
@@ -436,25 +437,33 @@ export class MatchController extends BaseController {
         @HeaderParam("authorization") user: User,
         @QueryParam('matchId', {required: true}) matchId: number,
         @QueryParam('msFromStart') msFromStart: number,
+        @QueryParam('pausedMs') pausedMs: number,
         @QueryParam('isBreak') isBreak: boolean,
         @QueryParam('period') period: number,
         @Res() response: Response) {
         let match = await this.matchService.findById(matchId);
         if (match) {
-            let millisecondsFromStart = msFromStart ? msFromStart : 0;
-            let millisecond = match.pauseStartTime ? match.pauseStartTime.getTime() - match.startTime.getTime() : 0;
-            match.totalPausedMs = match.totalPausedMs + millisecondsFromStart - (millisecond);
+            let totalPausedTime = pausedMs;
+            if (!totalPausedTime) {
+                let millisecondsFromStart = msFromStart ? msFromStart : 0;
+                let millisecond = match.pauseStartTime ? match.pauseStartTime.getTime() - match.startTime.getTime() : 0;
+                totalPausedTime = millisecondsFromStart - (millisecond);
+            }
+            match.totalPausedMs = match.totalPausedMs + totalPausedTime;
             match.matchStatus = "STARTED";
             await this.matchService.createOrUpdate(match);
+
+            await this.matchService.logMatchPauseTime(matchId, period, isBreak, totalPausedTime);
+
+            this.sendMatchEvent(match, false, user);
+            let eventTimestamp = msFromStart ? new Date(match.startTime.getTime() + msFromStart) : new Date(Date.now());
+            this.matchService.logMatchEvent(matchId, 'timer', 'resume', period, eventTimestamp,
+                user.id, 'isBreak', isBreak ? "true" : "false");
+            return await this.matchService.findMatchById(matchId);
         } else {
             return response.status(400).send(
                 {name: 'search_error', message: `Match with id ${matchId} not found`});
         }
-        this.sendMatchEvent(match, false, user);
-        let eventTimestamp = msFromStart ? new Date(match.startTime.getTime() + msFromStart) : new Date(Date.now());
-        this.matchService.logMatchEvent(matchId, 'timer', 'resume', period, eventTimestamp,
-            user.id, 'isBreak', isBreak ? "true" : "false");
-        return match;
     }
 
     @Authorized()
@@ -777,7 +786,7 @@ export class MatchController extends BaseController {
         @Res() response: Response) {
         return this.matchService.findLineupsByParam(matchId, competitionId, teamId, playerId, positionId);
     }
-    
+
     @Authorized()
     @Post('/bulk/end')
     async bulkUpdate(
@@ -825,7 +834,7 @@ export class MatchController extends BaseController {
         }
         return response.status(200).send({success: true});
     }
-    
+
     @Authorized()
     @Post('/bulk/time')
     async bulkMatchPushBack(
@@ -850,7 +859,7 @@ export class MatchController extends BaseController {
             }
 
         } else {
-            
+
             if (type == 'backward') {
                 for (let match of matchesData) {
                     let myDate = new Date(match.startTime);
@@ -893,7 +902,7 @@ export class MatchController extends BaseController {
         }
         return response.status(200).send({success: true});
     }
-    
+
     @Authorized()
     @Post('/bulk/doubleheader')
     async doubleHeader(
@@ -1147,7 +1156,7 @@ export class MatchController extends BaseController {
                 m.venueCourtId = toCourtId;
                 mArray.push(m);
             }
-            
+
             await this.matchService.batchCreateOrUpdate(mArray);
 
             return response.status(200).send({success: true,message:"venue courts update successfully"});
@@ -1172,7 +1181,7 @@ export class MatchController extends BaseController {
         @Res() response: Response): Promise<any> {
 
         const getMatchesData = await this.find(from, to, teamIds, playerIds, competitionId, clubIds, matchEnded, matchStatus, null, null);
-        
+
         getMatchesData.map(e => {
             e['Match Id'] = e.id;
             e['Start Time'] = e.startTime;

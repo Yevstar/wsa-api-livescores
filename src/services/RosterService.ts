@@ -21,6 +21,7 @@ export default class RosterService extends BaseService<Roster> {
             .leftJoinAndSelect('match.venueCourt', 'venueCourt')
             .leftJoinAndSelect('match.division', 'division')
             .leftJoinAndSelect('match.competition', 'competition')
+            .leftJoinAndSelect('match.matchPausedTimes', 'matchPausedTimes')
             .leftJoinAndSelect('competition.location', 'location')
             .leftJoinAndSelect('venueCourt.venue', 'venue')
             .leftJoinAndSelect('roster.eventOccurrence', 'eo')
@@ -38,6 +39,7 @@ export default class RosterService extends BaseService<Roster> {
             .innerJoinAndSelect('match.venueCourt', 'venueCourt')
             .innerJoinAndSelect('match.division', 'division')
             .innerJoinAndSelect('match.competition', 'competition')
+            .leftJoinAndSelect('match.matchPausedTimes', 'matchPausedTimes')
             .leftJoinAndSelect('competition.location', 'location')
             .leftJoinAndSelect('venueCourt.venue', 'venue')
             .andWhere('roster.userId = :userId', {userId})
@@ -63,6 +65,7 @@ export default class RosterService extends BaseService<Roster> {
             .innerJoinAndSelect('match.venueCourt', 'venueCourt')
             .innerJoinAndSelect('match.division', 'division')
             .innerJoinAndSelect('match.competition', 'competition')
+            .leftJoinAndSelect('match.matchPausedTimes', 'matchPausedTimes')
             .leftJoinAndSelect('competition.location', 'location')
             .leftJoinAndSelect('venueCourt.venue', 'venue')
             .andWhere('roster.matchId in (:matchId)', {matchId})
@@ -73,6 +76,7 @@ export default class RosterService extends BaseService<Roster> {
     public async findRosterId(rosterId: number): Promise<Roster> {
         return this.entityManager.createQueryBuilder(Roster, 'roster')
             .innerJoinAndSelect('roster.match', 'match')
+            .leftJoinAndSelect('match.matchPausedTimes', 'matchPausedTimes')
             .andWhere('roster.id = :rosterId', {rosterId})
             .andWhere('match.deleted_at is null')
             .getOne();
