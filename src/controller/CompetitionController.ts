@@ -86,7 +86,7 @@ export class CompetitionController extends BaseController {
             c.warningBuzzerEnabled = stringToBoolean(competition.warningBuzzerEnabled);
 
             if(c.id===0) c.uniqueKey = uuidv4();
-            
+
             let saved = await this.competitionService.createOrUpdate(c);
             await this.competitionVenueService.deleteByCompetitionId(saved.id);
             let cvArray = [];
@@ -266,5 +266,11 @@ export class CompetitionController extends BaseController {
         @QueryParam('name') name: string
     ) {
         return await this.competitionVenueService.findByCourtName(name, competitionId);
+    }
+
+    @Get('/list')
+    async getCompetitions(
+    @QueryParam('organisationId',{required:true}) organisationId: number) {
+      return await this.competitionService.getCompetitionsPublic(organisationId);
     }
 }
