@@ -136,6 +136,13 @@ export class NewsController extends BaseController {
     ) {
         let news = await this.newsService.findById(id);
         if (news) {
+            news.published_at = new Date();
+            news.isActive = true;
+            if (!silent) {
+              news.isNotification = true;
+            }
+            await this.newsService.createOrUpdate(news);
+
             let tokens = await this.deviceService.findDeviceForNews(news);
             if (tokens && tokens.length > 0) {
                 let data = {
@@ -155,20 +162,12 @@ export class NewsController extends BaseController {
                         body: news.title,
                         data: data
                     });
-                    news.isNotification = true;
                 }
-
-                news.published_at = new Date();
-                news.isActive = true;
-                await this.newsService.createOrUpdate(news);
-
-                return response.status(200).send({success: true});
-            } else {
-                return response.status(200).send(
-                    {name: 'search_error', message: `Devices for news with id ${id} not found`});
             }
+
+            return response.status(200).send({success: true});
         } else {
-            return response.status(200).send(
+            return response.status(400).send(
                 {name: 'search_error', message: `News with id ${id} not found`});
         }
     }
