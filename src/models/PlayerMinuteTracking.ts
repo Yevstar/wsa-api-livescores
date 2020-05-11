@@ -1,10 +1,11 @@
-import {BaseEntity, Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn} from 'typeorm-plus';
+import {BaseEntity, Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn, Unique} from 'typeorm-plus';
 import {Team} from './Team';
 import {IsBoolean, IsDate, IsNumber, IsString, ValidateNested} from "class-validator";
 import {Match} from "./Match";
 import {Player} from "./Player";
 
 @Entity("playerMinuteTracking")
+@Unique(['matchId', 'teamId', 'playerId'])
 export class PlayerMinuteTracking extends BaseEntity {
 
     @IsNumber()

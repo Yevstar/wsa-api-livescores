@@ -69,6 +69,7 @@ export class CompetitionController extends BaseController {
             c.longName = competition.longName;
             c.name = competition.name;
             c.recordUmpire = competition.recordUmpire;
+            c.recordUmpireType = competition.recordUmpireType;
             c.gameTimeTracking = stringToBoolean(competition.gameTimeTracking);
             c.positionTracking = stringToBoolean(competition.positionTracking);
             c.recordGoalAttempts = stringToBoolean(competition.recordGoalAttempts);

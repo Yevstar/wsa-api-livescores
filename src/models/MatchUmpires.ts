@@ -2,6 +2,7 @@ import {BaseEntity, Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn
 import {Club} from "./Club";
 import {Match} from "./Match";
 import {IsNumber, IsString, ValidateNested} from "class-validator";
+import {User} from "./User";
 
 @Entity('matchUmpires')
 @Unique(['matchId'])
@@ -28,10 +29,9 @@ export class MatchUmpires extends BaseEntity {
     @Column()
     umpire1ClubId: number;
 
-    @ValidateNested()
-    @OneToOne(type => Club)
-    @JoinColumn()
-    umpire1Club: Club;
+    @IsNumber()
+    @Column()
+    umpire1UserId: number;
 
     @IsString()
     @Column()
@@ -41,6 +41,10 @@ export class MatchUmpires extends BaseEntity {
     @Column()
     umpire2ClubId: number;
 
+    @IsNumber()
+    @Column()
+    umpire2UserId: number;
+
     @IsString()
     @Column()
     umpire3FullName: string;
@@ -49,15 +53,41 @@ export class MatchUmpires extends BaseEntity {
     @Column()
     umpire3ClubId: number;
 
+    @IsNumber()
+    @Column()
+    umpire3UserId: number;
+
+    @ValidateNested()
+    @OneToOne(type => Club)
+    @JoinColumn()
+    umpire1Club: Club;
+
     @ValidateNested()
     @OneToOne(type => Club)
     @JoinColumn()
     umpire2Club: Club;
 
+    @ValidateNested()
+    @OneToOne(type => Club)
+    @JoinColumn()
+    umpire3Club: Club;
+
+    @ValidateNested()
+    @OneToOne(type => User)
+    @JoinColumn()
+    umpire1User: User;
+
+    @ValidateNested()
+    @OneToOne(type => User)
+    @JoinColumn()
+    umpire2User: User;
+
+    @ValidateNested()
+    @OneToOne(type => User)
+    @JoinColumn()
+    umpire3User: User;
+
     @IsString()
     @Column()
     verifiedBy: string;
 }
-
-
-

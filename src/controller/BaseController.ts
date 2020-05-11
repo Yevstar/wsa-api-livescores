@@ -13,6 +13,7 @@ import LocationService from "../services/LocationService";
 import MatchScoresService from "../services/MatchScoresService";
 import AttendanceService from "../services/AttendanceService";
 import MatchUmpiresService from "../services/MatchUmpiresService";
+import MatchUmpireService from "../services/MatchUmpireService";
 import UserService from "../services/UserService";
 import ApplicationService from "../services/ApplicationService";
 import UserDeviceService from "../services/UserDeviceService";
@@ -26,6 +27,7 @@ import IncidentService from "../services/IncidentService";
 import CompetitionLadderSettingsService from "../services/CompetitionLadderSettingsService";
 import CompetitionVenueService from "../services/CompetitionVenueService";
 import admin from "firebase-admin";
+import OrganisationService from "../services/OrganisationService";
 
 export class BaseController {
 
@@ -69,7 +71,10 @@ export class BaseController {
     protected attendanceService: AttendanceService;
 
     @Inject()
-    protected matchUmpireService: MatchUmpiresService;
+    protected matchUmpiresService: MatchUmpiresService;
+
+    @Inject()
+    protected matchUmpireService: MatchUmpireService;
 
     @Inject()
     protected userService: UserService;
@@ -103,6 +108,9 @@ export class BaseController {
 
     @Inject()
     protected competitionVenueService: CompetitionVenueService;
+
+    @Inject()
+    protected organisationService: OrganisationService;
 
     protected async updateFirebaseData(user: User, password: string) {
         user.password = password;

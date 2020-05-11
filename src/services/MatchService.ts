@@ -15,6 +15,8 @@ import {IncidentPlayer} from "../models/IncidentPlayer";
 import {IncidentMedia} from "../models/IncidentMedia";
 import {RequestFilter} from "../models/RequestFilter";
 import {paginationData, stringTONumber, isNotNullAndUndefined } from "../utils/Utils";
+import {StateTimezone} from "../models/StateTimezone";
+import {Location} from "../models/Location";
 
 @Service()
 export default class MatchService extends BaseService<Match> {
@@ -378,5 +380,11 @@ export default class MatchService extends BaseService<Match> {
           matchPausedTime.totalPausedMs = totalPausedMs;
 
           return this.entityManager.insert(MatchPausedTime, matchPausedTime);
+    }
+
+    public async getMatchTimezone(location: Location): Promise<StateTimezone> {
+        let query = await this.entityManager.createQueryBuilder(StateTimezone, 'stateTimezone')
+                              .andWhere('stateTimezone.stateRefId = :locationId', {locationId: location.id});
+        return query.getOne();
     }
 }

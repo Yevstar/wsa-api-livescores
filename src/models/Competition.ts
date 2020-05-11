@@ -34,6 +34,10 @@ export class Competition extends BaseEntity {
     @Column()
     recordUmpire: number;
 
+    @IsString()
+    @Column()
+    recordUmpireType: "NONE" | "NAMES" | "USERS";
+
     @IsBoolean()
     @Column()
     gameTimeTracking: boolean;
@@ -61,7 +65,7 @@ export class Competition extends BaseEntity {
     @IsString()
     @Column()
     timerType: "CENTRAL" | "PER_MATCH" | "CENTRAL_WITH_MATCH_OVERRIDE";
-    
+
     @IsString()
     @Column()
     attendanceRecordingPeriod: "PERIOD" | "MINUTE" | "MATCH";
@@ -134,5 +138,5 @@ export class Competition extends BaseEntity {
 
     @DeleteDateColumn({ nullable:true, default:null, name: 'deleted_at' })
     public deleted_at: Date;
-    
+
 }

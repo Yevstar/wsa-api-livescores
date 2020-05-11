@@ -22,6 +22,8 @@ export default class MatchUmpiresService extends BaseService<MatchUmpires> {
         return this.entityManager.createQueryBuilder(MatchUmpires, 'matchUmpires')
             .leftJoinAndSelect('matchUmpires.umpire1Club', 'club1')
             .leftJoinAndSelect('matchUmpires.umpire2Club', 'club2')
+            .leftJoinAndSelect('matchUmpires.umpire1User', 'user1')
+            .leftJoinAndSelect('matchUmpires.umpire2User', 'user2')
             .where('matchUmpires.matchId in (:matchIds)', {matchIds})
             .getMany();
     }
@@ -30,6 +32,8 @@ export default class MatchUmpiresService extends BaseService<MatchUmpires> {
         let query = this.entityManager.createQueryBuilder(MatchUmpires, 'matchUmpires');
         query.leftJoinAndSelect('matchUmpires.umpire1Club', 'club1')
             .leftJoinAndSelect('matchUmpires.umpire2Club', 'club2')
+            .leftJoinAndSelect('matchUmpires.umpire1User', 'user1')
+            .leftJoinAndSelect('matchUmpires.umpire2User', 'user2')
             .leftJoinAndSelect('matchUmpires.match', 'match')
             .leftJoinAndSelect('match.team1', 'team1')
             .leftJoinAndSelect('match.team2', 'team2')
@@ -39,13 +43,15 @@ export default class MatchUmpiresService extends BaseService<MatchUmpires> {
         const matchCount = await query.getCount();
         const result = await query.skip(requestFilter.paging.offset).take(requestFilter.paging.limit).getMany();
         return {matchCount,result}
-        
+
     }
 
     public async getById(id: number): Promise<MatchUmpires> {
         return this.entityManager.createQueryBuilder(MatchUmpires, 'matchUmpires')
             .leftJoinAndSelect('matchUmpires.umpire1Club', 'club1')
             .leftJoinAndSelect('matchUmpires.umpire2Club', 'club2')
+            .leftJoinAndSelect('matchUmpires.umpire1User', 'user1')
+            .leftJoinAndSelect('matchUmpires.umpire2User', 'user2')
             .where('matchUmpires.id = :id', {id})
             .getOne();
     }
@@ -62,4 +68,3 @@ export default class MatchUmpiresService extends BaseService<MatchUmpires> {
             .andWhere("matchId = :matchId", {matchId}).execute();
     }
 }
-

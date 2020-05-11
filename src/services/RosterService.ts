@@ -1,6 +1,7 @@
 import {Service} from "typedi";
 import BaseService from "./BaseService";
 import {Roster} from "../models/security/Roster";
+import {Role} from "../models/security/Role";
 import {User} from "../models/User";
 import {Match} from "../models/Match";
 import {paginationData, stringTONumber } from "../utils/Utils";
@@ -117,8 +118,16 @@ export default class RosterService extends BaseService<Roster> {
     }
 
     public async findByEventOccurrence(eventOccurrenceId: number): Promise<Roster[]> {
-      return await this.entityManager.createQueryBuilder(Roster, 'r')
+      return this.entityManager.createQueryBuilder(Roster, 'r')
               .andWhere("r.eventOccurrenceId = :id", {id: eventOccurrenceId})
               .getMany();
+    }
+
+    public async findByParams(roleId: number, userId: number, matchId: number): Promise<Roster> {
+      return this.entityManager.createQueryBuilder(Roster, 'r')
+              .andWhere("r.roleId = :roleId", {roleId})
+              .andWhere("r.userId = :userId", {userId})
+              .andWhere("r.matchId = :matchId", {matchId})
+              .getOne();
     }
 }

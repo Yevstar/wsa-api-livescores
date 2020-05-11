@@ -4,7 +4,7 @@ import {Match} from "../Match";
 import {Team} from "../Team";
 import {User} from "../User";
 import {EventOccurrence} from "../EventOccurrence";
-import {IsNumber} from "class-validator";
+import {IsNumber, IsBoolean} from "class-validator";
 
 @Entity()
 export class Roster extends BaseEntity {
@@ -56,4 +56,7 @@ export class Roster extends BaseEntity {
     @Column()
     status: "YES" | "NO" | "LATER" | "MAYBE";
 
+    @IsBoolean()
+    @Column()
+    locked: boolean;
 }

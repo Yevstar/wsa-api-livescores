@@ -119,7 +119,7 @@ export class RosterController extends BaseController {
     async addRoster(
       @HeaderParam("authorization") user: User,
       @Body() roster: Roster,
-      @QueryParam('category', {required: true}) category: "Scoring" | "Playing" | "Event",
+      @QueryParam('category', {required: true}) category: "Scoring" | "Playing" | "Event" | "Umpiring",
       @Res() response: Response
     ) {
         if (!roster) {
@@ -177,7 +177,7 @@ export class RosterController extends BaseController {
         @HeaderParam("authorization") user: User,
         @QueryParam('rosterId', {required: true}) rosterId: number,
         @QueryParam('status', {required: true}) status: "YES" | "NO" | "LATER" | "MAYBE",
-        @QueryParam('category', {required: true}) category: "Scoring" | "Playing" | "Event",
+        @QueryParam('category', {required: true}) category: "Scoring" | "Playing" | "Event" | "Umpiring",
         @Res() response: Response
     ) {
         let roster = await this.rosterService.findFullById(rosterId);
@@ -234,6 +234,28 @@ export class RosterController extends BaseController {
                       });
                   }
                 break;
+                case "Umpiring":
+                    let umpireDeviceTokens = (await this.deviceService.findManagerDevice(result.teamId)).map(device => device.deviceId);
+                    if (umpireDeviceTokens && umpireDeviceTokens.length > 0) {
+                        if (status == "NO") {
+                            this.firebaseService.sendMessage({
+                                tokens: umpireDeviceTokens,
+                                data: {
+                                    type: 'umpire_decline_match', entityTypeId: EntityType.USER.toString(),
+                                    entityId: user.id.toString(), matchId: roster.matchId.toString()
+                                }
+                            });
+                        } else if (status == "YES") {
+                            this.firebaseService.sendMessage({
+                                tokens: umpireDeviceTokens,
+                                data: {
+                                    type: 'umpire_accept_match', entityTypeId: EntityType.USER.toString(),
+                                    entityId: user.id.toString(), matchId: roster.matchId.toString()
+                                }
+                            });
+                        }
+                    }
+                  break;
             }
 
             return result;

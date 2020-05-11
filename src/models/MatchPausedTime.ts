@@ -1,8 +1,9 @@
-import {BaseEntity, Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn} from 'typeorm-plus';
+import {BaseEntity, Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Unique} from 'typeorm-plus';
 import {IsNumber, IsBoolean, IsDate, ValidateNested} from "class-validator";
 import {Match} from "./Match";
 
 @Entity('matchPausedTime')
+@Unique(['matchId'])
 export class MatchPausedTime extends BaseEntity {
 
     @IsNumber()
