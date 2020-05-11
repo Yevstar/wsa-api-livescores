@@ -129,8 +129,8 @@ export default class PlayerService extends BaseService<Player> {
 
     public async listTeamPlayerActivity(competitionId: number, requestFilter: RequestFilter, status: string): Promise<any> {
 
-        let result = await this.entityManager.query("call wsa.usp_get_team_player_activity(?,?,?,?)",
-        [competitionId, status, requestFilter.paging.offset, requestFilter.paging.limit]);
+        let result = await this.entityManager.query("call wsa.usp_get_team_player_activity(?,?,?,?,?)",
+        [competitionId, status, requestFilter.paging.offset, requestFilter.paging.limit, requestFilter.search]);
 
         if (isNotNullAndUndefined(requestFilter.paging.offset) && isNotNullAndUndefined(requestFilter.paging.limit)) {
             if (result != null) {

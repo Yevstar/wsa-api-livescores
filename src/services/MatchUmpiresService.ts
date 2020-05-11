@@ -37,13 +37,19 @@ export default class MatchUmpiresService extends BaseService<MatchUmpires> {
             .leftJoinAndSelect('matchUmpires.match', 'match')
             .leftJoinAndSelect('match.team1', 'team1')
             .leftJoinAndSelect('match.team2', 'team2')
-            .where('match.competitionId = :competitionid', {competitionid})
-            .getMany();
+            .where('match.competitionId = :competitionid', {competitionid});
+
+            if (requestFilter.search && requestFilter.search!=='') {
+                query.andWhere('(LOWER(matchUmpires.umpire1FullName) like :search) || (LOWER(matchUmpires.umpire2FullName) like :search)'
+                , { search: `%${requestFilter.search.toLowerCase()}%` });
+            }
+
+            query.getMany();
 
         const matchCount = await query.getCount();
         const result = await query.skip(requestFilter.paging.offset).take(requestFilter.paging.limit).getMany();
         return {matchCount,result}
-
+        
     }
 
     public async getById(id: number): Promise<MatchUmpires> {
