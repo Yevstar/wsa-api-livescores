@@ -209,13 +209,20 @@ export class MatchUmpireController extends BaseController {
               let matchDate = dateFormatter.format(matchStartTime);
               let matchTime = timeFormatter.format(matchStartTime);
 
+              let messageBody = '';
+              if (rosterLocked) {
+                messageBody = `${match.competition.name} has sent you a ` +
+                        `new Umpiring Duty for ${matchDate} at ${matchTime}.`;
+              } else {
+                messageBody = `${match.competition.name} has sent you a ` +
+                        `new Umpiring Duty for ${matchDate} at ${matchTime}.` +
+                        `Please log into your Netball Live Scores ` +
+                        `App to accept/decline.`;
+              }
               this.firebaseService.sendMessageChunked({
                   tokens: tokens,
                   title: `Hi ${matchUmpire.umpireName}`,
-                  body: `${match.competition.name} has sent you a ` +
-                          `new Umpiring Duty for ${matchDate} at ${matchTime}.` +
-                          `Please log into your Netball Live Scores ` +
-                          `App to accept/decline.`,
+                  body: messageBody,
                   data: {
                       type: 'add_umpire_match',
                       matchId: savedRoster.matchId.toString(),
