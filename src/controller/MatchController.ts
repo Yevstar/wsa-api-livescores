@@ -76,7 +76,8 @@ export class MatchController extends BaseController {
         @QueryParam('matchEnded') matchEnded: boolean,
         @QueryParam('matchStatus') matchStatus: ("STARTED" | "PAUSED" | "ENDED")[],
         @QueryParam('offset') offset: number = undefined,
-        @QueryParam('limit') limit: number = undefined
+        @QueryParam('limit') limit: number = undefined,
+        @QueryParam('search') search: string
     ): Promise<any> {
         // Add all teams of supplied players.
         if (playerIds) {
@@ -90,7 +91,9 @@ export class MatchController extends BaseController {
             limit = stringTONumber(limit);
         }
 
-        const matchFound = await this.matchService.findByParam(from, to, teamIds, playerIds, competitionId, clubIds, matchEnded, matchStatus, offset, limit);
+        if(search===null ||search===undefined) search = '';
+
+        const matchFound = await this.matchService.findByParam(from, to, teamIds, playerIds, competitionId, clubIds, matchEnded, matchStatus, offset, limit,search);
 
         if (isNotNullAndUndefined(matchFound.matchCount) && isNotNullAndUndefined(matchFound.result) && limit) {
             let responseObject = paginationData(stringTONumber(matchFound.matchCount), limit, offset)
@@ -920,7 +923,7 @@ export class MatchController extends BaseController {
                 if (r2.divisionId = r1.divisionId) {
                     let firstMatchesArray = await this.matchService.findByRound(r1.id);
                     let secondMatchesArray = await this.matchService.findByRound(r2.id);
-                    let secondMatchTemplate = secondMatchesArray[1];
+                    let secondMatchTemplate = secondMatchesArray[0];
                     if (secondMatchTemplate.startTime) {
 
                         for (let m1 of firstMatchesArray) {
@@ -1178,9 +1181,10 @@ export class MatchController extends BaseController {
         @QueryParam('matchStatus') matchStatus: ("STARTED" | "PAUSED" | "ENDED")[],
         @QueryParam('offset') offset: number = undefined,
         @QueryParam('limit') limit: number = undefined,
+        @QueryParam('search') search: string,
         @Res() response: Response): Promise<any> {
 
-        const getMatchesData = await this.find(from, to, teamIds, playerIds, competitionId, clubIds, matchEnded, matchStatus, null, null);
+        const getMatchesData = await this.find(from, to, teamIds, playerIds, competitionId, clubIds, matchEnded, matchStatus, null, null,null);
 
         getMatchesData.map(e => {
             e['Match Id'] = e.id;

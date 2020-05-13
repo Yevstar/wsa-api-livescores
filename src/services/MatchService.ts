@@ -102,7 +102,7 @@ export default class MatchService extends BaseService<Match> {
 
     public async findByParam(from: Date, to: Date, teamIds: number[] = [], playerIds: number[],
         competitionId: number, clubIds: number[], matchEnded: boolean,
-        matchStatus: ("STARTED" | "PAUSED" | "ENDED")[], offset: number = undefined, limit: number = undefined): Promise<any> {
+        matchStatus: ("STARTED" | "PAUSED" | "ENDED")[], offset: number = undefined, limit: number = undefined, search: string): Promise<any> {
 
         let query = await this.entityManager.createQueryBuilder(Match, 'match');
         if (from) query.andWhere("match.startTime >= :from", { from });
@@ -111,6 +111,12 @@ export default class MatchService extends BaseService<Match> {
         this.filterByClubTeam(competitionId, clubIds, teamIds, query);
         if (matchEnded != undefined) query.andWhere("match.matchEnded is :matchEnded", { matchEnded });
         if (matchStatus) query.andWhere("match.matchStatus in (:matchStatus)", { matchStatus });
+        if (isNotNullAndUndefined(search) && search!=='') {
+            const search_ = `%${search.toLowerCase()}%`;
+            query.andWhere(
+                `(lower(team1.name) like :search1 or lower(team2.name) like :search2)`, 
+                { search1:search_,search2:search_ });
+        }
         query.orderBy('match.startTime', 'ASC');
 
         // return query.paginate(offset,limit).getMany();
