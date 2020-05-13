@@ -96,8 +96,8 @@ export default class PlayerService extends BaseService<Player> {
     }
 
     public async loadGameTime(competitionId: number, aggregate: ("GAME" | "MATCH" | "PERIOD"), requestFilter: RequestFilter): Promise<any> {
-        let result = await this.entityManager.query("call wsa.usp_get_gametime(?,?,?,?)",
-            [competitionId, aggregate, requestFilter.paging.limit, requestFilter.paging.offset]);
+        let result = await this.entityManager.query("call wsa.usp_get_gametime(?,?,?,?,?)",
+            [competitionId, aggregate, requestFilter.paging.limit, requestFilter.paging.offset,requestFilter.search]);
 
             if (isNotNullAndUndefined(requestFilter.paging.limit) && isNotNullAndUndefined(requestFilter.paging.offset)) {
             if (result != null) {

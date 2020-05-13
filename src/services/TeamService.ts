@@ -143,97 +143,13 @@ export default class TeamService extends BaseService<Team> {
     }
 
     public async scoringStatsByPlayer(competitionId: number, playerId: number, aggregate: ("ALL" | "MATCH"), offset: number, limit: number, search: string): Promise<any> {
-        if (playerId) {
-            const PARAMS = [playerId, playerId, playerId, competitionId];
+        let result = await this.entityManager.query("call wsa.usp_get_scoring_stats_by_player(?,?,?,?,?,?)",
+            [competitionId, playerId, aggregate, limit, offset, search]);
 
-            let query =
-                'select\n' +
-                'SUM(IF(playerId = ?, goal, 0))         as own_goal,\n' +
-                'SUM(IF(playerId = ?, miss, 0))         as own_miss,\n' +
-                'SUM(IF(playerId = ?, penalty_miss, 0)) as own_penalty_miss,\n' +
-                'SUM(goal)                              as avg_goal,\n' +
-                'SUM(miss)                              as avg_miss,\n' +
-                'SUM(penalty_miss)                      as avg_penalty_miss\n' +
-                'from shootingStats\n' +
-                'where competitionId = ? ';
-
-            const count = await this.entityManager.query('select count(*) as totalCount from ( ' + query + ' ) as t', PARAMS);
-
-            if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
-                query += ' limit ? offset ? ';
-                PARAMS.push(limit, offset);
-            }
-
-            const finalData =await  this.entityManager.query(query, PARAMS);
-            if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
-                return { count, finalData }
-            } else {
-                return finalData
-            }
+        if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
+            return { count: result[1], finalData: result[0] }
         } else {
-            if (aggregate == "ALL") {
-                const PARAMS: any = [competitionId];
-
-                let query =
-                    'select teamId, teamName, playerId, firstName, lastName, mnbPlayerId, gamePositionName, \n' +
-                    'sum(goal) as goal, sum(miss) as miss, sum(penalty_miss) as penalty_miss,\n' +
-                    'sum(goal) / (sum(goal) + if (sum(miss) is null, 0, sum(miss))) as goal_percent\n' +
-                    'from shootingStats\n' +
-                    'where competitionId = ? \n';
-
-                if (isNotNullAndUndefined(search) && search !== '') {
-                    query += ' and (LOWER(concat_ws(" ", firstName, lastName)) like ? ) \n';
-                    PARAMS.push(`%${search.toLowerCase()}%`);
-                }
-
-                const count = await this.entityManager.query('select count(*) as totalCount from ( ' + query + ' ) as t', PARAMS);
-
-                query += ' group by teamId, teamName, playerId, firstName, lastName, mnbPlayerId, gamePositionName ';
-
-                if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
-                    query += ' limit ? offset ? ';
-                    PARAMS.push(limit, offset);
-                }
-
-                const finalData = await this.entityManager.query(query, PARAMS);
-
-                if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
-                    return { count, finalData }
-                } else {
-                    return finalData
-                }
-            } else {
-                const PARAMS: any = [competitionId];
-
-                let query =
-                    'select matchId, startTime, team1Name, team2Name, teamId, teamName, playerId, firstName, lastName, mnbPlayerId, gamePositionName, \n' +
-                    'sum(goal) as goal, sum(miss) as miss, sum(penalty_miss) as penalty_miss,\n' +
-                    'sum(goal) / (sum(goal) + if (sum(miss) is null, 0, sum(miss))) as goal_percent\n' +
-                    'from shootingStats, `match` m\n' +
-                    'where shootingStats.competitionId = ? and m.id = matchId \n'
-
-                if (isNotNullAndUndefined(search) && search !== '') {
-                    query += ' and (LOWER(concat_ws(" ", firstName, lastName)) like ? ) \n';
-                    PARAMS.push(`%${search.toLowerCase()}%`);
-                }
-
-                query += ' group by matchId, team1Name, team2Name, teamId, teamName, playerId, firstName, lastName, mnbPlayerId, gamePositionName '
-
-                const count = await this.entityManager.query('select count(*) as totalCount from ( ' + query + ' ) as t', PARAMS);
-
-                if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
-                    query += ' limit ? offset ? ';
-                    PARAMS.push(limit, offset);
-                }
-
-                const finalData = await this.entityManager.query(query, PARAMS);
-
-                if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
-                    return { count, finalData }
-                } else {
-                    return finalData
-                }
-            }
+            return result[0];
         }
     }
 

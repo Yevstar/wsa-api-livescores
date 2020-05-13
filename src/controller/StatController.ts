@@ -88,7 +88,7 @@ export class StatController extends BaseController {
         if (competitionId) {
             const getScoringData = await this.teamService.scoringStatsByPlayer(competitionId, playerId, aggregate, offset, limit, search);
             if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit) && isArrayEmpty(getScoringData.count)) {
-                return { page: paginationData(stringTONumber(getScoringData.count[0]['totalCount']), limit, offset), result: getScoringData.finalData }
+                return { ...paginationData(stringTONumber(getScoringData.count[0]['totalCount']), limit, offset), result: getScoringData.finalData }
             } else {
                 return getScoringData
             }
