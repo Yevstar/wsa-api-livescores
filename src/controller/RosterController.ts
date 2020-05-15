@@ -120,6 +120,7 @@ export class RosterController extends BaseController {
         if (savedRoster) {
             let tokens = (await this.deviceService.getUserDevices(savedRoster.userId)).map(device => device.deviceId);
             if (tokens && tokens.length > 0) {
+                console.log("@@@@@@@@@@@@@@@@@@@@")
                 this.firebaseService.sendMessage({
                     tokens: tokens,
                     data: {type: 'add_scorer_match', rosterId: roster.id.toString(), matchId: roster.matchId.toString()}
