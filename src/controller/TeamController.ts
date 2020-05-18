@@ -24,13 +24,13 @@ export class TeamController extends BaseController {
     @Get('/details')
     async getFullTeamDetail(
       @QueryParam("teamId") teamId: number,
-      @QueryParam("clubId") clubId: number,
+      @QueryParam("organisationId") organisationId: number,
       @QueryParam("competitionId") competitionId: number,
       @QueryParam("teamName") teamName: string,
     ): Promise<Team[]> {
       let teamsList = await this.teamService.findTeams(
         teamId,
-        clubId,
+        organisationId,
         competitionId,
         teamName
       );
@@ -102,7 +102,7 @@ export class TeamController extends BaseController {
             const getCompetitions = await this.competitionService.getCompetitionByUniquekey(competitionUniqueKey);
             competitionIds = getCompetitions.id;
         }
-        
+
         if (teamIds && !Array.isArray(teamIds)) teamIds = [teamIds];
         if (divisionIds && !Array.isArray(divisionIds)) divisionIds = [divisionIds];
         if (competitionIds && !Array.isArray(competitionIds)) competitionIds = [competitionIds];
@@ -177,7 +177,6 @@ export class TeamController extends BaseController {
         team.divisionId = stringTONumber(teamData.divisionId);
         if (teamData.organisationId) {
             team.organisationId = stringTONumber(teamData.organisationId);
-            team.clubId = stringTONumber(teamData.organisationId);
         }
         team.logoUrl = teamData.logoUrl;
         let savedTeam = await this.teamService.createOrUpdate(team);
@@ -243,7 +242,7 @@ export class TeamController extends BaseController {
                         { name: 'save_error', message: 'Logo not saved, try again later.' });
             }
         } else if (isNullOrEmpty(teamData.logoUrl) && savedTeam.organisationId) {
-            let organisation = await this.clubService.findById(stringTONumber(savedTeam.organisationId));
+            let organisation = await this.organisationService.findById(stringTONumber(savedTeam.organisationId));
             if (organisation.logoUrl) {
                 savedTeam.logoUrl = organisation.logoUrl;
                 savedTeam = await this.teamService.createOrUpdate(savedTeam);
@@ -279,16 +278,15 @@ export class TeamController extends BaseController {
                 let teamData = await this.teamService.findByNameAndCompetition(i.Team_Name, competitionId);
                 if (!isArrayEmpty(teamData)) {
                     let divisionData = await this.divisionService.findByName(i.Grade, competitionId);
-                    let clubData = await this.clubService.findByNameAndCompetitionId(i.Organisation, competitionId);
+                    let organisationData = await this.organisationService.findByNameAndCompetitionId(i.Organisation, competitionId);
                     let team = new Team();
                     team.name = i.Team_Name;
                     team.logoUrl = i.Logo;
                     team.competitionId = competitionId;
                     if (divisionData.length > 0)
                         team.divisionId = divisionData[0].id; //DivisionData is an array
-                    if (clubData.length > 0) {
-                        team.clubId = clubData[0].id;
-                        team.organisationId = clubData[0].id;
+                    if (organisationData.length > 0) {
+                        team.organisationId = organisationData[0].id;
                     }
                     queryArr.push(team);
                 }

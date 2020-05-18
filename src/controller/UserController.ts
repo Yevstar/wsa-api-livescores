@@ -167,7 +167,7 @@ export class UserController extends BaseController {
         @HeaderParam("authorization") user: User,
         @QueryParam('deviceId') deviceId: string = undefined,
         @Res() response: Response
-    ): Promise<{ teamIds: number[], clubIds: number[] }> {
+    ): Promise<{ teamIds: number[], organisationIds: number[] }> {
         return this.loadUserWatchlist(user ? user.id : undefined, deviceId);
     }
 
@@ -177,16 +177,16 @@ export class UserController extends BaseController {
         @HeaderParam("authorization") user: User,
         @QueryParam('deviceId') deviceId: string = undefined,
         @QueryParam('teamIds') teamIds: number[] = [],
-        @QueryParam('clubIds') clubIds: number[] = [],
+        @QueryParam('organisationIds') organisationIds: number[] = [],
         @Res() response: Response
-    ): Promise<{ teamIds: number[], clubIds: number[] }> {
-        if (clubIds && !Array.isArray(clubIds)) clubIds = [clubIds];
+    ): Promise<{ teamIds: number[], organisationIds: number[] }> {
+        if (organisationIds && !Array.isArray(organisationIds)) organisationIds = [organisationIds];
         if (teamIds && !Array.isArray(teamIds)) teamIds = [teamIds];
-        let topics = await this.loadTopics(teamIds, clubIds);
+        let topics = await this.loadTopics(teamIds, organisationIds);
         if (topics.length > 0) {
             await this.firebaseService.subscribeTopic(deviceId, topics)
         }
-        await this.watchlistService.save(user ? user.id : undefined, deviceId, clubIds, teamIds);
+        await this.watchlistService.save(user ? user.id : undefined, deviceId, organisationIds, teamIds);
         return this.loadWatchlist(user, deviceId, response);
     }
 
@@ -198,11 +198,11 @@ export class UserController extends BaseController {
         @QueryParam('entityId') entityId: number,
         @QueryParam('entityTypeId') entityTypeId: number,
         @Res() response: Response
-    ): Promise<{ teamIds: number[], clubIds: number[] }> {
+    ): Promise<{ teamIds: number[], organisationIds: number[] }> {
         if (entityTypeId) {
             let teamIds: number[] = [];
-            if (entityTypeId == EntityType.CLUB) {
-                teamIds = (await this.teamService.teamByClubId(entityId)).map(team => team.id);
+            if (entityTypeId == EntityType.ORGANISATION) {
+                teamIds = (await this.teamService.teamByOrganisationId(entityId)).map(team => team.id);
             }
             if (entityTypeId == EntityType.TEAM) {
                 teamIds.push(entityId);
@@ -297,7 +297,7 @@ export class UserController extends BaseController {
         @Res() response: Response) {
         if (oldDeviceId && newDeviceId) {
             let watchlist = await this.loadUserWatchlist(user ? user.id : undefined, oldDeviceId);
-            let topics = await this.loadTopics(watchlist.teamIds, watchlist.clubIds);
+            let topics = await this.loadTopics(watchlist.teamIds, watchlist.organisationIds);
             if (topics.length > 0) {
                 await this.firebaseService.unsubscribeTopic(oldDeviceId, topics);
                 await this.firebaseService.subscribeTopic(newDeviceId, topics);
@@ -328,7 +328,7 @@ export class UserController extends BaseController {
         //Add user to cache
         if (deviceId) {
             let watchlist = await this.loadUserWatchlist(undefined, deviceId);
-            let topics = await this.loadTopics(watchlist.teamIds, watchlist.clubIds);
+            let topics = await this.loadTopics(watchlist.teamIds, watchlist.organisationIds);
             if (topics.length > 0) {
                 await this.firebaseService.unsubscribeTopic(deviceId, topics)
             }
@@ -338,7 +338,7 @@ export class UserController extends BaseController {
 
             if (user) {
                 let watchlist = await this.loadUserWatchlist(user.id, undefined);
-                let topics = await this.loadTopics(watchlist.teamIds, watchlist.clubIds);
+                let topics = await this.loadTopics(watchlist.teamIds, watchlist.organisationIds);
                 if (topics.length > 0) {
                     await this.firebaseService.subscribeTopic(deviceId, topics)
                 }
@@ -346,11 +346,11 @@ export class UserController extends BaseController {
         }
     }
 
-    private async loadTopics(teamIds: number[], clubIds: number[]): Promise<string[]> {
-        if (teamIds || clubIds) {
+    private async loadTopics(teamIds: number[], organisationIds: number[]): Promise<string[]> {
+        if (teamIds || organisationIds) {
             let listIds: number[] = [];
-            if (clubIds && clubIds.length > 0) {
-                listIds = ((await this.teamService.teamIdsByClubIds(clubIds)).map(x => x['id']));
+            if (organisationIds && organisationIds.length > 0) {
+                listIds = ((await this.teamService.teamIdsByOrganisationIds(organisationIds)).map(x => x['id']));
             }
             if (teamIds && teamIds.length > 0) {
                 for (const teamId of teamIds) {
@@ -366,19 +366,19 @@ export class UserController extends BaseController {
     private async loadUserWatchlist(
         userId: number = undefined,
         deviceId: string = undefined
-    ): Promise<{ teamIds: number[], clubIds: number[] }> {
+    ): Promise<{ teamIds: number[], organisationIds: number[] }> {
         let watchlist = [];
         if (userId) {
             watchlist = await this.watchlistService.findByParam(userId);
         } else if (deviceId) {
             watchlist = await this.watchlistService.findByParam(undefined, deviceId);
         } else {
-            return {clubIds: [], teamIds: []}
+            return {organisationIds: [], teamIds: []}
         }
 
-        let clubIds = watchlist.filter(item => item.entityTypeId == EntityType.CLUB).map(item => item.entityId);
+        let organisationIds = watchlist.filter(item => item.entityTypeId == EntityType.ORGANISATION).map(item => item.entityId);
         let teamIds = watchlist.filter(item => item.entityTypeId == EntityType.TEAM).map(item => item.entityId);
-        return {teamIds, clubIds}
+        return {teamIds, organisationIds}
     }
 
     private async checkFirebaseUser(user, password: string) {
@@ -529,7 +529,7 @@ export class UserController extends BaseController {
             await this.userService.createOrUpdate(foundUser);
 
             newToCompetition = false;
-        } 
+        }
 
         // existing user - delete existing competition assignments
         if (newToCompetition) {

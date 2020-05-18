@@ -25,7 +25,7 @@ export class DivisionController extends BaseController {
     async find(
         @QueryParam('competitionId') competitionId: number,
         @QueryParam('teamIds') teamIds: number[] = [],
-        @QueryParam('clubIds') clubIds: number[],
+        @QueryParam('organisationIds') organisationIds: number[],
         @QueryParam('offset') offset: number,
         @QueryParam('limit') limit: number,
         @QueryParam('competitionKey') competitionUniqueKey: string,
@@ -38,10 +38,10 @@ export class DivisionController extends BaseController {
             competitionId = getCompetitions.id;
         }
 
-        if (clubIds && !Array.isArray(clubIds)) clubIds = [clubIds];
+        if (organisationIds && !Array.isArray(organisationIds)) organisationIds = [organisationIds];
         if (teamIds && !Array.isArray(teamIds)) teamIds = [teamIds];
-        if (competitionId || teamIds && teamIds.length > 0 || clubIds && clubIds.length > 0) {
-            const resultsFound = await this.divisionService.findByParams(competitionId, clubIds, teamIds, offset, limit, search);
+        if (competitionId || teamIds && teamIds.length > 0 || organisationIds && organisationIds.length > 0) {
+            const resultsFound = await this.divisionService.findByParams(competitionId, organisationIds, teamIds, offset, limit, search);
             if (resultsFound && isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
                 let responseObject = paginationData(stringTONumber(resultsFound.countObj), limit, offset)
                 responseObject["divisions"] = resultsFound.result;
@@ -111,4 +111,3 @@ export class DivisionController extends BaseController {
     }
 
 }
- 

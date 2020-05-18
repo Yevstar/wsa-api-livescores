@@ -14,14 +14,14 @@ export class PlayerController extends BaseController {
     async find(
         @QueryParam('name') name: string,
         @QueryParam('competitionId') competitionId: number,
-        @QueryParam('clubId') clubId: number,
+        @QueryParam('organisationId') organisationId: number,
         @QueryParam('teamId') teamId: number,
         @QueryParam('playUpFromAge') playUpFromAge: number,
         @QueryParam('playUpFromGrade') playUpFromGrade: string,
         @QueryParam('offset') offset: number,
         @QueryParam('limit') limit: number
     ): Promise<Player[]> {
-        return this.playerService.findByParam(name, competitionId, clubId, teamId, playUpFromAge, playUpFromGrade, offset, limit);
+        return this.playerService.findByParam(name, competitionId, organisationId, teamId, playUpFromAge, playUpFromGrade, offset, limit);
     }
 
     @Authorized()
@@ -225,13 +225,13 @@ export class PlayerController extends BaseController {
     async findPlayers(
         @QueryParam('name') name: string,
         @QueryParam('competitionId') competitionId: number,
-        @QueryParam('clubId') clubId: number,
+        @QueryParam('organisationId') organisationId: number,
         @QueryParam('teamId') teamId: number,
         @QueryParam('playUpFromAge') playUpFromAge: number,
         @QueryParam('playUpFromGrade') playUpFromGrade: string,
         @QueryParam('offset') offset: number,
         @QueryParam('limit') limit: number): Promise<{ page: {}, players: Player[] }> {
-        const playerData = await this.playerService.findByParam(name, competitionId, clubId, teamId, playUpFromAge, playUpFromGrade, offset, limit);
+        const playerData = await this.playerService.findByParam(name, competitionId, organisationId, teamId, playUpFromAge, playUpFromGrade, offset, limit);
         if (offset !== null && offset !== undefined && limit !== null && limit !== undefined) {
             return { page: paginationData(playerData.matchCount, limit, offset).page, players: playerData.result };
         } else {

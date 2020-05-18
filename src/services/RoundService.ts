@@ -11,7 +11,7 @@ export default class RoundService extends BaseService<Round> {
     }
 
     public async findByParam(competitionId: number, divisionId: number, sequence: number,
-                             teamIds: number[] = [], clubIds: number[], search: string): Promise<Round[]> {
+                             teamIds: number[] = [], organisationIds: number[], search: string): Promise<Round[]> {
         let query = this.entityManager.createQueryBuilder(Round, 'r')
             .leftJoinAndSelect('r.matches', 'match')
             .leftJoinAndSelect('match.team1', 'team1')
@@ -26,13 +26,13 @@ export default class RoundService extends BaseService<Round> {
         if (sequence) query.andWhere("r.sequence = :sequence", {sequence});
         if (search!==null && search!==undefined && search!=='') query.andWhere('(LOWER(r.name) like :search)', { search: `%${search.toLowerCase()}%` });
 
-        if ((teamIds && teamIds.length > 0) || (clubIds && clubIds.length > 0)) {
+        if ((teamIds && teamIds.length > 0) || (organisationIds && organisationIds.length > 0)) {
             query.andWhere(new Brackets(qb => {
                 if (teamIds && teamIds.length > 0) {
                     qb.orWhere("(match.team1Id in (:teamIds) or match.team2Id in (:teamIds))", {teamIds});
                 }
-                if (clubIds && clubIds.length > 0) {
-                    qb.orWhere("(team1.clubId in (:clubIds) or team2.clubId in (:clubIds))", {clubIds});
+                if (organisationIds && organisationIds.length > 0) {
+                    qb.orWhere("(team1.organisationId in (:organisationIds) or team2.organisationId in (:organisationIds))", {organisationIds});
                 }
             }))
         }

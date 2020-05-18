@@ -10,7 +10,7 @@ import {MatchPausedTime} from "../models/MatchPausedTime";
 import {IncidentType} from "../models/IncidentType";
 import {Incident} from "../models/Incident";
 import {Lineup} from "../models/Lineup";
-import {MatchUmpires} from "../models/MatchUmpires";
+import {MatchUmpire} from "../models/MatchUmpire";
 import {IncidentPlayer} from "../models/IncidentPlayer";
 import {IncidentMedia} from "../models/IncidentMedia";
 import {RequestFilter} from "../models/RequestFilter";
@@ -25,16 +25,16 @@ export default class MatchService extends BaseService<Match> {
         return Match.name;
     }
 
-    private filterByClubTeam(competitionId: number = undefined, clubIds: number[] = [], teamIds: number[] = [], query) {
+    private filterByOrganisationTeam(competitionId: number = undefined, organisationIds: number[] = [], teamIds: number[] = [], query) {
         this.addDefaultJoin(query);
-        if (competitionId || (teamIds && teamIds.length > 0) || (clubIds && clubIds.length > 0)) {
+        if (competitionId || (teamIds && teamIds.length > 0) || (organisationIds && organisationIds.length > 0)) {
             query.andWhere(new Brackets(qb => {
                 if (competitionId) qb.orWhere("match.competitionId = :competitionId", {competitionId});
                 if (teamIds && teamIds.length > 0) {
                     qb.orWhere("(match.team1Id in (:teamIds) or match.team2Id in (:teamIds))", {teamIds});
                 }
-                if (clubIds && clubIds.length > 0) {
-                    qb.orWhere("(team1.clubId in (:clubIds) or team2.clubId in (:clubIds))", {clubIds});
+                if (organisationIds && organisationIds.length > 0) {
+                    qb.orWhere("(team1.organisationId in (:organisationIds) or team2.organisationId in (:organisationIds))", {organisationIds});
                 }
             }));
         }
@@ -77,7 +77,7 @@ export default class MatchService extends BaseService<Match> {
     ): Promise<any> {
         let response = {
             match: Match,
-            umpires: MatchUmpires,
+            umpires: [],
             team1players: [],
             team2players: []
         }
@@ -101,20 +101,20 @@ export default class MatchService extends BaseService<Match> {
     }
 
     public async findByParam(from: Date, to: Date, teamIds: number[] = [], playerIds: number[],
-        competitionId: number, clubIds: number[], matchEnded: boolean,
+        competitionId: number, organisationIds: number[], matchEnded: boolean,
         matchStatus: ("STARTED" | "PAUSED" | "ENDED")[], offset: number = undefined, limit: number = undefined, search: string): Promise<any> {
 
         let query = await this.entityManager.createQueryBuilder(Match, 'match');
         if (from) query.andWhere("match.startTime >= :from", { from });
         if (to) query.andWhere("match.startTime <= :to", { to });
 
-        this.filterByClubTeam(competitionId, clubIds, teamIds, query);
+        this.filterByOrganisationTeam(competitionId, organisationIds, teamIds, query);
         if (matchEnded != undefined) query.andWhere("match.matchEnded is :matchEnded", { matchEnded });
         if (matchStatus) query.andWhere("match.matchStatus in (:matchStatus)", { matchStatus });
         if (isNotNullAndUndefined(search) && search!=='') {
             const search_ = `%${search.toLowerCase()}%`;
             query.andWhere(
-                `(lower(team1.name) like :search1 or lower(team2.name) like :search2)`, 
+                `(lower(team1.name) like :search1 or lower(team2.name) like :search2)`,
                 { search1:search_,search2:search_ });
         }
         query.orderBy('match.startTime', 'ASC');
@@ -138,9 +138,9 @@ export default class MatchService extends BaseService<Match> {
             .getMany();
     }
 
-    public async loadHomeLive(clubIds: number[], teamIds: number[] = []): Promise<Match[]> {
+    public async loadHomeLive(organisationIds: number[], teamIds: number[] = []): Promise<Match[]> {
         let query = this.entityManager.createQueryBuilder(Match, 'match');
-        this.filterByClubTeam(undefined, clubIds, teamIds, query);
+        this.filterByOrganisationTeam(undefined, organisationIds, teamIds, query);
         query.andWhere(new Brackets(qb => {
             qb.andWhere("match.matchStatus is null")
                 .andWhere("match.startTime < (now())")
@@ -150,9 +150,9 @@ export default class MatchService extends BaseService<Match> {
         return query.getMany()
     }
 
-    public async loadHomeUpcoming(clubIds: number[], teamIds: number[], upcomingStartTimeRange: number): Promise<Match[]> {
+    public async loadHomeUpcoming(organisationIds: number[], teamIds: number[], upcomingStartTimeRange: number): Promise<Match[]> {
         let query = this.entityManager.createQueryBuilder(Match, 'match');
-        this.filterByClubTeam(undefined, clubIds, teamIds, query);
+        this.filterByOrganisationTeam(undefined, organisationIds, teamIds, query);
         query.andWhere(new Brackets(qb => {
             qb.andWhere("match.startTime > now()");
             if (upcomingStartTimeRange) {
@@ -166,9 +166,9 @@ export default class MatchService extends BaseService<Match> {
         return query.getMany();
     }
 
-    public async loadHomeEnded(clubIds: number[], teamIds: number[], endTimeRange: number) {
+    public async loadHomeEnded(organisationIds: number[], teamIds: number[], endTimeRange: number) {
         let query = this.entityManager.createQueryBuilder(Match, 'match');
-        this.filterByClubTeam(undefined, clubIds, teamIds, query);
+        this.filterByOrganisationTeam(undefined, organisationIds, teamIds, query);
         query.andWhere(new Brackets(qb => {
             qb.andWhere("match.endTime > (now() - interval :endTimeRange minute )", {endTimeRange})
                 .andWhere("match.endTime < (now())")
@@ -343,13 +343,13 @@ export default class MatchService extends BaseService<Match> {
     }
 
     public async findTodaysMatchByParam(from: Date, to: Date, teamIds: number[] = [], playerIds: number[],
-        competitionId: number, clubIds: number[], offset: number = undefined, limit: number = undefined): Promise<any> {
+        competitionId: number, organisationIds: number[], offset: number = undefined, limit: number = undefined): Promise<any> {
 
         let query = await this.entityManager.createQueryBuilder(Match, 'match');
         if (from) query.andWhere("match.startTime >= cast(:from as datetime)", { from });
         if (to) query.andWhere("match.startTime < ( cast(:to as datetime) + INTERVAL 1 DAY )", { to });
 
-        this.filterByClubTeam(competitionId, clubIds, teamIds, query);
+        this.filterByOrganisationTeam(competitionId, organisationIds, teamIds, query);
         query.orderBy('match.startTime', 'ASC');
 
         if (limit) {

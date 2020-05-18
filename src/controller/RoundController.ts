@@ -25,13 +25,13 @@ export class RoundController extends BaseController {
         @QueryParam('divisionId') divisionId: number,
         @QueryParam('sequence') sequence: number,
         @QueryParam('teamIds') teamIds: number[] = [],
-        @QueryParam('clubIds') clubIds: number[],
+        @QueryParam('organisationIds') organisationIds: number[],
         @QueryParam('search') search: string,
     ): Promise<Round[]> {
         if(search === null || search === undefined) search = '';
-        return this.roundService.findByParam(competitionId, divisionId, sequence, teamIds, clubIds, search);
+        return this.roundService.findByParam(competitionId, divisionId, sequence, teamIds, organisationIds, search);
     }
-    
+
     @Authorized()
     @Post('/')
     async create(
@@ -40,7 +40,7 @@ export class RoundController extends BaseController {
         const saved = await this.roundService.createOrUpdate(round);
         return saved;
     }
-    
+
     @Authorized()
     @Get('/name')
     async findUniqueNames(
@@ -50,4 +50,3 @@ export class RoundController extends BaseController {
     }
 
 }
-

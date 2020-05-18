@@ -2,7 +2,7 @@ import {Service} from "typedi";
 import BaseService from "./BaseService";
 import {Watchlist} from "../models/Watchlist";
 import {Brackets, DeleteResult} from "typeorm-plus";
-import {Club} from "../models/Club";
+import {Organisation} from "../models/Organisation";
 import {Team} from "../models/Team";
 import {EntityType} from "../models/security/EntityType";
 import {UserDevice} from "../models/UserDevice";
@@ -26,9 +26,9 @@ export default class WatchlistService extends BaseService<Watchlist> {
         return query.getMany();
     }
 
-    public async findClubByParam(userId: number = undefined, deviceId: string = undefined): Promise<Club[]> {
-        let query = this.entityManager.createQueryBuilder(Club, 'club');
-        query.andWhere('club.id in ' + this.watchlistSubQuery(query, 'CLUB', userId, deviceId));
+    public async findOrganisationByParam(userId: number = undefined, deviceId: string = undefined): Promise<Organisation[]> {
+        let query = this.entityManager.createQueryBuilder(Organisation, 'organisation');
+        query.andWhere('organisation.id in ' + this.watchlistSubQuery(query, 'ORGANISATION', userId, deviceId));
         return query.getMany();
     }
 
@@ -36,7 +36,7 @@ export default class WatchlistService extends BaseService<Watchlist> {
         let query = this.entityManager.createQueryBuilder(Team, 'team')
             .leftJoinAndSelect('team.division', 'division')
             .leftJoinAndSelect('team.competition', 'competition')
-            .leftJoinAndSelect('team.club', 'club');
+            .leftJoinAndSelect('team.organisation', 'organisation');
         query.andWhere('team.id in ' + this.watchlistSubQuery(query, 'TEAM', userId, deviceId));
         return query.getMany();
     }
@@ -70,9 +70,9 @@ export default class WatchlistService extends BaseService<Watchlist> {
             'SELECT wl.deviceId as token\n' +
             'FROM watchlist wl inner join wsa_users.entityType et on (wl.entityTypeId = et.id)\n' +
             'WHERE (et.name = \'TEAM\' AND wl.entityId in (?))\n' +
-            '   OR (et.name = \'CLUB\' AND wl.entityId in (SELECT c.id AS c_id\n' +
+            '   OR (et.name = \'ORGANISATION\' AND wl.entityId in (SELECT c.id AS c_id\n' +
             '                                               FROM team t\n' +
-            '                                                        INNER JOIN club c ON c.id = t.clubId\n' +
+            '                                                        INNER JOIN organisation c ON c.id = t.organisationId\n' +
             '                                               WHERE t.id in (?)));'
             , [matchId, teamIds, teamIds, teamIds])
     }
@@ -92,15 +92,15 @@ export default class WatchlistService extends BaseService<Watchlist> {
         return query.execute();
     }
 
-    public async save(userId: number = undefined, deviceId: string = undefined, clubIds: number[] = undefined,
+    public async save(userId: number = undefined, deviceId: string = undefined, organisationIds: number[] = undefined,
                       teamIds: number[] = undefined) {
         let currentData = await this.findByParam(userId, deviceId);
         let records = [];
         if (userId || deviceId) {
-            if (clubIds) {
-                for (const id of clubIds) {
-                    if (!currentData.find(y => y.entityTypeId == EntityType.CLUB && y.entityId == id)) {
-                        records.push(WatchlistService.createWatchListItem(deviceId, userId, id, EntityType.CLUB));
+            if (organisationIds) {
+                for (const id of organisationIds) {
+                    if (!currentData.find(y => y.entityTypeId == EntityType.ORGANISATION && y.entityId == id)) {
+                        records.push(WatchlistService.createWatchListItem(deviceId, userId, id, EntityType.ORGANISATION));
                     }
                 }
 
@@ -117,11 +117,11 @@ export default class WatchlistService extends BaseService<Watchlist> {
         await this.batchCreateOrUpdate(records);
     }
 
-    private static createWatchListItem(deviceId: string, userId: number, clubId, type: number): Watchlist {
+    private static createWatchListItem(deviceId: string, userId: number, organisationId, type: number): Watchlist {
         let wl = new Watchlist();
         wl.deviceId = deviceId ? deviceId : null;
         wl.userId = userId ? userId : null;
-        wl.entityId = clubId;
+        wl.entityId = organisationId;
         wl.entityTypeId = type;
         return wl;
     }
