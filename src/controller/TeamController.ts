@@ -11,6 +11,7 @@ import { EntityType } from "../models/security/EntityType";
 import { isArrayEmpty, isNullOrEmpty, isPhoto, fileExt, md5, stringTONumber, paginationData, isNotNullAndUndefined } from "../utils/Utils"
 import {logger} from '../logger';
 import admin from "firebase-admin";
+import * as fastcsv from 'fast-csv';
 
 @JsonController('/teams')
 export class TeamController extends BaseController {
@@ -349,5 +350,52 @@ export class TeamController extends BaseController {
           'deleted_at': admin.firestore.FieldValue.serverTimestamp()
         });
       }
+    }
+
+    @Authorized()
+    @Get('/export')
+    async exportTeams(
+        @QueryParam('competitionId') competitionId: number,
+        @QueryParam('divisionId') divisionId: number,
+        @Res() response: Response): Promise<any> {
+
+        const getTeamsData = await this.listCompetitionTeams(competitionId, divisionId, null, null, null);
+
+        getTeamsData.map(e => {
+            e['Logo'] = e['logoUrl']
+            e['Team Name'] = e['name']
+            e['Team Alias Name'] = e['alias'];
+            e['Affiliate'] = e['organisation']['name']
+            e['Division'] = e['division']['name']
+            e['#Players'] = e['playersCount']
+            const managerName = [];
+            const managerEmail = [];
+            const managerContact = [];
+            if (isArrayEmpty(e['managers'])) {
+                for (let r of e['managers']) {
+                    managerName.push(r['name']);
+                    managerEmail.push(r['email']);
+                    managerContact.push(r['mobileNumber']);
+                }
+            }
+            e['Manager'] = managerName.toString().replace(",", '\n');
+            e['Contact'] = managerEmail.toString().replace(",", '\n');
+            e['Email'] = managerContact.toString().replace(",", '\n');
+            delete e['alias'];
+            delete e['division'];
+            delete e['id'];
+            delete e['logoUrl'];
+            delete e['managers'];
+            delete e['name'];
+            delete e['playersCount'];
+            delete e['organisation'];
+            return e;
+        });
+
+        response.setHeader('Content-disposition', 'attachment; filename=teams.csv');
+        response.setHeader('content-type', 'text/csv');
+        fastcsv.write(getTeamsData, { headers: true })
+            .on("finish", function () { })
+            .pipe(response);
     }
 }

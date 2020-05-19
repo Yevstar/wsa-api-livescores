@@ -918,38 +918,55 @@ export class MatchController extends BaseController {
 
         let firstRoundArray = await this.roundService.findByName(competitionId, round1);
         let secondRoundArray = await this.roundService.findByName(competitionId, round2);
-        for (let r1 of firstRoundArray) {
-            for (let r2 of secondRoundArray) {
-                if (r2.divisionId = r1.divisionId) {
-                    let firstMatchesArray = await this.matchService.findByRound(r1.id);
-                    let secondMatchesArray = await this.matchService.findByRound(r2.id);
-                    let secondMatchTemplate = secondMatchesArray[0];
-                    if (secondMatchTemplate.startTime) {
+        if (isArrayEmpty(firstRoundArray) && isArrayEmpty(secondRoundArray)) {
+            for (let r1 of firstRoundArray) {
+                for (let r2 of secondRoundArray) {
+                    if (r2.divisionId = r1.divisionId) {
+                        let firstMatchesArray = await this.matchService.findByRound(r1.id);
+                        let secondMatchesArray = await this.matchService.findByRound(r2.id);
+                        if (isArrayEmpty(firstMatchesArray) && isArrayEmpty(secondMatchesArray)) {
+                            let secondMatchTemplate = secondMatchesArray[0];
+                            if (secondMatchTemplate.startTime) {
 
-                        for (let m1 of firstMatchesArray) {
-                            m1.startTime = secondMatchTemplate.startTime;
-                            m1.type = 'TWO_HALVES';
-                            m1.matchDuration = m1.matchDuration / 2;
-                            let match = await this.matchService.createOrUpdate(m1);
-                            if (match) {
-                                this.sendMatchEvent(match);
+                                for (let m1 of firstMatchesArray) {
+                                    m1.startTime = secondMatchTemplate.startTime;
+                                    m1.type = 'TWO_HALVES';
+                                    m1.matchDuration = m1.matchDuration / 2;
+                                    let match = await this.matchService.createOrUpdate(m1);
+                                    if (match) {
+                                        this.sendMatchEvent(match);
+                                    }
+                                }
                             }
-                        }
-                    }
 
-                    for (let m2 of secondMatchesArray) {
-                        let secondMatchOffset = m2.matchDuration / 2 + m2.breakDuration + m2.mainBreakDuration;
-                        m2.type = 'TWO_HALVES';
-                        m2.matchDuration = m2.matchDuration / 2;
-                        let match = await this.matchService.createOrUpdate(m2);
-                        if (match) {
-                            this.sendMatchEvent(match);
+                            for (let m2 of secondMatchesArray) {
+                                let secondMatchOffset = m2.matchDuration / 2 + m2.breakDuration + m2.mainBreakDuration;
+                                m2.type = 'TWO_HALVES';
+                                m2.matchDuration = m2.matchDuration / 2;
+                                let match = await this.matchService.createOrUpdate(m2);
+                                if (match) {
+                                    this.sendMatchEvent(match);
+                                }
+                            }
+
+                            return response.status(200).send({ success: true });
+
+                        } else {
+                            return response.status(212).json({
+                                success: false,
+                                message: "cannot find matches with the provided rounds"
+                            })
                         }
+
                     }
                 }
             }
+        } else {
+            response.status(212).json({
+                success: false,
+                message: "cannot find rounds with the provided names"
+            });
         }
-        return response.status(200).send({ success: true });
     }
 
     @Authorized()

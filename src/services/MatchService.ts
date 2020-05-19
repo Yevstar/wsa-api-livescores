@@ -332,7 +332,7 @@ export default class MatchService extends BaseService<Match> {
 
      public async findByRound(roundId: number): Promise<Match[]> {
         let query = this.entityManager.createQueryBuilder(Match, 'match');
-        query.andWhere("match.round = :roundId", { roundId });
+        query.andWhere("match.roundId = :roundId", { roundId });
         return query.getMany();
     }
 
