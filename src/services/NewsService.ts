@@ -58,4 +58,16 @@ export default class NewsService extends BaseService<News> {
         query.andWhere("news.id = :id", { id });
         return query.softDelete().execute();
     }
+
+    public async findTodaysNewsByEntityId(entityId: number, currentTime: Date): Promise<any> {
+        let query = this.entityManager.createQueryBuilder(News, 'news')
+            .select('distinct news.*')
+        query.andWhere("news.entityId = :entityId", { entityId })
+            .andWhere("news.entityTypeId = 1")
+            .andWhere("news.deleted_at is null")
+            .andWhere("news.isActive = 1")
+            .andWhere("( news.news_expire_date >= cast(:currentTime as datetime) or news.news_expire_date is null )", { currentTime })
+            .orderBy("news.updated_at", "DESC");
+        return query.getRawMany();
+    }
 }

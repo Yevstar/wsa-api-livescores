@@ -6,7 +6,7 @@ import { TeamLadder } from "../models/views/TeamLadder";
 import {User} from "../models/User";
 import {DeepLinkPlayer} from "../models/DeepLinkPlayer";
 import {logger} from '../logger';
-import { isArrayEmpty } from "../utils/Utils"
+import { isArrayEmpty, isNotNullAndUndefined, paginationData } from "../utils/Utils"
 import nodeMailer from "nodemailer";
 import {DeleteResult} from "typeorm-plus";
 
@@ -58,16 +58,16 @@ export default class TeamService extends BaseService<Team> {
     }
 
     public async findTeamsWithUsers(
-        competitionId: number = undefined,
-        divisionId: number = undefined,
-    ): Promise<Team[]> {
-        let result = await this.entityManager.query("call wsa.usp_get_teams(?,?)",[competitionId, divisionId]);
+        competitionId: number,
+        divisionId: number,
+        search: string,
+        offset: number,
+        limit: number): Promise<any> {
+        let result = await this.entityManager.query("call wsa.usp_get_teams(?,?,?,?,?)", [competitionId, search, limit, offset, divisionId]);
         if (isArrayEmpty(result)) {
-            if(result!= null && result[0]!= null) {
-                return result[0];
-            }
+            return { teamCount: result[1][0]['totalCount'], teams: result[0] }
         } else {
-          return [];
+            return { teamCount: null, teams: [] }
         }
     }
 
@@ -142,39 +142,14 @@ export default class TeamService extends BaseService<Team> {
         );
     }
 
-    public async scoringStatsByPlayer(competitionId: number, playerId: number, aggregate: ("ALL" | "MATCH")) {
-        if (playerId) {
-            return this.entityManager.query(
-                'select\n' +
-                'SUM(IF(playerId = ?, goal, 0))         as own_goal,\n' +
-                'SUM(IF(playerId = ?, miss, 0))         as own_miss,\n' +
-                'SUM(IF(playerId = ?, penalty_miss, 0)) as own_penalty_miss,\n' +
-                'SUM(goal)                              as avg_goal,\n' +
-                'SUM(miss)                              as avg_miss,\n' +
-                'SUM(penalty_miss)                      as avg_penalty_miss\n' +
-                'from shootingStats\n' +
-                'where competitionId = ? ;', [playerId, playerId, playerId, competitionId]
-            );
+    public async scoringStatsByPlayer(competitionId: number, playerId: number, aggregate: ("ALL" | "MATCH"), offset: number, limit: number, search: string): Promise<any> {
+        let result = await this.entityManager.query("call wsa.usp_get_scoring_stats_by_player(?,?,?,?,?,?)",
+            [competitionId, playerId, aggregate, limit, offset, search]);
+
+        if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
+            return { count: result[1], finalData: result[0] }
         } else {
-            if (aggregate == "ALL") {
-                return this.entityManager.query(
-                    'select teamId, teamName, playerId, firstName, lastName, mnbPlayerId, gamePositionName, \n' +
-                    'sum(goal) as goal, sum(miss) as miss, sum(penalty_miss) as penalty_miss,\n' +
-                    'sum(goal) / (sum(goal) + if (sum(miss) is null, 0, sum(miss))) as goal_percent\n' +
-                    'from shootingStats\n' +
-                    'where competitionId = ? \n' +
-                    'group by teamId, teamName, playerId, firstName, lastName, mnbPlayerId, gamePositionName;', [competitionId]
-                );
-            } else {
-                return this.entityManager.query(
-                    'select matchId, startTime, team1Name, team2Name, teamId, teamName, playerId, firstName, lastName, mnbPlayerId, gamePositionName, \n' +
-                    'sum(goal) as goal, sum(miss) as miss, sum(penalty_miss) as penalty_miss,\n' +
-                    'sum(goal) / (sum(goal) + if (sum(miss) is null, 0, sum(miss))) as goal_percent\n' +
-                    'from shootingStats, `match` m\n' +
-                    'where shootingStats.competitionId = ? and m.id = matchId\n' +
-                    'group by matchId, team1Name, team2Name, teamId, teamName, playerId, firstName, lastName, mnbPlayerId, gamePositionName;', [competitionId]
-                );
-            }
+            return result[0];
         }
     }
 

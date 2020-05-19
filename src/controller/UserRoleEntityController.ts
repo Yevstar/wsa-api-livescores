@@ -71,12 +71,12 @@ export class UserRoleEntityController extends BaseController {
         if (childUser == null || childUser == undefined) {
           /// Creating user for player if doesn't exist for the email in the db
           let email = `player${player.id}@wsa.com`;
-          childUser = await this.userService.findByEmail(email);
+          childUser = await this.userService.findByEmail(email.toLowerCase());
           if (childUser == null || childUser == undefined) {
               const childUserPassword = md5('password');
 
               childUser = new User();
-              childUser.email = email;
+              childUser.email = email.toLowerCase();
               childUser.password = childUserPassword;
               childUser.firstName = player.firstName;
               childUser.lastName = player.lastName;
@@ -84,9 +84,7 @@ export class UserRoleEntityController extends BaseController {
               childUser.statusRefId = 0;
 
               childUser = await this.userService.createOrUpdate(childUser);
-              promises.push(
-                this.updateFirebaseData(childUser, childUserPassword)
-              );
+              await this.updateFirebaseData(childUser, childUserPassword);
           } else {
               childUser.statusRefId = 0;
               promises.push(

@@ -4,7 +4,7 @@ import {User} from '../models/User';
 import {BaseController} from "./BaseController";
 import {Response} from "express";
 import * as  fastcsv from 'fast-csv';
-import { isPhoto, fileExt, timestamp, stringTONumber } from '../utils/Utils';
+import { isPhoto, fileExt, timestamp, stringTONumber, paginationData } from '../utils/Utils';
 import {RequestFilter} from "../models/RequestFilter";
 
 @JsonController('/players')
@@ -27,50 +27,64 @@ export class PlayerController extends BaseController {
     @Authorized()
     @Post('/')
     async create(
-        @Body() player: any,
+        @Body() playerInput: any,
         @UploadedFile("photo") file: Express.Multer.File,
         @Res() response: Response
     ) {
-      if (player) {
+      if (playerInput) {
             // changed the type of player from "Player" to any as id should be integer for edit mode
             // and while using formdata content-type id is of type string
             let p = new Player();
-            if (player.id) {
-                p.id = stringTONumber(player.id);;
+            if (playerInput.id) {
+                p.id = stringTONumber(playerInput.id);;
             }
 
             // Getting existing player for the id if we have a player already
             // for checking with email so we can update invite status.
+            // Also ensure web doesn't overwrite details of the esisting player
+            // web form is only sending back firstName, lastName, dateOfBirth, phoneNumber, mnbPlayerId, teamId, competitionId, photo
             let existingPlayer = await this.playerService.findById(p.id);
-
-            p.firstName = player.firstName;
-            p.lastName = player.lastName;
-            p.phoneNumber = player.phoneNumber;
-            p.mnbPlayerId = player.mnbPlayerId;
-            p.teamId = player.teamId;
-            p.competitionId = player.competitionId;
-            p.positionId = player.positionId;
-            p.shirt = player.shirt;
-            p.phoneNumber = player.phoneNumber;
-            p.nameFilter = player.nameFilter;
-            p.mnbPlayerId = player.mnbPlayerId;
-
-            if (existingPlayer && existingPlayer.email === player.email) {
-              p.email = player.email;
-              p.inviteStatus = player.inviteStatus;
-            } else {
-              p.email = player.email;
-              p.inviteStatus = null;
+            if (existingPlayer) {
+                p = existingPlayer;
             }
 
-            if (player.dateOfBirth) {
-                const dateParts = (player.dateOfBirth).split("-");
-                const dateObject = new Date(+dateParts[2], dateParts[1] - 1, +dateParts[0]);
-                p.dateOfBirth = new Date(dateObject);
+            p.firstName = playerInput.firstName;
+            p.lastName = playerInput.lastName;
+            p.phoneNumber = playerInput.phoneNumber;
+            p.mnbPlayerId = playerInput.mnbPlayerId;
+            p.teamId = playerInput.teamId;
+            p.competitionId = playerInput.competitionId;
+
+            if (playerInput.positionId || playerInput.shirt || playerInput.nameFilter ) {
+                p.positionId = playerInput.positionId;
+                p.shirt = playerInput.shirt;
+                p.nameFilter = playerInput.nameFilter;
+            }
+
+            if (playerInput.email) {
+                if (existingPlayer &&
+                    existingPlayer.email &&
+                    existingPlayer.email.toLowerCase() === playerInput.email.toLowerCase()) {
+                        p .email = playerInput.email.toLowerCase();
+                        p.inviteStatus = playerInput.inviteStatus;
+                } else {
+                    p.email = playerInput.email.toLowerCase();
+                    p.inviteStatus = null;
+                }
+            }
+
+            if (playerInput.dateOfBirth) {
+                if (playerInput.dateOfBirth.length == 10) {
+                    const dateParts = (playerInput.dateOfBirth).split("-");
+                    const dateObject = new Date(+dateParts[2], dateParts[1] - 1, +dateParts[0]);
+                    p.dateOfBirth = new Date(dateObject);
+                } else {
+                    p.dateOfBirth = new Date(Date.parse(playerInput.dateOfBirth));
+                }
             }
             if (file) {
                 if (isPhoto(file.mimetype)) {
-                    let filename = `/media/${player.competitionId}/${player.teamId}/${player.id}_${timestamp()}.${fileExt(file.originalname)}`;
+                    let filename = `/media/${playerInput.competitionId}/${playerInput.teamId}/${playerInput.id}_${timestamp()}.${fileExt(file.originalname)}`;
                     let result = await this.firebaseService.upload(filename, file);
                     if (result) {
                         p.photoUrl = result['url'];
@@ -126,6 +140,7 @@ export class PlayerController extends BaseController {
         }
     }
 
+    @Authorized()
     @Get('/csv')
     async exportCSV(
         @QueryParam('competitionId') competitionId: number,
@@ -200,8 +215,76 @@ export class PlayerController extends BaseController {
     @Post('/activity')
     async listTeamPlayerActivity(
         @QueryParam('competitionId') competitionId: number,
+        @QueryParam('status') status: string,
         @Body() requestFilter: RequestFilter
     ): Promise<any[]> {
-        return this.playerService.listTeamPlayerActivity(competitionId, requestFilter);
+        return this.playerService.listTeamPlayerActivity(competitionId, requestFilter, status);
+    }
+
+    @Get('/admin')
+    async findPlayers(
+        @QueryParam('name') name: string,
+        @QueryParam('competitionId') competitionId: number,
+        @QueryParam('clubId') clubId: number,
+        @QueryParam('teamId') teamId: number,
+        @QueryParam('playUpFromAge') playUpFromAge: number,
+        @QueryParam('playUpFromGrade') playUpFromGrade: string,
+        @QueryParam('offset') offset: number,
+        @QueryParam('limit') limit: number): Promise<{ page: {}, players: Player[] }> {
+        const playerData = await this.playerService.findByParam(name, competitionId, clubId, teamId, playUpFromAge, playUpFromGrade, offset, limit);
+        if (offset !== null && offset !== undefined && limit !== null && limit !== undefined) {
+            return { page: paginationData(playerData.matchCount, limit, offset).page, players: playerData.result };
+        } else {
+            return { page: {}, players: playerData };
+        }
+    }
+
+    @Authorized()
+    @Get('/export/teamattendance')
+    async exportTeamAttendance(
+        @QueryParam('competitionId') competitionId: number,
+        @QueryParam('status') status: string,
+        @Res() response: Response) {
+
+        let teamAttendanceData = await this.playerService.listTeamPlayerActivity(competitionId, { paging: { offset: null, limit: null }, search: '' }, status);
+        teamAttendanceData.map(e => {
+            e['Match Id'] = e.matchId;
+            e['Start Time'] = e.startTime;
+            e['Team'] = e.team1name + ':' + e.team2name
+            e['Player Id'] = e.playerId
+            e['First Name'] = e.firstName
+            e['Last Name'] = e.lastName;
+            e['Division'] = e.divisionName
+            e['Status'] = e.status
+            e['Position'] = e.positionName;
+
+            delete e.activityTimestamp;
+            delete e.competitionId;
+            delete e.divisionName;
+            delete e.firstName;
+            delete e.lastName;
+            delete e.matchId;
+            delete e.mnbMatchId;
+            delete e.mnbPlayerId;
+            delete e.name;
+            delete e.period;
+            delete e.playerId;
+            delete e.positionName;
+            delete e.startTime;
+            delete e.status;
+            delete e.team1id;
+            delete e.team1name;
+            delete e.team2id;
+            delete e.team2name;
+            delete e.teamId;
+            delete e.userId;
+            return e;
+        });
+
+        response.setHeader('Content-disposition', 'attachment; filename=teamattendance.csv');
+        response.setHeader('content-type', 'text/csv');
+        fastcsv.write(teamAttendanceData, { headers: true })
+            .on("finish", function () { })
+            .pipe(response);
     }
 }

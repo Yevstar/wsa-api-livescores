@@ -6,7 +6,7 @@ export function md5(password: string): string {
 }
 
 export function authToken(email: string, password: string): string {
-    const data = `${email}:${password}`;
+    const data = `${email.toLowerCase()}:${password}`;
     return encrypt(jwt.encode({ data }, process.env.SECRET));
 }
 
@@ -83,7 +83,7 @@ export function stringToBoolean(value: string | number | boolean): boolean {
         case 1:
         case "1":
             return true;
-        default: 
+        default:
             return false;
     }
 }
@@ -116,4 +116,15 @@ export function paginationData(totalCount: number, LIMIT: number, OFFSET: number
             currentPage: currentPage + 1
         }
     }
+}
+
+export function isNotNullAndUndefined(value: any): Boolean {
+    return value !== null && value !== undefined;
+}
+
+export function uuidv4() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
 }

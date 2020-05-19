@@ -11,7 +11,7 @@ export default class RoundService extends BaseService<Round> {
     }
 
     public async findByParam(competitionId: number, divisionId: number, sequence: number,
-                             teamIds: number[] = [], clubIds: number[]): Promise<Round[]> {
+                             teamIds: number[] = [], clubIds: number[], search: string): Promise<Round[]> {
         let query = this.entityManager.createQueryBuilder(Round, 'r')
             .leftJoinAndSelect('r.matches', 'match')
             .leftJoinAndSelect('match.team1', 'team1')
@@ -24,6 +24,7 @@ export default class RoundService extends BaseService<Round> {
         if (competitionId) query.andWhere("r.competitionId = :competitionId", {competitionId});
         if (divisionId) query.andWhere("r.divisionId = :divisionId", {divisionId});
         if (sequence) query.andWhere("r.sequence = :sequence", {sequence});
+        if (search!==null && search!==undefined && search!=='') query.andWhere('(LOWER(r.name) like :search)', { search: `%${search.toLowerCase()}%` });
 
         if ((teamIds && teamIds.length > 0) || (clubIds && clubIds.length > 0)) {
             query.andWhere(new Brackets(qb => {

@@ -18,7 +18,7 @@ import {User} from "../models/User";
 import {BaseController} from "./BaseController";
 import {RequestFilter} from "../models/RequestFilter";
 import { CompetitionVenue } from "../models/CompetitionVenue";
-import { isPhoto, fileExt, stringTONumber, stringToBoolean, timestamp } from "../utils/Utils"
+import { isPhoto, fileExt, stringTONumber, stringToBoolean, timestamp, uuidv4 } from "../utils/Utils"
 
 
 @JsonController('/competitions')
@@ -69,6 +69,7 @@ export class CompetitionController extends BaseController {
             c.longName = competition.longName;
             c.name = competition.name;
             c.recordUmpire = competition.recordUmpire;
+            c.recordUmpireType = competition.recordUmpireType;
             c.gameTimeTracking = stringToBoolean(competition.gameTimeTracking);
             c.positionTracking = stringToBoolean(competition.positionTracking);
             c.recordGoalAttempts = stringToBoolean(competition.recordGoalAttempts);
@@ -84,6 +85,8 @@ export class CompetitionController extends BaseController {
             c.timerType = competition.timerType;
             c.buzzerEnabled = stringToBoolean(competition.buzzerEnabled);
             c.warningBuzzerEnabled = stringToBoolean(competition.warningBuzzerEnabled);
+
+            if(c.id===0) c.uniqueKey = uuidv4();
 
             let saved = await this.competitionService.createOrUpdate(c);
             await this.competitionVenueService.deleteByCompetitionId(saved.id);
@@ -153,7 +156,7 @@ export class CompetitionController extends BaseController {
             ladderSettingsArray.push(cls);
             let ladder = await this.competitionLadderSettingsService.batchCreateOrUpdate(ladderSettingsArray)
 
-            return saved;
+            return this.competitionService.findById(saved.id);
 
         } else {
             return response.status(200).send(
@@ -166,10 +169,11 @@ export class CompetitionController extends BaseController {
     async loadAdmin(
         @HeaderParam("authorization") user: User,
         @Body() requestFilter: RequestFilter,
+        @QueryParam('organisationId') organisationId: number,
         @Res() response: Response
     ): Promise<any> {
         if (requestFilter) {
-            return this.competitionService.loadAdmin(user.id, requestFilter);
+            return this.competitionService.loadAdmin(user.id, requestFilter, organisationId);
         } else {
             return response.status(200).send(
                 {name: 'search_error', message: `Required fields are missing`});
@@ -263,5 +267,11 @@ export class CompetitionController extends BaseController {
         @QueryParam('name') name: string
     ) {
         return await this.competitionVenueService.findByCourtName(name, competitionId);
+    }
+
+    @Get('/list')
+    async getCompetitions(
+    @QueryParam('organisationId',{required:true}) organisationId: number) {
+      return await this.competitionService.getCompetitionsPublic(organisationId);
     }
 }

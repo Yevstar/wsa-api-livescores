@@ -1,12 +1,13 @@
-import {BaseEntity, Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn, DeleteDateColumn} from 'typeorm-plus';
+import {BaseEntity, Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn, DeleteDateColumn, OneToMany} from 'typeorm-plus';
 import {Team} from './Team';
 import {VenueCourt} from './VenueCourt';
 import {Competition} from './Competition';
 import {Division} from './Division';
 import {MatchResultType} from "./MatchResultType";
 import {Round} from "./Round";
-import {IsBoolean, IsDate, IsNumber, IsString, ValidateNested} from "class-validator";
+import {IsBoolean, IsDate, IsNumber, IsString, ValidateNested, IsArray} from "class-validator";
 import { isDate } from 'util';
+import {MatchPausedTime} from "./MatchPausedTime";
 
 @Entity()
 export class Match extends BaseEntity {
@@ -174,4 +175,12 @@ export class Match extends BaseEntity {
     @Column()
     updated_at: Date;
 
+    @IsString()
+    @Column()
+    resultStatus: "Draft" | "In Dispute" | "Final";
+
+    @ValidateNested()
+    @OneToMany(type => MatchPausedTime, matchPausedTime => matchPausedTime.match)
+    @JoinColumn()
+    matchPausedTimes: MatchPausedTime[];
 }

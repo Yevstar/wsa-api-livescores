@@ -2,9 +2,14 @@ import {Service} from "typedi";
 import {User} from "../models/User";
 import BaseService from "./BaseService";
 import {Role} from "../models/security/Role";
+import {Function} from "../models/security/Function";
 import {EntityType} from "../models/security/EntityType";
-import { logger } from '../logger';
+import {UserRoleEntity} from "../models/security/UserRoleEntity";
+import {RoleFunction} from "../models/security/RoleFunction";
+import {logger} from '../logger';
 import nodeMailer from "nodemailer";
+import {LinkedEntities} from "../models/views/LinkedEntities";
+import {Brackets} from "typeorm";
 
 @Service()
 export default class UserService extends BaseService<User> {
@@ -16,20 +21,20 @@ export default class UserService extends BaseService<User> {
     public async findByCredentials(email: string, password: string): Promise<User> {
         return this.entityManager.createQueryBuilder(User, 'user')
             .andWhere('LOWER(user.email) = :email and user.password = :password',
-                {email: email, password: password})
+                {email: email.toLowerCase(), password: password})
             .getOne();
     }
 
     public async findByEmail(email: string): Promise<User> {
         return this.entityManager.createQueryBuilder(User, 'user')
-            .andWhere('LOWER(user.email) = :email', {email: email})
+            .andWhere('LOWER(user.email) = :email', {email: email.toLowerCase()})
             .addSelect("user.password").addSelect("user.reset")
             .getOne();
     }
 
     public async userExist(email: string): Promise<number> {
         return this.entityManager.createQueryBuilder(User, 'user')
-            .where('user.email = :email', {email})
+            .where('LOWER(user.email) = :email', {email: email.toLowerCase()})
             .getCount()
     }
 
@@ -37,7 +42,7 @@ export default class UserService extends BaseService<User> {
         return this.entityManager.createQueryBuilder(User, 'user')
             .update(User)
             .set(user)
-            .andWhere('user.email = :email', {email})
+            .andWhere('LOWER(user.email) = :email', {email: email.toLowerCase()})
             .execute();
     }
 
@@ -55,6 +60,14 @@ export default class UserService extends BaseService<User> {
             .getRawOne();
     }
 
+    public async getFunction(functionName: string): Promise<Function> {
+        return this.entityManager.createQueryBuilder(Function, 'fc')
+            .select(['fc.id as id', 'fc.name as name'])
+            .andWhere('fc.name = :functionName', {functionName})
+            .andWhere('fc.isDeleted = 0')
+            .getRawOne();
+    }
+
     public async deleteRolesByUser(userId: number, roleId:number, inputEntityId: number, inputEntityTypeId: number, linkedEntityTypeId: number) {
         try {
             let result = await this.entityManager.query("call wsa_users.usp_delete_entity_roles_by_user(?,?,?,?,?)",[userId, roleId, inputEntityId, inputEntityTypeId, linkedEntityTypeId]);
@@ -64,6 +77,31 @@ export default class UserService extends BaseService<User> {
         }
     }
 
+    public async getUsersBySecurity(entityTypeId: number, entityId: number, userId: number,
+        sec: { functionId?: number, roleId?: number }): Promise<User[]> {
+        let query = this.entityManager.createQueryBuilder(User, 'u')
+        .select('u.id as id')
+        .innerJoin(UserRoleEntity, 'ure', 'u.id = ure.userId')
+        .innerJoin(RoleFunction, 'fr', 'fr.roleId = ure.roleId');
+
+        if (sec.functionId) {
+            let id = sec.functionId;
+            query.innerJoin(Function, 'f', 'f.id = fr.functionId')
+            .andWhere('f.id = :id', {id});
+        }
+
+        if (sec.roleId) {
+            let id = sec.roleId;
+            query.innerJoin(Role, 'r', 'r.id = fr.roleId')
+            .andWhere('r.id = :id', {id});
+        }
+
+        if (userId) {
+            query.andWhere('u.id = :userId', {userId});
+        }
+        return query.getRawMany();
+    }
+
     public async sentMail(userData, teamData, competitionData, mailTo, receiverData, password) {
 
         let url = `https://netballivescores://wsa.app/link`;
@@ -71,7 +109,7 @@ export default class UserService extends BaseService<User> {
         let html = ``;
         let subject = 'Invite Mail';
         let appName = process.env.APP_NAME;
-        
+
         if (mailTo == 'manager') {
             if (teamData.length == 1) {
                 html = `<!DOCTYPE html >
@@ -128,14 +166,14 @@ export default class UserService extends BaseService<User> {
                         </head>
                         <body>
                             <p>Hi ${receiverData.firstName} ${receiverData.lastName},
-                            <p>${userData.firstName} ${userData.lastName} has invited you to score for team ${teamData[0].name} Netball game. Click <a href="${url}">here</a> to download the ${appName} App and start scoring. 
+                            <p>${userData.firstName} ${userData.lastName} has invited you to score for the ${competitionData.name} competition. Click <a href="${url}">here</a> to download the ${appName} App and start scoring.
                             <p>Your password is <b>${password}</b> - you can change it when you log in if you would like.
                             <p>We hope you enjoy using Netball Live Scores.
                             <p>The Netball Live Scores Team
                         </body>
                     </html>`
 
-        } 
+        }
 
         const transporter = nodeMailer.createTransport({
             host: "smtp.gmail.com",
@@ -158,7 +196,7 @@ export default class UserService extends BaseService<User> {
                 name: "World Sport Action",
                 address: process.env.MAIL_USERNAME
             },
-            to: receiverData.email,
+            to: receiverData.email.toLowerCase(),
             replyTo: "donotreply@worldsportaction.com",
             subject: subject,
             html: html
@@ -170,7 +208,44 @@ export default class UserService extends BaseService<User> {
             logger.info(`UserService - sendMail : ${err}, ${info}`);
             return Promise.resolve();
         });
+    }
 
+    public async getUsersByOptions(entityTypeId: number, entityId: number, userName: string,
+                                    sec: { functionId?: number, roleId?: number }): Promise<User[]> {
+        let query = this.entityManager.createQueryBuilder(User, 'u')
+            .select(['u.id as id', 'LOWER(u.email) as email', 'u.firstName as firstName', 'u.lastName as lastName',
+                'u.mobileNumber as mobileNumber', 'u.genderRefId as genderRefId',
+                'u.marketingOptIn as marketingOptIn', 'u.photoUrl as photoUrl', 'u.firebaseUID as firebaseUID'])
+            .addSelect('concat(\'[\', group_concat(distinct JSON_OBJECT(\'entityTypeId\', ' +
+                'le.linkedEntityTypeId, \'entityId\', le.linkedEntityId, \'name\', le.linkedEntityName)),\']\') ' +
+                'as linkedEntity')
+            .innerJoin(UserRoleEntity, 'ure', 'u.id = ure.userId')
+            .innerJoin(RoleFunction, 'fr', 'fr.roleId = ure.roleId')
+            .innerJoin(LinkedEntities, 'le', 'le.linkedEntityTypeId = ure.entityTypeId AND ' +
+                'le.linkedEntityId = ure.entityId');
 
+        if (sec.functionId) {
+            let id = sec.functionId;
+            query.innerJoin(Function, 'f', 'f.id = fr.functionId')
+                .andWhere('f.id = :id', {id});
+        }
+
+        if (sec.roleId) {
+            let id = sec.roleId;
+            query.innerJoin(Role, 'r', 'r.id = fr.roleId')
+                .andWhere('r.id = :id', {id});
+        }
+
+        query.andWhere('le.inputEntityTypeId = :entityTypeId', {entityTypeId})
+            .andWhere('le.inputEntityId = :entityId', {entityId});
+
+        if (userName) {
+            query.andWhere(new Brackets(qb => {
+                qb.andWhere('LOWER(u.firstName) like :query', {query: `${userName.toLowerCase()}%`})
+                    .orWhere('LOWER(u.lastName) like :query', {query: `${userName.toLowerCase()}%`});
+            }));
+        }
+        query.groupBy('u.id');
+        return query.getRawMany()
     }
 }

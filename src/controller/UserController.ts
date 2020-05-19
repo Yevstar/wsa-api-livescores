@@ -68,7 +68,7 @@ export class UserController extends BaseController {
 
             if (tokenResponse.status == 200) {
                 const fbUser = tokenResponse.data;
-                const user = await this.userService.findByEmail(fbUser.email);
+                const user = await this.userService.findByEmail(fbUser.email.toLowerCase());
                 if (!user) {
                     // We have a partial record (need to complete).
                     response.status(203)
@@ -78,11 +78,11 @@ export class UserController extends BaseController {
                             data: {
                                 first_name: fbUser.first_name,
                                 last_name: fbUser.last_name,
-                                email: fbUser.email,
+                                email: fbUser.email.toLowerCase(),
                             }
                         });
                 }
-                return await this.responseWithTokenAndUser(user.email, user.password, user, deviceId);
+                return await this.responseWithTokenAndUser(user.email.toLowerCase(), user.password, user, deviceId);
             }
         } finally {
             response.status(404).send({name: 'validation_error', message: 'Invalid access token'});
@@ -98,13 +98,13 @@ export class UserController extends BaseController {
         try {
             const tokenResponse = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
             if (tokenResponse.status == 200) {
-                const email = tokenResponse.data.email;
+                const email = tokenResponse.data.email.toLowerCase();
                 const user = await this.userService.findByEmail(email);
                 if (!user) {
                     response.status(203).send({name: 'new_user', message: 'Need process registration'});
                     return {user: {email}};
                 } else {
-                    return await this.responseWithTokenAndUser(user.email, user.password, user, deviceId);
+                    return await this.responseWithTokenAndUser(user.email.toLowerCase(), user.password, user, deviceId);
                 }
             }
         } catch (e) {
@@ -123,7 +123,7 @@ export class UserController extends BaseController {
                 .status(422)
                 .send({name: 'validation_error', message: 'Not all required field filled'});
         }
-        const existing = await this.userService.findByEmail(user.email);
+        const existing = await this.userService.findByEmail(user.email.toLowerCase());
         if (existing) {
             logger.info(`User ${user.email} already exists.`);
             return response
@@ -133,6 +133,7 @@ export class UserController extends BaseController {
                 });
         } else {
             logger.info(`User ${user.email} signed up.`);
+            user.email = user.email.toLowerCase();
             const saved = await this.userService.createOrUpdate(user);
             if (competitionId) {
                 let ure = new UserRoleEntity();
@@ -225,10 +226,10 @@ export class UserController extends BaseController {
         try {
             if (password) {
                 user.password = password;
-                await this.userService.update(user.email, user);
+                await this.userService.update(user.email.toLowerCase(), user);
                 logger.info(`Password successfully changed ${user.email}`);
                 await this.updateFirebaseData(user, password);
-                return this.responseWithTokenAndUser(user.email, password, user, undefined, false);
+                return this.responseWithTokenAndUser(user.email.toLowerCase(), password, user, undefined, false);
             } else {
                 return response.status(400).send({
                     name: 'validation_error', message: 'Password field required'
@@ -382,9 +383,9 @@ export class UserController extends BaseController {
 
     private async checkFirebaseUser(user, password: string) {
         if (!user.firebaseUID) {
-            let fbUser = await this.firebaseService.loadUserByEmail(user.email);
+            let fbUser = await this.firebaseService.loadUserByEmail(user.email.toLowerCase());
             if (!fbUser || !fbUser.uid) {
-                fbUser = await this.firebaseService.createUser(user.email, password);
+                fbUser = await this.firebaseService.createUser(user.email.toLowerCase(), password);
             }
             if (fbUser.uid) {
                 user.firebaseUID = fbUser.uid;
@@ -413,7 +414,7 @@ export class UserController extends BaseController {
                 .status(422)
                 .send({ name: 'validation_error', message: 'Not all required fields filled' });
             }
-            const foundUser = await this.userService.findByEmail(managerData.email);
+            const foundUser = await this.userService.findByEmail(managerData.email.toLowerCase());
             // if user exists in our database, validate the rest of their details
             if (foundUser) {
                 if (foundUser.firstName == managerData.firstName
@@ -432,6 +433,7 @@ export class UserController extends BaseController {
                 newUser = true;
 
                 var password = Math.random().toString(36).slice(-8);
+                managerData.email = managerData.email.toLowerCase();
                 managerData.password = md5(password);
                 const saved = await this.userService.createOrUpdate(managerData);
                 logger.info(`Manager ${managerData.email} signed up.`);
@@ -480,12 +482,9 @@ export class UserController extends BaseController {
         @Body() userData: User,
         @Res() response: Response) {
 
-
-
-        var newUser = false;
-        // if new user, search for user
+        var newToCompetition = true;
+        // if existing user wasn't provided, search for the user
         if (!userData.id) {
-
             if (isNullOrEmpty(userData.email)
             || isNullOrEmpty(userData.firstName)
             || isNullOrEmpty(userData.lastName)
@@ -495,7 +494,7 @@ export class UserController extends BaseController {
                 .send({ name: 'validation_error', message: 'Not all required fields filled' });
             }
 
-            const foundUser = await this.userService.findByEmail(userData.email);
+            const foundUser = await this.userService.findByEmail(userData.email.toLowerCase());
             // if user exists in our database, validate the rest of their details
             if (foundUser) {
                 if (foundUser.firstName == userData.firstName
@@ -511,17 +510,14 @@ export class UserController extends BaseController {
                 }
             } else {
                 // create user
-                newUser = true;
-
                 var password = Math.random().toString(36).slice(-8);
+                userData.email = userData.email.toLowerCase();
                 userData.password = md5(password);
                 const saved = await this.userService.createOrUpdate(userData);
                 logger.info(`Manager ${userData.email} signed up.`);
 
-                if (isArrayEmpty(userData.teams)) {
-                    let competitionData = await this.competitionService.findById(competitionId)
-                    this.userService.sentMail(user, userData.teams, competitionData, 'member', saved, password);
-                }
+                let competitionData = await this.competitionService.findById(competitionId)
+                this.userService.sentMail(user, null, competitionData, 'member', saved, password);
 
                 userData.id = saved.id;
             }
@@ -531,26 +527,26 @@ export class UserController extends BaseController {
             foundUser.lastName = userData.lastName;
             foundUser.mobileNumber = userData.mobileNumber;
             await this.userService.createOrUpdate(foundUser);
+
+            newToCompetition = false;
+        } 
+
+        // existing user - delete existing competition assignments
+        if (newToCompetition) {
+            let result = await this.userService.getUsersBySecurity(EntityType.COMPETITION, competitionId, userData.id, {roleId: Role.MEMBER});
+
+            if (!isArrayEmpty(result)) {
+                let ure = new UserRoleEntity();
+                ure.roleId = Role.MEMBER;
+                ure.entityId = competitionId;
+                ure.entityTypeId = EntityType.COMPETITION;
+                ure.userId = userData.id
+                ure.createdBy = user.id;
+                await this.ureService.createOrUpdate(ure);
+                await this.notifyChangeRole(userData.id);
+            }
         }
 
-        // existing user - delete existing team assignments
-        if (!newUser) {
-            await this.userService.deleteRolesByUser(userData.id, Role.MEMBER, userData.teams[0].id, EntityType.TEAM, EntityType.TEAM);
-        }
-
-        // assign teams
-        let ureArray = [];
-        for (let i of userData.teams) {
-            let ure = new UserRoleEntity();
-            ure.roleId = Role.MEMBER;
-            ure.entityId = i.id;
-            ure.entityTypeId = EntityType.TEAM;
-            ure.userId = userData.id
-            ure.createdBy = user.id;
-            ureArray.push(ure)
-        }
-        await this.ureService.batchCreateOrUpdate(ureArray);
-        await this.notifyChangeRole(userData.id);
         return await this.userService.findById(userData.id);
     }
 
@@ -571,7 +567,7 @@ export class UserController extends BaseController {
 
         }
 
-        const existing = await this.userService.findByEmail(admin.email);
+        const existing = await this.userService.findByEmail(admin.email.toLowerCase());
         if (existing) {
             logger.info(`User ${admin.email} already exists.`);
             return response
@@ -583,6 +579,7 @@ export class UserController extends BaseController {
         } else {
 
             var password = Math.random().toString(36).slice(-8);
+            admin.email = admin.email.toLowerCase();
             admin.password = md5(password);
             const saved = await this.userService.createOrUpdate(admin);
             logger.info(`Admin ${admin.email} signed up.`);
@@ -618,7 +615,7 @@ export class UserController extends BaseController {
                 .send({ name: 'validation_error', message: 'Not all required field filled' });
         }
 
-        const existing = await this.userService.findByEmail(superAdmin.email);
+        const existing = await this.userService.findByEmail(superAdmin.email.toLowerCase());
         if (existing) {
             logger.info(`User ${superAdmin.email} already exists.`);
             return response
@@ -632,6 +629,7 @@ export class UserController extends BaseController {
         } else {
 
             var password = Math.random().toString(36).slice(-8);
+            superAdmin.email = superAdmin.email.toLowerCase();
             superAdmin.password = md5(password);
             const saved = await this.userService.createOrUpdate(superAdmin);
             logger.info(`Super Admin ${superAdmin.email} signed up.`);

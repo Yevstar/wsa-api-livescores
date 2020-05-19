@@ -39,10 +39,10 @@ export default class CompetitionService extends BaseService<Competition> {
         query.andWhere('competition.deleted_at is null')
         return query.getMany();
     }
-    
-    public async loadAdmin(userId: number, requestFilter: RequestFilter): Promise<any> {
-        let result = await this.entityManager.query("call wsa.usp_get_competitions(?,?,?)",
-            [userId, requestFilter.paging.limit, requestFilter.paging.offset]);
+
+    public async loadAdmin(userId: number, requestFilter: RequestFilter, organisationId: number): Promise<any> {
+        let result = await this.entityManager.query("call wsa.usp_get_competitions(?,?,?,?)",
+            [userId, organisationId, requestFilter.paging.limit, requestFilter.paging.offset]);
 
             if (result != null) {
                 let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
@@ -59,6 +59,17 @@ export default class CompetitionService extends BaseService<Competition> {
         return query.softDelete().execute();
     }
 
-   
-}
+    public async getCompetitionByUniquekey(uniqueKey: string): Promise<any> {
+        let query = this.entityManager.createQueryBuilder(Competition, 'competition')
+        query.andWhere("competition.uniqueKey = :uniqueKey", { uniqueKey });
+        query.andWhere('competition.deleted_at is null')
+        return query.getOne();
+    }
 
+    public async getCompetitionsPublic(organisationId: number): Promise<any> {
+        return await this.entityManager.query(
+            `select distinct * from (select distinct * from competition where organisationId = ? union select distinct * from
+            competition where id in (select competitionId from wsa.organisation where id = ?)) as c where c.deleted_at is null
+            order by c.name ASC`, [organisationId, organisationId]);
+    }
+}

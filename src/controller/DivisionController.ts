@@ -1,7 +1,7 @@
 import {Get, Param, Delete, JsonController, QueryParam, Post, Body, Res, Authorized, UploadedFile} from 'routing-controllers';
 import {Division} from "../models/Division";
 import {BaseController} from "./BaseController";
-import {stringTONumber, paginationData} from "../utils/Utils";
+import {stringTONumber, paginationData, isNotNullAndUndefined} from "../utils/Utils";
 import {Response} from "express";
 
 @JsonController('/division')
@@ -27,13 +27,22 @@ export class DivisionController extends BaseController {
         @QueryParam('teamIds') teamIds: number[] = [],
         @QueryParam('clubIds') clubIds: number[],
         @QueryParam('offset') offset: number,
-        @QueryParam('limit') limit: number
+        @QueryParam('limit') limit: number,
+        @QueryParam('competitionKey') competitionUniqueKey: string,
+        @QueryParam('search') search: string,
     ): Promise<any> {
+
+        if(search===null || search === undefined) search = '';
+        if (isNotNullAndUndefined(competitionUniqueKey)) {
+            const getCompetitions = await this.competitionService.getCompetitionByUniquekey(competitionUniqueKey);
+            competitionId = getCompetitions.id;
+        }
+
         if (clubIds && !Array.isArray(clubIds)) clubIds = [clubIds];
         if (teamIds && !Array.isArray(teamIds)) teamIds = [teamIds];
         if (competitionId || teamIds && teamIds.length > 0 || clubIds && clubIds.length > 0) {
-            const resultsFound = await this.divisionService.findByParams(competitionId, clubIds, teamIds, offset, limit);
-            if (resultsFound && offset) {
+            const resultsFound = await this.divisionService.findByParams(competitionId, clubIds, teamIds, offset, limit, search);
+            if (resultsFound && isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
                 let responseObject = paginationData(stringTONumber(resultsFound.countObj), limit, offset)
                 responseObject["divisions"] = resultsFound.result;
                 return responseObject;

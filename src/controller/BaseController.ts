@@ -13,6 +13,7 @@ import LocationService from "../services/LocationService";
 import MatchScoresService from "../services/MatchScoresService";
 import AttendanceService from "../services/AttendanceService";
 import MatchUmpiresService from "../services/MatchUmpiresService";
+import MatchUmpireService from "../services/MatchUmpireService";
 import UserService from "../services/UserService";
 import ApplicationService from "../services/ApplicationService";
 import UserDeviceService from "../services/UserDeviceService";
@@ -26,6 +27,7 @@ import IncidentService from "../services/IncidentService";
 import CompetitionLadderSettingsService from "../services/CompetitionLadderSettingsService";
 import CompetitionVenueService from "../services/CompetitionVenueService";
 import admin from "firebase-admin";
+import OrganisationService from "../services/OrganisationService";
 
 export class BaseController {
 
@@ -69,7 +71,10 @@ export class BaseController {
     protected attendanceService: AttendanceService;
 
     @Inject()
-    protected matchUmpireService: MatchUmpiresService;
+    protected matchUmpiresService: MatchUmpiresService;
+
+    @Inject()
+    protected matchUmpireService: MatchUmpireService;
 
     @Inject()
     protected userService: UserService;
@@ -104,23 +109,35 @@ export class BaseController {
     @Inject()
     protected competitionVenueService: CompetitionVenueService;
 
+    @Inject()
+    protected organisationService: OrganisationService;
+
     protected async updateFirebaseData(user: User, password: string) {
         user.password = password;
+
         let fbUser;
+        /// If there an existing firebaseUID get the firebase user via that
         if (user.firebaseUID) {
           fbUser = await this.firebaseService.loadUserByUID(user.firebaseUID);
+        } else {
+          /// Also we will check once if there an user alreay with that email
+          /// in-order to make sure we don't call create of firebase user
+          /// with an already existing email.
+          fbUser = await this.firebaseService.loadUserByEmail(user.email);
+          if (fbUser && fbUser.uid) {
+            user.firebaseUID = fbUser.uid;
+          }
         }
 
         if (!fbUser || !fbUser.uid) {
-            fbUser = await this.firebaseService.createUser(user.email, password);
+            fbUser = await this.firebaseService.createUser(user.email.toLowerCase(), password);
         } else {
-            fbUser = await this.firebaseService.updateUserByUID(user.firebaseUID, user.email, user.password);
+            fbUser = await this.firebaseService.updateUserByUID(user.firebaseUID, user.email.toLowerCase(), user.password);
         }
         if (fbUser && fbUser.uid) {
             user.firebaseUID = fbUser.uid;
             await User.save(user);
         }
-
         await this.checkFirestoreDatabase(user, true);
     }
 
@@ -132,7 +149,7 @@ export class BaseController {
         let querySnapshot = await queryRef.get();
         if (querySnapshot.empty) {
           usersCollectionRef.doc(user.firebaseUID).set({
-              'email': user.email,
+              'email': user.email.toLowerCase(),
               'firstName': user.firstName,
               'lastName': user.lastName,
               'uid': user.firebaseUID,
@@ -144,12 +161,12 @@ export class BaseController {
                   `${user.firstName} ${user.lastName}`,
                   user.firstName,
                   user.lastName,
-                  user.email
+                  user.email.toLowerCase()
               ]
           });
         } else if (update) {
           usersCollectionRef.doc(user.firebaseUID).update({
-            'email': user.email,
+            'email': user.email.toLowerCase(),
             'firstName': user.firstName,
             'lastName': user.lastName,
             'uid': user.firebaseUID,
@@ -161,7 +178,7 @@ export class BaseController {
                 `${user.firstName} ${user.lastName}`,
                 user.firstName,
                 user.lastName,
-                user.email
+                user.email.toLowerCase()
             ]
           });
         }
@@ -169,14 +186,16 @@ export class BaseController {
     }
 
     protected async notifyChangeRole(userId: number) {
-        let tokens = (await this.deviceService.getUserDevices(userId)).map(device => device.deviceId);
-        if (tokens && tokens.length > 0) {
-            this.firebaseService.sendMessage({
-                tokens: tokens,
-                data: {
-                    type: 'user_role_updated'
-                }
-            })
+        if (userId) {
+            let tokens = (await this.deviceService.getUserDevices(userId)).map(device => device.deviceId);
+            if (tokens && tokens.length > 0) {
+                this.firebaseService.sendMessage({
+                    tokens: tokens,
+                    data: {
+                        type: 'user_role_updated'
+                    }
+                });
+            }
         }
     }
 }

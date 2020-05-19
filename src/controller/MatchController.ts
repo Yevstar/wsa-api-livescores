@@ -22,12 +22,14 @@ import {Response} from "express";
 import {BaseController} from "./BaseController";
 import {logger} from "../logger";
 import {User} from "../models/User";
-import {contain, fileExt, isPhoto, isVideo, timestamp, stringTONumber, paginationData, isArrayEmpty} from "../utils/Utils";
+import {contain, fileExt, isPhoto, isVideo, timestamp, stringTONumber, paginationData, isArrayEmpty, isNotNullAndUndefined} from "../utils/Utils";
 import {Incident} from "../models/Incident";
 import {Lineup} from "../models/Lineup";
 import {IncidentPlayer} from "../models/IncidentPlayer";
 import {Round} from "../models/Round";
 import {RequestFilter} from "../models/RequestFilter";
+import * as fastcsv from 'fast-csv';
+import {MatchPausedTime} from "../models/MatchPausedTime";
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
@@ -74,7 +76,8 @@ export class MatchController extends BaseController {
         @QueryParam('matchEnded') matchEnded: boolean,
         @QueryParam('matchStatus') matchStatus: ("STARTED" | "PAUSED" | "ENDED")[],
         @QueryParam('offset') offset: number = undefined,
-        @QueryParam('limit') limit: number = undefined
+        @QueryParam('limit') limit: number = undefined,
+        @QueryParam('search') search: string
     ): Promise<any> {
         // Add all teams of supplied players.
         if (playerIds) {
@@ -83,12 +86,16 @@ export class MatchController extends BaseController {
                 ...(await this.playerService.findByIds(playerIds)).map(player => player.teamId)
             ]);
         }
-        offset = stringTONumber(offset);
-        limit = stringTONumber(limit);
+        if(isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
+            offset = stringTONumber(offset);
+            limit = stringTONumber(limit);
+        }
 
-        const matchFound = await this.matchService.findByParam(from, to, teamIds, playerIds, competitionId, clubIds, matchEnded, matchStatus, offset, limit);
-        
-        if (matchFound && limit) {
+        if(search===null ||search===undefined) search = '';
+
+        const matchFound = await this.matchService.findByParam(from, to, teamIds, playerIds, competitionId, clubIds, matchEnded, matchStatus, offset, limit,search);
+
+        if (isNotNullAndUndefined(matchFound.matchCount) && isNotNullAndUndefined(matchFound.result) && limit) {
             let responseObject = paginationData(stringTONumber(matchFound.matchCount), limit, offset)
             responseObject["matches"] = matchFound.result;
             return responseObject;
@@ -157,6 +164,21 @@ export class MatchController extends BaseController {
         // Add all teams of supplied players.
         if (competitionId && requestFilter) {
             return this.matchService.loadAdmin(competitionId, teamId, requestFilter);
+        } else {
+            return response.status(200).send(
+                {name: 'search_error', message: `Required fields are missing`});
+        }
+    }
+
+    @Post('/dashboard')
+    async loadDashboard(
+        @QueryParam('competitionId') competitionId: number,
+        @Body() requestFilter: RequestFilter,
+        @Res() response: Response
+    ): Promise<any> {
+        // Add all teams of supplied players.
+        if (competitionId && requestFilter) {
+            return this.matchService.loadDashboard(competitionId, new Date(), requestFilter);
         } else {
             return response.status(200).send(
                 {name: 'search_error', message: `Required fields are missing`});
@@ -418,25 +440,33 @@ export class MatchController extends BaseController {
         @HeaderParam("authorization") user: User,
         @QueryParam('matchId', {required: true}) matchId: number,
         @QueryParam('msFromStart') msFromStart: number,
+        @QueryParam('pausedMs') pausedMs: number,
         @QueryParam('isBreak') isBreak: boolean,
         @QueryParam('period') period: number,
         @Res() response: Response) {
         let match = await this.matchService.findById(matchId);
         if (match) {
-            let millisecondsFromStart = msFromStart ? msFromStart : 0;
-            let millisecond = match.pauseStartTime ? match.pauseStartTime.getTime() - match.startTime.getTime() : 0;
-            match.totalPausedMs = match.totalPausedMs + millisecondsFromStart - (millisecond);
+            let totalPausedTime = pausedMs;
+            if (!totalPausedTime) {
+                let millisecondsFromStart = msFromStart ? msFromStart : 0;
+                let millisecond = match.pauseStartTime ? match.pauseStartTime.getTime() - match.startTime.getTime() : 0;
+                totalPausedTime = millisecondsFromStart - (millisecond);
+            }
+            match.totalPausedMs = match.totalPausedMs + totalPausedTime;
             match.matchStatus = "STARTED";
             await this.matchService.createOrUpdate(match);
+
+            await this.matchService.logMatchPauseTime(matchId, period, isBreak, totalPausedTime);
+
+            this.sendMatchEvent(match, false, user);
+            let eventTimestamp = msFromStart ? new Date(match.startTime.getTime() + msFromStart) : new Date(Date.now());
+            this.matchService.logMatchEvent(matchId, 'timer', 'resume', period, eventTimestamp,
+                user.id, 'isBreak', isBreak ? "true" : "false");
+            return await this.matchService.findMatchById(matchId);
         } else {
             return response.status(400).send(
                 {name: 'search_error', message: `Match with id ${matchId} not found`});
         }
-        this.sendMatchEvent(match, false, user);
-        let eventTimestamp = msFromStart ? new Date(match.startTime.getTime() + msFromStart) : new Date(Date.now());
-        this.matchService.logMatchEvent(matchId, 'timer', 'resume', period, eventTimestamp,
-            user.id, 'isBreak', isBreak ? "true" : "false");
-        return match;
     }
 
     @Authorized()
@@ -759,7 +789,7 @@ export class MatchController extends BaseController {
         @Res() response: Response) {
         return this.matchService.findLineupsByParam(matchId, competitionId, teamId, playerId, positionId);
     }
-    
+
     @Authorized()
     @Post('/bulk/end')
     async bulkUpdate(
@@ -807,7 +837,7 @@ export class MatchController extends BaseController {
         }
         return response.status(200).send({success: true});
     }
-    
+
     @Authorized()
     @Post('/bulk/time')
     async bulkMatchPushBack(
@@ -832,7 +862,7 @@ export class MatchController extends BaseController {
             }
 
         } else {
-            
+
             if (type == 'backward') {
                 for (let match of matchesData) {
                     let myDate = new Date(match.startTime);
@@ -855,10 +885,10 @@ export class MatchController extends BaseController {
                         myDate.setHours(myDate.getHours() - hours);
                     }
                     if (minutes) {
-                        myDate.setHours(myDate.getMinutes() - minutes);
+                        myDate.setMinutes(myDate.getMinutes() - minutes);
                     }
                     if (seconds) {
-                        myDate.setHours(myDate.getSeconds() - seconds);
+                        myDate.setSeconds(myDate.getSeconds() - seconds);
                     }
                     match.startTime = new Date(myDate);
                     arr.push(match)
@@ -875,7 +905,7 @@ export class MatchController extends BaseController {
         }
         return response.status(200).send({success: true});
     }
-    
+
     @Authorized()
     @Post('/bulk/doubleheader')
     async doubleHeader(
@@ -893,7 +923,7 @@ export class MatchController extends BaseController {
                 if (r2.divisionId = r1.divisionId) {
                     let firstMatchesArray = await this.matchService.findByRound(r1.id);
                     let secondMatchesArray = await this.matchService.findByRound(r2.id);
-                    let secondMatchTemplate = secondMatchesArray[1];
+                    let secondMatchTemplate = secondMatchesArray[0];
                     if (secondMatchTemplate.startTime) {
 
                         for (let m1 of firstMatchesArray) {
@@ -954,22 +984,37 @@ export class MatchController extends BaseController {
                     var array = str.split("P");
                     var timeArray = array[0].split(":");
                     var timeZoneArray = i["Timezone GMT"].split(":");
-                    if (timeZoneArray.length == 2) {
+                    if (timeZoneArray.length > 1) {
+
                         var hr = parseInt(timeArray[0]) + 12 + parseInt(timeZoneArray[0]);
-                        var min = parseInt(timeArray[1]) + parseInt(timeZoneArray[1]);
-                        if (min > 60) {
+
+                        if (timeZoneArray[0].startsWith("-")) {
+                            var min = parseInt(timeArray[1]) - parseInt(timeZoneArray[1]);
+                        } else {
+                            var min = parseInt(timeArray[1]) + parseInt(timeZoneArray[1]);
+                        }
+
+                        if (min >= 60) {
                             min -= 60
                             hr++;
+                        } else if (min < 0) {
+                            min += 60
+                            hr--;
                         }
 
                         if (hr > 24) {
                             hr -= 24;
                             dateArray[0]++;
+                        } else if (hr < 0) {
+                            hr += 24;
+                            dateArray[0]--;
                         }
 
                     } else {
+
                         var hr = parseInt(timeArray[0]) + 12 + parseInt(timeZoneArray[0]);
                         var min = parseInt(timeArray[1]);
+
                         if (hr > 24) {
                             hr -= 24;
                             dateArray[0]++;
@@ -980,24 +1025,64 @@ export class MatchController extends BaseController {
                     var array = str.split("A");
                     var timeArray = array[0].split(":");
                     var timeZoneArray = i["Timezone GMT"].split(":");
-                    if (timeZoneArray.length == 2) {
+                    if (timeZoneArray.length > 1) {
+
                         var hr = parseInt(timeArray[0]) + parseInt(timeZoneArray[0]);
-                        var min = parseInt(timeArray[1]) + parseInt(timeZoneArray[1]);
-                        if (min > 60)
+
+                        if (timeZoneArray[0].startsWith("-")) {
+                            var min = parseInt(timeArray[1]) - parseInt(timeZoneArray[1]);
+                        } else {
+                            var min = parseInt(timeArray[1]) + parseInt(timeZoneArray[1]);
+                        }
+
+                        if (min >= 60) {
+                            min -= 60
                             hr++;
+                        } else if (min < 0) {
+                            min += 60
+                            hr--;
+                        }
+
                     } else {
+
                         var hr = parseInt(timeArray[0]) + parseInt(timeZoneArray[0]);
-                        var min = parseInt(timeArray[1]);
+
+                        if (timeZoneArray[0].startsWith("-")) {
+                            var min = parseInt(timeArray[1]);
+                        } else {
+                            var min = parseInt(timeArray[1]);
+                        }
                     }
 
                 }
 
+                if (min >= 60) {
+                    min -= 60
+                    hr++;
+                } else if (min < 0) {
+                    min += 60
+                    hr--;
+                }
+
+                if (hr > 24) {
+                    hr -= 24;
+                    dateArray[0]++;
+                } else if (hr < 0) {
+                    hr += 24;
+                    dateArray[0]--;
+                }
+
                 let stringHr = hr + '';
-                if (hr >= 1 && hr <= 9) {
+                if (hr >= 0 && hr <= 9) {
                     stringHr = '0' + hr
                 }
 
-                let timeZone = `${dateArray[2]}-${dateArray[1]}-${dateArray[0]}T${stringHr}:${min}`;
+                let stringMin = min + '';
+                if (min >= 0 && min <= 9) {
+                    stringMin = '0' + min
+                }
+
+                let timeZone = `${dateArray[2]}-${dateArray[1]}-${dateArray[0]}T${stringHr}:${stringMin}`;
                 let a = new Date(timeZone);
                 let divisionData = await this.divisionService.findByName(i["Grade"], competitionId);
                 let team1Data = await this.teamService.findByNameAndCompetition(i["Home Team"], competitionId);
@@ -1010,7 +1095,7 @@ export class MatchController extends BaseController {
                 } else {
                     return response.status(400).send({
                         name: 'validation_error',
-                        message: `Issue uploading matches`
+                        message: `Issue uploading matches, The divisions entered is not associated with this competition`
                     });
                 }
 
@@ -1054,5 +1139,109 @@ export class MatchController extends BaseController {
         await this.matchService.batchCreateOrUpdate(queryArr);
         return response.status(200).send({ success: true });
 
+    }
+
+    @Authorized()
+    @Post('/bulk/courts')
+    async bulkUpdateCourts(
+        @QueryParam('competitionId', { required: true }) competitionId: number,
+        @QueryParam('startTime', { required: true }) startTime: Date,
+        @QueryParam('endTime', { required: true }) endTime: Date,
+        @QueryParam('fromCourtIds', { required: true }) fromCourtIds: number[],
+        @QueryParam('toCourtId', { required: true }) toCourtId: number,
+        @Res() response: Response): Promise<any> {
+        const getMatches = await this.matchService.getMatchDetailsForVenueCourtUpdate(competitionId, startTime, endTime, fromCourtIds);
+        if (isArrayEmpty(getMatches)) {
+            const mArray = [];
+            for (let i of getMatches) {
+                let m = new Match();
+                m.id = i.id;
+                m.venueCourtId = toCourtId;
+                mArray.push(m);
+            }
+
+            await this.matchService.batchCreateOrUpdate(mArray);
+
+            return response.status(200).send({success: true,message:"venue courts update successfully"});
+        } else {
+            return response.status(212).send({success: false,message:"cannot find matches within the provided duration"});
+        }
+    }
+
+    @Authorized()
+    @Get('/export')
+    async exportMatches(
+        @QueryParam('from') from: Date,
+        @QueryParam('to') to: Date,
+        @QueryParam('teamIds') teamIds: number[] = [],
+        @QueryParam('playerIds') playerIds: number[],
+        @QueryParam('competitionId') competitionId: number,
+        @QueryParam('clubIds') clubIds: number[],
+        @QueryParam('matchEnded') matchEnded: boolean,
+        @QueryParam('matchStatus') matchStatus: ("STARTED" | "PAUSED" | "ENDED")[],
+        @QueryParam('offset') offset: number = undefined,
+        @QueryParam('limit') limit: number = undefined,
+        @QueryParam('search') search: string,
+        @Res() response: Response): Promise<any> {
+
+        const getMatchesData = await this.find(from, to, teamIds, playerIds, competitionId, clubIds, matchEnded, matchStatus, null, null,null);
+
+        getMatchesData.map(e => {
+            e['Match Id'] = e.id;
+            e['Start Time'] = e.startTime;
+            e['Home'] = e.team1.name;
+            e['Away'] = e.team2.name;
+            e['Venue'] = e.venueCourt.venue.name;
+            e['Division'] = e.division.name;
+            e['Type'] = e.type === 'TWO_HALVES' ? 'Halves' : (e.type === 'SINGLE' ? 'Single' : (e.type === 'FOUR_QUARTERS' ? 'Quarters' : ''));
+            e['Score'] = e.team1Score + ':' + e.team2Score;
+            e['Match Duration'] = e.matchDuration;
+            e['Main Break'] = e.mainBreakDuration;
+            e['Quarter Break'] = e.breakDuration;
+            delete e.breakDuration
+            delete e.centrePassStatus
+            delete e.centrePassWonBy
+            delete e.competition
+            delete e.competitionId
+            delete e.created_at
+            delete e.deleted_at
+            delete e.division
+            delete e.divisionId
+            delete e.endTime
+            delete e.extraTimeDuration
+            delete e.mainBreakDuration
+            delete e.id
+            delete e.matchDuration
+            delete e.matchEnded
+            delete e.matchStatus
+            delete e.mnbMatchId
+            delete e.mnbPushed
+            delete e.originalStartTime
+            delete e.pauseStartTime
+            delete e.round
+            delete e.roundId
+            delete e.scorerStatus
+            delete e.startTime
+            delete e.team1
+            delete e.team1Id
+            delete e.team1ResultId
+            delete e.team1Score
+            delete e.team2Id
+            delete e.team2
+            delete e.team2ResultId
+            delete e.team2Score
+            delete e.totalPausedMs
+            delete e.type
+            delete e.updated_at
+            delete e.venueCourt
+            delete e.venueCourtId
+            return e;
+        });
+
+        response.setHeader('Content-disposition', 'attachment; filename=matches.csv');
+        response.setHeader('content-type', 'text/csv');
+        fastcsv.write(getMatchesData, { headers: true })
+            .on("finish", function () { })
+            .pipe(response);
     }
 }

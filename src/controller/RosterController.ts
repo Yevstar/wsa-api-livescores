@@ -29,7 +29,7 @@ export class RosterController extends BaseController {
         }
         return this.rosterService.findFullById(id);
     }
-    
+
     @Authorized()
     @Get('/users')
     async rosterList(
@@ -65,7 +65,7 @@ export class RosterController extends BaseController {
 
     @Authorized()
     @Delete('/')
-    async delete(@QueryParam("id") id: number, @Res() response: Response) { 
+    async delete(@QueryParam("id") id: number, @Res() response: Response) {
         //TODO: Add back in assign_scorer authorisation
         let roster = await this.rosterService.findById(id);
         if (roster) {
@@ -109,25 +109,66 @@ export class RosterController extends BaseController {
     }
 
     @Authorized()
+    @Get('/event')
+    async findUserEventRosters(@HeaderParam("authorization") user: User): Promise<Roster[]> {
+        return this.rosterService.findRosterEventByUser(user.id);
+    }
+
+    @Authorized()
     @Post('/')
-    async addRoster(@Body() roster: Roster,
-                    @Res() response: Response) {
+    async addRoster(
+      @HeaderParam("authorization") user: User,
+      @Body() roster: Roster,
+      @QueryParam('category', {required: true}) category: "Scoring" | "Playing" | "Event" | "Umpiring",
+      @Res() response: Response
+    ) {
         if (!roster) {
             return response
                 .status(400).send({name: 'validation_error', message: 'Roster in body required.'});
         }
         let savedRoster = await this.rosterService.createOrUpdate(roster);
         if (savedRoster) {
-            let tokens = (await this.deviceService.getUserDevices(savedRoster.userId)).map(device => device.deviceId);
-            if (tokens && tokens.length > 0) {
-                console.log("@@@@@@@@@@@@@@@@@@@@")
-                this.firebaseService.sendMessage({
-                    tokens: tokens,
-                    data: {type: 'add_scorer_match', rosterId: roster.id.toString(), matchId: roster.matchId.toString()}
-                })
+            switch (category) {
+              case "Scoring":
+                let scoringDeviceTokens = (await this.deviceService.findManagerDevice(roster.teamId)).map(device => device.deviceId);
+                if (scoringDeviceTokens && scoringDeviceTokens.length > 0) {
+                    this.firebaseService.sendMessage({
+                      tokens: scoringDeviceTokens,
+                      data: {type: 'add_scorer_match', rosterId: roster.id.toString(),
+                        matchId: roster.matchId.toString()}
+                    });
+                }
+                break;
+              case "Playing":
+                let playingDeviceTokens = (await this.deviceService.findManagerDevice(roster.teamId)).map(device => device.deviceId);
+                if (playingDeviceTokens && playingDeviceTokens.length > 0) {
+                    this.firebaseService.sendMessage({
+                      tokens: playingDeviceTokens,
+                      data: {type: 'player_status_update', entityTypeId: EntityType.USER.toString(),
+                      entityId: user.id.toString(), matchId: roster.matchId.toString()}
+                    });
+                }
+                break;
+              case "Event":
+                let eventDeviceTokens = (await this.deviceService.getUserDevices(roster.eventOccurrence.created_by)).map(device => device.deviceId);
+                if (eventDeviceTokens && eventDeviceTokens.length > 0) {
+                    this.firebaseService.sendMessage({
+                      tokens: eventDeviceTokens,
+                      data: {
+                        type: 'event_invitee_update', entityTypeId: EntityType.USER.toString(),
+                        entityId: user.id.toString(), eventOccurrenceId: roster.eventOccurrenceId.toString()
+                      }
+                    });
+                }
+                break;
             }
+
+            return savedRoster;
+        } else {
+          return response.status(400).send({
+              name: 'save_error', message: `Sorry, unable to save the roster`
+          });
         }
-        return this.rosterService.findRosterId(savedRoster.id);
     }
 
     @Authorized()
@@ -136,6 +177,7 @@ export class RosterController extends BaseController {
         @HeaderParam("authorization") user: User,
         @QueryParam('rosterId', {required: true}) rosterId: number,
         @QueryParam('status', {required: true}) status: "YES" | "NO" | "LATER" | "MAYBE",
+        @QueryParam('category', {required: true}) category: "Scoring" | "Playing" | "Event" | "Umpiring",
         @Res() response: Response
     ) {
         let roster = await this.rosterService.findFullById(rosterId);
@@ -143,28 +185,79 @@ export class RosterController extends BaseController {
             roster.status = status;
             let result = await this.rosterService.createOrUpdate(roster);
 
-            let tokens = (await this.deviceService.findManagerDevice(result.teamId)).map(device => device.deviceId);
-            if (tokens && tokens.length > 0) {
-                if (status == "NO") {
+            switch (category) {
+              case "Scoring":
+                  let scoringDeviceTokens = (await this.deviceService.findManagerDevice(result.teamId)).map(device => device.deviceId);
+                  if (scoringDeviceTokens && scoringDeviceTokens.length > 0) {
+                      if (status == "NO") {
+                          this.firebaseService.sendMessage({
+                              tokens: scoringDeviceTokens,
+                              title: `Scorer declined match: ${roster.match.team1.name} vs ${roster.match.team2.name}`,
+                              body: 'Assign someone else to score',
+                              data: {
+                                  type: 'scorer_decline_match', entityTypeId: EntityType.USER.toString(),
+                                  entityId: user.id.toString(), matchId: roster.matchId.toString()
+                              }
+                          });
+                      } else if (status == "YES") {
+                          this.firebaseService.sendMessage({
+                              tokens: scoringDeviceTokens,
+                              data: {
+                                  type: 'scorer_accept_match', entityTypeId: EntityType.USER.toString(),
+                                  entityId: user.id.toString(), matchId: roster.matchId.toString()
+                              }
+                          });
+                      }
+                  }
+                break;
+              case "Playing":
+                let playingDeviceTokens = (await this.deviceService.findManagerDevice(roster.teamId)).map(device => device.deviceId);
+                if (playingDeviceTokens && playingDeviceTokens.length > 0) {
                     this.firebaseService.sendMessage({
-                        tokens: tokens,
-                        title: `Scorer declined match: ${roster.match.team1.name} vs ${roster.match.team2.name}`,
-                        body: 'Assign someone else to score',
+                        tokens: playingDeviceTokens,
                         data: {
-                            type: 'scorer_decline_match', entityTypeId: EntityType.USER.toString(),
-                            entityId: user.id.toString(), matchId: roster.matchId.toString()
+                          type: 'player_status_update', entityTypeId: EntityType.USER.toString(),
+                          entityId: user.id.toString(), matchId: roster.matchId.toString()
                         }
-                    })
-                } else if (status == "YES") {
-                    this.firebaseService.sendMessage({
-                        tokens: tokens,
-                        data: {
-                            type: 'scorer_accept_match', entityTypeId: EntityType.USER.toString(),
-                            entityId: user.id.toString(), matchId: roster.matchId.toString()
-                        }
-                    })
+                    });
                 }
+                break;
+              case "Event":
+                  let eventDeviceTokens = (await this.deviceService.getUserDevices(roster.eventOccurrence.created_by)).map(device => device.deviceId);
+                  if (eventDeviceTokens && eventDeviceTokens.length > 0) {
+                      this.firebaseService.sendMessage({
+                        tokens: eventDeviceTokens,
+                        data: {
+                          type: 'event_invitee_update', entityTypeId: EntityType.USER.toString(),
+                          entityId: user.id.toString(), eventOccurrenceId: roster.eventOccurrenceId.toString()
+                        }
+                      });
+                  }
+                break;
+                case "Umpiring":
+                    let umpireDeviceTokens = (await this.deviceService.findManagerDevice(result.teamId)).map(device => device.deviceId);
+                    if (umpireDeviceTokens && umpireDeviceTokens.length > 0) {
+                        if (status == "NO") {
+                            this.firebaseService.sendMessage({
+                                tokens: umpireDeviceTokens,
+                                data: {
+                                    type: 'umpire_decline_match', entityTypeId: EntityType.USER.toString(),
+                                    entityId: user.id.toString(), matchId: roster.matchId.toString()
+                                }
+                            });
+                        } else if (status == "YES") {
+                            this.firebaseService.sendMessage({
+                                tokens: umpireDeviceTokens,
+                                data: {
+                                    type: 'umpire_accept_match', entityTypeId: EntityType.USER.toString(),
+                                    entityId: user.id.toString(), matchId: roster.matchId.toString()
+                                }
+                            });
+                        }
+                    }
+                  break;
             }
+
             return result;
         } else {
             return response.status(404).send({
@@ -215,7 +308,7 @@ export class RosterController extends BaseController {
     // specific response to allow inline editing for admin
     @Authorized()
     @Delete('/admin')
-    async deleteAdminRoster(@QueryParam("id") id: number, @Res() response: Response) { 
+    async deleteAdminRoster(@QueryParam("id") id: number, @Res() response: Response) {
         let roster = await this.rosterService.findById(id);
         if (roster) {
             let tokens = (await this.deviceService.findScorerDeviceFromRoster(undefined, id)).map(device => device.deviceId);
@@ -240,5 +333,11 @@ export class RosterController extends BaseController {
         }
     }
 
+    @Authorized()
+    @Get('/eventRosters')
+    async findEventRosters(
+      @QueryParam("eventOccurrenceId") eventOccurrenceId: number
+    ): Promise<Roster[]> {
+        return this.rosterService.findByEventOccurrence(eventOccurrenceId);
+    }
 }
-

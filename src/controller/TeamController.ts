@@ -8,7 +8,7 @@ import { User } from "../models/User";
 import { UserRoleEntity } from "../models/security/UserRoleEntity";
 import { Role } from "../models/security/Role";
 import { EntityType } from "../models/security/EntityType";
-import { isArrayEmpty, isNullOrEmpty, isPhoto, fileExt, md5, stringTONumber } from "../utils/Utils"
+import { isArrayEmpty, isNullOrEmpty, isPhoto, fileExt, md5, stringTONumber, paginationData, isNotNullAndUndefined } from "../utils/Utils"
 import {logger} from '../logger';
 import admin from "firebase-admin";
 
@@ -61,9 +61,24 @@ export class TeamController extends BaseController {
     @Get('/list')
     async listCompetitionTeams(
         @QueryParam('competitionId') competitionId: number,
-        @QueryParam('divisionId') divisionId: number
-    ): Promise<Team[]> {
-        return this.teamService.findTeamsWithUsers(competitionId, divisionId);
+        @QueryParam('divisionId') divisionId: number,
+        @QueryParam('search') search: string,
+        @QueryParam('offset') offset: number,
+        @QueryParam('limit') limit: number): Promise<any> {
+
+        if (search === undefined || search === null) search = '';
+        if (offset === undefined || offset === null || limit === undefined || limit === null) {
+            limit = 0;
+            offset = 0;
+        }
+
+        const teamData = await this.teamService.findTeamsWithUsers(competitionId, divisionId, search, offset, limit);
+
+        if (offset === 0 && limit ===0) {
+            return teamData.teams;
+        } else {
+            return { page: paginationData(parseInt(teamData.teamCount), limit, offset), teams: teamData.teams };
+        }
     }
 
     @Get('/')
@@ -80,7 +95,14 @@ export class TeamController extends BaseController {
         @QueryParam('teamIds') teamIds: number[],
         @QueryParam('divisionIds') divisionIds: number[],
         @QueryParam('competitionIds') competitionIds: number[],
+        @QueryParam('competitionKey') competitionUniqueKey: string,
     ): Promise<TeamLadder[]> {
+
+        if (isNotNullAndUndefined(competitionUniqueKey)) {
+            const getCompetitions = await this.competitionService.getCompetitionByUniquekey(competitionUniqueKey);
+            competitionIds = getCompetitions.id;
+        }
+        
         if (teamIds && !Array.isArray(teamIds)) teamIds = [teamIds];
         if (divisionIds && !Array.isArray(divisionIds)) divisionIds = [divisionIds];
         if (competitionIds && !Array.isArray(competitionIds)) competitionIds = [competitionIds];
@@ -165,7 +187,7 @@ export class TeamController extends BaseController {
         let savedUser: User;
         let password: string;
         if (teamData.email && teamData.firstName && teamData.lastName && teamData.mobileNumber) {
-            let foundUser = await this.userService.findByEmail(teamData.email);
+            let foundUser = await this.userService.findByEmail(teamData.email.toLowerCase());
             if (foundUser) {
                 if (foundUser.firstName == teamData.firstName && foundUser.lastName == teamData.lastName && foundUser.mobileNumber == teamData.mobileNumber) {
                     managerIds[0] = user.id;
@@ -180,7 +202,7 @@ export class TeamController extends BaseController {
                 let managerInfo = new User();
                 managerInfo.firstName = teamData.firstName;
                 managerInfo.lastName = teamData.lastName;
-                managerInfo.email = teamData.email;
+                managerInfo.email = teamData.email.toLowerCase();
                 managerInfo.mobileNumber = teamData.mobileNumber;
                 password = Math.random().toString(36).slice(-8);
                 managerInfo.password = md5(password);

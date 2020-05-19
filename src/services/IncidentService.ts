@@ -5,7 +5,7 @@ import {IncidentType} from "../models/IncidentType";
 import {IncidentMedia} from "../models/IncidentMedia";
 import {IncidentPlayer} from "../models/IncidentPlayer";
 import {Match} from "../models/Match";
-
+import { isNotNullAndUndefined } from "../utils/Utils";
 
 @Service()
 export default class IncidentService extends BaseService<Incident> {
@@ -15,8 +15,9 @@ export default class IncidentService extends BaseService<Incident> {
 
     public async findByParams(
         incidentId: number,
-        competitionId: number
-    ): Promise<Incident[]> {
+        competitionId: number,
+        offset: number, limit: number, search: string
+    ): Promise<{ count: number, result: Incident[] }> {
         let query = this.entityManager
             .createQueryBuilder(Incident, "incident")
             .leftJoinAndSelect('incident.incidentPlayers', 'incidentPlayer')
@@ -27,7 +28,21 @@ export default class IncidentService extends BaseService<Incident> {
             
         if (incidentId) query.andWhere("incident.id = :incidentId", {incidentId});
         if (competitionId) query.andWhere("incident.competitionId = :competitionId", {competitionId});
-        return query.getMany();
+
+        if (isNotNullAndUndefined(search) && search !== '') {
+            query.andWhere('(LOWER(concat_ws(" ", player.firstName, player.lastName)) like :search)',
+            { search: `%${search.toLowerCase()}%` });
+        }
+
+        if (isNotNullAndUndefined(limit) && isNotNullAndUndefined(offset)) {
+            const count = await query.getCount()
+            const result = await query.skip(offset).take(limit).getMany();
+            return { count, result }
+        } else {
+            const count = null;
+            const result = await query.getMany();
+            return { count, result }
+        }
     }
 
     public async findIncidents(competitionId: number): Promise<Incident[]> {

@@ -33,9 +33,9 @@ wrapConsole();
 //TODO: Need to Confirm whether to have this function in Livescores module
 async function checkFirebaseUser(user, password: string) {
     if (!user.firebaseUID) {
-        let fbUser = await FirebaseService.Instance().loadUserByEmail(user.email);
+        let fbUser = await FirebaseService.Instance().loadUserByEmail(user.email.toLowerCase());
         if (!fbUser || !fbUser.uid) {
-            fbUser = await FirebaseService.Instance().createUser(user.email, password);
+            fbUser = await FirebaseService.Instance().createUser(user.email.toLowerCase(), password);
         }
         if (fbUser.uid) {
             user.firebaseUID = fbUser.uid;
@@ -52,7 +52,7 @@ async function checkFirestoreDatabase(user) {
   let querySnapshot = await queryRef.get();
   if (querySnapshot.empty) {
     usersCollectionRef.doc(user.firebaseUID).set({
-        'email': user.email,
+        'email': user.email.toLowerCase(),
         'firstName': user.firstName,
         'lastName': user.lastName,
         'uid': user.firebaseUID,
@@ -64,7 +64,7 @@ async function checkFirestoreDatabase(user) {
             `${user.firstName} ${user.lastName}`,
             user.firstName,
             user.lastName,
-            user.email
+            user.email.toLowerCase()
         ]
     });
   }
@@ -180,6 +180,8 @@ async function start() {
     app.get('/api/docs.json', (_req, res) => {
         res.json(spec)
     });
+
+    server.timeout = 300000;
 
     server.listen(process.env.PORT, () => {
         logger.info(`Server listening on port ${process.env.PORT}`);

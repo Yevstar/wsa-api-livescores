@@ -6,6 +6,7 @@ import {MatchResultType} from "../models/MatchResultType";
 import {GamePosition} from "../models/GamePosition";
 import {GameStat} from "../models/GameStat";
 import {MatchEvent} from "../models/MatchEvent";
+import {MatchPausedTime} from "../models/MatchPausedTime";
 import {IncidentType} from "../models/IncidentType";
 import {Incident} from "../models/Incident";
 import {Lineup} from "../models/Lineup";
@@ -13,7 +14,9 @@ import {MatchUmpires} from "../models/MatchUmpires";
 import {IncidentPlayer} from "../models/IncidentPlayer";
 import {IncidentMedia} from "../models/IncidentMedia";
 import {RequestFilter} from "../models/RequestFilter";
-import {paginationData, stringTONumber } from "../utils/Utils";
+import {paginationData, stringTONumber, isNotNullAndUndefined } from "../utils/Utils";
+import {StateTimezone} from "../models/StateTimezone";
+import {Location} from "../models/Location";
 
 @Service()
 export default class MatchService extends BaseService<Match> {
@@ -47,6 +50,7 @@ export default class MatchService extends BaseService<Match> {
             .leftJoinAndSelect('competition.location', 'location')
             .leftJoinAndSelect('competition.competitionVenues', 'competitionVenue')
             .leftJoinAndSelect('venueCourt.venue', 'venue')
+            .leftJoinAndSelect('match.matchPausedTimes', 'matchPausedTimes')
             .andWhere('match.deleted_at is null');
     }
 
@@ -98,8 +102,8 @@ export default class MatchService extends BaseService<Match> {
 
     public async findByParam(from: Date, to: Date, teamIds: number[] = [], playerIds: number[],
         competitionId: number, clubIds: number[], matchEnded: boolean,
-        matchStatus: ("STARTED" | "PAUSED" | "ENDED")[], offset: number = undefined, limit: number = undefined): Promise<any> {
-        
+        matchStatus: ("STARTED" | "PAUSED" | "ENDED")[], offset: number = undefined, limit: number = undefined, search: string): Promise<any> {
+
         let query = await this.entityManager.createQueryBuilder(Match, 'match');
         if (from) query.andWhere("match.startTime >= :from", { from });
         if (to) query.andWhere("match.startTime <= :to", { to });
@@ -107,12 +111,18 @@ export default class MatchService extends BaseService<Match> {
         this.filterByClubTeam(competitionId, clubIds, teamIds, query);
         if (matchEnded != undefined) query.andWhere("match.matchEnded is :matchEnded", { matchEnded });
         if (matchStatus) query.andWhere("match.matchStatus in (:matchStatus)", { matchStatus });
+        if (isNotNullAndUndefined(search) && search!=='') {
+            const search_ = `%${search.toLowerCase()}%`;
+            query.andWhere(
+                `(lower(team1.name) like :search1 or lower(team2.name) like :search2)`, 
+                { search1:search_,search2:search_ });
+        }
         query.orderBy('match.startTime', 'ASC');
-        
+
         // return query.paginate(offset,limit).getMany();
-        // switched to skip and limit function as with paginate(offset,limit) with offset 0, typeorm-plus gives the value 
+        // switched to skip and limit function as with paginate(offset,limit) with offset 0, typeorm-plus gives the value
         // in negative as offset creating an error within query
-        if (limit) {
+        if (isNotNullAndUndefined(limit) && isNotNullAndUndefined(offset)) {
             const matchCount = await query.getCount();
             const result = await query.skip(offset).take(limit).getMany();
             return {matchCount,result}
@@ -186,6 +196,20 @@ export default class MatchService extends BaseService<Match> {
     public async loadAdmin(competitionId: number, teamId: number, requestFilter: RequestFilter): Promise<any> {
         let result = await this.entityManager.query("call wsa.usp_get_matches(?,?,?,?)",
             [competitionId, teamId, requestFilter.paging.offset, requestFilter.paging.limit]);
+
+            if (result != null) {
+                let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
+                let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);
+                responseObject["matches"] = result[0];
+                return responseObject;
+            } else {
+                return [];
+            }
+    }
+
+    public async loadDashboard(competitionId: number, startDate: Date, requestFilter: RequestFilter): Promise<any> {
+        let result = await this.entityManager.query("call wsa.usp_get_dashboard_matches(?,?,?,?)",
+            [competitionId, startDate, requestFilter.paging.offset, requestFilter.paging.limit]);
 
             if (result != null) {
                 let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
@@ -311,11 +335,62 @@ export default class MatchService extends BaseService<Match> {
         query.andWhere("match.round = :roundId", { roundId });
         return query.getMany();
     }
-    
+
     public async softDelete(id: number, userId:number): Promise<DeleteResult> {
         let query = this.entityManager.createQueryBuilder(Match, 'match');
         query.andWhere("match.id = :id", { id });
         return query.softDelete().execute();
     }
 
+    public async findTodaysMatchByParam(from: Date, to: Date, teamIds: number[] = [], playerIds: number[],
+        competitionId: number, clubIds: number[], offset: number = undefined, limit: number = undefined): Promise<any> {
+
+        let query = await this.entityManager.createQueryBuilder(Match, 'match');
+        if (from) query.andWhere("match.startTime >= cast(:from as datetime)", { from });
+        if (to) query.andWhere("match.startTime < ( cast(:to as datetime) + INTERVAL 1 DAY )", { to });
+
+        this.filterByClubTeam(competitionId, clubIds, teamIds, query);
+        query.orderBy('match.startTime', 'ASC');
+
+        if (limit) {
+            const matchCount = await query.getCount();
+            const result = await query.skip(offset).take(limit).getMany();
+            return { matchCount, result }
+        } else {
+            const matchCount = null;
+            const result = await query.getMany();
+            return { matchCount, result }
+        }
+    }
+
+    public async getMatchDetailsForVenueCourtUpdate(competitionId: number,startTime: Date, endTime: Date, fromCourtIds: number[]): Promise<Match[]> {
+
+        let query = await this.entityManager.createQueryBuilder(Match, 'match');
+        if (startTime) query.andWhere("match.startTime >= cast(:startTime as datetime)", { startTime });
+        if (endTime) query.andWhere("match.startTime < cast(:endTime as datetime)", { endTime });
+        if (fromCourtIds) query.andWhere("match.venueCourtId in (:...fromCourtIds)", { fromCourtIds });
+        if (competitionId) query.andWhere("match.competitionId = :competitionId", { competitionId });
+
+        return await query.getMany();
+    }
+
+    public async logMatchPauseTime(
+        matchId: number,
+        period: number,
+        isBreak: boolean,
+        totalPausedMs: number) {
+          let matchPausedTime = new MatchPausedTime();
+          matchPausedTime.matchId = matchId;
+          matchPausedTime.period = period;
+          matchPausedTime.isBreak = isBreak;
+          matchPausedTime.totalPausedMs = totalPausedMs;
+
+          return this.entityManager.insert(MatchPausedTime, matchPausedTime);
+    }
+
+    public async getMatchTimezone(location: Location): Promise<StateTimezone> {
+        let query = await this.entityManager.createQueryBuilder(StateTimezone, 'stateTimezone')
+                              .andWhere('stateTimezone.stateRefId = :locationId', {locationId: location.id});
+        return query.getOne();
+    }
 }
