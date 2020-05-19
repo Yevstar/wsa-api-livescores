@@ -95,6 +95,8 @@ async function start() {
         controllers: [__dirname + "/controller/*"],
         authorizationChecker: async (action: Action, roles: string[]) => {
             const token = action.request.headers.authorization;
+            let sourcesystem = action.request.headers.sourcesystem;
+
             try {
                 if (!token && roles && roles.length > 0 && roles.indexOf("spectator") !== -1) {
                     return true
@@ -102,11 +104,21 @@ async function start() {
                 const data = jwt.decode(decrypt(token), process.env.SECRET).data.split(':');
                 // let cachedUser = fromCacheAsync(token);
                 let user = null;
+                let query = null;
                 // if (!cachedUser) {
                     try {
-                        const query = User.createQueryBuilder('user').andWhere(
-                            'user.email = :email and user.password = :password and user.isDeleted = 0',
-                            {email: data[0], password: data[1]});
+                        if(sourcesystem == 'WebAdmin'){
+                            query = User.createQueryBuilder('user')
+                                        .innerJoin(UserRoleEntity, 'ure', 'user.id = ure.userId and ure.entityType = 2 and ure.isDeleted = 0')
+                                        .andWhere('LOWER(user.email) = :email and user.password = :password and user.isDeleted = 0',
+                                {email: data[0].toLowerCase(), password: data[1]});
+                        }
+                        else{
+                            query = User.createQueryBuilder('user').andWhere(
+                                'LOWER(user.email) = :email and user.password = :password and user.isDeleted = 0',
+                                {email: data[0].toLowerCase(), password: data[1]});        
+                        }
+
                         if (action.request.url == '/users/profile' && action.request.method == 'PATCH')
                             query.addSelect("user.password");
                         user = await query.getOne();
