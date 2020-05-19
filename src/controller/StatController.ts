@@ -182,7 +182,7 @@ export class StatController extends BaseController {
                 e['Position'] = e.gamePositionName;
                 e['Misses'] = e.miss;
                 e['Goals'] = e.goal;
-                e['Goals %'] = e.startTime;
+                e['Goals %'] = (e.goal_percent * 100).toFixed(2);
 
                 delete e.firstName;
                 delete e.gamePositionName;

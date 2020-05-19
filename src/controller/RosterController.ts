@@ -15,8 +15,9 @@ import {Response} from "express";
 import {BaseController} from "./BaseController";
 import {EntityType} from "../models/security/EntityType";
 import {User} from "../models/User";
-import {stringTONumber, paginationData} from "../utils/Utils";
+import {stringTONumber, paginationData, isArrayEmpty} from "../utils/Utils";
 import {RequestFilter} from "../models/RequestFilter";
+import * as fastcsv from 'fast-csv';
 
 @JsonController('/roster')
 export class RosterController extends BaseController {
@@ -339,5 +340,35 @@ export class RosterController extends BaseController {
       @QueryParam("eventOccurrenceId") eventOccurrenceId: number
     ): Promise<Roster[]> {
         return this.rosterService.findByEventOccurrence(eventOccurrenceId);
+    }
+
+    @Authorized()
+    @Get('/export')
+    async exportTeams(
+        @QueryParam('competitionId') competitionId: number,
+        @QueryParam('roleId') roleId: number,
+        @Res() response: Response): Promise<any> {
+        const requestFilter: RequestFilter = { paging: { offset: null, limit: null }, search: null }
+        const getScorersData = await this.rosterListAdmin(competitionId, roleId, requestFilter, response);
+
+        isArrayEmpty(getScorersData.users) ? getScorersData.users.map(e => {
+            e['Email'] = e['email']
+            e['First Name'] = e['firstName']
+            e['Last Name'] = e['lastName']
+            e['Contact No'] = e['mobileNumber'];
+            const teamArray = [];
+            if (isArrayEmpty(e['teams'])) {
+                for (let i of e['teams']) teamArray.push(i['name']);
+            }
+            e['Team'] = teamArray.toString().replace(",", '\n');
+            delete e['teams']
+            return e;
+        }) : [];
+
+        response.setHeader('Content-disposition', 'attachment; filename=scorer.csv');
+        response.setHeader('content-type', 'text/csv');
+        fastcsv.write(getScorersData.users, { headers: true })
+            .on("finish", function () { })
+            .pipe(response);
     }
 }

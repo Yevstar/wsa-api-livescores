@@ -30,7 +30,7 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
             .leftJoinAndSelect('match.team1', 'team1')
             .leftJoinAndSelect('match.team2', 'team2')
             .where('match.competitionId = :competitionid', {competitionid})
-            .orderBy('matcchUmpire.matchId')
+            .orderBy('matchUmpire.matchId')
             .addOrderBy('matchUmpire.sequence')
             .getMany();
 

@@ -87,16 +87,16 @@ export default class TeamService extends BaseService<Team> {
         return query.getMany();
     }
 
-    public async teamIdsByClubIds(clubIds: number[]): Promise<any[]> {
+    public async teamIdsByOrganisationIds(organisationIds: number[]): Promise<any[]> {
         return this.entityManager.createQueryBuilder(Team, 'team')
             .select('DISTINCT team.id', 'id')
-            .andWhere('team.clubId in (:clubIds)', { clubIds })
+            .andWhere('team.organisationId in (:organisationIds)', { organisationIds })
             .getRawMany();
     }
 
-    public async teamByClubId(clubId: number): Promise<Team[]> {
+    public async teamByOrganisationId(organisationId: number): Promise<Team[]> {
         return this.entityManager.createQueryBuilder(Team, 'team')
-            .andWhere('team.clubId = :clubId', { clubId })
+            .andWhere('team.organisationId = :organisationId', { organisationId })
             .getMany();
     }
 
@@ -250,7 +250,7 @@ export default class TeamService extends BaseService<Team> {
 
     public async findTeams(
       teamId: number,
-      clubId: number,
+      organisationId: number,
       competitionId: number,
       teamName: string
     ): Promise<Team[]> {
@@ -259,8 +259,8 @@ export default class TeamService extends BaseService<Team> {
       if (teamId) {
           query.andWhere('team.id = :id', {id: teamId});
       }
-      if (clubId) {
-        query.andWhere('team.clubId = :id', {id: clubId});
+      if (organisationId) {
+        query.andWhere('team.organisationId = :id', {id: organisationId});
       }
       if (competitionId) {
         query.andWhere('team.competitionId = :id', {id: competitionId});

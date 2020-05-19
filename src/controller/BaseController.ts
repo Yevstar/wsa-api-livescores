@@ -1,5 +1,4 @@
 import {Inject} from "typedi";
-import ClubService from "../services/ClubService";
 import RosterService from "../services/RosterService";
 import FirebaseService from "../services/FirebaseService";
 import RoundService from "../services/RoundService";
@@ -12,7 +11,6 @@ import GameTimeAttendanceService from "../services/GameTimeAttendanceService";
 import LocationService from "../services/LocationService";
 import MatchScoresService from "../services/MatchScoresService";
 import AttendanceService from "../services/AttendanceService";
-import MatchUmpiresService from "../services/MatchUmpiresService";
 import MatchUmpireService from "../services/MatchUmpireService";
 import UserService from "../services/UserService";
 import ApplicationService from "../services/ApplicationService";
@@ -33,9 +31,6 @@ export class BaseController {
 
     @Inject()
     protected roundService: RoundService;
-
-    @Inject()
-    protected clubService: ClubService;
 
     @Inject()
     protected rosterService: RosterService;
@@ -69,9 +64,6 @@ export class BaseController {
 
     @Inject()
     protected attendanceService: AttendanceService;
-
-    @Inject()
-    protected matchUmpiresService: MatchUmpiresService;
 
     @Inject()
     protected matchUmpireService: MatchUmpireService;

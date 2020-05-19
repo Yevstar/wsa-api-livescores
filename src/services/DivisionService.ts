@@ -10,18 +10,18 @@ export default class DivisionService extends BaseService<Division> {
         return Division.name;
     }
 
-    public async findByParams(competitionId: number, clubIds: number[], teamIds: number[], offset: number, limit: number, search: string): Promise<any> {
+    public async findByParams(competitionId: number, organisationIds: number[], teamIds: number[], offset: number, limit: number, search: string): Promise<any> {
         let query = this.entityManager.createQueryBuilder(Division, 'd')
             .innerJoinAndSelect('d.competition', 'competition')
             .leftJoin(Team, 'team', 'team.divisionId = d.id');
 
         if (competitionId) query.orWhere("d.competitionId = :competitionId", {competitionId});
-        if ((teamIds && teamIds.length > 0) || (clubIds && clubIds.length > 0)) {
+        if ((teamIds && teamIds.length > 0) || (organisationIds && organisationIds.length > 0)) {
             if (teamIds && teamIds.length > 0) {
                 query.orWhere("team.id in (:teamIds)", {teamIds});
             }
-            if (clubIds && clubIds.length > 0) {
-                query.orWhere("team.clubId in (:clubIds)", {clubIds});
+            if (organisationIds && organisationIds.length > 0) {
+                query.orWhere("team.organisationId in (:organisationIds)", {organisationIds});
             }
         }
 
@@ -52,4 +52,3 @@ export default class DivisionService extends BaseService<Division> {
     }
 
 }
-

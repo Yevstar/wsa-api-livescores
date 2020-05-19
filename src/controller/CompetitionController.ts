@@ -12,7 +12,7 @@ import { CompetitionLadderSettings } from '../models/CompetitionLadderSettings';
 import {Get, JsonController, QueryParam, UploadedFile} from 'routing-controllers';
 import {Response} from "express";
 import {Team} from "../models/Team";
-import {Club} from "../models/Club";
+import {Organisation} from "../models/Organisation";
 import {Player} from "../models/Player";
 import {User} from "../models/User";
 import {BaseController} from "./BaseController";
@@ -113,7 +113,7 @@ export class CompetitionController extends BaseController {
                 }
 
             } else {
-                /*let organisation = await this.clubService.findById(savedTeam.organisationId);
+                /*let organisation = await this.organisationService.findById(savedTeam.organisationId);
                 if (organisation.logoUrl) {
                     savedTeam.logoUrl = organisation.logoUrl;
                     savedTeam = await this.teamService.createOrUpdate(savedTeam);
@@ -182,52 +182,52 @@ export class CompetitionController extends BaseController {
 
     @Get('/hierarchy')
     async loadHierarchy(
-        @QueryParam('clubName') clubName: string,
+        @QueryParam('organisationName') organisationName: string,
         @QueryParam('teamName') teamName: string,
-        @QueryParam('competitionId') competitionId: number): Promise<{ clubs: Club[], teams: Team[] }> {
+        @QueryParam('competitionId') competitionId: number): Promise<{ organisations: Organisation[], teams: Team[] }> {
 
-        const clubs = await this.clubService.findByNameAndCompetitionId(clubName, competitionId);
+        const organisations = await this.organisationService.findByNameAndCompetitionId(organisationName, competitionId);
         const teams = await this.teamService.findByNameAndCompetition(teamName, competitionId);
 
-        return {clubs, teams};
+        return {organisations, teams};
     }
 
     /**
-     * Gets a list of competitions, clubs, teams or players based on ids provided
+     * Gets a list of competitions, organisations, teams or players based on ids provided
      *
      * @deprecated since 3.0.2; use entities instead
-     * @return {competitions, clubs, teams, players}.
+     * @return {competitions, organisations, teams, players}.
      */
     @Get('/watchlist')
     async watchlist(
         @QueryParam('competitionIds') competitionIds: number[],
-        @QueryParam('clubIds') clubIds: number[],
+        @QueryParam('organisationIds') organisationIds: number[],
         @QueryParam('teamIds') teamIds: number[],
         @QueryParam('playerIds') playerIds: number[]
-    ): Promise<{ competitions: Competition[], clubs: Club[], teams: Team[], players: Player[] }> {
+    ): Promise<{ competitions: Competition[], organisations: Organisation[], teams: Team[], players: Player[] }> {
 
         const competitions = await this.competitionService.findByIds(competitionIds);
-        const clubs = await this.clubService.findByIds(clubIds);
+        const organisations = await this.organisationService.findByIds(organisationIds);
         const teams = await this.teamService.findByIds(teamIds);
         const players = await this.playerService.findByIds(playerIds);
 
-        return {competitions, clubs, teams, players};
+        return {competitions, organisations, teams, players};
     }
 
     @Get('/entities')
     async entities(
         @QueryParam('competitionIds') competitionIds: number[],
-        @QueryParam('clubIds') clubIds: number[],
+        @QueryParam('organisationIds') organisationIds: number[],
         @QueryParam('teamIds') teamIds: number[],
         @QueryParam('playerIds') playerIds: number[]
-    ): Promise<{ competitions: Competition[], clubs: Club[], teams: Team[], players: Player[] }> {
+    ): Promise<{ competitions: Competition[], organisations: Organisation[], teams: Team[], players: Player[] }> {
 
         const competitions = await this.competitionService.findByIds(competitionIds);
-        const clubs = await this.clubService.findByIds(clubIds);
+        const organisations = await this.organisationService.findByIds(organisationIds);
         const teams = await this.teamService.findByTeamIds(teamIds);
         const players = await this.playerService.findByIds(playerIds);
 
-        return {competitions, clubs, teams, players};
+        return {competitions, organisations, teams, players};
     }
 
     @Authorized()

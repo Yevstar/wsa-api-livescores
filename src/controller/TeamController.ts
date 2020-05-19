@@ -11,6 +11,7 @@ import { EntityType } from "../models/security/EntityType";
 import { isArrayEmpty, isNullOrEmpty, isPhoto, fileExt, md5, stringTONumber, paginationData, isNotNullAndUndefined } from "../utils/Utils"
 import {logger} from '../logger';
 import admin from "firebase-admin";
+import * as fastcsv from 'fast-csv';
 
 @JsonController('/teams')
 export class TeamController extends BaseController {
@@ -24,13 +25,13 @@ export class TeamController extends BaseController {
     @Get('/details')
     async getFullTeamDetail(
       @QueryParam("teamId") teamId: number,
-      @QueryParam("clubId") clubId: number,
+      @QueryParam("organisationId") organisationId: number,
       @QueryParam("competitionId") competitionId: number,
       @QueryParam("teamName") teamName: string,
     ): Promise<Team[]> {
       let teamsList = await this.teamService.findTeams(
         teamId,
-        clubId,
+        organisationId,
         competitionId,
         teamName
       );
@@ -102,7 +103,7 @@ export class TeamController extends BaseController {
             const getCompetitions = await this.competitionService.getCompetitionByUniquekey(competitionUniqueKey);
             competitionIds = getCompetitions.id;
         }
-        
+
         if (teamIds && !Array.isArray(teamIds)) teamIds = [teamIds];
         if (divisionIds && !Array.isArray(divisionIds)) divisionIds = [divisionIds];
         if (competitionIds && !Array.isArray(competitionIds)) competitionIds = [competitionIds];
@@ -177,7 +178,6 @@ export class TeamController extends BaseController {
         team.divisionId = stringTONumber(teamData.divisionId);
         if (teamData.organisationId) {
             team.organisationId = stringTONumber(teamData.organisationId);
-            team.clubId = stringTONumber(teamData.organisationId);
         }
         team.logoUrl = teamData.logoUrl;
         let savedTeam = await this.teamService.createOrUpdate(team);
@@ -243,7 +243,7 @@ export class TeamController extends BaseController {
                         { name: 'save_error', message: 'Logo not saved, try again later.' });
             }
         } else if (isNullOrEmpty(teamData.logoUrl) && savedTeam.organisationId) {
-            let organisation = await this.clubService.findById(stringTONumber(savedTeam.organisationId));
+            let organisation = await this.organisationService.findById(stringTONumber(savedTeam.organisationId));
             if (organisation.logoUrl) {
                 savedTeam.logoUrl = organisation.logoUrl;
                 savedTeam = await this.teamService.createOrUpdate(savedTeam);
@@ -279,16 +279,15 @@ export class TeamController extends BaseController {
                 let teamData = await this.teamService.findByNameAndCompetition(i.Team_Name, competitionId);
                 if (!isArrayEmpty(teamData)) {
                     let divisionData = await this.divisionService.findByName(i.Grade, competitionId);
-                    let clubData = await this.clubService.findByNameAndCompetitionId(i.Organisation, competitionId);
+                    let organisationData = await this.organisationService.findByNameAndCompetitionId(i.Organisation, competitionId);
                     let team = new Team();
                     team.name = i.Team_Name;
                     team.logoUrl = i.Logo;
                     team.competitionId = competitionId;
                     if (divisionData.length > 0)
                         team.divisionId = divisionData[0].id; //DivisionData is an array
-                    if (clubData.length > 0) {
-                        team.clubId = clubData[0].id;
-                        team.organisationId = clubData[0].id;
+                    if (organisationData.length > 0) {
+                        team.organisationId = organisationData[0].id;
                     }
                     queryArr.push(team);
                 }
@@ -351,5 +350,52 @@ export class TeamController extends BaseController {
           'deleted_at': admin.firestore.FieldValue.serverTimestamp()
         });
       }
+    }
+
+    @Authorized()
+    @Get('/export')
+    async exportTeams(
+        @QueryParam('competitionId') competitionId: number,
+        @QueryParam('divisionId') divisionId: number,
+        @Res() response: Response): Promise<any> {
+
+        const getTeamsData = await this.listCompetitionTeams(competitionId, divisionId, null, null, null);
+
+        getTeamsData.map(e => {
+            e['Logo'] = e['logoUrl']
+            e['Team Name'] = e['name']
+            e['Team Alias Name'] = e['alias'];
+            e['Affiliate'] = e['organisation']['name']
+            e['Division'] = e['division']['name']
+            e['#Players'] = e['playersCount']
+            const managerName = [];
+            const managerEmail = [];
+            const managerContact = [];
+            if (isArrayEmpty(e['managers'])) {
+                for (let r of e['managers']) {
+                    managerName.push(r['name']);
+                    managerEmail.push(r['email']);
+                    managerContact.push(r['mobileNumber']);
+                }
+            }
+            e['Manager'] = managerName.toString().replace(",", '\n');
+            e['Contact'] = managerEmail.toString().replace(",", '\n');
+            e['Email'] = managerContact.toString().replace(",", '\n');
+            delete e['alias'];
+            delete e['division'];
+            delete e['id'];
+            delete e['logoUrl'];
+            delete e['managers'];
+            delete e['name'];
+            delete e['playersCount'];
+            delete e['organisation'];
+            return e;
+        });
+
+        response.setHeader('Content-disposition', 'attachment; filename=teams.csv');
+        response.setHeader('content-type', 'text/csv');
+        fastcsv.write(getTeamsData, { headers: true })
+            .on("finish", function () { })
+            .pipe(response);
     }
 }

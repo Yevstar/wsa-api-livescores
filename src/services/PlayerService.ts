@@ -12,13 +12,13 @@ export default class PlayerService extends BaseService<Player> {
         return Player.name;
     }
 
-    public async findByParam(name: string, competitionId: number, clubId: number, teamId: number,
+    public async findByParam(name: string, competitionId: number, organisationId: number, teamId: number,
         playUpFromAge: number, playUpFromGrade: string, offset: number, limit: number): Promise<any> {
         let query = this.entityManager.createQueryBuilder(Player, 'player')
             .innerJoinAndSelect("player.team", "team")
             .innerJoinAndSelect("team.division", "division")
             .innerJoinAndSelect("player.competition", "competition")
-            .leftJoin("team.club", "club");
+            .leftJoin("team.organisation", "organisation");
 
         if (name) {
             query.andWhere('(LOWER(concat_ws(" ", player.firstName, player.lastName)) like :name)',
@@ -26,7 +26,7 @@ export default class PlayerService extends BaseService<Player> {
         }
 
         if (competitionId) query.andWhere('team.competitionId = :competitionId', { competitionId });
-        if (clubId) query.andWhere('club.id = :clubId', { clubId });
+        if (organisationId) query.andWhere('organisation.id = :organisationId', { organisationId });
         if (teamId) query.andWhere('team.id = :teamId', { teamId });
 
         if (playUpFromGrade && playUpFromAge) {
@@ -38,7 +38,7 @@ export default class PlayerService extends BaseService<Player> {
         }
         if (offset !== null && offset !== undefined && limit !== null && limit !== undefined) {
             // return query.paginate(offset,limit).getMany();
-            // switched to skip and limit function as with paginate(offset,limit) with offset 0, typeorm-plus gives the value 
+            // switched to skip and limit function as with paginate(offset,limit) with offset 0, typeorm-plus gives the value
             // in negative as offset creating an error within query
             const matchCount = await query.getCount()
             const result = await query.skip(offset).take(limit).getMany();

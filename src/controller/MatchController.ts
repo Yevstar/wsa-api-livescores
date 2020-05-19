@@ -72,7 +72,7 @@ export class MatchController extends BaseController {
         @QueryParam('teamIds') teamIds: number[] = [],
         @QueryParam('playerIds') playerIds: number[],
         @QueryParam('competitionId') competitionId: number,
-        @QueryParam('clubIds') clubIds: number[],
+        @QueryParam('organisationIds') organisationIds: number[],
         @QueryParam('matchEnded') matchEnded: boolean,
         @QueryParam('matchStatus') matchStatus: ("STARTED" | "PAUSED" | "ENDED")[],
         @QueryParam('offset') offset: number = undefined,
@@ -93,7 +93,7 @@ export class MatchController extends BaseController {
 
         if(search===null ||search===undefined) search = '';
 
-        const matchFound = await this.matchService.findByParam(from, to, teamIds, playerIds, competitionId, clubIds, matchEnded, matchStatus, offset, limit,search);
+        const matchFound = await this.matchService.findByParam(from, to, teamIds, playerIds, competitionId, organisationIds, matchEnded, matchStatus, offset, limit,search);
 
         if (isNotNullAndUndefined(matchFound.matchCount) && isNotNullAndUndefined(matchFound.result) && limit) {
             let responseObject = paginationData(stringTONumber(matchFound.matchCount), limit, offset)
@@ -106,31 +106,31 @@ export class MatchController extends BaseController {
 
     @Get('/home')
     async loadHomeMatches(
-        @QueryParam('clubIds') clubIds: number[],
+        @QueryParam('organisationIds') organisationIds: number[],
         @QueryParam('teamIds') teamIds: number[] = [],
         @QueryParam('playerIds') playerIds: number[],
         @QueryParam('upcomingCount') upcomingCount: number,
         @QueryParam('upcomingStartTimeRange') upcomingStartTimeRange: number = undefined,
         @QueryParam('endTimeRange') endTimeRange: number
     ): Promise<{ live: Match[], upcoming: Match[], ended: Match[] }> {
-        if (clubIds && !Array.isArray(clubIds)) clubIds = [clubIds];
+        if (organisationIds && !Array.isArray(organisationIds)) organisationIds = [organisationIds];
         if (teamIds && !Array.isArray(teamIds)) teamIds = [teamIds];
         if (playerIds && !Array.isArray(playerIds)) playerIds = [playerIds];
-        if ((playerIds && playerIds.length > 0) || (clubIds && clubIds.length > 0) || (teamIds && teamIds.length > 0)) {
+        if ((playerIds && playerIds.length > 0) || (organisationIds && organisationIds.length > 0) || (teamIds && teamIds.length > 0)) {
             if (playerIds && playerIds.length > 0) {
                 teamIds = _.uniq([
                     ...teamIds,
                     ...(await this.playerService.findByIds(playerIds)).map(player => player.teamId)
                 ]);
             }
-            const live = await this.matchService.loadHomeLive(clubIds, teamIds);
-            let upcoming = await this.matchService.loadHomeUpcoming(clubIds, teamIds, upcomingStartTimeRange);
+            const live = await this.matchService.loadHomeLive(organisationIds, teamIds);
+            let upcoming = await this.matchService.loadHomeUpcoming(organisationIds, teamIds, upcomingStartTimeRange);
             if (upcomingCount != undefined && upcomingCount != 0) {
                 let teams = teamIds;
-                if (clubIds && clubIds.length > 0) {
+                if (organisationIds && organisationIds.length > 0) {
                     teams = _.uniq([
                         ...teamIds,
-                        ...(await this.teamService.teamIdsByClubIds(clubIds)).map(data => data['id'])
+                        ...(await this.teamService.teamIdsByOrganisationIds(organisationIds)).map(data => data['id'])
                     ]);
                 }
                 let filtered: Match[] = [];
@@ -147,7 +147,7 @@ export class MatchController extends BaseController {
                 }
                 upcoming = filtered;
             }
-            const ended = endTimeRange ? await this.matchService.loadHomeEnded(clubIds, teamIds, endTimeRange) : [];
+            const ended = endTimeRange ? await this.matchService.loadHomeEnded(organisationIds, teamIds, endTimeRange) : [];
             return {live, upcoming, ended};
         } else {
             return {live: [], upcoming: [], ended: []}
@@ -918,38 +918,55 @@ export class MatchController extends BaseController {
 
         let firstRoundArray = await this.roundService.findByName(competitionId, round1);
         let secondRoundArray = await this.roundService.findByName(competitionId, round2);
-        for (let r1 of firstRoundArray) {
-            for (let r2 of secondRoundArray) {
-                if (r2.divisionId = r1.divisionId) {
-                    let firstMatchesArray = await this.matchService.findByRound(r1.id);
-                    let secondMatchesArray = await this.matchService.findByRound(r2.id);
-                    let secondMatchTemplate = secondMatchesArray[0];
-                    if (secondMatchTemplate.startTime) {
+        if (isArrayEmpty(firstRoundArray) && isArrayEmpty(secondRoundArray)) {
+            for (let r1 of firstRoundArray) {
+                for (let r2 of secondRoundArray) {
+                    if (r2.divisionId = r1.divisionId) {
+                        let firstMatchesArray = await this.matchService.findByRound(r1.id);
+                        let secondMatchesArray = await this.matchService.findByRound(r2.id);
+                        if (isArrayEmpty(firstMatchesArray) && isArrayEmpty(secondMatchesArray)) {
+                            let secondMatchTemplate = secondMatchesArray[0];
+                            if (secondMatchTemplate.startTime) {
 
-                        for (let m1 of firstMatchesArray) {
-                            m1.startTime = secondMatchTemplate.startTime;
-                            m1.type = 'TWO_HALVES';
-                            m1.matchDuration = m1.matchDuration / 2;
-                            let match = await this.matchService.createOrUpdate(m1);
-                            if (match) {
-                                this.sendMatchEvent(match);
+                                for (let m1 of firstMatchesArray) {
+                                    m1.startTime = secondMatchTemplate.startTime;
+                                    m1.type = 'TWO_HALVES';
+                                    m1.matchDuration = m1.matchDuration / 2;
+                                    let match = await this.matchService.createOrUpdate(m1);
+                                    if (match) {
+                                        this.sendMatchEvent(match);
+                                    }
+                                }
                             }
-                        }
-                    }
 
-                    for (let m2 of secondMatchesArray) {
-                        let secondMatchOffset = m2.matchDuration / 2 + m2.breakDuration + m2.mainBreakDuration;
-                        m2.type = 'TWO_HALVES';
-                        m2.matchDuration = m2.matchDuration / 2;
-                        let match = await this.matchService.createOrUpdate(m2);
-                        if (match) {
-                            this.sendMatchEvent(match);
+                            for (let m2 of secondMatchesArray) {
+                                let secondMatchOffset = m2.matchDuration / 2 + m2.breakDuration + m2.mainBreakDuration;
+                                m2.type = 'TWO_HALVES';
+                                m2.matchDuration = m2.matchDuration / 2;
+                                let match = await this.matchService.createOrUpdate(m2);
+                                if (match) {
+                                    this.sendMatchEvent(match);
+                                }
+                            }
+
+                            return response.status(200).send({ success: true });
+
+                        } else {
+                            return response.status(212).json({
+                                success: false,
+                                message: "cannot find matches with the provided rounds"
+                            })
                         }
+
                     }
                 }
             }
+        } else {
+            response.status(212).json({
+                success: false,
+                message: "cannot find rounds with the provided names"
+            });
         }
-        return response.status(200).send({ success: true });
     }
 
     @Authorized()
@@ -1176,7 +1193,7 @@ export class MatchController extends BaseController {
         @QueryParam('teamIds') teamIds: number[] = [],
         @QueryParam('playerIds') playerIds: number[],
         @QueryParam('competitionId') competitionId: number,
-        @QueryParam('clubIds') clubIds: number[],
+        @QueryParam('organisationIds') organisationIds: number[],
         @QueryParam('matchEnded') matchEnded: boolean,
         @QueryParam('matchStatus') matchStatus: ("STARTED" | "PAUSED" | "ENDED")[],
         @QueryParam('offset') offset: number = undefined,
@@ -1184,7 +1201,7 @@ export class MatchController extends BaseController {
         @QueryParam('search') search: string,
         @Res() response: Response): Promise<any> {
 
-        const getMatchesData = await this.find(from, to, teamIds, playerIds, competitionId, clubIds, matchEnded, matchStatus, null, null,null);
+        const getMatchesData = await this.find(from, to, teamIds, playerIds, competitionId, organisationIds, matchEnded, matchStatus, null, null,null);
 
         getMatchesData.map(e => {
             e['Match Id'] = e.id;
