@@ -469,15 +469,14 @@ export class UserController extends BaseController {
             ure.userId = managerData.id
             ure.createdBy = user.id;
             ureArray.push(ure);
-
-            let ure1 = new UserRoleEntity();
-            ure1.roleId = Role.MEMBER;
-            ure1.entityId = competitionId;
-            ure1.entityTypeId = EntityType.COMPETITION;
-            ure1.userId = managerData.id
-            ure1.createdBy = user.id;
-            ureArray.push(ure1);
         }
+        let ure1 = new UserRoleEntity();
+        ure1.roleId = Role.MEMBER;
+        ure1.entityId = competitionId;
+        ure1.entityTypeId = EntityType.COMPETITION;
+        ure1.userId = managerData.id
+        ure1.createdBy = user.id;
+        ureArray.push(ure1);
         await this.ureService.batchCreateOrUpdate(ureArray);
         await this.notifyChangeRole(managerData.id);
         return response.status(200).send({success: true});
