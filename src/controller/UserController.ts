@@ -456,6 +456,7 @@ export class UserController extends BaseController {
         // existing user - delete existing team assignments
         if (!newUser) {
             await this.userService.deleteRolesByUser(managerData.id, Role.MANAGER, competitionId, EntityType.COMPETITION, EntityType.TEAM);
+            await this.userService.deleteRolesByUser(managerData.id, Role.MANAGER, competitionId, EntityType.COMPETITION, EntityType.COMPETITION);
         }
 
         // assign teams
@@ -467,6 +468,11 @@ export class UserController extends BaseController {
             ure.entityTypeId = EntityType.TEAM;
             ure.userId = managerData.id
             ure.createdBy = user.id;
+            ureArray.push(ure);
+
+            ure.roleId = Role.MEMBER;
+            ure.entityId = competitionId;
+            ure.entityTypeId = EntityType.COMPETITION;
             ureArray.push(ure)
         }
         await this.ureService.batchCreateOrUpdate(ureArray);
