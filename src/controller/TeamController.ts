@@ -218,7 +218,7 @@ export class TeamController extends BaseController {
             if (managerId != 0) {
 
                 if (!savedUser) {
-                    await this.userService.deleteRolesByUser(managerId, Role.MANAGER, savedTeam.competitionId, EntityType.COMPETITION, EntityType.COMPETITION);
+                    await this.userService.deleteRolesByUser(managerId, Role.MEMBER, savedTeam.competitionId, EntityType.COMPETITION, EntityType.COMPETITION);
                 }
 
                 let ureArray = [];
@@ -231,10 +231,13 @@ export class TeamController extends BaseController {
                 ure.createdBy = user.id;
                 ureArray.push(ure);
     
-                ure.roleId = Role.MEMBER;
-                ure.entityId = savedTeam.competitionId;
-                ure.entityTypeId = EntityType.COMPETITION;
-                ureArray.push(ure)
+                let ure1 = new UserRoleEntity();
+                ure1.roleId = Role.MEMBER;
+                ure1.entityId = savedTeam.competitionId;
+                ure1.entityTypeId = EntityType.COMPETITION;
+                ure1.userId = managerId
+                ure1.createdBy = user.id;
+                ureArray.push(ure1);
 
                 await this.ureService.batchCreateOrUpdate(ureArray);
                 await this.notifyChangeRole(managerId);
