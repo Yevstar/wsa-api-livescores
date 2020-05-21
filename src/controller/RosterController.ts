@@ -343,32 +343,43 @@ export class RosterController extends BaseController {
     }
 
     @Authorized()
-    @Get('/export')
-    async exportTeams(
+    @Get('/exportScorer')
+    async exportScorer(
         @QueryParam('competitionId') competitionId: number,
         @QueryParam('roleId') roleId: number,
         @Res() response: Response): Promise<any> {
-        const requestFilter: RequestFilter = { paging: { offset: null, limit: null }, search: null }
-        const getScorersData = await this.rosterListAdmin(competitionId, roleId, requestFilter, response);
+        const requestFilter: RequestFilter = { paging: { offset: null, limit: null }, search: null };
 
-        isArrayEmpty(getScorersData.users) ? getScorersData.users.map(e => {
-            e['Email'] = e['email']
-            e['First Name'] = e['firstName']
-            e['Last Name'] = e['lastName']
-            e['Contact No'] = e['mobileNumber'];
-            const teamArray = [];
-            if (isArrayEmpty(e['teams'])) {
-                for (let i of e['teams']) teamArray.push(i['name']);
-            }
-            e['Team'] = teamArray.toString().replace(",", '\n');
-            delete e['teams']
-            return e;
-        }) : [];
-
-        response.setHeader('Content-disposition', 'attachment; filename=scorer.csv');
-        response.setHeader('content-type', 'text/csv');
-        fastcsv.write(getScorersData.users, { headers: true })
-            .on("finish", function () { })
-            .pipe(response);
+        if (competitionId && roleId) {
+            const getScorersData = await this.rosterService.findByCompetitionId(competitionId, roleId, requestFilter);
+            isArrayEmpty(getScorersData.users) ? getScorersData.users.map(e => {
+                e['Email'] = e['email']
+                e['First Name'] = e['firstName']
+                e['Last Name'] = e['lastName']
+                e['Contact No'] = e['mobileNumber'];
+                const teamArray = [];
+                if (isArrayEmpty(e['teams'])) {
+                    for (let i of e['teams']) teamArray.push(i['name']);
+                }
+                e['Team'] = teamArray.toString().replace(",", '\n');
+                delete e['teams']
+                delete e['email']
+                delete e['id']
+                delete e['firstName']
+                delete e['lastName']
+                delete e['mobileNumber']
+                return e;
+            }) : [];
+    
+            response.setHeader('Content-disposition', 'attachment; filename=scorer.csv');
+            response.setHeader('content-type', 'text/csv');
+            fastcsv.write(getScorersData.users, { headers: true })
+                .on("finish", function () { })
+                .pipe(response);        
+        } else {
+            return response.status(212).send({
+                name: 'parameter_required', message: `Invalid parameters passed`
+            });
+        }
     }
 }
