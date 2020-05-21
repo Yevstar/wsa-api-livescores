@@ -25,6 +25,7 @@ import FirebaseService from "./services/FirebaseService";
 // import {TEN_MIN, fromCacheAsync, toCacheWithTtl} from "./cache";
 import cors from "cors";
 import { decrypt } from "./utils/Utils";
+import { Role } from "./models/security/Role";
 
 require("dotenv").config();
 
@@ -110,6 +111,7 @@ async function start() {
                         if(sourcesystem == 'WebAdmin'){
                             query = User.createQueryBuilder('user')
                                         .innerJoin(UserRoleEntity, 'ure', 'user.id = ure.userId and ure.entityType = 2 and ure.isDeleted = 0')
+                                        .innerJoin(Role, 'role', 'role.id = ure.roleId and role.applicableToWeb = 1 and role.isDeleted = 0')
                                         .andWhere('LOWER(user.email) = :email and user.password = :password and user.isDeleted = 0',
                                 {email: data[0].toLowerCase(), password: data[1]});
                         }
