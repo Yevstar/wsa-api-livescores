@@ -10,6 +10,7 @@ export class Role extends BaseEntity {
     public static MANAGER = 3;
     public static MEMBER = 5;
     public static PLAYER = 8;
+    public static COACH = 17;
 
     @IsNumber()
     @PrimaryGeneratedColumn()

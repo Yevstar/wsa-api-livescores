@@ -523,7 +523,7 @@ export class UserController extends BaseController {
                 userData.email = userData.email.toLowerCase();
                 userData.password = md5(password);
                 const saved = await this.userService.createOrUpdate(userData);
-                logger.info(`Manager ${userData.email} signed up.`);
+                logger.info(`Coach ${userData.email} signed up.`);
 
                 if (isArrayEmpty(userData.teams)) {
                     let competitionData = await this.competitionService.findById(competitionId)
@@ -542,7 +542,7 @@ export class UserController extends BaseController {
 
         // existing user - delete existing team assignments
         if (!newUser) {
-            await this.userService.deleteRolesByUser(userData.id, Role.MANAGER, competitionId, EntityType.COMPETITION, EntityType.TEAM);
+            await this.userService.deleteRolesByUser(userData.id, Role.COACH, competitionId, EntityType.COMPETITION, EntityType.TEAM);
             await this.userService.deleteRolesByUser(userData.id, Role.MEMBER, competitionId, EntityType.COMPETITION, EntityType.COMPETITION);
         }
 
@@ -550,7 +550,7 @@ export class UserController extends BaseController {
         let ureArray = [];
         for (let i of userData.teams) {
             let ure = new UserRoleEntity();
-            ure.roleId = Role.MANAGER;
+            ure.roleId = Role.COACH;
             ure.entityId = i.id;
             ure.entityTypeId = EntityType.TEAM;
             ure.userId = userData.id
@@ -566,6 +566,7 @@ export class UserController extends BaseController {
         ureArray.push(ure1);
         await this.ureService.batchCreateOrUpdate(ureArray);
         await this.notifyChangeRole(userData.id);
+        return response.status(200).send({success: true});
     }
 
     @Authorized()
