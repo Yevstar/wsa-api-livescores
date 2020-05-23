@@ -400,27 +400,27 @@ export class UserController extends BaseController {
     async addManager(
         @HeaderParam("authorization") user: User,
         @QueryParam('competitionId', { required: true }) competitionId: number,
-        @Body() managerData: User,
+        @Body() userData: User,
         @Res() response: Response) {
 
         var newUser = false;
         // if new user, search for user
-        if (!managerData.id) {
-            if (isNullOrEmpty(managerData.email)
-            || isNullOrEmpty(managerData.firstName)
-            || isNullOrEmpty(managerData.lastName)
-            || isNullOrEmpty(managerData.mobileNumber)) {
+        if (!userData.id) {
+            if (isNullOrEmpty(userData.email)
+            || isNullOrEmpty(userData.firstName)
+            || isNullOrEmpty(userData.lastName)
+            || isNullOrEmpty(userData.mobileNumber)) {
             return response
                 .status(422)
                 .send({ name: 'validation_error', message: 'Not all required fields filled' });
             }
-            const foundUser = await this.userService.findByEmail(managerData.email.toLowerCase());
+            const foundUser = await this.userService.findByEmail(userData.email.toLowerCase());
             // if user exists in our database, validate the rest of their details
             if (foundUser) {
-                if (foundUser.firstName == managerData.firstName
-                    && foundUser.lastName == managerData.lastName
-                    && foundUser.mobileNumber == managerData.mobileNumber) {
-                    managerData.id = foundUser.id;
+                if (foundUser.firstName == userData.firstName
+                    && foundUser.lastName == userData.lastName
+                    && foundUser.mobileNumber == userData.mobileNumber) {
+                    userData.id = foundUser.id;
                 } else {
                     return response
                     .status(400).send({
@@ -433,40 +433,40 @@ export class UserController extends BaseController {
                 newUser = true;
 
                 var password = Math.random().toString(36).slice(-8);
-                managerData.email = managerData.email.toLowerCase();
-                managerData.password = md5(password);
-                const saved = await this.userService.createOrUpdate(managerData);
-                logger.info(`Manager ${managerData.email} signed up.`);
+                userData.email = userData.email.toLowerCase();
+                userData.password = md5(password);
+                const saved = await this.userService.createOrUpdate(userData);
+                logger.info(`Manager ${userData.email} signed up.`);
 
-                if (isArrayEmpty(managerData.teams)) {
+                if (isArrayEmpty(userData.teams)) {
                     let competitionData = await this.competitionService.findById(competitionId)
-                    this.userService.sentMail(user, managerData.teams, competitionData, 'manager', saved, password);
+                    this.userService.sentMail(user, userData.teams, competitionData, 'manager', saved, password);
                 }
 
-                managerData.id = saved.id;
+                userData.id = saved.id;
             }
-        } else if (managerData.firstName && managerData.lastName && managerData.mobileNumber) {
-            let foundUser = await this.userService.findById(managerData.id);
-            foundUser.firstName = managerData.firstName;
-            foundUser.lastName = managerData.lastName;
-            foundUser.mobileNumber = managerData.mobileNumber;
+        } else if (userData.firstName && userData.lastName && userData.mobileNumber) {
+            let foundUser = await this.userService.findById(userData.id);
+            foundUser.firstName = userData.firstName;
+            foundUser.lastName = userData.lastName;
+            foundUser.mobileNumber = userData.mobileNumber;
             await this.userService.createOrUpdate(foundUser);
         }
 
         // existing user - delete existing team assignments
         if (!newUser) {
-            await this.userService.deleteRolesByUser(managerData.id, Role.MANAGER, competitionId, EntityType.COMPETITION, EntityType.TEAM);
-            await this.userService.deleteRolesByUser(managerData.id, Role.MEMBER, competitionId, EntityType.COMPETITION, EntityType.COMPETITION);
+            await this.userService.deleteRolesByUser(userData.id, Role.MANAGER, competitionId, EntityType.COMPETITION, EntityType.TEAM);
+            await this.userService.deleteRolesByUser(userData.id, Role.MEMBER, competitionId, EntityType.COMPETITION, EntityType.COMPETITION);
         }
 
         // assign teams
         let ureArray = [];
-        for (let i of managerData.teams) {
+        for (let i of userData.teams) {
             let ure = new UserRoleEntity();
             ure.roleId = Role.MANAGER;
             ure.entityId = i.id;
             ure.entityTypeId = EntityType.TEAM;
-            ure.userId = managerData.id
+            ure.userId = userData.id
             ure.createdBy = user.id;
             ureArray.push(ure);
         }
@@ -474,12 +474,98 @@ export class UserController extends BaseController {
         ure1.roleId = Role.MEMBER;
         ure1.entityId = competitionId;
         ure1.entityTypeId = EntityType.COMPETITION;
-        ure1.userId = managerData.id
+        ure1.userId = userData.id
         ure1.createdBy = user.id;
         ureArray.push(ure1);
         await this.ureService.batchCreateOrUpdate(ureArray);
-        await this.notifyChangeRole(managerData.id);
+        await this.notifyChangeRole(userData.id);
         return response.status(200).send({success: true});
+    }
+
+    @Authorized()
+    @Post('/coach')
+    async addCoach(
+        @HeaderParam("authorization") user: User,
+        @QueryParam('competitionId', { required: true }) competitionId: number,
+        @Body() userData: User,
+        @Res() response: Response) {
+
+        var newUser = false;
+        // if new user, search for user
+        if (!userData.id) {
+            if (isNullOrEmpty(userData.email)
+            || isNullOrEmpty(userData.firstName)
+            || isNullOrEmpty(userData.lastName)
+            || isNullOrEmpty(userData.mobileNumber)) {
+            return response
+                .status(422)
+                .send({ name: 'validation_error', message: 'Not all required fields filled' });
+            }
+            const foundUser = await this.userService.findByEmail(userData.email.toLowerCase());
+            // if user exists in our database, validate the rest of their details
+            if (foundUser) {
+                if (foundUser.firstName == userData.firstName
+                    && foundUser.lastName == userData.lastName
+                    && foundUser.mobileNumber == userData.mobileNumber) {
+                    userData.id = foundUser.id;
+                } else {
+                    return response
+                    .status(400).send({
+                        name: 'validation_error',
+                        message: 'A user with this email address already exists however other details do not match'
+                    });
+                }
+            } else {
+                // create user
+                newUser = true;
+
+                var password = Math.random().toString(36).slice(-8);
+                userData.email = userData.email.toLowerCase();
+                userData.password = md5(password);
+                const saved = await this.userService.createOrUpdate(userData);
+                logger.info(`Manager ${userData.email} signed up.`);
+
+                if (isArrayEmpty(userData.teams)) {
+                    let competitionData = await this.competitionService.findById(competitionId)
+                    this.userService.sentMail(user, userData.teams, competitionData, 'coach', saved, password);
+                }
+
+                userData.id = saved.id;
+            }
+        } else if (userData.firstName && userData.lastName && userData.mobileNumber) {
+            let foundUser = await this.userService.findById(userData.id);
+            foundUser.firstName = userData.firstName;
+            foundUser.lastName = userData.lastName;
+            foundUser.mobileNumber = userData.mobileNumber;
+            await this.userService.createOrUpdate(foundUser);
+        }
+
+        // existing user - delete existing team assignments
+        if (!newUser) {
+            await this.userService.deleteRolesByUser(userData.id, Role.MANAGER, competitionId, EntityType.COMPETITION, EntityType.TEAM);
+            await this.userService.deleteRolesByUser(userData.id, Role.MEMBER, competitionId, EntityType.COMPETITION, EntityType.COMPETITION);
+        }
+
+        // assign teams
+        let ureArray = [];
+        for (let i of userData.teams) {
+            let ure = new UserRoleEntity();
+            ure.roleId = Role.MANAGER;
+            ure.entityId = i.id;
+            ure.entityTypeId = EntityType.TEAM;
+            ure.userId = userData.id
+            ure.createdBy = user.id;
+            ureArray.push(ure);
+        }
+        let ure1 = new UserRoleEntity();
+        ure1.roleId = Role.MEMBER;
+        ure1.entityId = competitionId;
+        ure1.entityTypeId = EntityType.COMPETITION;
+        ure1.userId = userData.id
+        ure1.createdBy = user.id;
+        ureArray.push(ure1);
+        await this.ureService.batchCreateOrUpdate(ureArray);
+        await this.notifyChangeRole(userData.id);
     }
 
     @Authorized()
@@ -557,7 +643,6 @@ export class UserController extends BaseController {
 
         return await this.userService.findById(userData.id);
     }
-
 
     @Authorized()
     @Post('/admin')
