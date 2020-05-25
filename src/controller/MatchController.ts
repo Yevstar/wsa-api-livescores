@@ -1185,7 +1185,7 @@ export class MatchController extends BaseController {
         }
     }
 
-    @Authorized()
+     @Authorized()
     @Get('/export')
     async exportMatches(
         @QueryParam('from') from: Date,
@@ -1201,59 +1201,75 @@ export class MatchController extends BaseController {
         @QueryParam('search') search: string,
         @Res() response: Response): Promise<any> {
 
-        const getMatchesData = await this.find(from, to, teamIds, playerIds, competitionId, organisationIds, matchEnded, matchStatus, null, null,null);
+        const getMatchesData = await this.find(from, to, teamIds, playerIds, competitionId, organisationIds, matchEnded, matchStatus, null, null, null);
 
-        getMatchesData.map(e => {
-            e['Match Id'] = e.id;
-            e['Start Time'] = e.startTime;
-            e['Home'] = e.team1.name;
-            e['Away'] = e.team2.name;
-            e['Venue'] = e.venueCourt.venue.name;
-            e['Division'] = e.division.name;
-            e['Type'] = e.type === 'TWO_HALVES' ? 'Halves' : (e.type === 'SINGLE' ? 'Single' : (e.type === 'FOUR_QUARTERS' ? 'Quarters' : ''));
-            e['Score'] = e.team1Score + ':' + e.team2Score;
-            e['Match Duration'] = e.matchDuration;
-            e['Main Break'] = e.mainBreakDuration;
-            e['Quarter Break'] = e.breakDuration;
-            delete e.breakDuration
-            delete e.centrePassStatus
-            delete e.centrePassWonBy
-            delete e.competition
-            delete e.competitionId
-            delete e.created_at
-            delete e.deleted_at
-            delete e.division
-            delete e.divisionId
-            delete e.endTime
-            delete e.extraTimeDuration
-            delete e.mainBreakDuration
-            delete e.id
-            delete e.matchDuration
-            delete e.matchEnded
-            delete e.matchStatus
-            delete e.mnbMatchId
-            delete e.mnbPushed
-            delete e.originalStartTime
-            delete e.pauseStartTime
-            delete e.round
-            delete e.roundId
-            delete e.scorerStatus
-            delete e.startTime
-            delete e.team1
-            delete e.team1Id
-            delete e.team1ResultId
-            delete e.team1Score
-            delete e.team2Id
-            delete e.team2
-            delete e.team2ResultId
-            delete e.team2Score
-            delete e.totalPausedMs
-            delete e.type
-            delete e.updated_at
-            delete e.venueCourt
-            delete e.venueCourtId
-            return e;
-        });
+        if (isArrayEmpty(getMatchesData)) {
+            getMatchesData.map(e => {
+                e['Match Id'] = e.id;
+                e['Start Time'] = e.startTime;
+                e['Home'] = e.team1.name;
+                e['Away'] = e.team2.name;
+                e['Venue'] = e.venueCourt.venue.name;
+                e['Division'] = e.division.name;
+                e['Type'] = e.type === 'TWO_HALVES' ? 'Halves' : (e.type === 'SINGLE' ? 'Single' : (e.type === 'FOUR_QUARTERS' ? 'Quarters' : ''));
+                e['Score'] = e.team1Score + ':' + e.team2Score;
+                e['Match Duration'] = e.matchDuration;
+                e['Main Break'] = e.mainBreakDuration;
+                e['Quarter Break'] = e.breakDuration;
+                delete e.breakDuration
+                delete e.centrePassStatus
+                delete e.centrePassWonBy
+                delete e.competition
+                delete e.competitionId
+                delete e.created_at
+                delete e.deleted_at
+                delete e.division
+                delete e.divisionId
+                delete e.endTime
+                delete e.extraTimeDuration
+                delete e.mainBreakDuration
+                delete e.id
+                delete e.matchDuration
+                delete e.matchEnded
+                delete e.matchStatus
+                delete e.mnbMatchId
+                delete e.mnbPushed
+                delete e.originalStartTime
+                delete e.pauseStartTime
+                delete e.round
+                delete e.roundId
+                delete e.scorerStatus
+                delete e.startTime
+                delete e.team1
+                delete e.team1Id
+                delete e.team1ResultId
+                delete e.team1Score
+                delete e.team2Id
+                delete e.team2
+                delete e.team2ResultId
+                delete e.team2Score
+                delete e.totalPausedMs
+                delete e.type
+                delete e.updated_at
+                delete e.venueCourt
+                delete e.venueCourtId
+                return e;
+            });
+        } else {
+            getMatchesData.push({
+                'Match Id': 'N/A',
+                'Start Time': 'N/A',
+                'Home': 'N/A',
+                'Away': 'N/A',
+                'Venue': 'N/A',
+                'Division': 'N/A',
+                'Type': 'N/A',
+                'Score': 'N/A',
+                'Match Duration': 'N/A',
+                'Main Break': 'N/A',
+                'Quarter Break': 'N/A'
+            });
+        }
 
         response.setHeader('Content-disposition', 'attachment; filename=matches.csv');
         response.setHeader('content-type', 'text/csv');

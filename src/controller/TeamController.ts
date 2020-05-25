@@ -379,36 +379,50 @@ export class TeamController extends BaseController {
 
         const getTeamsData = await this.listCompetitionTeams(competitionId, divisionId, null, null, null);
 
-        getTeamsData.map(e => {
-            e['Logo'] = e['logoUrl']
-            e['Team Name'] = e['name']
-            e['Team Alias Name'] = e['alias'];
-            e['Affiliate'] = e['organisation']['name']
-            e['Division'] = e['division']['name']
-            e['#Players'] = e['playersCount']
-            const managerName = [];
-            const managerEmail = [];
-            const managerContact = [];
-            if (isArrayEmpty(e['managers'])) {
-                for (let r of e['managers']) {
-                    managerName.push(r['name']);
-                    managerEmail.push(r['email']);
-                    managerContact.push(r['mobileNumber']);
+        if (isArrayEmpty(getTeamsData)) {
+            getTeamsData.map(e => {
+                e['Logo'] = e['logoUrl']
+                e['Team Name'] = e['name']
+                e['Team Alias Name'] = e['alias'];
+                e['Affiliate'] = e['organisation']['name']
+                e['Division'] = e['division']['name']
+                e['#Players'] = e['playersCount']
+                const managerName = [];
+                const managerEmail = [];
+                const managerContact = [];
+                if (isArrayEmpty(e['managers'])) {
+                    for (let r of e['managers']) {
+                        managerName.push(r['name']);
+                        managerEmail.push(r['email']);
+                        managerContact.push(r['mobileNumber']);
+                    }
                 }
-            }
-            e['Manager'] = managerName.toString().replace(",", '\n');
-            e['Contact'] = managerEmail.toString().replace(",", '\n');
-            e['Email'] = managerContact.toString().replace(",", '\n');
-            delete e['alias'];
-            delete e['division'];
-            delete e['id'];
-            delete e['logoUrl'];
-            delete e['managers'];
-            delete e['name'];
-            delete e['playersCount'];
-            delete e['organisation'];
-            return e;
-        });
+                e['Manager'] = managerName.toString().replace(",", '\n');
+                e['Contact'] = managerEmail.toString().replace(",", '\n');
+                e['Email'] = managerContact.toString().replace(",", '\n');
+                delete e['alias'];
+                delete e['division'];
+                delete e['id'];
+                delete e['logoUrl'];
+                delete e['managers'];
+                delete e['name'];
+                delete e['playersCount'];
+                delete e['organisation'];
+                return e;
+            });
+        } else {
+            getTeamsData.push({
+                ['Logo']: 'N/A',
+                ['Team Name']: 'N/A',
+                ['Team Alias Name']: 'N/A',
+                ['Affiliate']: 'N/A',
+                ['Division']: 'N/A',
+                ['#Players']: 'N/A',
+                ['Manager']: 'N/A',
+                ['Contact']: 'N/A',
+                ['Email']: 'N/A'
+            });
+        }
 
         response.setHeader('Content-disposition', 'attachment; filename=teams.csv');
         response.setHeader('content-type', 'text/csv');

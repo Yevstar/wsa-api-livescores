@@ -96,4 +96,11 @@ export default class GameTimeAttendanceService extends BaseService<GameTimeAtten
         attendance.createdAt = attendance.createdAt ? attendance.createdAt : new Date();
         return attendance;
     }
+
+    public async getPlayerAttendanceCount(teamId: number, matchId: number): Promise<number> {
+        return await this.entityManager.createQueryBuilder(GameTimeAttendance, 'gta')
+                .andWhere("gta.teamId = :teamId", {teamId})
+                .andWhere("gta.matchId = :matchId", {matchId})
+                .getCount();
+    }
 }

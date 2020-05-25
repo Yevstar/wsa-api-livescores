@@ -352,30 +352,41 @@ export class RosterController extends BaseController {
 
         if (competitionId && roleId) {
             const getScorersData = await this.rosterService.findByCompetitionId(competitionId, roleId, requestFilter);
-            isArrayEmpty(getScorersData.users) ? getScorersData.users.map(e => {
-                e['Email'] = e['email']
-                e['First Name'] = e['firstName']
-                e['Last Name'] = e['lastName']
-                e['Contact No'] = e['mobileNumber'];
-                const teamArray = [];
-                if (isArrayEmpty(e['teams'])) {
-                    for (let i of e['teams']) teamArray.push(i['name']);
-                }
-                e['Team'] = teamArray.toString().replace(",", '\n');
-                delete e['teams']
-                delete e['email']
-                delete e['id']
-                delete e['firstName']
-                delete e['lastName']
-                delete e['mobileNumber']
-                return e;
-            }) : [];
-    
+
+            if (isArrayEmpty(getScorersData.users)) {
+                getScorersData.users.map(e => {
+                    e['Email'] = e['email']
+                    e['First Name'] = e['firstName']
+                    e['Last Name'] = e['lastName']
+                    e['Contact No'] = e['mobileNumber'];
+                    const teamArray = [];
+                    if (isArrayEmpty(e['teams'])) {
+                        for (let i of e['teams']) teamArray.push(i['name']);
+                    }
+                    e['Team'] = teamArray.toString().replace(",", '\n');
+                    delete e['teams']
+                    delete e['email']
+                    delete e['id']
+                    delete e['firstName']
+                    delete e['lastName']
+                    delete e['mobileNumber']
+                    return e;
+                });
+            } else {
+                getScorersData.users.push({
+                    ['Email']: 'N/A',
+                    ['First Name']: 'N/A',
+                    ['Last Name']: 'N/A',
+                    ['Contact No']: 'N/A',
+                    ['Team']: 'N/A',
+                });
+            }
+
             response.setHeader('Content-disposition', 'attachment; filename=scorer.csv');
             response.setHeader('content-type', 'text/csv');
             fastcsv.write(getScorersData.users, { headers: true })
                 .on("finish", function () { })
-                .pipe(response);        
+                .pipe(response);
         } else {
             return response.status(212).send({
                 name: 'parameter_required', message: `Invalid parameters passed`

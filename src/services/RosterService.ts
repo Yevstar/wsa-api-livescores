@@ -130,4 +130,12 @@ export default class RosterService extends BaseService<Roster> {
               .andWhere("r.matchId = :matchId", {matchId})
               .getOne();
     }
+
+    public async getRosterStatus(roleId: number, teamId: number, matchId: number): Promise<Roster> {
+        return await this.entityManager.createQueryBuilder(Roster, 'r')
+                .andWhere("r.roleId = :roleId", {roleId})
+                .andWhere("r.teamId = :teamId", {teamId})
+                .andWhere("r.matchId = :matchId", {matchId})
+                .execute();
+    }
 }

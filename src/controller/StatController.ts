@@ -136,23 +136,35 @@ export class StatController extends BaseController {
 
         let gameTimeData = await this.playerService.loadGameTime(competitionId, aggregate, { paging: { offset: null, limit: null }, search: '' });
 
-        gameTimeData.map(e => {
-            e['Player Id'] = e.player.id;
-            e['First Name'] = e.firstName;
-            e['Last Name'] = e.lastName;
-            e['Team'] = e.team.name;
-            e['DIV'] = e.division.name;
-            e['Play Time'] = e.playTime;
-            e['Play %'] = (e.playTimeTeamMatches == 0 || e.playTimeTeamMatches == null) ? ("") : ((100 * (e.playTime / e.playTimeTeamMatches)).toFixed(2) + '%');
-            delete e.division;
-            delete e.player;
-            delete e.team;
-            delete e.firstName;
-            delete e.lastName;
-            delete e.playTime;
-            delete e.playTimeTeamMatches;
-            return e;
-        });
+        if (isArrayEmpty(gameTimeData)) {
+            gameTimeData.map(e => {
+                e['Player Id'] = e.player.id;
+                e['First Name'] = e.firstName;
+                e['Last Name'] = e.lastName;
+                e['Team'] = e.team.name;
+                e['DIV'] = e.division.name;
+                e['Play Time'] = e.playTime;
+                e['Play %'] = (e.playTimeTeamMatches == 0 || e.playTimeTeamMatches == null) ? ("") : ((100 * (e.playTime / e.playTimeTeamMatches)).toFixed(2) + '%');
+                delete e.division;
+                delete e.player;
+                delete e.team;
+                delete e.firstName;
+                delete e.lastName;
+                delete e.playTime;
+                delete e.playTimeTeamMatches;
+                return e;
+            });
+        } else {
+            gameTimeData.push({
+                ['Player Id']: 'N/A',
+                ['First Name']: 'N/A',
+                ['Last Name']: 'N/A',
+                ['Team']: 'N/A',
+                ['DIV']: 'N/A',
+                ['Play Time']: 'N/A',
+                ['Play %']: 'N/A'
+            });
+        }
 
         response.setHeader('Content-disposition', 'attachment; filename=gametime.csv');
         response.setHeader('content-type', 'text/csv');
@@ -173,34 +185,48 @@ export class StatController extends BaseController {
             if (search === null || search === undefined) search = '';
             let playerScoreData = await this.teamService.scoringStatsByPlayer(competitionId, playerId, aggregate, null, null, search);
 
-            playerScoreData.map(e => {
-                e['Match Id'] = e.matchId;
-                e['Date'] = e.startTime;
-                e['Team'] = e.teamName;
-                e['First Name'] = e.firstName;
-                e['Last Name'] = e.lastName;
-                e['Position'] = e.gamePositionName;
-                e['Misses'] = e.miss;
-                e['Goals'] = e.goal;
-                e['Goals %'] = (e.goal_percent * 100).toFixed(2);
+            if (isArrayEmpty(playerScoreData)) {
+                playerScoreData.map(e => {
+                    e['Match Id'] = e.matchId;
+                    e['Date'] = e.startTime;
+                    e['Team'] = e.teamName;
+                    e['First Name'] = e.firstName;
+                    e['Last Name'] = e.lastName;
+                    e['Position'] = e.gamePositionName;
+                    e['Misses'] = e.miss;
+                    e['Goals'] = e.goal;
+                    e['Goals %'] = (e.goal_percent * 100).toFixed(2);
 
-                delete e.firstName;
-                delete e.gamePositionName;
-                delete e.goal;
-                delete e.goal_percent;
-                delete e.lastName;
-                delete e.matchId;
-                delete e.miss;
-                delete e.mnbPlayerId;
-                delete e.penalty_miss;
-                delete e.playerId;
-                delete e.startTime;
-                delete e.team1Name;
-                delete e.team2Name;
-                delete e.teamId;
-                delete e.teamName;
-                return e;
-            });
+                    delete e.firstName;
+                    delete e.gamePositionName;
+                    delete e.goal;
+                    delete e.goal_percent;
+                    delete e.lastName;
+                    delete e.matchId;
+                    delete e.miss;
+                    delete e.mnbPlayerId;
+                    delete e.penalty_miss;
+                    delete e.playerId;
+                    delete e.startTime;
+                    delete e.team1Name;
+                    delete e.team2Name;
+                    delete e.teamId;
+                    delete e.teamName;
+                    return e;
+                });
+            } else {
+                playerScoreData.push({
+                    ['Match Id']: 'N/A',
+                    ['Date']: 'N/A',
+                    ['Team']: 'N/A',
+                    ['First Name']: 'N/A',
+                    ['Last Name']: 'N/A',
+                    ['Position']: 'N/A',
+                    ['Misses']: 'N/A',
+                    ['Goals']: 'N/A',
+                    ['Goals %']: 'N/A'
+                });
+            }
 
             response.setHeader('Content-disposition', 'attachment; filename=scoringByPlayer.csv');
             response.setHeader('content-type', 'text/csv');
