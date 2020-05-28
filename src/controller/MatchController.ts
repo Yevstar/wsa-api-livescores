@@ -214,7 +214,8 @@ export class MatchController extends BaseController {
             await this.matchScorerService.createOrUpdate(matchScores);
         }
         const saved = await this.matchService.createOrUpdate(match);
-        sendMatchUpdate(saved);
+        sendMatchUpdate(saved); // This is sent to socketserver of websocket
+        this.sendMatchEvent(saved); // This is to send notification for devices
         return saved;
     }
 
@@ -802,37 +803,44 @@ export class MatchController extends BaseController {
         let matchesData = await this.matchService.findByDate(new Date(startTimeStart), new Date(startTimeEnd))
 
         let arr = [];
+        let endTime = Date.now();
         if (resultTypeId) {
             for (let match of matchesData) {
-                match.team1ResultId = resultTypeId;
-                match.team2ResultId = resultTypeId;
-                arr.push(match);
+                if (match.matchStatus != "ENDED") {
+                    match.team1ResultId = resultTypeId;
+                    match.team2ResultId = resultTypeId;
+                    match.endTime = new Date(endTime);
+                    match.matchStatus = "ENDED";
+                    arr.push(match);
+                }
             }
         } else {
             for (let match of matchesData) {
-                if (match.team1Score != null && match.team2Score != null) {
-                    if (match.team1Score > match.team2Score) {
-                        match.team1ResultId = 1;
-                        match.team2ResultId = 2;
-                        arr.push(match);
-                    } else if (match.team2Score > match.team1Score) {
-                        match.team1ResultId = 2;
-                        match.team2ResultId = 1;
-                        arr.push(match);
-                    } else {
-                        match.team1ResultId = 3;
-                        match.team2ResultId = 3;
-                        arr.push(match);
+                if (match.matchStatus != "ENDED") {
+                    if (match.team1Score != null && match.team2Score != null) {
+                        if (match.team1Score > match.team2Score) {
+                            match.team1ResultId = 1;
+                            match.team2ResultId = 2;
+                            arr.push(match);
+                        } else if (match.team2Score > match.team1Score) {
+                            match.team1ResultId = 2;
+                            match.team2ResultId = 1;
+                            arr.push(match);
+                        } else {
+                            match.team1ResultId = 3;
+                            match.team2ResultId = 3;
+                            arr.push(match);
+                        }
                     }
+                    match.endTime = new Date(endTime);
+                    match.matchStatus = "ENDED";
                 }
             }
         }
         if (arr.length > 0) {
             let data = await this.matchService.batchCreateOrUpdate(arr);
             if (data) {
-                for (let match of data) {
-                    //this.sendMatchEvent(match);
-                }
+                this.sendBulkMatchUpdateNotification(data);
             }
         }
         return response.status(200).send({success: true});
@@ -898,9 +906,7 @@ export class MatchController extends BaseController {
         if (arr.length > 0) {
             let data = await this.matchService.batchCreateOrUpdate(arr);
             if (data) {
-                for (let match of data) {
-                   // this.sendMatchEvent(match);
-                }
+                this.sendBulkMatchUpdateNotification(data);
             }
         }
         return response.status(200).send({success: true});
@@ -1276,5 +1282,44 @@ export class MatchController extends BaseController {
         fastcsv.write(getMatchesData, { headers: true })
             .on("finish", function () { })
             .pipe(response);
+    }
+
+    private async sendBulkMatchUpdateNotification(matches: Match[]) {
+        try {
+            if (isArrayEmpty(matches)) {
+                var deviceTokensArray = Array();
+                for (let match of matches) {
+                    //send by roster and ure
+                    let matchDevices = await this.deviceService.findDeviceByMatch(match);
+                    let matchDeviceTokens = (matchDevices).map(device => device.deviceId);
+                    if (matchDeviceTokens && matchDeviceTokens.length > 0) {
+                        Array.prototype.push.apply(deviceTokensArray, matchDeviceTokens);
+                    }
+
+                    let list = await this.watchlistService.loadByParam(match.id, [match.team1Id, match.team2Id]);
+                    let watchlistDeviceTokens = (list).map(wl => wl['token']);
+                    if (watchlistDeviceTokens && watchlistDeviceTokens.length > 0) {
+                        Array.prototype.push.apply(deviceTokensArray, watchlistDeviceTokens);
+                    }
+                }
+
+                if (isArrayEmpty(deviceTokensArray)) {
+                    let uniqTokens = new Set(deviceTokensArray);
+                    let dataDict = {};
+                    dataDict["type"] = "match_updated";
+                    this.firebaseService.sendMessageChunked({
+                        tokens: Array.from(uniqTokens),
+                        data: dataDict
+                    });
+                } else {
+                  logger.error(`Cannot send message for empty device tokens list`);
+                }
+
+            } else {
+                logger.error(`Cannot send message for empty match list`);
+            }
+        } catch (e) {
+            logger.error(`Failed send message for matches ${matches}`, e);
+        }
     }
 }
