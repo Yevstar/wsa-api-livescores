@@ -43,4 +43,12 @@ export class Lineup extends BaseEntity {
     @IsBoolean()
     @Column()
     playing: boolean;
+
+    @IsBoolean()
+    @Column()
+    borrowed: boolean;
+
+    @IsString()
+    @Column()
+    verifiedBy: string;
 }

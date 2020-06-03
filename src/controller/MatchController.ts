@@ -791,6 +791,39 @@ export class MatchController extends BaseController {
         return this.matchService.findLineupsByParam(matchId, competitionId, teamId, playerId, positionId);
     }
 
+    @Patch('/lineup/update')
+    async updateLineups(
+        @QueryParam('matchId') matchId: number,
+        @QueryParam('teamId') teamId: number,
+        @Body() lineup: Lineup[],
+        @Res() response: Response
+    ) {
+        console.time('matchService.findById');
+        let match = await this.matchService.findById(matchId);
+        console.timeEnd('matchService.findById');
+        if (match.matchStatus != 'ENDED') {
+            if (lineup.length > 0) {
+                await this.matchService.batchSaveLineups(lineup);
+                let tokens = (await this.deviceService.findScorerDeviceFromRoster(matchId)).map(device => device.deviceId);
+                if (tokens && tokens.length > 0) {
+                    this.firebaseService.sendMessage({
+                        tokens: tokens,
+                        data: {
+                            type: 'attendance_added',
+                            matchId: matchId.toString(),
+                            teamId: teamId.toString()
+                        }
+                    })
+                }
+                return response.status(200).send({message: 'Lineup updated'});
+            } else {
+                return response.status(400).send({name: 'updated_lineup_error', message: 'List lineup is empty'});
+            }
+        } else {
+            return response.status(400).send({name: 'update_lineup_error', message: 'Lineup cannot be submitted after a match has ended'});
+        }
+    }
+
     @Authorized()
     @Post('/bulk/end')
     async bulkUpdate(
@@ -1191,7 +1224,7 @@ export class MatchController extends BaseController {
         }
     }
 
-     @Authorized()
+    @Authorized()
     @Get('/export')
     async exportMatches(
         @QueryParam('from') from: Date,
