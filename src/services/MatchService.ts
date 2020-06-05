@@ -14,9 +14,10 @@ import {MatchUmpire} from "../models/MatchUmpire";
 import {IncidentPlayer} from "../models/IncidentPlayer";
 import {IncidentMedia} from "../models/IncidentMedia";
 import {RequestFilter} from "../models/RequestFilter";
-import {paginationData, stringTONumber, isNotNullAndUndefined } from "../utils/Utils";
+import {paginationData, stringTONumber, isNotNullAndUndefined, s3 } from "../utils/Utils";
 import {StateTimezone} from "../models/StateTimezone";
 import {Location} from "../models/Location";
+import avro from 'avsc';
 
 @Service()
 export default class MatchService extends BaseService<Match> {
@@ -308,6 +309,21 @@ export default class MatchService extends BaseService<Match> {
         }
         me.userId = userId;
         me.source = 'app';
+
+        // To convert into avro format
+        let inferredType = avro.Type.forValue(me); // Infer the type of a `me`.
+        let buf = inferredType.toBuffer(me);
+        const params = {
+            Bucket: process.env.EVENT_STORE_BUCKET, // pass your bucket name
+            Key: Date.now()+".avro",
+            Body: buf
+        };
+        s3.upload(params, function(s3Err, data) {
+            if (s3Err) throw s3Err;
+            
+            console.log("File uploaded successfully");
+        });
+
         return this.entityManager.insert(MatchEvent, me);
     }
 
