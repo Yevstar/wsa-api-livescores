@@ -177,7 +177,7 @@ export class Match extends BaseEntity {
 
     @IsString()
     @Column()
-    resultStatus: "Draft" | "In Dispute" | "Final";
+    resultStatus: "Draft" | "Unconfirmed" | "In Dispute" | "Final";
 
     @ValidateNested()
     @OneToMany(type => MatchPausedTime, matchPausedTime => matchPausedTime.match)
