@@ -26,6 +26,7 @@ import CompetitionLadderSettingsService from "../services/CompetitionLadderSetti
 import CompetitionVenueService from "../services/CompetitionVenueService";
 import admin from "firebase-admin";
 import OrganisationService from "../services/OrganisationService";
+import CompetitionOrganisationService from "../services/CompetitionOrganisationService";
 
 export class BaseController {
 
@@ -103,6 +104,9 @@ export class BaseController {
 
     @Inject()
     protected organisationService: OrganisationService;
+
+    @Inject()
+    protected competitionOrganisationService: CompetitionOrganisationService;
 
     protected async updateFirebaseData(user: User, password: string) {
         user.password = password;

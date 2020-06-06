@@ -6,6 +6,12 @@ import {IsBoolean, IsNumber, IsString, ValidateNested} from "class-validator";
 @Entity()
 export class Competition extends BaseEntity {
 
+    public static AFFILIATED_ASSOCIATION: number = 2;
+    public static AFFILIATED_CLUB: number = 3;
+    public static DIRECT_INVITE: number = 5;
+    public static ANY_ORGANISATION_ASSOCIATION: number = 7;
+    public static ANY_ORGANISATION_CLUB: number = 8;
+
     @IsNumber()
     @PrimaryGeneratedColumn()
     id: number;

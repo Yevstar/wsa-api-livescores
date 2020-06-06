@@ -72,4 +72,27 @@ export default class CompetitionService extends BaseService<Competition> {
             competition where id in (select competitionId from wsa.organisation where id = ?)) as c where c.deleted_at is null
             order by c.name ASC`, [organisationId, organisationId]);
     }
+
+    public async getAllAffiliatedOrganisations(organisationId: number, invitorId: number, organisationTypeRefId: number): Promise<any> {
+        if (organisationTypeRefId === 2) {
+            //State
+            if (invitorId === 3) {
+                // in case of Associations
+                return await this.entityManager.query(`select a.affiliateOrgId as organisationId from wsa_users.affiliate a where a.organisationTypeRefId = 3
+                and a.affiliatedToOrgId = ? and a.isDeleted = 0`, [organisationId]);
+            } else if (invitorId === 4) {
+                // in case of Clubs
+                return await this.entityManager.query(` select a.affiliateOrgId as organisationId from wsa_users.affiliate a where a.isDeleted = 0 and 
+                a.organisationTypeRefId = 4 and a.affiliatedToOrgId in (select a2.affiliateOrgId from wsa_users.affiliate a2 where 
+                a2.organisationTypeRefId = 3 and a2.affiliatedToOrgId = ? and a2.isDeleted = 0)`, [organisationId]);
+            } else return [];
+        } else if (organisationTypeRefId === 3) {
+            // Associations
+            if (invitorId === 4) {
+                // in case of Clubs
+                return await this.entityManager.query(`select a.affiliateOrgId as organisationId from wsa_users.affiliate a where a.organisationTypeRefId = 4
+                and a.affiliatedToOrgId = ? and a.isDeleted = 0`, [organisationId]);
+            } else return [];
+        }
+    }
 }

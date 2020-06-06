@@ -18,7 +18,8 @@ import {User} from "../models/User";
 import {BaseController} from "./BaseController";
 import {RequestFilter} from "../models/RequestFilter";
 import { CompetitionVenue } from "../models/CompetitionVenue";
-import { isPhoto, fileExt, stringTONumber, stringToBoolean, timestamp, uuidv4 } from "../utils/Utils"
+import { isPhoto, fileExt, stringTONumber, stringToBoolean, timestamp, uuidv4, isArrayEmpty, isNotNullAndUndefined } from "../utils/Utils"
+import { CompetitionOrganisation } from "../models/CompetitionOrganisation";
 
 
 @JsonController('/competitions')
@@ -52,10 +53,11 @@ export class CompetitionController extends BaseController {
     async createOrUpdate(
         @HeaderParam('authorization') user: User,
         @QueryParam('venues') venues: number[],
-        @Body() competition: Competition,
+        @Body() competition: any,
         @UploadedFile("logo") file: Express.Multer.File,
         @Res() response: Response
     ): Promise<any> {
+        try {
         if (competition) {
             // updates with multipart have some issue, fields need to be mapped directly, and id needs to be converted explicitly to number
             let c = new Competition();
@@ -89,6 +91,91 @@ export class CompetitionController extends BaseController {
             if(c.id===0) c.uniqueKey = uuidv4();
 
             let saved = await this.competitionService.createOrUpdate(c);
+
+            if (isNotNullAndUndefined(competition.invitedTo) && competition.invitedTo !== '') {
+                competition.invitedTo = JSON.parse(competition.invitedTo)
+            }
+
+            if (isNotNullAndUndefined(competition.invitedOrganisation) && competition.invitedOrganisation !== '') {
+                competition.invitedOrganisation = JSON.parse(competition.invitedOrganisation)
+            }
+
+            if ((isNotNullAndUndefined(competition.invitedTo) && competition.invitedTo !== '' && isArrayEmpty(competition.invitedTo)) ||
+                (isNotNullAndUndefined(competition.invitedOrganisation) && competition.invitedOrganisation !== '' && isArrayEmpty(competition.invitedOrganisation))) {
+
+                let affliliateInvited = 0;
+                const INVITED_TO = competition.invitedTo;
+                let GET_ORGANISATIONS;
+                let invitationTo;
+
+                const MULTIPLE_ORGANISATIONS = [];
+                const ORG_ARRAY = [];
+                const CREATE_COMP_ORG = [];
+
+                const AFFILIATED_ASSOCIATION = Competition.AFFILIATED_ASSOCIATION;
+                const AFFILIATED_CLUB = Competition.AFFILIATED_CLUB;
+                const ANY_ASSOCIATION = Competition.ANY_ORGANISATION_ASSOCIATION;
+                const ANY_CLUB = Competition.ANY_ORGANISATION_CLUB;
+                const DIRECT = Competition.DIRECT_INVITE;
+
+                if ((INVITED_TO.includes(AFFILIATED_ASSOCIATION) || INVITED_TO.includes(AFFILIATED_CLUB))
+                    && (INVITED_TO.includes(ANY_ASSOCIATION) || INVITED_TO.includes(ANY_CLUB))) {
+
+                    if (INVITED_TO.includes(AFFILIATED_ASSOCIATION) && (!INVITED_TO.includes(AFFILIATED_CLUB))) { // Association selected
+                        affliliateInvited = 3;
+                        invitationTo = 2;
+                    } else if (INVITED_TO.includes(AFFILIATED_CLUB) && (!INVITED_TO.includes(AFFILIATED_ASSOCIATION))) { // Club selected
+                        affliliateInvited = 4;
+                        invitationTo = 3;
+                    }
+
+                    GET_ORGANISATIONS = await this.competitionService.getAllAffiliatedOrganisations(competition.organisationId, affliliateInvited, invitationTo);
+
+                    if (isNotNullAndUndefined(competition.invitedOrganisation)) {
+                        MULTIPLE_ORGANISATIONS.push(...GET_ORGANISATIONS, ...competition.invitedOrganisation);
+                    } else {
+                        MULTIPLE_ORGANISATIONS.push(...GET_ORGANISATIONS);
+                    }
+
+                    ORG_ARRAY.push(...MULTIPLE_ORGANISATIONS);
+
+                } else {
+
+                    if (INVITED_TO.includes(AFFILIATED_ASSOCIATION) && (!INVITED_TO.includes(AFFILIATED_CLUB, DIRECT, ANY_ASSOCIATION, ANY_CLUB))) { // Association selected
+                        affliliateInvited = 3;
+                        invitationTo = 2;
+                    } else if (INVITED_TO.includes(AFFILIATED_CLUB) && (!INVITED_TO.includes(AFFILIATED_ASSOCIATION, DIRECT, ANY_ASSOCIATION, ANY_CLUB))) { // Club selected
+                        affliliateInvited = 4;
+                        invitationTo = 3;
+                    }
+
+                    GET_ORGANISATIONS = await this.competitionService.getAllAffiliatedOrganisations(competition.organisationId, affliliateInvited, invitationTo);
+
+
+                    if (INVITED_TO.includes(DIRECT) && (!INVITED_TO.includes(AFFILIATED_ASSOCIATION, AFFILIATED_CLUB, ANY_ASSOCIATION, ANY_CLUB))) { // Direct Invited
+                        GET_ORGANISATIONS = [{ organisationId: competition.organisationId }];
+                    }
+
+                    if (isNotNullAndUndefined(competition.invitedOrganisation) && isArrayEmpty(competition.invitedOrganisation)) { // Any Organisation Invited
+                        if ((INVITED_TO.includes(ANY_ASSOCIATION) || INVITED_TO.includes(ANY_CLUB)) && (!INVITED_TO.includes(AFFILIATED_ASSOCIATION, AFFILIATED_CLUB, DIRECT))) {
+                            GET_ORGANISATIONS = competition.invitedOrganisation;
+                        }
+                    }
+
+                    ORG_ARRAY.push(...GET_ORGANISATIONS);
+                }
+
+                for (let i of ORG_ARRAY) {
+                    const compOrg = new CompetitionOrganisation();
+                    compOrg.id = 0;
+                    compOrg.competitionId = saved.id;
+                    compOrg.orgId = i.organisationId;
+                    CREATE_COMP_ORG.push(compOrg);
+                }
+
+                await this.competitionOrganisationService.batchCreateOrUpdate(CREATE_COMP_ORG);
+            }
+
             await this.competitionVenueService.deleteByCompetitionId(saved.id);
             let cvArray = [];
             for (let i of venues) {
@@ -161,6 +248,9 @@ export class CompetitionController extends BaseController {
         } else {
             return response.status(200).send(
                 {name: 'search_error', message: `Required fields are missing`});
+        }
+        } catch(err) {
+            return response.send(`An error occured while creating competition ${err}`)
         }
     }
 
