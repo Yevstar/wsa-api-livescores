@@ -1,6 +1,7 @@
 import {Service} from "typedi";
 import BaseService from "./BaseService";
 import {Organisation} from "../models/Organisation";
+import { isArrayEmpty } from "../utils/Utils";
 
 @Service()
 export default class OrganisationService extends BaseService<Organisation> {
@@ -27,5 +28,16 @@ export default class OrganisationService extends BaseService<Organisation> {
             query = query.andWhere('organisation.competitionId = :competitionId', {competitionId});
         }
         return query.getMany()
+    }
+
+    public async findByUniqueKey(organisationKey: string): Promise<any> {
+        const query = await this.entityManager.query(
+            `select o.* from wsa_users.organisation as o where o.organisationUniqueKey = ? and o.isDeleted = 0`
+            , [organisationKey]);
+        if (isArrayEmpty(query)) {
+            return query[0].id;
+        } else {
+            return 0;
+        }
     }
 }
