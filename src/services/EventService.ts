@@ -77,9 +77,17 @@ export default class EventService extends BaseService<Event> {
         return this.entityManager.insert(EventInvitee, eventInvitee);
     }
 
-    public async findEventInvitees(ids: number[]): Promise<EventInvitee[]> {
-        let query = this.entityManager.createQueryBuilder(EventInvitee, 'ei')
-                        .andWhere('ei.eventId in (:ids)', {ids: ids});
-        return query.getMany();
+    public async findEventInvitees(ids: number[]): Promise<any> {
+        let result = await this.entityManager.query(
+          "call wsa.usp_get_eventInvitees(?, ?, ?)",[
+            ids.toString(),
+            EntityType.TEAM,
+            EntityType.USER
+          ]);
+        if (isArrayEmpty(result)) {
+          return result[0];
+        } else {
+          return [];
+        }
     }
 }

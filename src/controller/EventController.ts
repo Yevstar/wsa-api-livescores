@@ -35,9 +35,9 @@ export class EventController  extends BaseController {
 
     @Authorized()
     @Get("/eventInvitees")
-    async findEventInvitees(
+    async getEventInvitees(
       @QueryParam("ids") ids: number[],
-    ): Promise<EventInvitee[]> {
+    ): Promise<any> {
       return this.eventService.findEventInvitees(ids);
     }
 
