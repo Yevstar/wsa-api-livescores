@@ -28,6 +28,7 @@ import {Team} from "../models/Team";
 import {OpenAPI} from "routing-controllers-openapi";
 import FirebaseService from "../services/FirebaseService";
 import { md5, isArrayEmpty } from "../utils/Utils";
+import {stringTONumber, paginationData, isNotNullAndUndefined} from "../utils/Utils";
 
 @JsonController('/users')
 export class UserController extends BaseController {
@@ -393,6 +394,33 @@ export class UserController extends BaseController {
             }
         }
         await this.checkFirestoreDatabase(user);
+    }
+
+    @Authorized()
+    @Get('/byOrgRole')
+    async loadOrgUserByRole(
+        @QueryParam('roleId', {required: true}) roleId: number,
+        @QueryParam('organisationId', {required: true}) organisationId: number,
+        @QueryParam('search') search: string,
+        @QueryParam('offset') offset: number,
+        @QueryParam('limit') limit: number,
+    ): Promise<any> {
+
+        const resultsFound = await this.userService.getOrgUsersBySecurity(organisationId, {roleId: roleId}, search, offset, limit);
+        if (resultsFound && isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
+            let responseObject = paginationData(stringTONumber(resultsFound.countObj), limit, offset)
+            let result = resultsFound.result;
+            for (let u of result) {
+                u['organisations'] = JSON.parse(u['organisations']);
+            }
+            for (let u of result) {
+                u['competitions'] = JSON.parse(u['competitions']);
+            }
+            responseObject["users"] = result;
+            return responseObject;
+        } else {
+            return resultsFound.result;
+        }
     }
 
     @Authorized()

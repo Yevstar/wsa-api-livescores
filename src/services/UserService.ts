@@ -6,9 +6,12 @@ import {Function} from "../models/security/Function";
 import {EntityType} from "../models/security/EntityType";
 import {UserRoleEntity} from "../models/security/UserRoleEntity";
 import {RoleFunction} from "../models/security/RoleFunction";
+import {Organisation} from "../models/Organisation";
+import {Competition} from "../models/Competition";
 import {logger} from '../logger';
 import nodeMailer from "nodemailer";
 import {LinkedEntities} from "../models/views/LinkedEntities";
+import {LinkedOrganisations} from "../models/views/LinkedOrganisations";
 import {Brackets} from "typeorm";
 
 @Service()
@@ -100,6 +103,54 @@ export default class UserService extends BaseService<User> {
             query.andWhere('u.id = :userId', {userId});
         }
         return query.getRawMany();
+    }
+
+    public async getOrgUsersBySecurity(organisationId: number,
+        sec: { functionId?: number, roleId?: number }, search: string, offset: number, limit: number): Promise<any> {
+        let query = this.entityManager.createQueryBuilder(User, 'u')
+        .select(['u.id as id', 'LOWER(u.email) as email', 'u.firstName as firstName', 'u.lastName as lastName',
+        'u.mobileNumber as mobileNumber', 'u.genderRefId as genderRefId',
+        'u.marketingOptIn as marketingOptIn', 'u.photoUrl as photoUrl',
+        'u.firebaseUID as firebaseUID', 'u.statusRefId as statusRefId'])
+        .addSelect('concat(\'[\', group_concat(distinct JSON_OBJECT(\'name\', c.name)),\']\') as competitions')
+        .addSelect('concat(\'[\', group_concat(distinct JSON_OBJECT(\'name\', c.linkedOrganisationName)),\']\') as organisations')
+        .innerJoin(UserRoleEntity, 'ure', 'u.id = ure.userId')
+        .innerJoin(Organisation, 'co', 'co.id = ure.entityId')
+        .innerJoin(Competition, 'c', 'co.competitionid = c.id')
+        .innerJoin(LinkedOrganisations, 'o', 'o.linkedOrganisationId = co.organisationId');
+
+        // if (sec.functionId) {
+        // let id = sec.functionId;
+        // query.innerJoin(Function, 'f', 'f.id = fr.functionId')
+        // .andWhere('f.id = :id', {id});
+        // }
+
+        if (sec.roleId) {
+            let id = sec.roleId;
+             query.andWhere('ure.roleId = :id', {id});
+        }
+
+        let orgEntityId = EntityType.ORGANISATION;
+        query.andWhere('ure.entityTypeId = :entityId', {orgEntityId})
+        .andWhere('co.organisationId = :organisationId', {organisationId});
+
+        if (search) {
+            query.andWhere(new Brackets(qb => {
+            qb.andWhere('LOWER(u.firstName) like :query', {query: `${search.toLowerCase()}%`})
+            .orWhere('LOWER(u.lastName) like :query', {query: `${search.toLowerCase()}%`});
+            }));
+        }
+        query.groupBy('u.id');
+
+        if (limit) {
+            const countObj = await query.getCount()
+            const result = await query.skip(offset).take(limit).getMany();
+            return {countObj,result}
+        } else {
+            const countObj = null;
+            const result = await query.getMany();
+            return {countObj, result}
+        }
     }
 
     public async sentMail(userData, teamData, competitionData, mailTo, receiverData, password) {
@@ -296,4 +347,5 @@ export default class UserService extends BaseService<User> {
         query.groupBy('u.id');
         return query.getRawMany()
     }
+
 }
