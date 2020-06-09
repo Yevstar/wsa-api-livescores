@@ -68,9 +68,12 @@ export default class CompetitionService extends BaseService<Competition> {
 
     public async getCompetitionsPublic(organisationId: number): Promise<any> {
         return await this.entityManager.query(
-            `select distinct * from (select distinct * from competition where organisationId = ? union select distinct * from
-            competition where id in (select competitionId from wsa.organisation where id = ?)) as c where c.deleted_at is null
-            order by c.name ASC`, [organisationId, organisationId]);
+            'select distinct c.*\n' +
+            'from competition c, competitionOrganisation co\n' +
+            'where \n' +
+            '   (c.id = co.competitionId and c.organisationId = ?)\n' +
+            ' or (c.id = co.competitionId and co.orgId = ?)\n' +
+            'order by c.name ASC', [organisationId, organisationId]);
     }
 
     public async getAllAffiliatedOrganisations(organisationId: number, invitorId: number, organisationTypeRefId: number): Promise<any> {
