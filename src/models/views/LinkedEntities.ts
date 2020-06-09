@@ -23,4 +23,8 @@ export class LinkedEntities {
     @IsString()
     @ViewColumn()
     linkedEntityName: string;
+
+    @IsString()
+    @ViewColumn()
+    linkedParentName: string;
 }
