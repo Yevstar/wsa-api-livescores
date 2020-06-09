@@ -113,7 +113,7 @@ export default class UserService extends BaseService<User> {
         'u.marketingOptIn as marketingOptIn', 'u.photoUrl as photoUrl',
         'u.firebaseUID as firebaseUID', 'u.statusRefId as statusRefId'])
         .addSelect('concat(\'[\', group_concat(distinct JSON_OBJECT(\'name\', c.name)),\']\') as competitions')
-        .addSelect('concat(\'[\', group_concat(distinct JSON_OBJECT(\'name\', c.linkedOrganisationName)),\']\') as organisations')
+        .addSelect('concat(\'[\', group_concat(distinct JSON_OBJECT(\'name\', o.linkedOrganisationName)),\']\') as organisations')
         .innerJoin(UserRoleEntity, 'ure', 'u.id = ure.userId')
         .innerJoin(Organisation, 'co', 'co.id = ure.entityId')
         .innerJoin(Competition, 'c', 'co.competitionid = c.id')
