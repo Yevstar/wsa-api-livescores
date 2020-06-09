@@ -131,7 +131,7 @@ export default class UserService extends BaseService<User> {
         }
 
         let orgEntityId = EntityType.ORGANISATION;
-        query.andWhere('ure.entityTypeId = :entityId', {orgEntityId})
+        query.andWhere('ure.entityTypeId = :orgEntityId', {orgEntityId})
         .andWhere('co.organisationId = :organisationId', {organisationId});
 
         if (search) {
