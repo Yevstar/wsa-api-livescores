@@ -40,4 +40,15 @@ export default class OrganisationService extends BaseService<Organisation> {
             return 0;
         }
     }
+
+    public async findAffiliateDetailsByOrganisationId(organisationId: number): Promise<any> {
+        const query = await this.entityManager.query(
+            `select a2.* from wsa_users.affiliate a2 where a2.affiliateOrgId = 2 and a2.isDeleted = 0`
+            , [organisationId]);
+        if (isArrayEmpty(query)) {
+            return query[0].organisationTypeRefId;
+        } else {
+            return 0;
+        }
+    }
 }

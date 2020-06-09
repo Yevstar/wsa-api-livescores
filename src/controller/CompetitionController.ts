@@ -129,7 +129,8 @@ export class CompetitionController extends BaseController {
                         invitationTo = 3;
                     }
 
-                    GET_ORGANISATIONS = await this.competitionService.getAllAffiliatedOrganisations(competition.organisationId, affliliateInvited, invitationTo);
+                    const organisationTypeRefId = await this.organisationService.findAffiliateDetailsByOrganisationId(competition.organisationId)
+                    GET_ORGANISATIONS = await this.competitionService.getAllAffiliatedOrganisations(competition.organisationId, affliliateInvited, organisationTypeRefId);
 
                     if (isNotNullAndUndefined(competition.invitedOrganisation)) {
                         MULTIPLE_ORGANISATIONS.push(...GET_ORGANISATIONS, ...competition.invitedOrganisation);
