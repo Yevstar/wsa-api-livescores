@@ -407,28 +407,20 @@ export class UserController extends BaseController {
     ): Promise<any> {
 
         const resultsFound = await this.userService.getOrgUsersBySecurity(organisationId, {roleId: roleId}, search, offset, limit);
-        for (let u of resultsFound) {
-            u['organisations'] = JSON.parse(u['organisations']);
+        if (resultsFound && isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
+            let responseObject = paginationData(stringTONumber(resultsFound.countObj), limit, offset)
+            let result = resultsFound.result;
+            for (let u of result) {
+                u['organisations'] = JSON.parse(u['organisations']);
+            }
+            for (let u of result) {
+                u['competitions'] = JSON.parse(u['competitions']);
+            }
+            responseObject["users"] = result;
+            return responseObject;
+        } else {
+            return resultsFound.result;
         }
-        for (let u of resultsFound) {
-            u['competitions'] = JSON.parse(u['competitions']);
-        }
-        return resultsFound;
-
-        // if (resultsFound && isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
-        //     let responseObject = paginationData(stringTONumber(resultsFound.countObj), limit, offset)
-        //     let result = resultsFound.result;
-        //     for (let u of result) {
-        //         u['organisations'] = JSON.parse(u['organisations']);
-        //     }
-        //     for (let u of result) {
-        //         u['competitions'] = JSON.parse(u['competitions']);
-        //     }
-        //     responseObject["users"] = result;
-        //     return responseObject;
-        // } else {
-        //     return resultsFound.result;
-        // }
     }
 
     @Authorized()

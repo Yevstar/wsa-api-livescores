@@ -142,17 +142,15 @@ export default class UserService extends BaseService<User> {
         }
         query.groupBy('u.id');
 
-        const result = await query.getRawMany();
-        return result;
-        // if (limit) {
-        //     const countObj = await query.getCount()
-        //     const result = await query.skip(offset).take(limit).getRawMany();
-        //     return {countObj,result}
-        // } else {
-        //     const countObj = null;
-        //     const result = await query.getRawMany();
-        //     return {countObj, result}
-        // }
+        if (limit) {
+            const countObj = await query.getCount()
+            const result = await query.skip(offset).take(limit).getRawMany();
+            return {countObj,result}
+        } else {
+            const countObj = null;
+            const result = await query.getRawMany();
+            return {countObj, result}
+        }
     }
 
     public async sentMail(userData, teamData, competitionData, mailTo, receiverData, password) {
