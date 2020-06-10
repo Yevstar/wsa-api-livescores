@@ -1347,7 +1347,6 @@ export class MatchController extends BaseController {
                 } else {
                   logger.error(`Cannot send message for empty device tokens list`);
                 }
-
             } else {
                 logger.error(`Cannot send message for empty match list`);
             }

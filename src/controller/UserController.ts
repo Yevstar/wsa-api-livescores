@@ -465,6 +465,7 @@ export class UserController extends BaseController {
                 userData.email = userData.email.toLowerCase();
                 userData.password = md5(password);
                 const saved = await this.userService.createOrUpdate(userData);
+                await this.updateFirebaseData(userData, userData.password);
                 logger.info(`Manager ${userData.email} signed up.`);
 
                 if (isArrayEmpty(userData.teams)) {
@@ -552,6 +553,7 @@ export class UserController extends BaseController {
                 userData.email = userData.email.toLowerCase();
                 userData.password = md5(password);
                 const saved = await this.userService.createOrUpdate(userData);
+                await this.updateFirebaseData(userData, userData.password);
                 logger.info(`Coach ${userData.email} signed up.`);
 
                 if (isArrayEmpty(userData.teams)) {
@@ -638,6 +640,7 @@ export class UserController extends BaseController {
                 userData.email = userData.email.toLowerCase();
                 userData.password = md5(password);
                 const saved = await this.userService.createOrUpdate(userData);
+                await this.updateFirebaseData(userData, userData.password);
                 logger.info(`Manager ${userData.email} signed up.`);
 
                 let competitionData = await this.competitionService.findById(competitionId)
@@ -705,6 +708,7 @@ export class UserController extends BaseController {
             admin.email = admin.email.toLowerCase();
             admin.password = md5(password);
             const saved = await this.userService.createOrUpdate(admin);
+            await this.updateFirebaseData(admin, admin.password);
             logger.info(`Admin ${admin.email} signed up.`);
 
             let ure = new UserRoleEntity();
@@ -755,6 +759,8 @@ export class UserController extends BaseController {
             superAdmin.email = superAdmin.email.toLowerCase();
             superAdmin.password = md5(password);
             const saved = await this.userService.createOrUpdate(superAdmin);
+            await this.updateFirebaseData(superAdmin, superAdmin.password);
+
             logger.info(`Super Admin ${superAdmin.email} signed up.`);
 
             let ure = new UserRoleEntity();

@@ -208,6 +208,7 @@ export class TeamController extends BaseController {
                 managerInfo.password = md5(password);
 
                 savedUser = await this.userService.createOrUpdate(managerInfo);
+                await this.updateFirebaseData(managerInfo, managerInfo.password);
                 logger.info(`Manager ${managerInfo.email} signed up.`);
                 managerIds[managerIds.length] = savedUser.id;
             }
@@ -230,7 +231,7 @@ export class TeamController extends BaseController {
                 ure.userId = managerId
                 ure.createdBy = user.id;
                 ureArray.push(ure);
-    
+
                 let ure1 = new UserRoleEntity();
                 ure1.roleId = Role.MEMBER;
                 ure1.entityId = savedTeam.competitionId;
