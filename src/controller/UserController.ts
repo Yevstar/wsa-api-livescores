@@ -601,6 +601,94 @@ export class UserController extends BaseController {
     }
 
     @Authorized()
+    @Post('/umpire')
+    async addUmpire(
+        @HeaderParam("authorization") user: User,
+        @QueryParam('competitionId', { required: true }) competitionId: number,
+        @Body() userData: User,
+        @Res() response: Response) {
+
+        var newUser = false;
+        // if new user, search for user
+        if (!userData.id) {
+            if (isNullOrEmpty(userData.email)
+            || isNullOrEmpty(userData.firstName)
+            || isNullOrEmpty(userData.lastName)
+            || isNullOrEmpty(userData.mobileNumber)) {
+            return response
+                .status(422)
+                .send({ name: 'validation_error', message: 'Not all required fields filled' });
+            }
+            const foundUser = await this.userService.findByEmail(userData.email.toLowerCase());
+            // if user exists in our database, validate the rest of their details
+            if (foundUser) {
+                if (foundUser.firstName == userData.firstName
+                    && foundUser.lastName == userData.lastName
+                    && foundUser.mobileNumber == userData.mobileNumber) {
+                    userData.id = foundUser.id;
+                } else {
+                    return response
+                    .status(400).send({
+                        name: 'validation_error',
+                        message: 'A user with this email address already exists however other details do not match'
+                    });
+                }
+            } else {
+                // create user
+                newUser = true;
+
+                var password = Math.random().toString(36).slice(-8);
+                userData.email = userData.email.toLowerCase();
+                userData.password = md5(password);
+                const saved = await this.userService.createOrUpdate(userData);
+                await this.updateFirebaseData(userData, userData.password);
+                logger.info(`Umpire ${userData.email} signed up.`);
+
+                if (isArrayEmpty(userData.affiliates)) {
+                    let competitionData = await this.competitionService.findById(competitionId)
+                    this.userService.sentMail(user, userData.affiliates, competitionData, 'umpire', saved, password);
+                }
+
+                userData.id = saved.id;
+            }
+        } else if (userData.firstName && userData.lastName && userData.mobileNumber) {
+            let foundUser = await this.userService.findById(userData.id);
+            foundUser.firstName = userData.firstName;
+            foundUser.lastName = userData.lastName;
+            foundUser.mobileNumber = userData.mobileNumber;
+            await this.userService.createOrUpdate(foundUser);
+        }
+
+        // existing user - delete existing team assignments
+        if (!newUser) {
+            await this.userService.deleteRolesByUser(userData.id, Role.UMPIRE, competitionId, EntityType.COMPETITION, EntityType.ORGANISATION);
+            await this.userService.deleteRolesByUser(userData.id, Role.MEMBER, competitionId, EntityType.COMPETITION, EntityType.COMPETITION);
+        }
+
+        // assign teams
+        let ureArray = [];
+        for (let i of userData.affiliates) {
+            let ure = new UserRoleEntity();
+            ure.roleId = Role.UMPIRE;
+            ure.entityId = i.id;
+            ure.entityTypeId = EntityType.ORGANISATION;
+            ure.userId = userData.id
+            ure.createdBy = user.id;
+            ureArray.push(ure);
+        }
+        let ure1 = new UserRoleEntity();
+        ure1.roleId = Role.MEMBER;
+        ure1.entityId = competitionId;
+        ure1.entityTypeId = EntityType.COMPETITION;
+        ure1.userId = userData.id
+        ure1.createdBy = user.id;
+        ureArray.push(ure1);
+        await this.ureService.batchCreateOrUpdate(ureArray);
+        await this.notifyChangeRole(userData.id);
+        return response.status(200).send({success: true});
+    }
+
+    @Authorized()
     @Post('/member')
     async addMember(
         @HeaderParam("authorization") user: User,

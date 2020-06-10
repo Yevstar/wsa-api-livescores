@@ -1,4 +1,5 @@
 import {Team} from './Team';
+import {Organisation} from './Organisation';
 import {BaseEntity, Column, Entity, PrimaryGeneratedColumn, OneToMany} from "typeorm-plus";
 import {IsBoolean, IsDate, IsNumber, IsString} from "class-validator";
 
@@ -61,4 +62,5 @@ export class User extends BaseEntity {
     firebaseUID: string;
 
     teams: Team[];
+    affiliates: Organisation[];
 }
