@@ -74,6 +74,20 @@ export default class RosterService extends BaseService<Roster> {
             .getMany();
     }
 
+    public async findUserRostersByCompetition(competitionId: number, roleId: number): Promise<Roster[]> {
+        return this.entityManager.createQueryBuilder(Roster, 'roster')
+            .innerJoinAndSelect('roster.match', 'match')
+            .innerJoinAndSelect('roster.user', 'user')
+            .innerJoinAndSelect('match.team1', 'team1')
+            .innerJoinAndSelect('match.team2', 'team2')
+            .innerJoinAndSelect('match.division', 'division')
+            .innerJoinAndSelect('match.competition', 'competition')
+            .andWhere('match.competitionId = :competitionId', {competitionId})
+            .andWhere('match.competitionId = :roleId', {roleId})
+            .andWhere('match.deleted_at is null')
+            .getMany();
+    }
+
     public async findRosterId(rosterId: number): Promise<Roster> {
         return this.entityManager.createQueryBuilder(Roster, 'roster')
             .innerJoinAndSelect('roster.match', 'match')
@@ -93,7 +107,17 @@ export default class RosterService extends BaseService<Roster> {
         return query.getRawOne();
     }
 
-    public async findByRole(competitionId: number, roleId: number): Promise<User[]> {
+    // to allow inline edit of rosters
+    public async findByParam(rosterId: number): Promise<any> {
+        let query = this.entityManager.createQueryBuilder(Roster, 'r')
+            .select(['distinct u.id as id', 'u.firstName as firstName', 'u.lastName as lastName',
+                'r.id as rosterId', 'r.status as rosterStatus'])
+            .innerJoin(User, 'u', '(u.id = r.userId)')
+            .andWhere("r.id = :rosterId", {rosterId});
+        return query.getRawOne();
+    }
+
+    public async findUsersByRole(competitionId: number, roleId: number): Promise<User[]> {
         let query = this.entityManager.createQueryBuilder(User, 'u')
             .select(['distinct u.id as id', 'u.email as email', 'u.firstName as firstName', 'u.lastName as lastName',
                 'u.mobileNumber as mobileNumber', 'u.photoUrl as photoUrl'])

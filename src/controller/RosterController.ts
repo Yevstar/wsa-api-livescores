@@ -33,13 +33,29 @@ export class RosterController extends BaseController {
 
     @Authorized()
     @Get('/users')
+    async rosterUserList(
+        @QueryParam("competitionId") competitionId: number,
+        @QueryParam("roleId") roleId: number,
+        @Res() response: Response
+    ) {
+        if (competitionId && roleId) {
+            return this.rosterService.findUsersByRole(competitionId, roleId);
+        } else {
+            return response.status(200).send({
+                name: 'search_error', message: `Invalid parameters`
+            });
+        }
+    }
+
+    @Authorized()
+    @Get('/list')
     async rosterList(
         @QueryParam("competitionId") competitionId: number,
         @QueryParam("roleId") roleId: number,
         @Res() response: Response
     ) {
         if (competitionId && roleId) {
-            return this.rosterService.findByRole(competitionId, roleId);
+            return this.rosterService.findUserRostersByCompetition(competitionId, roleId);
         } else {
             return response.status(200).send({
                 name: 'search_error', message: `Invalid parameters`
