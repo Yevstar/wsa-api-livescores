@@ -83,7 +83,7 @@ export default class RosterService extends BaseService<Roster> {
             .innerJoinAndSelect('match.division', 'division')
             .innerJoinAndSelect('match.competition', 'competition')
             .andWhere('match.competitionId = :competitionId', {competitionId})
-            .andWhere('match.competitionId = :roleId', {roleId})
+            .andWhere('roster.roleId = :roleId', {roleId})
             .andWhere('match.deleted_at is null')
             .getMany();
     }
