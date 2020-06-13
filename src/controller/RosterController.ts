@@ -52,11 +52,12 @@ export class RosterController extends BaseController {
     async rosterList(
         @QueryParam("competitionId") competitionId: number,
         @QueryParam("roleId") roleId: number,
+        @QueryParam("status") status: string,
         @Body() requestFilter: RequestFilter,
         @Res() response: Response
     ) {
         if (competitionId && roleId) {
-            return this.rosterService.findUserRostersByCompetition(competitionId, roleId, requestFilter);
+            return this.rosterService.findUserRostersByCompetition(competitionId, roleId, status, requestFilter);
         } else {
             return response.status(200).send({
                 name: 'search_error', message: `Invalid parameters`

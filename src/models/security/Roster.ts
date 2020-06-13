@@ -9,6 +9,10 @@ import {IsNumber, IsBoolean} from "class-validator";
 @Entity()
 export class Roster extends BaseEntity {
 
+    public static STATUS_YES = "YES";
+    public static STATUS_NO = "NO";
+    public static STATUS_NONE = null;
+
     @IsNumber()
     @PrimaryGeneratedColumn()
     id: number;

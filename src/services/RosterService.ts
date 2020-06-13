@@ -76,7 +76,7 @@ export default class RosterService extends BaseService<Roster> {
     }
 
     // keeping the query as light as possible but more fields can be added if needed - used for umpire roster list
-    public async findUserRostersByCompetition(competitionId: number, roleId: number, requestFilter: RequestFilter): Promise<any> {
+    public async findUserRostersByCompetition(competitionId: number, roleId: number, status: string, requestFilter: RequestFilter): Promise<any> {
         
         let query = this.entityManager.createQueryBuilder(Roster, 'roster')
             .innerJoinAndSelect('roster.match', 'match')
@@ -89,6 +89,14 @@ export default class RosterService extends BaseService<Roster> {
             .andWhere('match.deleted_at is null')
             .andWhere('userRoleEntity.entityTypeId = 2')
             .andWhere('userRoleEntity.roleId = 15');
+
+            if (status) {
+                if (status == Roster.STATUS_NONE) {
+                    query.andWhere('roster.status is null');
+                } else {
+                    query.andWhere('roster.status = :status', { status });
+                }
+            }
 
             if (isNotNullAndUndefined(requestFilter) 
                 && isNotNullAndUndefined(requestFilter.paging)
