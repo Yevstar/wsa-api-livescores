@@ -22,7 +22,7 @@ import {Response} from "express";
 import {BaseController} from "./BaseController";
 import {logger} from "../logger";
 import {User} from "../models/User";
-import {contain, fileExt, isPhoto, isVideo, timestamp, stringTONumber, paginationData, isArrayEmpty, isNotNullAndUndefined} from "../utils/Utils";
+import {contain, fileExt, isPhoto, isVideo, timestamp, stringTONumber, paginationData, isArrayPopulated, isNotNullAndUndefined} from "../utils/Utils";
 import {Incident} from "../models/Incident";
 import {Lineup} from "../models/Lineup";
 import {IncidentPlayer} from "../models/IncidentPlayer";
@@ -957,13 +957,13 @@ export class MatchController extends BaseController {
 
         let firstRoundArray = await this.roundService.findByName(competitionId, round1);
         let secondRoundArray = await this.roundService.findByName(competitionId, round2);
-        if (isArrayEmpty(firstRoundArray) && isArrayEmpty(secondRoundArray)) {
+        if (isArrayPopulated(firstRoundArray) && isArrayPopulated(secondRoundArray)) {
             for (let r1 of firstRoundArray) {
                 for (let r2 of secondRoundArray) {
                     if (r2.divisionId = r1.divisionId) {
                         let firstMatchesArray = await this.matchService.findByRound(r1.id);
                         let secondMatchesArray = await this.matchService.findByRound(r2.id);
-                        if (isArrayEmpty(firstMatchesArray) && isArrayEmpty(secondMatchesArray)) {
+                        if (isArrayPopulated(firstMatchesArray) && isArrayPopulated(secondMatchesArray)) {
                             let secondMatchTemplate = secondMatchesArray[0];
                             if (secondMatchTemplate.startTime) {
 
@@ -1207,7 +1207,7 @@ export class MatchController extends BaseController {
         @QueryParam('toCourtId', { required: true }) toCourtId: number,
         @Res() response: Response): Promise<any> {
         const getMatches = await this.matchService.getMatchDetailsForVenueCourtUpdate(competitionId, startTime, endTime, fromCourtIds);
-        if (isArrayEmpty(getMatches)) {
+        if (isArrayPopulated(getMatches)) {
             const mArray = [];
             for (let i of getMatches) {
                 let m = new Match();
@@ -1242,7 +1242,7 @@ export class MatchController extends BaseController {
 
         const getMatchesData = await this.find(from, to, teamIds, playerIds, competitionId, organisationIds, matchEnded, matchStatus, null, null, null);
 
-        if (isArrayEmpty(getMatchesData)) {
+        if (isArrayPopulated(getMatchesData)) {
             getMatchesData.map(e => {
                 e['Match Id'] = e.id;
                 e['Start Time'] = e.startTime;
@@ -1319,7 +1319,7 @@ export class MatchController extends BaseController {
 
     private async sendBulkMatchUpdateNotification(matches: Match[]) {
         try {
-            if (isArrayEmpty(matches)) {
+            if (isArrayPopulated(matches)) {
                 var deviceTokensArray = Array();
                 for (let match of matches) {
                     //send by roster and ure
@@ -1336,7 +1336,7 @@ export class MatchController extends BaseController {
                     }
                 }
 
-                if (isArrayEmpty(deviceTokensArray)) {
+                if (isArrayPopulated(deviceTokensArray)) {
                     let uniqTokens = new Set(deviceTokensArray);
                     let dataDict = {};
                     dataDict["type"] = "match_updated";

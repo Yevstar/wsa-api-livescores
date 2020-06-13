@@ -3,7 +3,7 @@ import BaseService from "./BaseService";
 import {News} from "../models/News";
 import {Watchlist} from "../models/Watchlist";
 import {Brackets, DeleteResult} from "typeorm-plus";
-import {contain, fileExt, timestamp, isArrayEmpty} from "../utils/Utils";
+import {contain, fileExt, timestamp, isArrayPopulated} from "../utils/Utils";
 import {Response} from 'express';
 
 @Service()
@@ -33,7 +33,7 @@ export default class NewsService extends BaseService<News> {
         deviceId: string = undefined
     ): Promise<News[]> {
         let result = await this.entityManager.query("call wsa.usp_get_news(?, ?)",[userId, deviceId]);
-        if (isArrayEmpty(result)) {
+        if (isArrayPopulated(result)) {
           return result[0];
         } else {
           return [];

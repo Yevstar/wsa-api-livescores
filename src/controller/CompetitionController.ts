@@ -18,7 +18,7 @@ import {User} from "../models/User";
 import {BaseController} from "./BaseController";
 import {RequestFilter} from "../models/RequestFilter";
 import { CompetitionVenue } from "../models/CompetitionVenue";
-import { isPhoto, fileExt, stringTONumber, stringToBoolean, timestamp, uuidv4, isArrayEmpty, isNotNullAndUndefined } from "../utils/Utils"
+import { isPhoto, fileExt, stringTONumber, stringToBoolean, timestamp, uuidv4, isArrayPopulated, isNotNullAndUndefined } from "../utils/Utils"
 import { CompetitionOrganisation } from "../models/CompetitionOrganisation";
 
 
@@ -100,8 +100,8 @@ export class CompetitionController extends BaseController {
                 competition.invitedOrganisation = JSON.parse(competition.invitedOrganisation)
             }
 
-            if ((isNotNullAndUndefined(competition.invitedTo) && competition.invitedTo !== '' && isArrayEmpty(competition.invitedTo)) ||
-                (isNotNullAndUndefined(competition.invitedOrganisation) && competition.invitedOrganisation !== '' && isArrayEmpty(competition.invitedOrganisation))) {
+            if ((isNotNullAndUndefined(competition.invitedTo) && competition.invitedTo !== '' && isArrayPopulated(competition.invitedTo)) ||
+                (isNotNullAndUndefined(competition.invitedOrganisation) && competition.invitedOrganisation !== '' && isArrayPopulated(competition.invitedOrganisation))) {
 
                 let affliliateInvited = 0;
                 const INVITED_TO = competition.invitedTo;
@@ -157,7 +157,7 @@ export class CompetitionController extends BaseController {
                         GET_ORGANISATIONS = [{ organisationId: competition.organisationId }];
                     }
 
-                    if (isNotNullAndUndefined(competition.invitedOrganisation) && isArrayEmpty(competition.invitedOrganisation)) { // Any Organisation Invited
+                    if (isNotNullAndUndefined(competition.invitedOrganisation) && isArrayPopulated(competition.invitedOrganisation)) { // Any Organisation Invited
                         if ((INVITED_TO.includes(ANY_ASSOCIATION) || INVITED_TO.includes(ANY_CLUB)) && (!INVITED_TO.includes(AFFILIATED_ASSOCIATION, AFFILIATED_CLUB, DIRECT))) {
                             GET_ORGANISATIONS = competition.invitedOrganisation;
                         }

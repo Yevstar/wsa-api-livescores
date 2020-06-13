@@ -1,7 +1,7 @@
 import {Service} from "typedi";
 import BaseService from "./BaseService";
 import {Organisation} from "../models/Organisation";
-import { isArrayEmpty } from "../utils/Utils";
+import { isArrayPopulated } from "../utils/Utils";
 
 @Service()
 export default class OrganisationService extends BaseService<Organisation> {
@@ -34,7 +34,7 @@ export default class OrganisationService extends BaseService<Organisation> {
         const query = await this.entityManager.query(
             `select o.* from wsa_users.organisation as o where o.organisationUniqueKey = ? and o.isDeleted = 0`
             , [organisationKey]);
-        if (isArrayEmpty(query)) {
+        if (isArrayPopulated(query)) {
             return query[0].id;
         } else {
             return 0;
@@ -45,7 +45,7 @@ export default class OrganisationService extends BaseService<Organisation> {
         const query = await this.entityManager.query(
             `select a2.* from wsa_users.affiliate a2 where a2.affiliateOrgId = ? and a2.isDeleted = 0`
             , [organisationId]);
-        if (isArrayEmpty(query)) {
+        if (isArrayPopulated(query)) {
             return query[0].organisationTypeRefId;
         } else {
             return 0;

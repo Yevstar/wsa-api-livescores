@@ -45,4 +45,5 @@ export default abstract class BaseService<T extends BaseEntity> {
     public async delete(model: T): Promise<T> {
         return this.entityManager.remove(model);
     }
+
 }

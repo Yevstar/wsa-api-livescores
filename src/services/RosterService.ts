@@ -5,7 +5,7 @@ import {Role} from "../models/security/Role";
 import {User} from "../models/User";
 import {Match} from "../models/Match";
 import {Organisation} from "../models/Organisation";
-import {paginationData, stringTONumber } from "../utils/Utils";
+import {paginationData, stringTONumber, isNotNullAndUndefined} from "../utils/Utils";
 import {RequestFilter} from "../models/RequestFilter";
 
 @Service()
@@ -76,10 +76,12 @@ export default class RosterService extends BaseService<Roster> {
     }
 
     // keeping the query as light as possible but more fields can be added if needed - used for umpire roster list
-    public async findUserRostersByCompetition(competitionId: number, roleId: number): Promise<Roster[]> {
-        return this.entityManager.createQueryBuilder(Roster, 'roster')
+    public async findUserRostersByCompetition(competitionId: number, roleId: number, requestFilter: RequestFilter): Promise<[number, Roster[]]> {
+        
+        let query = this.entityManager.createQueryBuilder(Roster, 'roster')
             .innerJoinAndSelect('roster.match', 'match')
             .innerJoinAndSelect('roster.user', 'user')
+            .innerJoinAndSelect('match.competition', 'competition')
             .leftJoinAndSelect('user.userRoleEntities', 'userRoleEntity')
             .leftJoin('userRoleEntity.organisation', 'organisation')
             .addSelect('organisation.name')
@@ -87,10 +89,19 @@ export default class RosterService extends BaseService<Roster> {
             .andWhere('roster.roleId = :roleId', {roleId})
             .andWhere('match.deleted_at is null')
             .andWhere('userRoleEntity.entityTypeId = 2')
-            .andWhere('userRoleEntity.roleId = 15')
-            .getMany();
-    }
+            .andWhere('userRoleEntity.roleId = 15');
 
+            if (isNotNullAndUndefined(requestFilter.paging.limit) && isNotNullAndUndefined(requestFilter.paging.offset)) {
+                const count = await query.getCount();
+                const result = await query.skip(requestFilter.paging.offset).take(requestFilter.paging.limit).getMany();
+                return [count, result];
+            } else {
+                const count = null;
+                const result = await query.getMany();
+                return [count, result];
+            }
+    }
+    
     public async findRosterId(rosterId: number): Promise<Roster> {
         return this.entityManager.createQueryBuilder(Roster, 'roster')
             .innerJoinAndSelect('roster.match', 'match')

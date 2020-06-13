@@ -7,7 +7,7 @@ import {EventInvitee} from "../models/EventInvitee";
 import {EventOccurrence} from "../models/EventOccurrence";
 import {Role} from "../models/security/Role";
 import {EntityType} from "../models/security/EntityType";
-import {isArrayEmpty} from "../utils/Utils";
+import {isArrayPopulated} from "../utils/Utils";
 
 @Service()
 export default class EventService extends BaseService<Event> {
@@ -27,7 +27,7 @@ export default class EventService extends BaseService<Event> {
             EntityType.TEAM,
             EntityType.USER
           ]);
-        if (isArrayEmpty(result)) {
+        if (isArrayPopulated(result)) {
           return result[0];
         } else {
           return [];
@@ -84,7 +84,7 @@ export default class EventService extends BaseService<Event> {
             EntityType.TEAM,
             EntityType.USER
           ]);
-        if (isArrayEmpty(result)) {
+        if (isArrayPopulated(result)) {
           return result[0];
         } else {
           return [];

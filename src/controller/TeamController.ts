@@ -8,7 +8,7 @@ import { User } from "../models/User";
 import { UserRoleEntity } from "../models/security/UserRoleEntity";
 import { Role } from "../models/security/Role";
 import { EntityType } from "../models/security/EntityType";
-import { isArrayEmpty, isNullOrEmpty, isPhoto, fileExt, md5, stringTONumber, paginationData, isNotNullAndUndefined } from "../utils/Utils"
+import { isArrayPopulated, isNullOrEmpty, isPhoto, fileExt, md5, stringTONumber, paginationData, isNotNullAndUndefined } from "../utils/Utils"
 import {logger} from '../logger';
 import admin from "firebase-admin";
 import * as fastcsv from 'fast-csv';
@@ -119,7 +119,7 @@ export class TeamController extends BaseController {
         @QueryParam('isInviteToParents') isInviteToParents: boolean,
     ): Promise<Player[]> {
         logger.info(`TeamController - invite : teamIds ${teamIds}, playerIds ${playerIds} from user (id: ${user.id.toString()} firstName: ${user.firstName} lastName: ${user.lastName})`);
-        if (isArrayEmpty(playerIds)) {
+        if (isArrayPopulated(playerIds)) {
             logger.info('Fetching playerData via playerIds');
             let playersData = await this.teamService.getPlayerDataByPlayerIds(playerIds);
             for (let i of playersData) {
@@ -128,7 +128,7 @@ export class TeamController extends BaseController {
                 this.playerService.createOrUpdate(i);
             }
             return playersData;
-        } else if (isArrayEmpty(teamIds)) {
+        } else if (isArrayPopulated(teamIds)) {
             logger.info('Fetching playerData via teamIds');
             let playerList = await this.teamService.playerListByTeamId(teamIds);
             for (let i of playerList) {
@@ -296,7 +296,7 @@ export class TeamController extends BaseController {
         for (let i of jsonObj) {
             if (i.Team_Name !== '') {
                 let teamData = await this.teamService.findByNameAndCompetition(i.Team_Name, competitionId);
-                if (!isArrayEmpty(teamData)) {
+                if (!isArrayPopulated(teamData)) {
                     let divisionData = await this.divisionService.findByName(i.Grade, competitionId);
                     let organisationData = await this.organisationService.findByNameAndCompetitionId(i.Organisation, competitionId);
                     let team = new Team();
@@ -379,8 +379,7 @@ export class TeamController extends BaseController {
         @Res() response: Response): Promise<any> {
 
         const getTeamsData = await this.listCompetitionTeams(competitionId, divisionId, null, null, null);
-
-        if (isArrayEmpty(getTeamsData)) {
+        if (isArrayPopulated(getTeamsData)) {
             getTeamsData.map(e => {
                 e['Logo'] = e['logoUrl']
                 e['Team Name'] = e['name']
@@ -391,7 +390,7 @@ export class TeamController extends BaseController {
                 const managerName = [];
                 const managerEmail = [];
                 const managerContact = [];
-                if (isArrayEmpty(e['managers'])) {
+                if (isArrayPopulated(e['managers'])) {
                     for (let r of e['managers']) {
                         managerName.push(r['name']);
                         managerEmail.push(r['email']);

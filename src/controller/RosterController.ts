@@ -15,7 +15,7 @@ import {Response} from "express";
 import {BaseController} from "./BaseController";
 import {EntityType} from "../models/security/EntityType";
 import {User} from "../models/User";
-import {stringTONumber, paginationData, isArrayEmpty} from "../utils/Utils";
+import {stringTONumber, paginationData, isArrayPopulated} from "../utils/Utils";
 import {RequestFilter} from "../models/RequestFilter";
 import * as fastcsv from 'fast-csv';
 
@@ -52,10 +52,11 @@ export class RosterController extends BaseController {
     async rosterList(
         @QueryParam("competitionId") competitionId: number,
         @QueryParam("roleId") roleId: number,
+        @Body() requestFilter: RequestFilter,
         @Res() response: Response
     ) {
         if (competitionId && roleId) {
-            return this.rosterService.findUserRostersByCompetition(competitionId, roleId);
+            return this.rosterService.findUserRostersByCompetition(competitionId, roleId, requestFilter);
         } else {
             return response.status(200).send({
                 name: 'search_error', message: `Invalid parameters`
@@ -369,14 +370,14 @@ export class RosterController extends BaseController {
         if (competitionId && roleId) {
             const getScorersData = await this.rosterService.findByCompetitionId(competitionId, roleId, requestFilter);
 
-            if (isArrayEmpty(getScorersData.users)) {
+            if (isArrayPopulated(getScorersData.users)) {
                 getScorersData.users.map(e => {
                     e['Email'] = e['email']
                     e['First Name'] = e['firstName']
                     e['Last Name'] = e['lastName']
                     e['Contact No'] = e['mobileNumber'];
                     const teamArray = [];
-                    if (isArrayEmpty(e['teams'])) {
+                    if (isArrayPopulated(e['teams'])) {
                         for (let i of e['teams']) teamArray.push(i['name']);
                     }
                     e['Team'] = teamArray.toString().replace(",", '\n');

@@ -6,7 +6,7 @@ import { TeamLadder } from "../models/views/TeamLadder";
 import {User} from "../models/User";
 import {DeepLinkPlayer} from "../models/DeepLinkPlayer";
 import {logger} from '../logger';
-import { isArrayEmpty, isNotNullAndUndefined, paginationData } from "../utils/Utils"
+import { isArrayPopulated, isNotNullAndUndefined, paginationData } from "../utils/Utils"
 import nodeMailer from "nodemailer";
 import {DeleteResult} from "typeorm-plus";
 
@@ -45,7 +45,7 @@ export default class TeamService extends BaseService<Team> {
             managers: []
         }
         let result = await this.entityManager.query("call wsa.usp_get_team(?)",[teamId]);
-        if (isArrayEmpty(result)) {
+        if (isArrayPopulated(result)) {
             if(result!= null && result[0]!= null) {
                 response.team = result[0];
                 response.players = result[1];
@@ -64,7 +64,7 @@ export default class TeamService extends BaseService<Team> {
         offset: number,
         limit: number): Promise<any> {
         let result = await this.entityManager.query("call wsa.usp_get_teams(?,?,?,?,?)", [competitionId, search, limit, offset, divisionId]);
-        if (isArrayEmpty(result)) {
+        if (isArrayPopulated(result)) {
             return { teamCount: result[1][0]['totalCount'], teams: result[0] }
         } else {
             return { teamCount: null, teams: [] }
@@ -276,7 +276,7 @@ export default class TeamService extends BaseService<Team> {
 
     public async findByTeamIds(ids: number[]): Promise<Team[]> {
 
-      if (isArrayEmpty(ids)) {
+      if (isArrayPopulated(ids)) {
         let query = this.entityManager.createQueryBuilder(Team, 'team')
             .andWhere('team.id in (:ids)', {ids: ids})
             .andWhere('team.deleted_at is null');

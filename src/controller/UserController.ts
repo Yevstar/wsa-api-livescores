@@ -27,7 +27,7 @@ import {EntityType} from "../models/security/EntityType";
 import {Team} from "../models/Team";
 import {OpenAPI} from "routing-controllers-openapi";
 import FirebaseService from "../services/FirebaseService";
-import { md5, isArrayEmpty } from "../utils/Utils";
+import { md5, isArrayPopulated } from "../utils/Utils";
 import {stringTONumber, paginationData, isNotNullAndUndefined} from "../utils/Utils";
 
 @JsonController('/users')
@@ -468,7 +468,7 @@ export class UserController extends BaseController {
                 await this.updateFirebaseData(userData, userData.password);
                 logger.info(`Manager ${userData.email} signed up.`);
 
-                if (isArrayEmpty(userData.teams)) {
+                if (isArrayPopulated(userData.teams)) {
                     let competitionData = await this.competitionService.findById(competitionId)
                     this.userService.sentMail(user, userData.teams, competitionData, 'manager', saved, password);
                 }
@@ -556,7 +556,7 @@ export class UserController extends BaseController {
                 await this.updateFirebaseData(userData, userData.password);
                 logger.info(`Coach ${userData.email} signed up.`);
 
-                if (isArrayEmpty(userData.teams)) {
+                if (isArrayPopulated(userData.teams)) {
                     let competitionData = await this.competitionService.findById(competitionId)
                     this.userService.sentMail(user, userData.teams, competitionData, 'coach', saved, password);
                 }
@@ -644,7 +644,7 @@ export class UserController extends BaseController {
                 await this.updateFirebaseData(userData, userData.password);
                 logger.info(`Umpire ${userData.email} signed up.`);
 
-                if (isArrayEmpty(userData.affiliates)) {
+                if (isArrayPopulated(userData.affiliates)) {
                     let competitionData = await this.competitionService.findById(competitionId)
                     this.userService.sentMail(user, userData.affiliates, competitionData, 'umpire', saved, password);
                 }
@@ -750,7 +750,7 @@ export class UserController extends BaseController {
         if (newToCompetition) {
             let result = await this.userService.getUsersBySecurity(EntityType.COMPETITION, competitionId, userData.id, {roleId: Role.MEMBER});
 
-            if (!isArrayEmpty(result)) {
+            if (!isArrayPopulated(result)) {
                 let ure = new UserRoleEntity();
                 ure.roleId = Role.MEMBER;
                 ure.entityId = competitionId;

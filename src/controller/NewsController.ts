@@ -15,7 +15,7 @@ import {BaseController} from "./BaseController";
 import {User} from "../models/User";
 import {News} from "../models/News";
 import {Response} from "express";
-import {authToken, fileExt, isNullOrEmpty, isPhoto, isVideo, timestamp, isArrayEmpty, stringTONumber} from "../utils/Utils";
+import {authToken, fileExt, isNullOrEmpty, isPhoto, isVideo, timestamp, isArrayPopulated, stringTONumber} from "../utils/Utils";
 
 @JsonController("/news")
 export class NewsController extends BaseController {
@@ -56,7 +56,7 @@ export class NewsController extends BaseController {
             n.id = stringTONumber(body.id);
 
             if (n.entityId && n.title) {
-                if (isArrayEmpty(newsMedia)) {
+                if (isArrayPopulated(newsMedia)) {
                     for (let i of newsMedia) {
                         if (isPhoto(i.mimetype)) {
                             let filename = `/media/news/${n.entityId}_${n.entityId}/${n.title}_${timestamp()}.${fileExt(i.originalname)}`;

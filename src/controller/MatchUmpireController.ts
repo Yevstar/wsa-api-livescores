@@ -9,7 +9,7 @@ import {Match} from "../models/Match";
 import {logger} from "../logger";
 import {StateTimezone} from "../models/StateTimezone";
 import {User} from "../models/User";
-import {isArrayEmpty} from "../utils/Utils";
+import {isArrayPopulated} from "../utils/Utils";
 
 @Authorized()
 @JsonController('/matchUmpire')
@@ -55,7 +55,7 @@ export class MatchUmpireController extends BaseController {
             });
         }
         /// Checking if we have some umpires passed at all
-        if (isArrayEmpty(umpires)) {
+        if (isArrayPopulated(umpires)) {
           /// Checking if match Id are passed to all umpires correctly
           for (let umpire of umpires) {
               if (!umpire.matchId) {
@@ -76,7 +76,7 @@ export class MatchUmpireController extends BaseController {
         const promises = umpires.map(async umpire => {
             if (umpire.id != null || umpire.id != undefined) {
                 let umpireWithDetailsList = await this.matchUmpireService.findByMatchIds([umpire.matchId]);
-                if (isArrayEmpty(umpireWithDetailsList)) {
+                if (isArrayPopulated(umpireWithDetailsList)) {
                     let existingUmpire = umpireWithDetailsList[0];
 
                     let updatedUmpire = new MatchUmpire();

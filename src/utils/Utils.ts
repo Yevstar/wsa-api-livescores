@@ -63,7 +63,7 @@ export function isVideo(mimetype: string): boolean {
     }
 }
 
-export function isArrayEmpty(checkArray: any): boolean {
+export function isArrayPopulated(checkArray: any): boolean {
     if (checkArray !== 'undefined'
         && checkArray !== null
         && Array.isArray(checkArray)

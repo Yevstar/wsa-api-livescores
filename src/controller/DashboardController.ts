@@ -2,7 +2,7 @@ import { Get, JsonController, QueryParam, Authorized, Res } from "routing-contro
 import { BaseController } from "./BaseController";
 import { Response } from "express";
 import { Match } from "../models/Match";
-import { isArrayEmpty } from "../utils/Utils";
+import { isArrayPopulated } from "../utils/Utils";
 
 @JsonController("/dashboard")
 export class DashboardController extends BaseController {
@@ -57,7 +57,7 @@ export class DashboardController extends BaseController {
     }
 
     async getPlayerAttendanceTeamAndRosterByMatch(matchArray: Match[]) {
-        if (isArrayEmpty(matchArray)) {
+        if (isArrayPopulated(matchArray)) {
             let promises = matchArray.map(element => {
                 return this.getRosterAndTeamAttendance(element.id, element.team1Id, element.team2Id)
                     .then((each: any) => {

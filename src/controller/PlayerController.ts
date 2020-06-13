@@ -4,7 +4,7 @@ import {User} from '../models/User';
 import {BaseController} from "./BaseController";
 import {Response} from "express";
 import * as  fastcsv from 'fast-csv';
-import { isPhoto, fileExt, timestamp, stringTONumber, paginationData, isArrayEmpty } from '../utils/Utils';
+import { isPhoto, fileExt, timestamp, stringTONumber, paginationData, isArrayPopulated } from '../utils/Utils';
 import {RequestFilter} from "../models/RequestFilter";
 
 @JsonController('/players')
@@ -247,7 +247,7 @@ export class PlayerController extends BaseController {
         @Res() response: Response) {
 
         let teamAttendanceData = await this.playerService.listTeamPlayerActivity(competitionId, { paging: { offset: null, limit: null }, search: '' }, status);
-        if (isArrayEmpty(teamAttendanceData)) {
+        if (isArrayPopulated(teamAttendanceData)) {
             teamAttendanceData.map(e => {
                 e['Match Id'] = e.matchId;
                 e['Start Time'] = e.startTime;

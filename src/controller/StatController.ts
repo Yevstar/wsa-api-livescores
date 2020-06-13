@@ -5,7 +5,7 @@ import {User} from "../models/User";
 import {RequestFilter} from "../models/RequestFilter";
 import { request } from 'http';
 import * as fastcsv from 'fast-csv';
-import { isArrayEmpty, paginationData, isNotNullAndUndefined, stringTONumber } from '../utils/Utils';
+import { isArrayPopulated, paginationData, isNotNullAndUndefined, stringTONumber } from '../utils/Utils';
 
 @Authorized()
 @JsonController('/stats')
@@ -87,7 +87,7 @@ export class StatController extends BaseController {
         @Res() response: Response) {
         if (competitionId) {
             const getScoringData = await this.teamService.scoringStatsByPlayer(competitionId, playerId, aggregate, offset, limit, search);
-            if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit) && isArrayEmpty(getScoringData.count)) {
+            if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit) && isArrayPopulated(getScoringData.count)) {
                 return { ...paginationData(stringTONumber(getScoringData.count[0]['totalCount']), limit, offset), result: getScoringData.finalData }
             } else {
                 return getScoringData
@@ -136,7 +136,7 @@ export class StatController extends BaseController {
 
         let gameTimeData = await this.playerService.loadGameTime(competitionId, aggregate, { paging: { offset: null, limit: null }, search: '' });
 
-        if (isArrayEmpty(gameTimeData)) {
+        if (isArrayPopulated(gameTimeData)) {
             gameTimeData.map(e => {
                 e['Player Id'] = e.player.id;
                 e['First Name'] = e.firstName;
@@ -185,7 +185,7 @@ export class StatController extends BaseController {
             if (search === null || search === undefined) search = '';
             let playerScoreData = await this.teamService.scoringStatsByPlayer(competitionId, playerId, aggregate, null, null, search);
 
-            if (isArrayEmpty(playerScoreData)) {
+            if (isArrayPopulated(playerScoreData)) {
                 playerScoreData.map(e => {
                     e['Match Id'] = e.matchId;
                     e['Date'] = e.startTime;
