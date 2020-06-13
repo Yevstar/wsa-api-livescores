@@ -91,7 +91,10 @@ export default class RosterService extends BaseService<Roster> {
             .andWhere('userRoleEntity.entityTypeId = 2')
             .andWhere('userRoleEntity.roleId = 15');
 
-            if (isNotNullAndUndefined(requestFilter.paging.limit) && isNotNullAndUndefined(requestFilter.paging.offset)) {
+            if (isNotNullAndUndefined(requestFilter) 
+                && isNotNullAndUndefined(requestFilter.paging)
+                && isNotNullAndUndefined(requestFilter.paging.limit) 
+                && isNotNullAndUndefined(requestFilter.paging.offset)) {
                 const count = await query.getCount();
                 const result = await query.skip(requestFilter.paging.offset).take(requestFilter.paging.limit).getMany();
                 return [count, result];
