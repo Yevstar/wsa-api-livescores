@@ -71,8 +71,9 @@ export default class CompetitionService extends BaseService<Competition> {
             'select distinct c.*\n' +
             'from competition c, competitionOrganisation co\n' +
             'where \n' +
-            '   (c.id = co.competitionId and c.organisationId = ?)\n' +
-            ' or (c.id = co.competitionId and co.orgId = ?)\n' +
+            '   ((c.id = co.competitionId and c.organisationId = ?)\n' +
+            ' or (c.id = co.competitionId and co.orgId = ?))\n' +
+            ' and deleted_at is not null \n' +
             'order by c.name ASC', [organisationId, organisationId]);
     }
 
