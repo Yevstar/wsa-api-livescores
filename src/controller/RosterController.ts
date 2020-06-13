@@ -48,7 +48,7 @@ export class RosterController extends BaseController {
     }
 
     @Authorized()
-    @Get('/list')
+    @Post('/list')
     async rosterList(
         @QueryParam("competitionId") competitionId: number,
         @QueryParam("roleId") roleId: number,
