@@ -76,7 +76,7 @@ export default class RosterService extends BaseService<Roster> {
     }
 
     // keeping the query as light as possible but more fields can be added if needed - used for umpire roster list
-    public async findUserRostersByCompetition(competitionId: number, roleId: number, requestFilter: RequestFilter): Promise<[number, Roster[]]> {
+    public async findUserRostersByCompetition(competitionId: number, roleId: number, requestFilter: RequestFilter): Promise<any> {
         
         let query = this.entityManager.createQueryBuilder(Roster, 'roster')
             .innerJoinAndSelect('roster.match', 'match')
@@ -95,13 +95,15 @@ export default class RosterService extends BaseService<Roster> {
                 && isNotNullAndUndefined(requestFilter.paging)
                 && isNotNullAndUndefined(requestFilter.paging.limit) 
                 && isNotNullAndUndefined(requestFilter.paging.offset)) {
-                const count = await query.getCount();
                 const result = await query.skip(requestFilter.paging.offset).take(requestFilter.paging.limit).getMany();
-                return [count, result];
+                let totalCount = await query.getCount();
+                let responseObject = paginationData(totalCount, requestFilter.paging.limit, requestFilter.paging.offset);
+                responseObject["results"] = result;
+                return responseObject;
             } else {
-                const count = null;
-                const result = await query.getMany();
-                return [count, result];
+                let responseObject = paginationData(null, null, null);
+                responseObject["results"] = await query.getMany();
+                return responseObject;
             }
     }
     
