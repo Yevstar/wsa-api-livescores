@@ -1,7 +1,8 @@
 import {Team} from './Team';
 import {Organisation} from './Organisation';
+import {UserRoleEntity} from './security/UserRoleEntity';
 import {BaseEntity, Column, Entity, PrimaryGeneratedColumn, OneToMany} from "typeorm-plus";
-import {IsBoolean, IsDate, IsNumber, IsString} from "class-validator";
+import {IsBoolean, IsDate, IsNumber, IsString, IsArray} from "class-validator";
 
 /// For referring the data model of another db we are giving the
 /// name as below wsa_users.<name>.
@@ -62,5 +63,11 @@ export class User extends BaseEntity {
     firebaseUID: string;
 
     teams: Team[];
+    organisations: Organisation[];
     affiliates: Organisation[];
+
+    @IsArray({each: true})
+    @OneToMany(type => UserRoleEntity, userRoleEntity => userRoleEntity.user)
+    userRoleEntities: UserRoleEntity[];
+
 }

@@ -4,6 +4,7 @@ import {Roster} from "../models/security/Roster";
 import {Role} from "../models/security/Role";
 import {User} from "../models/User";
 import {Match} from "../models/Match";
+import {Organisation} from "../models/Organisation";
 import {paginationData, stringTONumber } from "../utils/Utils";
 import {RequestFilter} from "../models/RequestFilter";
 
@@ -74,17 +75,19 @@ export default class RosterService extends BaseService<Roster> {
             .getMany();
     }
 
+    // keeping the query as light as possible but more fields can be added if needed - used for umpire roster list
     public async findUserRostersByCompetition(competitionId: number, roleId: number): Promise<Roster[]> {
         return this.entityManager.createQueryBuilder(Roster, 'roster')
             .innerJoinAndSelect('roster.match', 'match')
             .innerJoinAndSelect('roster.user', 'user')
-            .innerJoinAndSelect('match.team1', 'team1')
-            .innerJoinAndSelect('match.team2', 'team2')
-            .innerJoinAndSelect('match.division', 'division')
-            .innerJoinAndSelect('match.competition', 'competition')
+            .leftJoinAndSelect('user.userRoleEntities', 'userRoleEntity')
+            .leftJoin('userRoleEntity.organisation', 'organisation')
+            .addSelect('organisation.name')
             .andWhere('match.competitionId = :competitionId', {competitionId})
             .andWhere('roster.roleId = :roleId', {roleId})
             .andWhere('match.deleted_at is null')
+            .andWhere('userRoleEntity.entityTypeId = 2')
+            .andWhere('userRoleEntity.roleId = 15')
             .getMany();
     }
 

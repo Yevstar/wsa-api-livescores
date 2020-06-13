@@ -1,8 +1,11 @@
-import {BaseEntity, Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn} from "typeorm-plus";
+import {BaseEntity, Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn, ManyToOne} from "typeorm-plus";
 import {EntityType} from "./EntityType";
 import {User} from "../User";
 import {Role} from "./Role";
-import {IsNumber} from "class-validator";
+import {IsNumber, ValidateNested} from "class-validator";
+import { Competition } from "../Competition";
+import { Organisation } from "../Organisation";
+import { Team } from "../Team";
 
 /// For referring the data model of another db we are giving the
 /// name as below wsa_users.<name>.
@@ -34,9 +37,9 @@ export class UserRoleEntity extends BaseEntity {
     @Column()
     entityTypeId: number;
 
-    @OneToOne(type => User)
-    @JoinColumn()
-    user: User;
+    //@OneToOne(type => User)
+    //@JoinColumn()
+    //user: User;
 
     @IsNumber()
     @Column()
@@ -63,4 +66,22 @@ export class UserRoleEntity extends BaseEntity {
     @IsNumber()
     @Column({ default: 0 })
     isDeleted: number;
+
+
+    @ValidateNested()
+    @ManyToOne(type => User, user => user.userRoleEntities)
+    @JoinColumn()
+    user: User;
+
+    @ValidateNested()
+    @OneToOne(type => Organisation)
+    @JoinColumn({ name: 'entityId' })
+    organisation: Organisation;
+
+    @ValidateNested()
+    @OneToOne(type => Team)
+    @JoinColumn({ name: 'entityId' })
+    team: Team;
+
+    competition: Competition;
 }
