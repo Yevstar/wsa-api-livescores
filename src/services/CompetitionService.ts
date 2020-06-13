@@ -73,7 +73,7 @@ export default class CompetitionService extends BaseService<Competition> {
             'where \n' +
             '   ((c.id = co.competitionId and c.organisationId = ?)\n' +
             ' or (c.id = co.competitionId and co.orgId = ?))\n' +
-            ' and deleted_at is not null \n' +
+            ' and c.deleted_at is null \n' +
             'order by c.name ASC', [organisationId, organisationId]);
     }
 
