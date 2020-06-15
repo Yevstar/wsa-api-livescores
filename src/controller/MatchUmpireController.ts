@@ -2,16 +2,14 @@ import {Authorized, Body, Get, JsonController, Patch, Post, QueryParam, Res, Hea
 import {MatchUmpire} from '../models/MatchUmpire';
 import {Roster} from '../models/security/Roster';
 import {Response} from "express";
-import {stringTONumber, paginationData} from "../utils/Utils";
+import {stringTONumber, paginationData, isNotNullAndUndefined, isArrayPopulated} from "../utils/Utils";
 import {BaseController} from "./BaseController";
 import {RequestFilter} from "../models/RequestFilter";
 import {Match} from "../models/Match";
 import {logger} from "../logger";
 import {StateTimezone} from "../models/StateTimezone";
 import {User} from "../models/User";
-import {isArrayPopulated} from "../utils/Utils";
 
-@Authorized()
 @JsonController('/matchUmpire')
 export class MatchUmpireController extends BaseController {
 
@@ -35,6 +33,25 @@ export class MatchUmpireController extends BaseController {
             return responseObject;
         } else {
             return [];
+        }
+    }
+
+    @Post('/dashboard')
+    async getDashboard(
+        @QueryParam('organisationId') organisationId: number,
+        @QueryParam('competitionId') competitionId: number,
+        @QueryParam('matchId') matchId: number,
+        @QueryParam('divisionId') divisionId: number,
+        @QueryParam('venueId') venueId: number,
+        @Body() requestFilter: RequestFilter,
+        @Res() response: Response
+    ): Promise<any> {
+
+        if (organisationId) {
+            return await this.matchUmpireService.findByRosterAndCompetition(organisationId, competitionId, matchId, divisionId, venueId, requestFilter);
+        } else {
+            return response.status(200).send(
+                {name: 'search_error', message: `Required fields are missing`});
         }
     }
 
