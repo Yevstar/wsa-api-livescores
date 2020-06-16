@@ -43,22 +43,30 @@ export default class EventService extends BaseService<Event> {
     }
 
     public async createEvent(event, user) {
-        let me = new Event();
-        me.name = event.name;
-        me.location = event.location;
-        me.type = event.type;
-        me.description = event.description;
-        me.allDay = event.allDay;
-        me.startTime = event.startTime;
-        me.endTime = event.endTime;
-        me.frequency = event.frequency;
-        me.repeatNumber = event.repeatNumber;
-        me.created_by = user;
-        me.created_at = new Date();
-        me.updated_at =  new Date();
-        me.venueId = event.venueId;
-        me.venueCourtId = event.venueCourtId;
-        return this.entityManager.insert(Event, me);
+        let newEvent = new Event();
+        newEvent.name = event.name;
+        newEvent.location = event.location;
+        newEvent.type = event.type;
+        newEvent.description = event.description;
+        newEvent.allDay = event.allDay;
+        newEvent.startTime = event.startTime;
+        newEvent.endTime = event.endTime;
+        newEvent.frequency = event.frequency;
+        newEvent.repeatNumber = event.repeatNumber;
+        newEvent.created_by = user;
+        if (!event.id) {
+          newEvent.created_at = new Date();
+        }
+        newEvent.updated_at =  new Date();
+        newEvent.venueId = event.venueId;
+        newEvent.venueCourtId = event.venueCourtId;
+
+        if (event.id) {
+          newEvent.id = event.id;
+          return this.createOrUpdate(newEvent);
+        } else {
+           return this.entityManager.insert(Event, newEvent);
+         }
     }
 
     public async createEventOccurrence(eventId: number, allDay: boolean, startTime: Date, endTime: Date,
@@ -89,5 +97,99 @@ export default class EventService extends BaseService<Event> {
         } else {
           return [];
         }
+    }
+
+    public async deleteEvent(eventOccurrence: EventOccurrence, deleteType: string) {
+        let endTime = new Date(Date.now());
+        /// Setting for a particular event occurrence deleted_at
+        this.entityManager
+            .createQueryBuilder(EventOccurrence, 'eo')
+            .update()
+            .set({deleted_at: endTime})
+            .where('id = :eventOccurrenceId', { eventOccurrenceId: eventOccurrence.id })
+            .execute();
+
+        if (deleteType == "EVENT") {
+          this.updateDeletedAtEventAndEventInvitee(eventOccurrence, endTime);
+        } else if (deleteType == "EVENT_OCCURRENCES") {
+            /// From the current event occurrence passed we will set all future
+            /// occurrences deleted_at
+            await this.entityManager
+              .createQueryBuilder(EventOccurrence, 'eo')
+              .update()
+              .set({deleted_at: endTime})
+              .where('eventId = :eventId', { eventId: eventOccurrence.eventId })
+              .andWhere('startTime > :currentEventOccurrenceTime',
+                {currentEventOccurrenceTime: eventOccurrence.startTime})
+              .andWhere('deleted_at is null')
+              .execute();
+        }
+
+        if (deleteType != "EVENT") {
+            let query = this.entityManager
+                            .createQueryBuilder(EventOccurrence, 'eo')
+                            .where('eventId = :eventId',
+                                { eventId: eventOccurrence.eventId })
+                            .andWhere('deleted_at is null');
+            let result = await query.getMany();
+            if (!result || result.length == 0) {
+                this.updateDeletedAtEventAndEventInvitee(eventOccurrence, endTime);
+            }
+        }
+    }
+
+    private async updateDeletedAtEventAndEventInvitee(eventOccurrence: EventOccurrence, endTime: Date) {
+        /// All event and event invitees need to set deleted_at
+        this.entityManager
+            .createQueryBuilder(Event, 'event')
+            .update()
+            .set({deleted_at: endTime})
+            .where('id = :eventId', { eventId: eventOccurrence.eventId })
+            .execute();
+
+        this.entityManager
+            .createQueryBuilder(EventInvitee, 'ei')
+            .update()
+            .set({deleted_at: endTime})
+            .where('eventId = :eventId', { eventId: eventOccurrence.eventId })
+            .execute();
+    }
+
+    public async fetchEventInvitees(eventId: number): Promise<EventInvitee[]> {
+      let query = this.entityManager
+          .createQueryBuilder(EventInvitee, 'ei')
+          .where('eventId = :eventId', { eventId: eventId });
+      return query.getMany();
+    }
+
+    public async fetchEventOccurrences(eventOccurrence: EventOccurrence): Promise<EventOccurrence[]> {
+        let query = this.entityManager
+            .createQueryBuilder(EventOccurrence, 'eo')
+            .where('eventId = :eventId', { eventId: eventOccurrence.eventId })
+            .andWhere('startTime >= :currentEventOccurrenceTime',
+                {currentEventOccurrenceTime: eventOccurrence.startTime});
+        return query.getMany();
+    }
+
+    public async deleteEventOccurrences(eventOccurrence: EventOccurrence) {
+        return this.entityManager
+            .createQueryBuilder(EventOccurrence, 'eo')
+            .delete()
+            .where('eventId = :eventId', { eventId: eventOccurrence.eventId })
+            .andWhere('startTime >= :currentEventOccurrenceTime',
+                {currentEventOccurrenceTime: eventOccurrence.startTime})
+            .execute();
+    }
+
+    public async deleteEventInvitees(eventId: number) {
+        return this.entityManager
+            .createQueryBuilder(EventInvitee, 'ei')
+            .delete()
+            .where('eventId = :eventId', { eventId: eventId })
+            .execute();
+    }
+
+    public async fetchEventOccurrenceById(id: number): Promise<EventOccurrence> {
+        return this.entityManager.findOne('EventOccurrence', id);
     }
 }

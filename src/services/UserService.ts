@@ -250,7 +250,7 @@ export default class UserService extends BaseService<User> {
                             </head>
                             <body >
                                 <p>Hi ${receiverData.firstName} ${receiverData.lastName},
-                                <p> ${userData.firstName} ${userData.lastName} has advised us that you are an umpire for ${teamData[0].name}. As ${competitionData.name} are using Live Scoring for this competition we require you to click <a href="${url}">here</a > to download the ${appName} App 
+                                <p> ${userData.firstName} ${userData.lastName} has advised us that you are an umpire for ${teamData[0].name}. As ${competitionData.name} are using Live Scoring for this competition we require you to click <a href="${url}">here</a > to download the ${appName} App
                                 to see your match umpiring duties and confirm your allocations.
                                 <p> Your password is <b>${password}</b> - you can change it when you log in if you would like.
                                 <p> We hope you enjoy using Netball Live Scores.
@@ -267,7 +267,7 @@ export default class UserService extends BaseService<User> {
                             </head>
                             <body >
                                 <p>Hi ${receiverData.firstName} ${receiverData.lastName},
-                                <p> ${userData.firstName} ${userData.lastName} has advised us that you are an umpire for: ${teamNames}. As ${competitionData.name} are using Live Scoring for this competition we require you to click <a href="${url}">here</a > to download the ${appName} App 
+                                <p> ${userData.firstName} ${userData.lastName} has advised us that you are an umpire for: ${teamNames}. As ${competitionData.name} are using Live Scoring for this competition we require you to click <a href="${url}">here</a > to download the ${appName} App
                                 to see your match umpiring duties and confirm your allocations.
                                 <p> Your password is <b>${password}</b> - you can change it when you log in if you would like.
                                 <p> We hope you enjoy using Netball Live Scores.
@@ -327,7 +327,7 @@ export default class UserService extends BaseService<User> {
         });
     }
 
-    public async getUsersByOptions(entityTypeId: number, entityId: number, userName: string,
+    public async getUsersByOptions(entityTypeId: number, entityIdList: number[], userName: string,
                                     sec: { functionId?: number, roleId?: number }): Promise<User[]> {
         let query = this.entityManager.createQueryBuilder(User, 'u')
             .select(['u.id as id', 'LOWER(u.email) as email', 'u.firstName as firstName', 'u.lastName as lastName',
@@ -354,7 +354,7 @@ export default class UserService extends BaseService<User> {
         }
 
         query.andWhere('le.inputEntityTypeId = :entityTypeId', {entityTypeId})
-            .andWhere('le.inputEntityId = :entityId', {entityId});
+            .andWhere('le.inputEntityId in (:entityIdList)', {entityIdList: entityIdList});
 
         if (userName) {
             query.andWhere(new Brackets(qb => {

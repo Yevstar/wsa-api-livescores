@@ -1,5 +1,5 @@
 import {BaseEntity, Column, Entity, PrimaryGeneratedColumn} from 'typeorm-plus';
-import {IsNumber} from "class-validator";
+import {IsNumber, IsDate} from "class-validator";
 
 @Entity('eventInvitee')
 export class EventInvitee extends BaseEntity {
@@ -19,4 +19,8 @@ export class EventInvitee extends BaseEntity {
     @IsNumber()
     @Column()
     entityTypeId: number;
+
+    @IsDate()
+    @Column()
+    deleted_at: Date;
 }

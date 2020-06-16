@@ -7,6 +7,7 @@ import {Match} from "../models/Match";
 import {Organisation} from "../models/Organisation";
 import {paginationData, stringTONumber, isNotNullAndUndefined} from "../utils/Utils";
 import {RequestFilter} from "../models/RequestFilter";
+import {DeleteResult} from "typeorm-plus";
 
 @Service()
 export default class RosterService extends BaseService<Roster> {
@@ -182,10 +183,34 @@ export default class RosterService extends BaseService<Roster> {
     }
 
     public async getRosterStatus(roleId: number, teamId: number, matchId: number): Promise<Roster> {
-        return await this.entityManager.createQueryBuilder(Roster, 'r')
+        return this.entityManager.createQueryBuilder(Roster, 'r')
                 .andWhere("r.roleId = :roleId", {roleId})
                 .andWhere("r.teamId = :teamId", {teamId})
                 .andWhere("r.matchId = :matchId", {matchId})
+                .execute();
+    }
+
+    public async deleteByEventOccurrence(eventOccurrenceId: number): Promise<DeleteResult> {
+        return this.entityManager
+                .createQueryBuilder()
+                .delete()
+                .from(Roster, 'roster')
+                .where('eventOccurrenceId = :eventOccurrenceId', { eventOccurrenceId })
+                .execute();
+    }
+
+    public async findByEventOccurrenceIds(ids: number[]): Promise<Roster[]> {
+      return this.entityManager.createQueryBuilder(Roster, 'r')
+              .andWhere('r.eventOccurrenceId in (:ids)', {ids: ids})
+              .getMany();
+    }
+
+    public async deleteByEventOccurrenceIds(ids: number[]): Promise<DeleteResult> {
+        return this.entityManager
+                .createQueryBuilder()
+                .delete()
+                .from(Roster, 'roster')
+                .where('eventOccurrenceId in (:ids)', { ids: ids })
                 .execute();
     }
 }
