@@ -1,4 +1,4 @@
-import {Authorized, Body, Get, JsonController, Patch, Post, QueryParam, Res, HeaderParam} from 'routing-controllers';
+import {Authorized, Body, Get, JsonController, Patch, Post, QueryParam, Res} from 'routing-controllers';
 import {MatchUmpire} from '../models/MatchUmpire';
 import {Roster} from '../models/security/Roster';
 import {Response} from "express";
@@ -55,9 +55,9 @@ export class MatchUmpireController extends BaseController {
         }
     }
 
+    @Authorized()
     @Post('/')
     async create(
-        @HeaderParam("authorization") user: User,
         @QueryParam("matchId", {required: true}) matchId: number,
         @QueryParam("rosterLocked") rosterLocked: boolean,
         @Body({required: true}) umpires: MatchUmpire[],
