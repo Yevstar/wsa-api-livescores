@@ -13,8 +13,7 @@ export default class PlayerService extends BaseService<Player> {
     }
 
     public async findByParam(name: string, competitionId: number, organisationId: number, teamId: number,
-        playUpFromAge: number, playUpFromGrade: string, offset: number, limit: number,divisionName: string,
-        teamName: string): Promise<any> {
+        playUpFromAge: number, playUpFromGrade: string, offset: number, limit: number, search: string): Promise<any> {
         let query = this.entityManager.createQueryBuilder(Player, 'player')
             .innerJoinAndSelect("player.team", "team")
             .innerJoinAndSelect("team.division", "division")
@@ -26,13 +25,14 @@ export default class PlayerService extends BaseService<Player> {
                 { name: `%${name.toLowerCase()}%` });
         }
 
-        if (divisionName) {
-            query.andWhere('(LOWER(concat_ws("", division.divisionName, division.grade)) like :divisionName)',
-                { divisionName: `%${divisionName.toLowerCase()}%` });
-        }
-
-        if (teamName) {
-            query.andWhere('(LOWER(team.name) like :teamName)', { teamName: `%${teamName.toLowerCase()}%` });
+        if (search) {
+            query.andWhere(`(LOWER(concat_ws(" ", player.firstName, player.lastName)) like :playerName)
+                    or (LOWER(concat_ws("", division.divisionName, division.grade)) like :divisionName)
+                    or (LOWER(team.name) like :teamName)`, {
+                playerName: `%${search.toLowerCase()}%`,
+                divisionName: `%${search.toLowerCase()}%`,
+                teamName: `%${search.toLowerCase()}%`
+            });
         }
 
         if (competitionId) query.andWhere('team.competitionId = :competitionId', { competitionId });

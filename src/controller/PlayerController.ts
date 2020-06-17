@@ -21,7 +21,7 @@ export class PlayerController extends BaseController {
         @QueryParam('offset') offset: number,
         @QueryParam('limit') limit: number
     ): Promise<Player[]> {
-        return this.playerService.findByParam(name, competitionId, organisationId, teamId, playUpFromAge, playUpFromGrade, offset, limit, null, null);
+        return this.playerService.findByParam(name, competitionId, organisationId, teamId, playUpFromAge, playUpFromGrade, offset, limit, null);
     }
 
     @Authorized()
@@ -146,7 +146,7 @@ export class PlayerController extends BaseController {
         @QueryParam('competitionId') competitionId: number,
         @Res() response: Response
     ) {
-        let playerData = await this.playerService.findByParam(null, competitionId, null, null, null, null, null, null, null, null);
+        let playerData = await this.playerService.findByParam(null, competitionId, null, null, null, null, null, null, null);
         response.setHeader('Content-disposition', 'attachment; filename=player.csv');
         response.setHeader('content-type', 'text/csv');
         fastcsv
@@ -231,9 +231,8 @@ export class PlayerController extends BaseController {
         @QueryParam('playUpFromGrade') playUpFromGrade: string,
         @QueryParam('offset') offset: number,
         @QueryParam('limit') limit: number,
-        @QueryParam('divisionName') divisionName: string,
-        @QueryParam('teamName') teamName: string): Promise<{ page: {}, players: Player[] }> {
-        const playerData = await this.playerService.findByParam(name, competitionId, organisationId, teamId, playUpFromAge, playUpFromGrade, offset, limit, divisionName, teamName);
+        @QueryParam('search') search: string): Promise<{ page: {}, players: Player[] }> {
+        const playerData = await this.playerService.findByParam(name, competitionId, organisationId, teamId, playUpFromAge, playUpFromGrade, offset, limit, search);
         if (offset !== null && offset !== undefined && limit !== null && limit !== undefined) {
             return { page: paginationData(playerData.matchCount, limit, offset).page, players: playerData.result };
         } else {
