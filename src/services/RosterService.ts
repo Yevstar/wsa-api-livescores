@@ -137,6 +137,7 @@ export default class RosterService extends BaseService<Roster> {
     public async findAllRostersByParam(matchIds: number[]): Promise<Roster[]> {
         return this.entityManager.createQueryBuilder(Roster, 'roster')
             .leftJoin('roster.match', 'match')
+            .addSelect(['match.team1id', 'match.team2id'])
             .andWhere('match.deleted_at is null')
             .andWhere('roster.matchId in (:matchIds)', {matchIds})
             .getMany();

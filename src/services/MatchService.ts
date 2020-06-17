@@ -88,6 +88,7 @@ export default class MatchService extends BaseService<Match> {
             response.umpires = result[1];
             response.team1players = result[2];
             response.team2players = result[3];
+            response.umpires = result[4];
             return response;
         } else {
           return [];
