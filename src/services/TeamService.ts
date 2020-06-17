@@ -26,13 +26,14 @@ export default class TeamService extends BaseService<Team> {
             .getMany();
     }
 
-    public async findByNameAndCompetition(name: string, competitionId: number): Promise<Team[]> {
+    public async findByNameAndCompetition(name: string, competitionId: number, divisionName?: string): Promise<Team[]> {
         let query = this.entityManager.createQueryBuilder(Team, 'team')
             .innerJoinAndSelect('team.division', 'division')
             .innerJoinAndSelect('team.competition', 'competition');
 
         if (name) query = query.andWhere('LOWER(team.name) like :name', { name: `${name.toLowerCase()}%` });
         if (competitionId) query = query.andWhere('team.competitionId = :competitionId', { competitionId });
+        if (divisionName) query = query.andWhere('division.name = :divisionName', { divisionName });
         return query.getMany();
     }
 

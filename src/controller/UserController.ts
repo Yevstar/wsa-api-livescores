@@ -864,4 +864,135 @@ export class UserController extends BaseController {
 
         }
     }
+
+    @Authorized()
+    @Post('/importCoach')
+    async importCoach(
+        @HeaderParam("authorization") user: User,
+        @QueryParam('competitionId', { required: true }) competitionId: number,
+        @UploadedFile("file", { required: true }) file: Express.Multer.File,
+        @Res() response: Response) {
+
+        let bufferString = file.buffer.toString('utf8');
+        let arr = bufferString.split('\n');
+        let jsonObj = [];
+        let headers = arr[0].split(',');
+        const infoMisMatchArray: any = [];
+        let importSuccess: boolean = false;
+
+        for (let i = 1; i < arr.length; i++) {
+            let data = arr[i].split(',');
+            let obj = {};
+            for (let j = 0; j < data.length; j++) {
+                if (headers[j] !== undefined) obj[headers[j].trim()] = data[j].trim();
+            }
+            jsonObj.push(obj);
+        }
+
+        if (isArrayEmpty(jsonObj)) {
+            for (let i of jsonObj) {
+                if (isNotNullAndUndefined(i['Email']) && (i['Email'] != '') &&
+                    isNotNullAndUndefined(i['First Name']) && (i['First Name'] != '') &&
+                    isNotNullAndUndefined(i['Last Name']) && (i['Last Name'] != '') &&
+                    isNotNullAndUndefined(i['Team']) && (i['Team'] != '') &&
+                    isNotNullAndUndefined(i['DivisionName']) && (i['DivisionName'] != '') &&
+                    isNotNullAndUndefined(i['Contact No']) && (i['Contact No'] != '')) {
+                    const userDetails = new User();
+                    let newUser = false;
+                    let teamDetail: any;
+                    let teamDetailArray: any = [];
+                    let savedUserDetail: any;
+                    const password = Math.random().toString(36).slice(-8);
+
+                    const foundUser = await this.userService.findByEmail(i['Email'].toLowerCase());
+                    if (foundUser) {
+                        newUser = false;
+                        if (foundUser.firstName == i['First Name'] &&
+                            foundUser.lastName == i['Last Name'] &&
+                            foundUser.mobileNumber == i['Contact No']) {
+                            userDetails.id = foundUser.id;
+                            userDetails.email = foundUser.email;
+                            userDetails.firstName = foundUser.firstName;
+                            userDetails.lastName = foundUser.lastName;
+                            userDetails.mobileNumber = foundUser.mobileNumber;
+
+                            savedUserDetail = await this.userService.createOrUpdate(userDetails);
+                            await this.updateFirebaseData(userDetails, userDetails.password);
+
+                            userDetails.id = foundUser.id;
+
+                            // await this.userService.deleteRolesByUser(userDetails.id, Role.COACH, competitionId, EntityType.COMPETITION, EntityType.TEAM);
+                            // await this.userService.deleteRolesByUser(userDetails.id, Role.MEMBER, competitionId, EntityType.COMPETITION, EntityType.COMPETITION);
+
+                        } else {
+                            infoMisMatchArray.push(i['Email'].toLowerCase());
+                        }
+
+                    } else {
+                        newUser = true;
+
+                        userDetails.email = i['Email'].toLowerCase();
+                        userDetails.password = md5(password);
+                        userDetails.firstName = i['First Name'];
+                        userDetails.lastName = i['Last Name'];
+                        userDetails.mobileNumber = i['Contact No'];
+
+                        savedUserDetail = await this.userService.createOrUpdate(userDetails);
+                        await this.updateFirebaseData(userDetails, userDetails.password);
+
+                        userDetails.id = savedUserDetail.id;
+                    }
+                        
+                    if (!infoMisMatchArray.includes(i['Email'])) {
+                        if (isNotNullAndUndefined(i['Team'])) {
+                            const teamArray = i['Team'].split(',');
+                            if (isArrayEmpty(teamArray)) {
+                                for(let t of teamArray) {
+                                    teamDetail = await this.teamService.findByNameAndCompetition(t, competitionId, i['DivisionName']);
+                                    if(isArrayEmpty(teamDetail)) {
+                                        teamDetailArray.push(...teamDetail);
+                                    }
+                                }
+                            }
+
+                            let competitionData = await this.competitionService.findById(competitionId)
+                            this.userService.sentMail(user, teamDetailArray, competitionData, 'coach', savedUserDetail, password);
+                        }
+
+                        let ureArray = [];
+                        if (isArrayEmpty(teamDetailArray)) {
+
+                            for (let i of teamDetailArray) {
+                                let ure = new UserRoleEntity();
+                                ure.roleId = Role.COACH;
+                                ure.entityId = i.id;
+                                ure.entityTypeId = EntityType.TEAM;
+                                ure.userId = userDetails.id
+                                ure.createdBy = user.id;
+                                ureArray.push(ure);
+                            }
+                            let ure1 = new UserRoleEntity();
+                            ure1.roleId = Role.MEMBER;
+                            ure1.entityId = competitionId;
+                            ure1.entityTypeId = EntityType.COMPETITION;
+                            ure1.userId = userDetails.id
+                            ure1.createdBy = user.id;
+                            ureArray.push(ure1);
+                            await this.ureService.batchCreateOrUpdate(ureArray);
+                            await this.notifyChangeRole(userDetails.id);
+                            importSuccess = true;
+                        }
+                    }
+                }
+            }
+
+            if (isArrayEmpty(infoMisMatchArray)) {
+                return response.status(212).send(`${infoMisMatchArray.toString()} could not be added as the user already exists in our system with different details`);
+            } else if (importSuccess) {
+                return response.status(200).send({ success: true });
+            } else {
+                return response.status(212).send(`Either required parameters are not filled or TeamName is not available within the file provided for importing`);
+            }
+        }
+    }
 }
