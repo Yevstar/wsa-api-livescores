@@ -1,5 +1,5 @@
 import {BaseEntity, Column, Entity, PrimaryGeneratedColumn} from "typeorm-plus";
-import {IsNumber, IsString, IsDate} from "class-validator";
+import {IsNumber, IsString, IsDate, IsBoolean} from "class-validator";
 
 @Entity('wsa_common.venue')
 export class Venue extends BaseEntity {
@@ -11,6 +11,10 @@ export class Venue extends BaseEntity {
     @IsString()
     @Column()
     name: string;
+
+    @IsString()
+    @Column()
+    shortName: string;
 
     @IsString()
     @Column()
@@ -45,6 +49,10 @@ export class Venue extends BaseEntity {
     createdBy: number;
 
     @IsNumber()
+    @Column()
+    createdByOrganisation: number;
+
+    @IsNumber()
     @Column({ nullable: true, default: null })
     updatedBy: number;
 
@@ -55,4 +63,16 @@ export class Venue extends BaseEntity {
     @IsNumber()
     @Column({ default: 0 })
     isDeleted: number;
+
+    @IsString()
+    @Column()
+    lat: string;
+
+    @IsString()
+    @Column()
+    lng: string;
+
+    @IsBoolean()
+    @Column()
+    isEventSpecific: boolean;
 }
