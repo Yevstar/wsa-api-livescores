@@ -134,6 +134,14 @@ export default class RosterService extends BaseService<Roster> {
         return query.getRawOne();
     }
 
+    public async findAllRostersByParam(matchIds: number[]): Promise<Roster[]> {
+        return this.entityManager.createQueryBuilder(Roster, 'roster')
+            .leftJoinAndSelect('roster.match', 'match')
+            .andWhere('match.deleted_at is null')
+            .andWhere('roster.matchId in (:matchIds)', {matchIds})
+            .getMany();
+    }
+
     // to allow inline edit of rosters
     public async findByParam(rosterId: number): Promise<any> {
         let query = this.entityManager.createQueryBuilder(Roster, 'r')

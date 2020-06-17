@@ -889,7 +889,7 @@ export class UserController extends BaseController {
             jsonObj.push(obj);
         }
 
-        if (isArrayEmpty(jsonObj)) {
+        if (isArrayPopulated(jsonObj)) {
             for (let i of jsonObj) {
                 if (isNotNullAndUndefined(i['Email']) && (i['Email'] != '') &&
                     isNotNullAndUndefined(i['First Name']) && (i['First Name'] != '') &&
@@ -946,10 +946,10 @@ export class UserController extends BaseController {
                     if (!infoMisMatchArray.includes(i['Email'])) {
                         if (isNotNullAndUndefined(i['Team'])) {
                             const teamArray = i['Team'].split(',');
-                            if (isArrayEmpty(teamArray)) {
+                            if (isArrayPopulated(teamArray)) {
                                 for(let t of teamArray) {
                                     teamDetail = await this.teamService.findByNameAndCompetition(t, competitionId, i['DivisionName']);
-                                    if(isArrayEmpty(teamDetail)) {
+                                    if(isArrayPopulated(teamDetail)) {
                                         teamDetailArray.push(...teamDetail);
                                     }
                                 }
@@ -960,7 +960,7 @@ export class UserController extends BaseController {
                         }
 
                         let ureArray = [];
-                        if (isArrayEmpty(teamDetailArray)) {
+                        if (isArrayPopulated(teamDetailArray)) {
 
                             for (let i of teamDetailArray) {
                                 let ure = new UserRoleEntity();
@@ -986,7 +986,7 @@ export class UserController extends BaseController {
                 }
             }
 
-            if (isArrayEmpty(infoMisMatchArray)) {
+            if (isArrayPopulated(infoMisMatchArray)) {
                 return response.status(212).send(`${infoMisMatchArray.toString()} could not be added as the user already exists in our system with different details`);
             } else if (importSuccess) {
                 return response.status(200).send({ success: true });

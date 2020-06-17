@@ -11,7 +11,7 @@ export class Roster extends BaseEntity {
 
     public static STATUS_YES = "YES";
     public static STATUS_NO = "NO";
-    public static STATUS_NONE = null;
+    public static STATUS_NONE = "NONE";
 
     @IsNumber()
     @PrimaryGeneratedColumn()

@@ -30,6 +30,7 @@ import {Round} from "../models/Round";
 import {RequestFilter} from "../models/RequestFilter";
 import * as fastcsv from 'fast-csv';
 import {MatchPausedTime} from "../models/MatchPausedTime";
+import { IsEmpty } from 'class-validator';
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
@@ -214,6 +215,15 @@ export class MatchController extends BaseController {
             await this.matchScorerService.createOrUpdate(matchScores);
         }
         const saved = await this.matchService.createOrUpdate(match);
+
+        if (isArrayPopulated(match.rosters)) {
+            for (let roster of match.rosters) {
+                if (roster.status == null) {
+                    roster.save();
+                }
+            }
+        }
+
         sendMatchUpdate(saved); // This is sent to socketserver of websocket
         this.sendMatchEvent(saved); // This is to send notification for devices
         return saved;

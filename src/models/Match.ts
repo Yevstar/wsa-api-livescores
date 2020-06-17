@@ -8,6 +8,7 @@ import {Round} from "./Round";
 import {IsBoolean, IsDate, IsNumber, IsString, ValidateNested, IsArray} from "class-validator";
 import { isDate } from 'util';
 import {MatchPausedTime} from "./MatchPausedTime";
+import {Roster} from "./security/Roster";
 
 @Entity()
 export class Match extends BaseEntity {
@@ -183,4 +184,6 @@ export class Match extends BaseEntity {
     @OneToMany(type => MatchPausedTime, matchPausedTime => matchPausedTime.match)
     @JoinColumn()
     matchPausedTimes: MatchPausedTime[];
+
+    rosters: Roster[]
 }

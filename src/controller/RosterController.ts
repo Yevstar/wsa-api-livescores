@@ -128,6 +128,17 @@ export class RosterController extends BaseController {
     }
 
     @Authorized()
+    @Get('/all')
+    async findAllRostersByParam(@QueryParam('matchIds') matchIds: number[] = [],
+                        @Res() response: Response) {
+        if (!matchIds || matchIds.length == 0) {
+            return response
+                .status(400).send({name: 'validation_error', message: 'Match id`s required.'});
+        }
+        return this.rosterService.findAllRostersByParam(matchIds);
+    }
+
+    @Authorized()
     @Get('/event')
     async findUserEventRosters(@HeaderParam("authorization") user: User): Promise<Roster[]> {
         return this.rosterService.findRosterEventByUser(user.id);
