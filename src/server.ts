@@ -6,7 +6,6 @@ import * as http from 'http';
 import {Action, getMetadataArgsStorage, useContainer, useExpressServer} from 'routing-controllers';
 import {logger, wrapConsole} from "./logger";
 import {connect} from './typeorm';
-import {startSocketServer} from './socketServer';
 import express, { Router } from 'express';
 
 import {User} from './models/User';
@@ -170,7 +169,6 @@ async function start() {
     });
 
     app.set('view engine', 'ejs');
-    startSocketServer(server as any);
 
     // Parse routing-controllers classes into OpenAPI spec:
     const storage = getMetadataArgsStorage();

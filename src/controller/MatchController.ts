@@ -16,7 +16,6 @@ import {
 } from 'routing-controllers';
 import {Match} from '../models/Match';
 import * as _ from 'lodash';
-import {sendMatchUpdate} from '../socketServer';
 import {MatchScores} from "../models/MatchScores";
 import {Response} from "express";
 import {BaseController} from "./BaseController";
@@ -215,7 +214,6 @@ export class MatchController extends BaseController {
             await this.matchScorerService.createOrUpdate(matchScores);
         }
         const saved = await this.matchService.createOrUpdate(match);
-
         if (isArrayPopulated(match.rosters)) {
             for (let roster of match.rosters) {
                 if (roster.status == null) {
@@ -223,8 +221,6 @@ export class MatchController extends BaseController {
                 }
             }
         }
-
-        sendMatchUpdate(saved); // This is sent to socketserver of websocket
         this.sendMatchEvent(saved); // This is to send notification for devices
         return saved;
     }
