@@ -4,9 +4,6 @@ import {BaseController} from "./BaseController";
 import {Response} from "express";
 import {User} from "../models/User";
 import { md5 } from "../utils/Utils";
-import {EntityType} from "../models/security/EntityType";
-import {Role} from "../models/security/Role";
-import admin from "firebase-admin";
 
 @JsonController('/ure')
 export class UserRoleEntityController extends BaseController {
@@ -132,20 +129,5 @@ export class UserRoleEntityController extends BaseController {
         await this.notifyChangeRole(parentURE.userId);
 
         return response.status(200).send({success: true});
-    }
-
-    private async addUserToTeamChat(teamId: number, user: User) {
-      let db = admin.firestore();
-      let chatsCollectionRef = await db.collection('chats');
-      let queryRef = chatsCollectionRef.where('teamId', '==', teamId);
-      let querySnapshot = await queryRef.get();
-
-      if (!querySnapshot.empty) {
-        let teamChatDoc = chatsCollectionRef.doc(`team${teamId.toString()}chat`);
-        teamChatDoc.update({
-          'uids': admin.firestore.FieldValue.arrayUnion(user.firebaseUID),
-          'updated_at': admin.firestore.FieldValue.serverTimestamp()
-        });
-      }
     }
 }

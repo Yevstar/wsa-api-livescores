@@ -491,6 +491,7 @@ export class UserController extends BaseController {
 
         // assign teams
         let ureArray = [];
+        const managerTeamChatPromiseArray = [];
         for (let i of userData.teams) {
             let ure = new UserRoleEntity();
             ure.roleId = Role.MANAGER;
@@ -499,6 +500,10 @@ export class UserController extends BaseController {
             ure.userId = userData.id
             ure.createdBy = user.id;
             ureArray.push(ure);
+            /// Checking manager with respect to each team for existing chat
+            managerTeamChatPromiseArray.push(
+              this.addUserToTeamChat(i.id, userData)
+            );
         }
         let ure1 = new UserRoleEntity();
         ure1.roleId = Role.MEMBER;
@@ -509,6 +514,8 @@ export class UserController extends BaseController {
         ureArray.push(ure1);
         await this.ureService.batchCreateOrUpdate(ureArray);
         await this.notifyChangeRole(userData.id);
+        Promise.all(managerTeamChatPromiseArray);
+
         return response.status(200).send({success: true});
     }
 
@@ -579,6 +586,7 @@ export class UserController extends BaseController {
 
         // assign teams
         let ureArray = [];
+        const coachTeamChatPromiseArray = [];
         for (let i of userData.teams) {
             let ure = new UserRoleEntity();
             ure.roleId = Role.COACH;
@@ -587,6 +595,10 @@ export class UserController extends BaseController {
             ure.userId = userData.id
             ure.createdBy = user.id;
             ureArray.push(ure);
+            /// Checking coach with respect each team for existing chat
+            coachTeamChatPromiseArray.push(
+              this.addUserToTeamChat(i.id, userData)
+            );
         }
         let ure1 = new UserRoleEntity();
         ure1.roleId = Role.MEMBER;
@@ -597,6 +609,8 @@ export class UserController extends BaseController {
         ureArray.push(ure1);
         await this.ureService.batchCreateOrUpdate(ureArray);
         await this.notifyChangeRole(userData.id);
+        Promise.all(coachTeamChatPromiseArray);
+
         return response.status(200).send({success: true});
     }
 
@@ -813,9 +827,7 @@ export class UserController extends BaseController {
             this.userService.sentMail(user, "", competitionData, "admin", saved, password);
             return competitionData;
         }
-
     }
-
 
     @Authorized()
     @Post('/superAdmin')
@@ -834,15 +846,12 @@ export class UserController extends BaseController {
         if (existing) {
             logger.info(`User ${superAdmin.email} already exists.`);
             return response
-
                 .status(400).send({
                     name: 'validation_error',
                     message: 'A user or superAdmin with that email address already exists.'
 
                 });
-
         } else {
-
             var password = Math.random().toString(36).slice(-8);
             superAdmin.email = superAdmin.email.toLowerCase();
             superAdmin.password = md5(password);
@@ -861,7 +870,6 @@ export class UserController extends BaseController {
             await this.ureService.createOrUpdate(ure);
             this.userService.sentMail(user, "", "", "superAdmin", saved, password);
             return saved;
-
         }
     }
 
@@ -942,7 +950,7 @@ export class UserController extends BaseController {
 
                         userDetails.id = savedUserDetail.id;
                     }
-                        
+
                     if (!infoMisMatchArray.includes(i['Email'])) {
                         if (isNotNullAndUndefined(i['Team'])) {
                             const teamArray = i['Team'].split(',');
@@ -960,8 +968,8 @@ export class UserController extends BaseController {
                         }
 
                         let ureArray = [];
+                        const coachTeamChatPromiseArray = [];
                         if (isArrayPopulated(teamDetailArray)) {
-
                             for (let i of teamDetailArray) {
                                 let ure = new UserRoleEntity();
                                 ure.roleId = Role.COACH;
@@ -970,6 +978,11 @@ export class UserController extends BaseController {
                                 ure.userId = userDetails.id
                                 ure.createdBy = user.id;
                                 ureArray.push(ure);
+
+                                /// Checking coach with respect each team for existing chat
+                                coachTeamChatPromiseArray.push(
+                                  this.addUserToTeamChat(i.id, userDetails)
+                                );
                             }
                             let ure1 = new UserRoleEntity();
                             ure1.roleId = Role.MEMBER;
@@ -980,6 +993,8 @@ export class UserController extends BaseController {
                             ureArray.push(ure1);
                             await this.ureService.batchCreateOrUpdate(ureArray);
                             await this.notifyChangeRole(userDetails.id);
+                            Promise.all(coachTeamChatPromiseArray);
+
                             importSuccess = true;
                         }
                     }
