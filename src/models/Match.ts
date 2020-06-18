@@ -9,6 +9,7 @@ import {IsBoolean, IsDate, IsNumber, IsString, ValidateNested, IsArray} from "cl
 import { isDate } from 'util';
 import {MatchPausedTime} from "./MatchPausedTime";
 import {Roster} from "./security/Roster";
+import { MatchUmpire } from './MatchUmpire';
 
 @Entity()
 export class Match extends BaseEntity {
@@ -185,5 +186,6 @@ export class Match extends BaseEntity {
     @JoinColumn()
     matchPausedTimes: MatchPausedTime[];
 
-    rosters: Roster[]
+    rosters: Roster[];
+    matchUmpires: MatchUmpire[];
 }
