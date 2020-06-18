@@ -158,7 +158,6 @@ export class PlayerController extends BaseController {
 
     @Authorized()
     @Post('/import')
-
     async importCSV(
         @QueryParam('competitionId', { required: true }) competitionId: number,
         @UploadedFile("file") file: Express.Multer.File,

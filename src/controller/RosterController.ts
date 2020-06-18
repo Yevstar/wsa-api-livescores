@@ -170,10 +170,10 @@ export class RosterController extends BaseController {
                 }
                 break;
               case "Playing":
-                let playingDeviceTokens = (await this.deviceService.findManagerDevice(roster.teamId)).map(device => device.deviceId);
-                if (playingDeviceTokens && playingDeviceTokens.length > 0) {
+                let managerAndCoachDeviceTokens = (await this.deviceService.findManagerAndCoachDevices(roster.teamId)).map(device => device.deviceId);
+                if (managerAndCoachDeviceTokens && managerAndCoachDeviceTokens.length > 0) {
                     this.firebaseService.sendMessage({
-                      tokens: playingDeviceTokens,
+                      tokens: managerAndCoachDeviceTokens,
                       data: {type: 'player_status_update', entityTypeId: EntityType.USER.toString(),
                       entityId: user.id.toString(), matchId: roster.matchId.toString()}
                     });
@@ -241,10 +241,10 @@ export class RosterController extends BaseController {
                   }
                 break;
               case "Playing":
-                let playingDeviceTokens = (await this.deviceService.findManagerDevice(roster.teamId)).map(device => device.deviceId);
-                if (playingDeviceTokens && playingDeviceTokens.length > 0) {
+                let managerAndCoachDeviceTokens = (await this.deviceService.findManagerAndCoachDevices(roster.teamId)).map(device => device.deviceId);
+                if (managerAndCoachDeviceTokens && managerAndCoachDeviceTokens.length > 0) {
                     this.firebaseService.sendMessage({
-                        tokens: playingDeviceTokens,
+                        tokens: managerAndCoachDeviceTokens,
                         data: {
                           type: 'player_status_update', entityTypeId: EntityType.USER.toString(),
                           entityId: user.id.toString(), matchId: roster.matchId.toString()

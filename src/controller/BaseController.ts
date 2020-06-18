@@ -194,4 +194,19 @@ export class BaseController {
             }
         }
     }
+
+    protected async addUserToTeamChat(teamId: number, user: User) {
+        let db = admin.firestore();
+        let chatsCollectionRef = await db.collection('chats');
+        let queryRef = chatsCollectionRef.where('teamId', '==', teamId);
+        let querySnapshot = await queryRef.get();
+
+        if (!querySnapshot.empty) {
+            let teamChatDoc = chatsCollectionRef.doc(`team${teamId.toString()}chat`);
+            teamChatDoc.update({
+                'uids': admin.firestore.FieldValue.arrayUnion(user.firebaseUID),
+                'updated_at': admin.firestore.FieldValue.serverTimestamp()
+            });
+        }
+    }
 }

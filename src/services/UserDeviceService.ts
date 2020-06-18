@@ -63,6 +63,18 @@ export default class UserDeviceService extends BaseService<UserDevice> {
             .getMany();
     }
 
+    public async findManagerAndCoachDevices(teamId: number): Promise<UserDevice[]> {
+        return this.entityManager.createQueryBuilder(UserDevice, 'ud')
+            .innerJoin('ud.user', 'user')
+            .innerJoin(UserRoleEntity, 'ure', 'ure.userId = user.id')
+            .innerJoin('ure.role', 'r')
+            .innerJoin('ure.entityType', 'et')
+            .andWhere("r.name = 'manager' or r.name = 'coach'")
+            .andWhere("et.name = 'TEAM'")
+            .andWhere('ure.entityId = :teamId', {teamId})
+            .getMany();
+    }
+
     public async findDeviceByMatch(match: Match): Promise<UserDevice[]> {
         let query = this.entityManager.createQueryBuilder(UserDevice, 'ud');
         query.andWhere('ud.userId in ' + query.subQuery().select("ure.userId")
