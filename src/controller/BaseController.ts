@@ -19,6 +19,8 @@ import WatchlistService from "../services/WatchlistService";
 import NewsService from "../services/NewsService";
 import BannerService from "../services/BannerService";
 import {User} from "../models/User";
+import {Roster} from "../models/security/Roster";
+import {EntityType} from "../models/security/EntityType";
 import EventService from "../services/EventService";
 import UserRoleEntityService from "../services/UserRoleEntityService";
 import IncidentService from "../services/IncidentService";
@@ -208,5 +210,42 @@ export class BaseController {
                 'updated_at': admin.firestore.FieldValue.serverTimestamp()
             });
         }
+    }
+
+    protected async notifyRosterChange(user: User, roster: Roster, category: "Scoring" | "Playing" | "Event" | "Umpiring") {
+        switch (category) {
+            case "Scoring":
+              let scoringDeviceTokens = (await this.deviceService.findManagerDevice(roster.teamId)).map(device => device.deviceId);
+              if (scoringDeviceTokens && scoringDeviceTokens.length > 0) {
+                  this.firebaseService.sendMessage({
+                    tokens: scoringDeviceTokens,
+                    data: {type: 'add_scorer_match', rosterId: roster.id.toString(),
+                      matchId: roster.matchId.toString()}
+                  });
+              }
+              break;
+            case "Playing":
+              let managerAndCoachDeviceTokens = (await this.deviceService.findManagerAndCoachDevices(roster.teamId)).map(device => device.deviceId);
+              if (managerAndCoachDeviceTokens && managerAndCoachDeviceTokens.length > 0) {
+                  this.firebaseService.sendMessage({
+                    tokens: managerAndCoachDeviceTokens,
+                    data: {type: 'player_status_update', entityTypeId: EntityType.USER.toString(),
+                    entityId: user.id.toString(), matchId: roster.matchId.toString()}
+                  });
+              }
+              break;
+            case "Event":
+              let eventDeviceTokens = (await this.deviceService.getUserDevices(roster.eventOccurrence.created_by)).map(device => device.deviceId);
+              if (eventDeviceTokens && eventDeviceTokens.length > 0) {
+                  this.firebaseService.sendMessage({
+                    tokens: eventDeviceTokens,
+                    data: {
+                      type: 'event_invitee_update', entityTypeId: EntityType.USER.toString(),
+                      entityId: user.id.toString(), eventOccurrenceId: roster.eventOccurrenceId.toString()
+                    }
+                  });
+              }
+              break;
+          }
     }
 }

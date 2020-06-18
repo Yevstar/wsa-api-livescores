@@ -30,6 +30,8 @@ import {RequestFilter} from "../models/RequestFilter";
 import * as fastcsv from 'fast-csv';
 import {MatchPausedTime} from "../models/MatchPausedTime";
 import { IsEmpty } from 'class-validator';
+import { Roster } from 'src/models/security/Roster';
+import { Role } from 'src/models/security/Role';
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
@@ -202,9 +204,11 @@ export class MatchController extends BaseController {
     @Authorized()
     @Post('/')
     async create(
+        @HeaderParam("authorization") user: User,
         @QueryParam('userId') userId: number = null,
-        @Body() match: Match
-    ): Promise<Match> {
+        @Body() match: Match,
+        @Res() response: Response
+    ) {
         if (userId) {
             const matchScores = new MatchScores();
             matchScores.userId = userId;
@@ -214,13 +218,80 @@ export class MatchController extends BaseController {
             await this.matchScorerService.createOrUpdate(matchScores);
         }
         const saved = await this.matchService.createOrUpdate(match);
+        let competition = await this.competitionService.findById(match.competitionId);
+        let oldRosters = await this.rosterService.findAllRostersByParam([match.id])
+        if (competition.recordUmpireType == "NAMES" && match.matchUmpires) {
+            this.matchUmpireService.batchCreateOrUpdate(match.matchUmpires);
+        } 
+        
+        let errors = false;
         if (isArrayPopulated(match.rosters)) {
-            for (let roster of match.rosters) {
-                if (roster.status == null) {
-                    roster.save();
+            for (let newRoster of match.rosters) {
+                if (newRoster.roleId == Role.UMPIRE  && competition.recordUmpireType == "USERS") {
+                    let newRosterToAdd = true;
+                    for (let oldRoster of oldRosters) {
+                        if (oldRoster.roleId == Role.UMPIRE && oldRoster.userId == newRoster.userId) {
+                            newRosterToAdd = false;
+                        }
+                    }
+                    if (newRosterToAdd) {
+                        let savedRoster = await this.rosterService.createOrUpdate(newRoster);
+                        if (savedRoster) {
+                            await this.notifyRosterChange(user, savedRoster, "Umpiring");
+                        } 
+                    }
+                }
+                if (newRoster.roleId == Role.SCORER) {
+                    let newRosterToAdd = true;
+                    for (let oldRoster of oldRosters) {
+                        if (oldRoster.roleId == Role.SCORER && oldRoster.userId == newRoster.userId && oldRoster.teamId == newRoster.teamId) {
+                            newRosterToAdd = false;
+                        }
+                    }
+                    if (newRosterToAdd) {
+                        let savedRoster = await this.rosterService.createOrUpdate(newRoster);
+                        if (savedRoster) {
+                            await this.notifyRosterChange(user, savedRoster, "Scoring");
+                        } 
+                    }
+                }
+            }
+
+            for (let oldRoster of oldRosters) {
+                let oldRosterToDelete = true;
+                for (let newRoster of match.rosters) {
+                    if (oldRoster.roleId == newRoster.roleId && oldRoster.userId == newRoster.roleId && oldRoster.teamId == newRoster.teamId) {
+                        oldRosterToDelete = false;
+                    }
+                }
+                if (oldRosterToDelete) {
+                    let tokens = (await this.deviceService.findScorerDeviceFromRoster(undefined, oldRoster.id)).map(device => device.deviceId);
+                    let result = await this.rosterService.delete(oldRoster);
+                    if (result) {
+                        if (tokens && tokens.length > 0) {
+                            this.firebaseService.sendMessageChunked({
+                                tokens: tokens,
+                                data: {
+                                    type: 'remove_scorer_match',
+                                    rosterId: oldRoster.id.toString(),
+                                    matchId: oldRoster.matchId.toString()
+                                }
+                            })
+                        }
+                    } else {
+                        errors = true;
+                    }
                 }
             }
         }
+        
+
+        if (errors) {
+            return response.status(400).send({
+                name: 'bad_request', message: 'Issue updating match'
+            });
+        }
+    
         this.sendMatchEvent(saved); // This is to send notification for devices
         return saved;
     }
