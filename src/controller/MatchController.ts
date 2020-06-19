@@ -30,8 +30,8 @@ import {RequestFilter} from "../models/RequestFilter";
 import * as fastcsv from 'fast-csv';
 import {MatchPausedTime} from "../models/MatchPausedTime";
 import { IsEmpty } from 'class-validator';
-import { Roster } from 'src/models/security/Roster';
-import { Role } from 'src/models/security/Role';
+import { Roster } from '../models/security/Roster';
+import { Role } from '../models/security/Role';
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
