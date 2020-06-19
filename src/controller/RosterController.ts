@@ -18,7 +18,6 @@ import {User} from "../models/User";
 import {stringTONumber, paginationData, isArrayPopulated} from "../utils/Utils";
 import {RequestFilter} from "../models/RequestFilter";
 import * as fastcsv from 'fast-csv';
-import { runInThisContext } from 'vm';
 
 @JsonController('/roster')
 export class RosterController extends BaseController {
