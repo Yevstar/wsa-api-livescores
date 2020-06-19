@@ -90,7 +90,7 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
 
         let limit = 50000; 
         let offset = 0;
-        if (isNotNullAndUndefined(requestFilter) 
+        if (requestFilter && isNotNullAndUndefined(requestFilter) 
             && isNotNullAndUndefined(requestFilter.paging)
             && isNotNullAndUndefined(requestFilter.paging.limit) 
             && isNotNullAndUndefined(requestFilter.paging.offset)) {
@@ -102,7 +102,7 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
 
         if (result != null) {
             let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
-            let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);
+            let responseObject = paginationData(stringTONumber(totalCount), limit,offset);
             responseObject["results"] = result[0];
             return responseObject;
         } else {

@@ -277,7 +277,7 @@ export class MatchUmpireController extends BaseController {
     }
 
     @Authorized()
-    @Get('/export')
+    @Get('/dashboard/export')
     async exportTeams(
         @QueryParam('organisationId') organisationId: number,
         @QueryParam('competitionId') competitionId: number,
@@ -286,13 +286,10 @@ export class MatchUmpireController extends BaseController {
         @QueryParam('venueId') venueId: number,
         @Res() response: Response): Promise<any> {
 
-
         if (!organisationId) {
-           } else {
             return response.status(200).send(
                 {name: 'search_error', message: `Required fields are missing`});
         }
-
         let umpiresList = await this.matchUmpireService.findByRosterAndCompetition(organisationId, competitionId, matchId, divisionId, venueId, null);
 
         if (isArrayPopulated(umpiresList)) {
