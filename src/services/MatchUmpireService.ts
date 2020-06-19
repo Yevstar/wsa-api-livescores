@@ -88,7 +88,7 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
             query.andWhere('venueCourt.id = :venueCourtId', {venueCourtId});
         }*/
 
-        let limit = 0; 
+        let limit = 50000; 
         let offset = 0;
         if (isNotNullAndUndefined(requestFilter) 
             && isNotNullAndUndefined(requestFilter.paging)
