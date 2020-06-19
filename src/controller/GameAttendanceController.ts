@@ -16,6 +16,8 @@ import {Response} from "express";
 import {BaseController} from "./BaseController";
 import {User} from "../models/User";
 import {TeamPlayerActivity} from "../models/views/TeamPlayerActivity";
+import { isNotNullAndUndefined } from "../utils/Utils"
+import{ GamePosition } from "../models/GamePosition";
 
 @Authorized()
 @JsonController('/gtattendances')
@@ -92,6 +94,7 @@ export class GameAttendanceController extends BaseController {
                         @QueryParam('matchId') matchId: number,
                         @QueryParam('teamId') teamId: number,
                         @QueryParam('period') period: number,
+                        @QueryParam('updateMatchEvents') updateMatchEvents: boolean,
                         @Body() attendance: GameTimeAttendance[],
                         @Res() response: Response) {
         if (!matchId) return response.status(400)
@@ -102,6 +105,8 @@ export class GameAttendanceController extends BaseController {
         console.time('matchService.findById');
         let match = await this.matchService.findById(matchId);
         console.timeEnd('matchService.findById');
+        let gsPlayerId;
+        let gaPlayerId;
         if (match.matchStatus != 'ENDED') {
             if (attendance.length > 0) {
                 let save: GameTimeAttendance[] = [];
@@ -116,8 +121,35 @@ export class GameAttendanceController extends BaseController {
                     } else {
                         save.push(this.gameTimeAttendanceService.prepare(matchId, teamId, period, att, user.id));
                     }
+                    if (updateMatchEvents) {
+                        /// Checking for any player with position Goal shooter or
+                        /// goal attack
+                        if (att.positionId == GamePosition.GOAL_SHOOTER) {
+                            gsPlayerId = att.playerId;
+                        } else if (att.positionId == GamePosition.GOAL_ATTACK) {
+                            gaPlayerId = att.playerId;
+                        }
+                    }
                 }
                 await this.gameTimeAttendanceService.batchUpdate(save);
+                if (updateMatchEvents) {
+                    let team = match.team1Id == teamId ? 'team1' : 'team2';
+                    if (isNotNullAndUndefined(gsPlayerId)) {
+                        this.matchService.updateMatchStatEvent(
+                            matchId,
+                            team,
+                            GamePosition.GOAL_SHOOTER,
+                            gsPlayerId
+                        );
+                    } else if(isNotNullAndUndefined(gaPlayerId)) {
+                        this.matchService.updateMatchStatEvent(
+                            matchId,
+                            team,
+                            GamePosition.GOAL_ATTACK,
+                            gaPlayerId
+                        );
+                    }
+                }
                 let tokens = (await this.deviceService.findScorerDeviceFromRoster(matchId)).map(device => device.deviceId);
                 if (tokens && tokens.length > 0) {
                     this.firebaseService.sendMessage({

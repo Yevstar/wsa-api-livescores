@@ -32,6 +32,7 @@ import {MatchPausedTime} from "../models/MatchPausedTime";
 import { IsEmpty } from 'class-validator';
 import { Roster } from '../models/security/Roster';
 import { Role } from '../models/security/Role';
+import{ GamePosition } from "../models/GamePosition";
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
@@ -222,8 +223,8 @@ export class MatchController extends BaseController {
         let oldRosters = await this.rosterService.findAllRostersByParam([match.id])
         if (competition.recordUmpireType == "NAMES" && match.matchUmpires) {
             this.matchUmpireService.batchCreateOrUpdate(match.matchUmpires);
-        } 
-        
+        }
+
         let errors = false;
         if (isArrayPopulated(match.rosters)) {
             for (let newRoster of match.rosters) {
@@ -238,7 +239,7 @@ export class MatchController extends BaseController {
                         let savedRoster = await this.rosterService.createOrUpdate(newRoster);
                         if (savedRoster) {
                             await this.notifyRosterChange(user, savedRoster, "Umpiring");
-                        } 
+                        }
                     }
                 }
                 if (newRoster.roleId == Role.SCORER) {
@@ -252,7 +253,7 @@ export class MatchController extends BaseController {
                         let savedRoster = await this.rosterService.createOrUpdate(newRoster);
                         if (savedRoster) {
                             await this.notifyRosterChange(user, savedRoster, "Scoring");
-                        } 
+                        }
                     }
                 }
             }
@@ -284,14 +285,14 @@ export class MatchController extends BaseController {
                 }
             }
         }
-        
+
 
         if (errors) {
             return response.status(400).send({
                 name: 'bad_request', message: 'Issue updating match'
             });
         }
-    
+
         this.sendMatchEvent(saved); // This is to send notification for devices
         return saved;
     }
@@ -833,6 +834,7 @@ export class MatchController extends BaseController {
     async saveLineup(
         @QueryParam('teamId') teamId: number = undefined,
         @QueryParam('matchId') matchId: number = undefined,
+        @QueryParam('updateMatchEvents') updateMatchEvents: boolean,
         @BodyParam("lineups", {required: true}) lineups: Lineup[],
         @Res() response: Response) {
         try {
@@ -844,6 +846,10 @@ export class MatchController extends BaseController {
                         {name: 'validation_error', message: `Match Id and team Id can not be null`});
                 }
                 await this.matchService.batchSaveLineups(lineups);
+                if (updateMatchEvents) {
+                    let match = await this.matchService.findById(matchId);
+                    this.updateMatchEventsForLineup(match, teamId, lineups);
+                }
                 return response.status(200).send({success: true});
             } else {
                 return response.status(400).send(
@@ -872,15 +878,19 @@ export class MatchController extends BaseController {
     async updateLineups(
         @QueryParam('matchId') matchId: number,
         @QueryParam('teamId') teamId: number,
-        @Body() lineup: Lineup[],
+        @QueryParam('updateMatchEvents') updateMatchEvents: boolean,
+        @Body() lineups: Lineup[],
         @Res() response: Response
     ) {
         console.time('matchService.findById');
         let match = await this.matchService.findById(matchId);
         console.timeEnd('matchService.findById');
         if (match.matchStatus != 'ENDED') {
-            if (lineup.length > 0) {
-                await this.matchService.batchSaveLineups(lineup);
+            if (lineups.length > 0) {
+                await this.matchService.batchSaveLineups(lineups);
+                if (updateMatchEvents) {
+                    this.updateMatchEventsForLineup(match, teamId, lineups);
+                }
                 let tokens = (await this.deviceService.findScorerDeviceFromRoster(matchId)).map(device => device.deviceId);
                 if (tokens && tokens.length > 0) {
                     this.firebaseService.sendMessage({
@@ -898,6 +908,40 @@ export class MatchController extends BaseController {
             }
         } else {
             return response.status(400).send({name: 'update_lineup_error', message: 'Lineup cannot be submitted after a match has ended'});
+        }
+    }
+
+    private async updateMatchEventsForLineup(
+        match: Match,
+        teamId: number,
+        lineups: Lineup[]
+    ) {
+        let gsPlayerId;
+        let gaPlayerId;
+        for (let lu of lineups) {
+            /// Checking for any player with position Goal shooter or
+            /// goal attack
+            if (lu.positionId == GamePosition.GOAL_SHOOTER) {
+                gsPlayerId = lu.playerId;
+            } else if (lu.positionId == GamePosition.GOAL_ATTACK) {
+                gaPlayerId = lu.playerId;
+            }
+        }
+        let team = match.team1Id == teamId ? 'team1' : 'team2';
+        if (isNotNullAndUndefined(gsPlayerId)) {
+            this.matchService.updateMatchStatEvent(
+                match.id,
+                team,
+                GamePosition.GOAL_SHOOTER,
+                gsPlayerId
+            );
+        } else if(isNotNullAndUndefined(gaPlayerId)) {
+            this.matchService.updateMatchStatEvent(
+                match.id,
+                team,
+                GamePosition.GOAL_ATTACK,
+                gaPlayerId
+            );
         }
     }
 
