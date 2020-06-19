@@ -9,6 +9,7 @@ import {Match} from "../models/Match";
 import {logger} from "../logger";
 import {StateTimezone} from "../models/StateTimezone";
 import {User} from "../models/User";
+import * as fastcsv from 'fast-csv';
 
 @JsonController('/matchUmpire')
 export class MatchUmpireController extends BaseController {
@@ -274,4 +275,87 @@ export class MatchUmpireController extends BaseController {
           }
       }
     }
+
+    @Authorized()
+    @Get('/export')
+    async exportTeams(
+        @QueryParam('organisationId') organisationId: number,
+        @QueryParam('competitionId') competitionId: number,
+        @QueryParam('matchId') matchId: number,
+        @QueryParam('divisionId') divisionId: number,
+        @QueryParam('venueId') venueId: number,
+        @Res() response: Response): Promise<any> {
+
+
+        if (!organisationId) {
+           } else {
+            return response.status(200).send(
+                {name: 'search_error', message: `Required fields are missing`});
+        }
+
+        let umpiresList = await this.matchUmpireService.findByRosterAndCompetition(organisationId, competitionId, matchId, divisionId, venueId, null);
+
+        if (isArrayPopulated(umpiresList)) {
+            umpiresList.map(e => {
+                e['Match ID'] = e['id']
+                e['Start Time'] = e['startTime'] // todo date
+                e['Home'] = e['team1']['name'];
+                e['Away'] = e['team2']['name'];
+                e['Round'] = e['round']['name'];
+                if (e['umpires'] && e['umpires'][0]) {
+                    e['Umpire 1 Id'] = e['umpires'][0]['userId'];
+                    e['Umpire 1'] = e['umpires'][0]['umpireName'];
+                    e['Umpire 2 Organisation'] = e['umpires'][0]['status'];
+                    const organisationName = [];
+                    if (isArrayPopulated(e['umpires'][0]['organisations'])) {
+                        for (let r of e['umpires'][0]['organisations']) {
+                            organisationName.push(r['name']);
+                        }
+                    }
+                    e['Organisation 1 Name'] = organisationName.toString().replace(",", '\n');
+                }
+                if (e['umpires'] && e['umpires'][1]) {
+                    e['Umpire 2 Id'] = e['umpires'][1]['userId'];
+                    e['Umpire 2'] = e['umpires'][1]['umpireName'];
+                    e['Umpire 2 Response'] = e['umpires'][1]['status'];
+                    const organisationName = [];
+                    if (isArrayPopulated(e['umpires'][1]['organisations'])) {
+                        for (let r of e['umpires'][1]['organisations']) {
+                            organisationName.push(r['name']);
+                        }
+                    }
+                    e['Umpire 2 Organisation'] = organisationName.toString().replace(",", '\n');
+                }
+                delete e['id'];
+                delete e['startTime'];
+                delete e['team1'];
+                delete e['team2'];
+                delete e['round'];
+                delete e['umpires'];
+                return e;
+            });
+        } else {
+            umpiresList.push({
+                ['Match Id']: 'N/A',
+                ['Start Time']: 'N/A',
+                ['Home']: 'N/A',
+                ['Away']: 'N/A',
+                ['Round']: 'N/A',
+                ['Umpire 1 Id']: 'N/A',
+                ['Umpire 1']: 'N/A',
+                ['Umpire 1 Organisation']: 'N/A',
+                ['Umpire 2 Id']: 'N/A',
+                ['Umpire 2']: 'N/A',
+                ['Umpire 2 Organisation']: 'N/A'
+            });
+        }
+
+        response.setHeader('Content-disposition', 'attachment; filename=teams.csv');
+        response.setHeader('content-type', 'text/csv');
+        fastcsv.write(umpiresList, { headers: true })
+            .on("finish", function () { })
+            .pipe(response);
+    }
+
+    
 }
