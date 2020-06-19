@@ -4,6 +4,9 @@ import {IsBoolean, IsNumber, IsString} from "class-validator";
 @Entity("gamePosition")
 export class GamePosition extends BaseEntity {
 
+    public static GOAL_SHOOTER: number = 1;
+    public static GOAL_ATTACK: number = 2;
+
     @IsNumber()
     @PrimaryGeneratedColumn()
     id: number;

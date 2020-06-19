@@ -321,7 +321,7 @@ export default class MatchService extends BaseService<Match> {
         };
         s3.upload(params, function(s3Err, data) {
             if (s3Err) throw s3Err;
-            
+
             console.log("File uploaded successfully");
         });
 
@@ -409,5 +409,21 @@ export default class MatchService extends BaseService<Match> {
         let query = await this.entityManager.createQueryBuilder(StateTimezone, 'stateTimezone')
                               .andWhere('stateTimezone.stateRefId = :locationId', {locationId: location.id});
         return query.getOne();
+    }
+
+    public async updateMatchStatEvent(
+        matchId: number,
+        team: String,
+        gamePositionId: number,
+        playerId: number
+    ) {
+        let query = this.entityManager.createQueryBuilder(MatchEvent, 'me')
+                        .update(MatchEvent)
+                        .set({attribute2Value: playerId.toString()})
+                        .where("eventCategory = 'stat'")
+                        .andWhere("matchId = :matchId", {matchId})
+                        .andWhere("attribute1Key = :team", {team})
+                        .andWhere("attribute1Value = :gamePositionId", {gamePositionId});
+        return query.execute();
     }
 }
