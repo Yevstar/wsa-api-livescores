@@ -29,6 +29,7 @@ import CompetitionVenueService from "../services/CompetitionVenueService";
 import admin from "firebase-admin";
 import OrganisationService from "../services/OrganisationService";
 import CompetitionOrganisationService from "../services/CompetitionOrganisationService";
+import LineupService from "../services/LineupService";
 
 export class BaseController {
 
@@ -106,6 +107,9 @@ export class BaseController {
 
     @Inject()
     protected organisationService: OrganisationService;
+
+    @Inject()
+    protected lineupService: LineupService;
 
     @Inject()
     protected competitionOrganisationService: CompetitionOrganisationService;

@@ -881,6 +881,21 @@ export class MatchController extends BaseController {
         return this.matchService.findLineupsByParam(matchId, competitionId, teamId, playerId, positionId);
     }
 
+    @Patch('/lineup/updateStatus')
+    async updateLineupService(
+        @Body() lineup: Lineup,
+        @Res() response: Response
+    ) {
+        let savedLineup = await this.lineupService.findById(lineup.id);
+        if (savedLineup) {
+            savedLineup.playing = lineup.playing;
+            return this.lineupService.createOrUpdate(savedLineup);
+        } else {
+            return response.status(400).send(
+                {name: 'search_error', message: `Lineup with id ${lineup.id} not found`});
+        }
+    }
+
     @Patch('/lineup/update')
     async updateLineups(
         @QueryParam('matchId') matchId: number,
