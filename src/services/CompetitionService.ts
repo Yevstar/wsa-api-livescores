@@ -3,7 +3,7 @@ import BaseService from "./BaseService";
 import {Competition} from "../models/Competition";
 import {Brackets, DeleteResult} from "typeorm-plus";
 import {RequestFilter} from "../models/RequestFilter";
-import {paginationData, stringTONumber } from "../utils/Utils";
+import {paginationData, stringTONumber, objectIsNotEmpty, isNotNullAndUndefined } from "../utils/Utils";
 
 @Service()
 export default class CompetitionService extends BaseService<Competition> {
@@ -40,18 +40,26 @@ export default class CompetitionService extends BaseService<Competition> {
         return query.getMany();
     }
 
-    public async loadAdmin(userId: number, requestFilter: RequestFilter, organisationId: number): Promise<any> {
-        let result = await this.entityManager.query("call wsa.usp_get_competitions(?,?,?,?)",
-            [userId, organisationId, requestFilter.paging.limit, requestFilter.paging.offset]);
+    public async loadAdmin(userId: number, requestFilter: RequestFilter, organisationId: number, recordUmpireType: "NONE" | "NAMES" | "USERS"): Promise<any> {
+        const offset = objectIsNotEmpty(requestFilter) && objectIsNotEmpty(requestFilter.paging) && isNotNullAndUndefined(requestFilter.paging.offset) ? requestFilter.paging.offset : null;
+        const limit = objectIsNotEmpty(requestFilter) && objectIsNotEmpty(requestFilter.paging) && isNotNullAndUndefined(requestFilter.paging.limit) ? requestFilter.paging.limit : null;
+        const recordUmpireType_ = isNotNullAndUndefined(recordUmpireType) ? recordUmpireType : null;
+        let result = await this.entityManager.query("call wsa.usp_get_competitions(?,?,?,?,?)",
+            [userId, organisationId, limit, offset, recordUmpireType_]);
 
-            if (result != null) {
-                let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
-                let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);
+        if (result != null) {
+            let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
+            let responseObject: any;
+            if (offset !== null && limit !== null) {
+                responseObject = paginationData(stringTONumber(totalCount), limit, offset);
                 responseObject["competitions"] = result[0];
-                return responseObject;
             } else {
-                return [];
+                responseObject = result[0];
             }
+            return responseObject;
+        } else {
+            return [];
+        }
     }
     public async softDelete(id: number, userId: number): Promise<DeleteResult> {
         let query = this.entityManager.createQueryBuilder(Competition, 'competition');

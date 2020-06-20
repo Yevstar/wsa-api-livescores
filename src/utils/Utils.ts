@@ -138,3 +138,9 @@ export const s3 = new AWS.S3({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
 });
 
+export function objectIsNotEmpty(obj) {
+    for (const key in obj) {
+        if (obj.hasOwnProperty(key)) return true;
+    }
+    return false;
+}
