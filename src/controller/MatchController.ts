@@ -57,8 +57,11 @@ export class MatchController extends BaseController {
 
     @Authorized()
     @Get('/admin/:id')
-    async getAdmin(@Param("id") id: number) {
-        return this.matchService.findAdminMatchById(id);
+    async getAdmin(
+        @Param("id") id: number,
+        @QueryParam('lineups') lineups: number = 0,
+    ) {
+        return this.matchService.findAdminMatchById(id, lineups);
     }
 
     @Get('/list')

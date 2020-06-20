@@ -1,4 +1,4 @@
-import {Authorized, Body, Get, JsonController, Patch, Post, QueryParam, Res} from 'routing-controllers';
+import {Authorized, Body, Get, JsonController, Patch, Post, QueryParam, Res, UploadedFile, HeaderParam} from 'routing-controllers';
 import {MatchUmpire} from '../models/MatchUmpire';
 import {Roster} from '../models/security/Roster';
 import {Response} from "express";
@@ -352,6 +352,65 @@ export class MatchUmpireController extends BaseController {
         fastcsv.write(umpiresList, { headers: true })
             .on("finish", function () { })
             .pipe(response);
+    }
+
+    @Authorized()
+    @Post('/dashboard/import')
+    async import(
+        @HeaderParam("authorization") user: User,
+        @QueryParam('competitionId', { required: true }) competitionId: number,
+        @UploadedFile("file", { required: true }) file: Express.Multer.File,
+        @Res() response: Response) 
+    {
+        let bufferString = file.buffer.toString('utf8');
+        let arr = bufferString.split('\n');
+        let jsonObj = [];
+        let headers = arr[0].split(',');
+        const infoMisMatchArray: any = [];
+        let importSuccess: boolean = false;
+
+        // File columns:
+        //Match ID	Start Time	Home	Away	Round 	
+        //Umpire 1 Id	Umpire 1 First Name	Umpire 1 Surname	Umpire 1 Organisation
+        //Umpire 2 Id	Umpire 2 First Name	Umpire 2 Surname	Umpire 2 Organisation
+
+        for (let i = 1; i < arr.length; i++) {
+            let data = arr[i].split(',');
+            let obj = {};
+            for (let j = 0; j < data.length; j++) {
+                if (headers[j] !== undefined) obj[headers[j].trim()] = data[j].trim();
+            }
+            jsonObj.push(obj);
+        }
+        if (isArrayPopulated(jsonObj)) {
+            for (let i of jsonObj) {
+                if (isNotNullAndUndefined(i['Match ID']) && (i['Match ID'] != '') &&
+                    isNotNullAndUndefined(i['Umpire 1 Id']) && (i['Umpire 1 Id'] != '')
+                ) {
+                        
+                    const matchUmpire1 = new MatchUmpire();
+                    matchUmpire1.matchId = i['Match ID'];
+                    matchUmpire1.userId = i['Umpire 1 Id'];
+                    await this.umpireAddRoster(matchUmpire1, false);
+
+                    if (isNotNullAndUndefined(i['Match ID']) && (i['Match ID'] != '') &&
+                    isNotNullAndUndefined(i['Umpire 1 Id']) && (i['Umpire 1 Id'] != '')
+                    ) {
+                        const matchUmpire2 = new MatchUmpire();
+                        matchUmpire2.matchId = i['Match ID'];
+                        matchUmpire2.userId = i['Umpire 2 Id'];
+                        await this.umpireAddRoster(matchUmpire2, false);
+                    }
+                    importSuccess = true;
+                }
+            }
+
+            if (importSuccess) {
+                return response.status(200).send({ success: true });
+            } else {
+                return response.status(212).send(`Required parameters were not filled within the file provided for importing`);
+            }
+        }
     }
 
     

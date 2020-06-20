@@ -75,6 +75,7 @@ export default class MatchService extends BaseService<Match> {
 
     public async findAdminMatchById(
         matchId: number = undefined,
+        lineups: number = undefined,
     ): Promise<any> {
         let response = {
             match: Match,
@@ -82,7 +83,7 @@ export default class MatchService extends BaseService<Match> {
             team1players: [],
             team2players: []
         }
-        let result = await this.entityManager.query("call wsa.usp_get_match(?)",[matchId]);
+        let result = await this.entityManager.query("call wsa.usp_get_match(?,?)",[matchId, lineups]);
         if(result!= null && result[0]!= null) {
             response.match = result[0];
             response.umpires = result[1];

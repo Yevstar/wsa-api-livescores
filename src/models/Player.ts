@@ -1,6 +1,7 @@
 import { BaseEntity, Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn } from 'typeorm-plus';
 import { Competition } from './Competition';
 import { Team } from './Team';
+import { Lineup } from './Lineup';
 import { IsDate, IsNumber, IsString, ValidateNested } from "class-validator";
 
 @Entity()
@@ -75,4 +76,9 @@ export class Player extends BaseEntity {
     @IsString()
     @Column()
     inviteStatus: "INVITED" | "REGISTERED";
+
+    @ValidateNested()
+    @OneToOne(type => Lineup)
+    @JoinColumn()
+    lineup: Lineup;
 }
