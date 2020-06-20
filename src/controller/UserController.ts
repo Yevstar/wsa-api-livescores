@@ -29,7 +29,7 @@ import {Organisation} from "../models/Organisation";
 import {OpenAPI} from "routing-controllers-openapi";
 import FirebaseService from "../services/FirebaseService";
 import { md5, isArrayPopulated } from "../utils/Utils";
-import {stringTONumber, paginationData, isNotNullAndUndefined} from "../utils/Utils";
+import {stringTONumber, paginationData, isNotNullAndUndefined, isEmpty} from "../utils/Utils";
 
 @JsonController('/users')
 export class UserController extends BaseController {
@@ -826,22 +826,23 @@ export class UserController extends BaseController {
             }
             jsonObj.push(obj);
         }
-
         if (isArrayPopulated(jsonObj)) {
             for (let i of jsonObj) {
                 if ( teamRequired &&
-                    isNotNullAndUndefined(i['Team']) && (i['Team'] != '') &&
-                    isNotNullAndUndefined(i['DivisionName']) && (i['DivisionName'] != '') 
+                    (isEmpty(i['Team']) || isEmpty(i['DivisionName'])) 
                 ) {
                    // Skip entry 
+                   return response.status(212).send(`Team and DivisionName are required`);
                 } else if ( !teamRequired &&
-                    isNotNullAndUndefined(i['Organisation']) && (i['Organisation'] != '')
+                    isEmpty(i['Organisation'])
                 ) {
                    // Skip entry 
+                   return response.status(212).send(`Organisation is required`);
                 } else if (isNotNullAndUndefined(i['Email']) && (i['Email'] != '') &&
                     isNotNullAndUndefined(i['First Name']) && (i['First Name'] != '') &&
                     isNotNullAndUndefined(i['Last Name']) && (i['Last Name'] != '') &&
                     isNotNullAndUndefined(i['Contact No']) && (i['Contact No'] != '')) {
+                        
                     const userDetails = new User();
                     let newUser = false;
                     let teamDetailArray: any = [];
@@ -887,7 +888,7 @@ export class UserController extends BaseController {
 
                         userDetails.id = savedUserDetail.id;
                     }
-
+                    
                     if (!infoMisMatchArray.includes(i['Email'])) {
                         if (teamRequired) {
                             if (isNotNullAndUndefined(i['Team'])) {
@@ -895,14 +896,14 @@ export class UserController extends BaseController {
                                 let teamDetail: Team[];
                                 if (isArrayPopulated(teamArray)) {
                                     for(let t of teamArray) {
-                                        teamDetail = await this.teamService.findByNameAndCompetition(t, competitionId, i['DivisionName']);
-                                        if(isArrayPopulated(teamDetail)) {
-                                            teamDetailArray.push(...teamDetail);
+                                        if (isNotNullAndUndefined(t) && isNotNullAndUndefined(t.name)) {
+                                            teamDetail = await this.teamService.findByNameAndCompetition(t, competitionId, i['DivisionName']);
+                                            if(isArrayPopulated(teamDetail)) {
+                                                teamDetailArray.push(...teamDetail);
+                                            }
                                         }
                                     }
                                 }
-                                let competitionData = await this.competitionService.findById(competitionId)
-                                this.userService.sentMail(user, teamDetailArray, competitionData, roleId, savedUserDetail, password);
                             }
                         } else {
                             if (isNotNullAndUndefined(i['Organisation'])) {
@@ -910,18 +911,17 @@ export class UserController extends BaseController {
                                 const orgArray = i['Organisation'].split(',');
                                 if (isArrayPopulated(orgArray)) {
                                     for(let t of orgArray) {
-                                        //TODO find org
-                                        orgDetail = await this.organisationService.findByNameAndCompetitionId(t, competitionId);
-                                        if(isArrayPopulated(orgDetail)) {
-                                            orgArray.push(...orgDetail);
+                                        if (isNotNullAndUndefined(t)) {
+                                            orgDetail = await this.organisationService.findByNameAndCompetitionId(t, competitionId);
+                                            if(isArrayPopulated(orgDetail)) {
+                                                orgDetailArray.push(...orgDetail);
+                                            }
                                         }
                                     }
                                 }
-                                let competitionData = await this.competitionService.findById(competitionId)
-                                this.userService.sentMail(user, teamDetailArray, competitionData, roleId, savedUserDetail, password);
                             }
                         }
-
+                        
                         let ureArray = [];
                         const teamChatPromiseArray = [];
                         if (isArrayPopulated(teamDetailArray)) {
@@ -941,7 +941,6 @@ export class UserController extends BaseController {
                                     );
                                 }
                             }
-                            
                         } else if (isArrayPopulated(orgDetailArray)) {
                             for (let i of orgDetailArray) {
                                 let ure = new UserRoleEntity();
@@ -962,6 +961,15 @@ export class UserController extends BaseController {
                         ureArray.push(ure1);
                         await this.ureService.batchCreateOrUpdate(ureArray);
                         await this.notifyChangeRole(userDetails.id);
+
+                        if (savedUserDetail) {
+                            let competitionData = await this.competitionService.findById(competitionId);
+                            if (isArrayPopulated(teamDetailArray)) {
+                                this.userService.sentMail(user, teamDetailArray, competitionData, roleId, savedUserDetail, password);
+                            } else {
+                                this.userService.sentMail(user, orgDetailArray, competitionData, roleId, savedUserDetail, password);
+                            }
+                        }
                         if (teamChatRequired) {
                             Promise.all(teamChatPromiseArray);
                         }
@@ -975,7 +983,7 @@ export class UserController extends BaseController {
             } else if (importSuccess) {
                 return response.status(200).send({ success: true });
             } else {
-                return response.status(212).send(`Required parameters are not filled within the file provided for importing`);
+                return response.status(212).send(`Required parameters were not filled within the file provided for importing`);
             }
         }
     }

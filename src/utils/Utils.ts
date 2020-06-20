@@ -122,6 +122,9 @@ export function paginationData(totalCount: number, LIMIT: number, OFFSET: number
 export function isNotNullAndUndefined(value: any): Boolean {
     return value !== null && value !== undefined;
 }
+export function isEmpty(value: any): Boolean {
+    return value == null || value == '';
+}
 
 export function uuidv4() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
