@@ -881,7 +881,7 @@ export class MatchController extends BaseController {
         return this.matchService.findLineupsByParam(matchId, competitionId, teamId, playerId, positionId);
     }
 
-    @Patch('/lineup/updateStatus')
+    @Patch('/lineup/status')
     async updateLineupService(
         @Body() lineup: Lineup,
         @Res() response: Response
