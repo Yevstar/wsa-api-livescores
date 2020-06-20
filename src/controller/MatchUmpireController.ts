@@ -278,7 +278,7 @@ export class MatchUmpireController extends BaseController {
 
     @Authorized()
     @Get('/dashboard/export')
-    async exportTeams(
+    async exportUmpireDashboard(
         @QueryParam('organisationId') organisationId: number,
         @QueryParam('competitionId') competitionId: number,
         @QueryParam('matchId') matchId: number,
@@ -292,8 +292,8 @@ export class MatchUmpireController extends BaseController {
         }
         let umpiresList = await this.matchUmpireService.findByRosterAndCompetition(organisationId, competitionId, matchId, divisionId, venueId, null);
 
-        if (isArrayPopulated(umpiresList)) {
-            umpiresList.map(e => {
+        if (isArrayPopulated(umpiresList.results)) {
+            umpiresList.results.map(e => {
                 e['Match ID'] = e['id']
                 e['Start Time'] = e['startTime'] // todo date
                 e['Home'] = e['team1']['name'];
@@ -332,7 +332,7 @@ export class MatchUmpireController extends BaseController {
                 return e;
             });
         } else {
-            umpiresList.push({
+            umpiresList.results.push({
                 ['Match Id']: 'N/A',
                 ['Start Time']: 'N/A',
                 ['Home']: 'N/A',
@@ -347,9 +347,9 @@ export class MatchUmpireController extends BaseController {
             });
         }
 
-        response.setHeader('Content-disposition', 'attachment; filename=teams.csv');
+        response.setHeader('Content-disposition', 'attachment; filename=umpire.csv');
         response.setHeader('content-type', 'text/csv');
-        fastcsv.write(umpiresList, { headers: true })
+        fastcsv.write(umpiresList.results, { headers: true })
             .on("finish", function () { })
             .pipe(response);
     }

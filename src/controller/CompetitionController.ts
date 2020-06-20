@@ -261,14 +261,10 @@ export class CompetitionController extends BaseController {
         @HeaderParam("authorization") user: User,
         @Body() requestFilter: RequestFilter,
         @QueryParam('organisationId') organisationId: number,
+        @QueryParam('recordUmpireType') recordUmpireType: "NONE" | "NAMES" | "USERS",
         @Res() response: Response
     ): Promise<any> {
-        if (requestFilter) {
-            return this.competitionService.loadAdmin(user.id, requestFilter, organisationId);
-        } else {
-            return response.status(200).send(
-                {name: 'search_error', message: `Required fields are missing`});
-        }
+        return this.competitionService.loadAdmin(user.id, requestFilter, organisationId, recordUmpireType);
     }
 
     @Get('/hierarchy')
