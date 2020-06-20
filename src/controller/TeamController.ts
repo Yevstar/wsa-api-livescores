@@ -247,7 +247,7 @@ export class TeamController extends BaseController {
 
         if (savedUser) {
             let competitionData = await this.competitionService.findById(savedTeam.competitionId)
-            this.userService.sentMail(user, [savedTeam], competitionData, 'manager', savedUser, password);
+            this.userService.sentMail(user, [savedTeam], competitionData, Role.MANAGER, savedUser, password);
         }
 
         if (file && isPhoto(file.mimetype)) {

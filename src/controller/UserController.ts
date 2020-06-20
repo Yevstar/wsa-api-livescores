@@ -25,6 +25,7 @@ import {UserRoleEntity} from "../models/security/UserRoleEntity";
 import {Role} from "../models/security/Role";
 import {EntityType} from "../models/security/EntityType";
 import {Team} from "../models/Team";
+import {Organisation} from "../models/Organisation";
 import {OpenAPI} from "routing-controllers-openapi";
 import FirebaseService from "../services/FirebaseService";
 import { md5, isArrayPopulated } from "../utils/Utils";
@@ -470,7 +471,7 @@ export class UserController extends BaseController {
 
                 if (isArrayPopulated(userData.teams)) {
                     let competitionData = await this.competitionService.findById(competitionId)
-                    this.userService.sentMail(user, userData.teams, competitionData, 'manager', saved, password);
+                    this.userService.sentMail(user, userData.teams, competitionData, Role.MANAGER, saved, password);
                 }
 
                 userData.id = saved.id;
@@ -565,7 +566,7 @@ export class UserController extends BaseController {
 
                 if (isArrayPopulated(userData.teams)) {
                     let competitionData = await this.competitionService.findById(competitionId)
-                    this.userService.sentMail(user, userData.teams, competitionData, 'coach', saved, password);
+                    this.userService.sentMail(user, userData.teams, competitionData, Role.COACH, saved, password);
                 }
 
                 userData.id = saved.id;
@@ -660,7 +661,7 @@ export class UserController extends BaseController {
 
                 if (isArrayPopulated(userData.affiliates)) {
                     let competitionData = await this.competitionService.findById(competitionId)
-                    this.userService.sentMail(user, userData.affiliates, competitionData, 'umpire', saved, password);
+                    this.userService.sentMail(user, userData.affiliates, competitionData, Role.UMPIRE, saved, password);
                 }
 
                 userData.id = saved.id;
@@ -746,7 +747,7 @@ export class UserController extends BaseController {
                 logger.info(`Manager ${userData.email} signed up.`);
 
                 let competitionData = await this.competitionService.findById(competitionId)
-                this.userService.sentMail(user, null, competitionData, 'member', saved, password);
+                this.userService.sentMail(user, null, competitionData, Role.MEMBER, saved, password);
 
                 userData.id = saved.id;
             }
@@ -780,106 +781,33 @@ export class UserController extends BaseController {
     }
 
     @Authorized()
-    @Post('/admin')
-    async addAdmin(
-        @HeaderParam("authorization") user: User,
-        @QueryParam("userId") userId: number,
-        @QueryParam('competitionId', { required: true }) competitionId: number,
-        @Body() admin: User,
-        @Res() response: Response) {
-
-        if (isNullOrEmpty(admin.email) || isNullOrEmpty(admin.firstName) || isNullOrEmpty(admin.lastName) || isNullOrEmpty(admin.mobileNumber)) {
-            return response
-                .status(422)
-                .send({ name: 'validation_error', message: 'Not all required field filled' });
-
-        }
-
-        const existing = await this.userService.findByEmail(admin.email.toLowerCase());
-        if (existing) {
-            logger.info(`User ${admin.email} already exists.`);
-            return response
-                .status(400).send({
-                    name: 'validation_error',
-                    message: 'A user or admin with that email address already exists.'
-                });
-
-        } else {
-
-            var password = Math.random().toString(36).slice(-8);
-            admin.email = admin.email.toLowerCase();
-            admin.password = md5(password);
-            const saved = await this.userService.createOrUpdate(admin);
-            await this.updateFirebaseData(admin, admin.password);
-            logger.info(`Admin ${admin.email} signed up.`);
-
-            let ure = new UserRoleEntity();
-            ure.roleId = 2; //admin
-            ure.entityId = competitionId
-
-            if (userId)
-                ure.userId = userId;
-            else
-                ure.userId = saved.id
-
-            await this.ureService.createOrUpdate(ure);
-            let competitionData = await this.competitionService.findById(competitionId)
-            this.userService.sentMail(user, "", competitionData, "admin", saved, password);
-            return competitionData;
-        }
-    }
-
-    @Authorized()
-    @Post('/superAdmin')
-    async addSuperAdmin(
-        @HeaderParam("authorization") user: User,
-        @QueryParam("userId") userId: number,
-        @Body() superAdmin: User,
-        @Res() response: Response) {
-        if (isNullOrEmpty(superAdmin.email) || isNullOrEmpty(superAdmin.firstName) || isNullOrEmpty(superAdmin.lastName) || isNullOrEmpty(superAdmin.mobileNumber)) {
-            return response
-                .status(422)
-                .send({ name: 'validation_error', message: 'Not all required field filled' });
-        }
-
-        const existing = await this.userService.findByEmail(superAdmin.email.toLowerCase());
-        if (existing) {
-            logger.info(`User ${superAdmin.email} already exists.`);
-            return response
-                .status(400).send({
-                    name: 'validation_error',
-                    message: 'A user or superAdmin with that email address already exists.'
-
-                });
-        } else {
-            var password = Math.random().toString(36).slice(-8);
-            superAdmin.email = superAdmin.email.toLowerCase();
-            superAdmin.password = md5(password);
-            const saved = await this.userService.createOrUpdate(superAdmin);
-            await this.updateFirebaseData(superAdmin, superAdmin.password);
-
-            logger.info(`Super Admin ${superAdmin.email} signed up.`);
-
-            let ure = new UserRoleEntity();
-            ure.roleId = 1; //superAdmin
-            if (userId)
-                ure.userId = userId;
-            else
-                ure.userId = saved.id
-
-            await this.ureService.createOrUpdate(ure);
-            this.userService.sentMail(user, "", "", "superAdmin", saved, password);
-            return saved;
-        }
-    }
-
-    @Authorized()
     @Post('/importCoach')
     async importCoach(
         @HeaderParam("authorization") user: User,
         @QueryParam('competitionId', { required: true }) competitionId: number,
         @UploadedFile("file", { required: true }) file: Express.Multer.File,
         @Res() response: Response) {
+        await this.importUserWithRoles(user, competitionId, Role.COACH, file, response);
+    }
+
+    @Authorized()
+    @Post('/import')
+    async import(
+        @HeaderParam("authorization") user: User,
+        @QueryParam('competitionId', { required: true }) competitionId: number,
+        @QueryParam('roleId', { required: true }) roleId: number,
+        @UploadedFile("file", { required: true }) file: Express.Multer.File,
+        @Res() response: Response) {
+        await this.importUserWithRoles(user, competitionId, roleId, file, response);
+    }
+
+    private async importUserWithRoles (
+        user: User,
+        competitionId: number,
+        roleId: number,
+        file: Express.Multer.File,
+        response: Response
+    ) {
 
         let bufferString = file.buffer.toString('utf8');
         let arr = bufferString.split('\n');
@@ -887,6 +815,8 @@ export class UserController extends BaseController {
         let headers = arr[0].split(',');
         const infoMisMatchArray: any = [];
         let importSuccess: boolean = false;
+        let teamRequired = roleId == Role.COACH || roleId == Role.MANAGER;
+        let teamChatRequired = roleId == Role.COACH || roleId == Role.MANAGER;
 
         for (let i = 1; i < arr.length; i++) {
             let data = arr[i].split(',');
@@ -899,17 +829,24 @@ export class UserController extends BaseController {
 
         if (isArrayPopulated(jsonObj)) {
             for (let i of jsonObj) {
-                if (isNotNullAndUndefined(i['Email']) && (i['Email'] != '') &&
+                if ( teamRequired &&
+                    isNotNullAndUndefined(i['Team']) && (i['Team'] != '') &&
+                    isNotNullAndUndefined(i['DivisionName']) && (i['DivisionName'] != '') 
+                ) {
+                   // Skip entry 
+                } else if ( !teamRequired &&
+                    isNotNullAndUndefined(i['Organisation']) && (i['Organisation'] != '')
+                ) {
+                   // Skip entry 
+                } else if (isNotNullAndUndefined(i['Email']) && (i['Email'] != '') &&
                     isNotNullAndUndefined(i['First Name']) && (i['First Name'] != '') &&
                     isNotNullAndUndefined(i['Last Name']) && (i['Last Name'] != '') &&
-                    isNotNullAndUndefined(i['Team']) && (i['Team'] != '') &&
-                    isNotNullAndUndefined(i['DivisionName']) && (i['DivisionName'] != '') &&
                     isNotNullAndUndefined(i['Contact No']) && (i['Contact No'] != '')) {
                     const userDetails = new User();
                     let newUser = false;
-                    let teamDetail: any;
                     let teamDetailArray: any = [];
-                    let savedUserDetail: any;
+                    let orgDetailArray: any = [];
+                    let savedUserDetail: User;
                     const password = Math.random().toString(36).slice(-8);
 
                     const foundUser = await this.userService.findByEmail(i['Email'].toLowerCase());
@@ -952,51 +889,83 @@ export class UserController extends BaseController {
                     }
 
                     if (!infoMisMatchArray.includes(i['Email'])) {
-                        if (isNotNullAndUndefined(i['Team'])) {
-                            const teamArray = i['Team'].split(',');
-                            if (isArrayPopulated(teamArray)) {
-                                for(let t of teamArray) {
-                                    teamDetail = await this.teamService.findByNameAndCompetition(t, competitionId, i['DivisionName']);
-                                    if(isArrayPopulated(teamDetail)) {
-                                        teamDetailArray.push(...teamDetail);
+                        if (teamRequired) {
+                            if (isNotNullAndUndefined(i['Team'])) {
+                                const teamArray = i['Team'].split(',');
+                                let teamDetail: Team[];
+                                if (isArrayPopulated(teamArray)) {
+                                    for(let t of teamArray) {
+                                        teamDetail = await this.teamService.findByNameAndCompetition(t, competitionId, i['DivisionName']);
+                                        if(isArrayPopulated(teamDetail)) {
+                                            teamDetailArray.push(...teamDetail);
+                                        }
                                     }
                                 }
+                                let competitionData = await this.competitionService.findById(competitionId)
+                                this.userService.sentMail(user, teamDetailArray, competitionData, roleId, savedUserDetail, password);
                             }
-
-                            let competitionData = await this.competitionService.findById(competitionId)
-                            this.userService.sentMail(user, teamDetailArray, competitionData, 'coach', savedUserDetail, password);
+                        } else {
+                            if (isNotNullAndUndefined(i['Organisation'])) {
+                                let orgDetail: Organisation[];
+                                const orgArray = i['Organisation'].split(',');
+                                if (isArrayPopulated(orgArray)) {
+                                    for(let t of orgArray) {
+                                        //TODO find org
+                                        orgDetail = await this.organisationService.findByNameAndCompetitionId(t, competitionId);
+                                        if(isArrayPopulated(orgDetail)) {
+                                            orgArray.push(...orgDetail);
+                                        }
+                                    }
+                                }
+                                let competitionData = await this.competitionService.findById(competitionId)
+                                this.userService.sentMail(user, teamDetailArray, competitionData, roleId, savedUserDetail, password);
+                            }
                         }
 
                         let ureArray = [];
-                        const coachTeamChatPromiseArray = [];
+                        const teamChatPromiseArray = [];
                         if (isArrayPopulated(teamDetailArray)) {
                             for (let i of teamDetailArray) {
                                 let ure = new UserRoleEntity();
-                                ure.roleId = Role.COACH;
+                                ure.roleId = roleId;
                                 ure.entityId = i.id;
                                 ure.entityTypeId = EntityType.TEAM;
                                 ure.userId = userDetails.id
                                 ure.createdBy = user.id;
                                 ureArray.push(ure);
 
-                                /// Checking coach with respect each team for existing chat
-                                coachTeamChatPromiseArray.push(
-                                  this.addUserToTeamChat(i.id, userDetails)
-                                );
+                                /// Checking role with respect each team for existing chat
+                                if (teamChatRequired) {
+                                    teamChatPromiseArray.push(
+                                    this.addUserToTeamChat(i.id, userDetails)
+                                    );
+                                }
                             }
-                            let ure1 = new UserRoleEntity();
-                            ure1.roleId = Role.MEMBER;
-                            ure1.entityId = competitionId;
-                            ure1.entityTypeId = EntityType.COMPETITION;
-                            ure1.userId = userDetails.id
-                            ure1.createdBy = user.id;
-                            ureArray.push(ure1);
-                            await this.ureService.batchCreateOrUpdate(ureArray);
-                            await this.notifyChangeRole(userDetails.id);
-                            Promise.all(coachTeamChatPromiseArray);
-
-                            importSuccess = true;
+                            
+                        } else if (isArrayPopulated(orgDetailArray)) {
+                            for (let i of orgDetailArray) {
+                                let ure = new UserRoleEntity();
+                                ure.roleId = roleId;
+                                ure.entityId = i.id;
+                                ure.entityTypeId = EntityType.ORGANISATION;
+                                ure.userId = userDetails.id
+                                ure.createdBy = user.id;
+                                ureArray.push(ure);
+                            }
                         }
+                        let ure1 = new UserRoleEntity();
+                        ure1.roleId = Role.MEMBER;
+                        ure1.entityId = competitionId;
+                        ure1.entityTypeId = EntityType.COMPETITION;
+                        ure1.userId = userDetails.id
+                        ure1.createdBy = user.id;
+                        ureArray.push(ure1);
+                        await this.ureService.batchCreateOrUpdate(ureArray);
+                        await this.notifyChangeRole(userDetails.id);
+                        if (teamChatRequired) {
+                            Promise.all(teamChatPromiseArray);
+                        }
+                        importSuccess = true;
                     }
                 }
             }
@@ -1006,7 +975,7 @@ export class UserController extends BaseController {
             } else if (importSuccess) {
                 return response.status(200).send({ success: true });
             } else {
-                return response.status(212).send(`Either required parameters are not filled or TeamName is not available within the file provided for importing`);
+                return response.status(212).send(`Required parameters are not filled within the file provided for importing`);
             }
         }
     }
