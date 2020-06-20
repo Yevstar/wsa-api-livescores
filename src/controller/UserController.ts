@@ -962,7 +962,7 @@ export class UserController extends BaseController {
                         await this.ureService.batchCreateOrUpdate(ureArray);
                         await this.notifyChangeRole(userDetails.id);
 
-                        if (savedUserDetail) {
+                        if (savedUserDetail && newUser) {
                             let competitionData = await this.competitionService.findById(competitionId);
                             if (isArrayPopulated(teamDetailArray)) {
                                 this.userService.sentMail(user, teamDetailArray, competitionData, roleId, savedUserDetail, password);
