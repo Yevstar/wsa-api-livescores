@@ -77,8 +77,4 @@ export class Player extends BaseEntity {
     @Column()
     inviteStatus: "INVITED" | "REGISTERED";
 
-    @ValidateNested()
-    @OneToOne(type => Lineup)
-    @JoinColumn()
-    lineup: Lineup;
 }
