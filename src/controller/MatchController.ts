@@ -231,11 +231,13 @@ export class MatchController extends BaseController {
         if (competition.recordUmpireType == "NAMES" && match.matchUmpires) {
             this.matchUmpireService.batchCreateOrUpdate(match.matchUmpires);
         }
-
+        
         let errors = false;
         if (isArrayPopulated(match.rosters)) {
             for (let newRoster of match.rosters) {
+               
                 if (newRoster.roleId == Role.UMPIRE  && competition.recordUmpireType == "USERS") {
+                    
                     let newRosterToAdd = true;
                     for (let oldRoster of oldRosters) {
                         if (oldRoster.roleId == Role.UMPIRE && oldRoster.userId == newRoster.userId) {
@@ -243,13 +245,19 @@ export class MatchController extends BaseController {
                         }
                     }
                     if (newRosterToAdd) {
-                        let savedRoster = await this.rosterService.createOrUpdate(newRoster);
+                        let nr = new Roster();
+                        nr.roleId = newRoster.roleId;
+                        nr.userId = newRoster.userId;
+                        nr.teamId = newRoster.teamId;
+                        nr.matchId = newRoster.matchId;
+                        let savedRoster = await this.rosterService.createOrUpdate(nr);
                         if (savedRoster) {
                             await this.notifyRosterChange(user, savedRoster, "Umpiring");
                         }
                     }
                 }
                 if (newRoster.roleId == Role.SCORER) {
+                    
                     let newRosterToAdd = true;
                     for (let oldRoster of oldRosters) {
                         if (oldRoster.roleId == Role.SCORER && oldRoster.userId == newRoster.userId && oldRoster.teamId == newRoster.teamId) {
@@ -257,7 +265,14 @@ export class MatchController extends BaseController {
                         }
                     }
                     if (newRosterToAdd) {
-                        let savedRoster = await this.rosterService.createOrUpdate(newRoster);
+                        
+                        let nr = new Roster();
+                        nr.roleId = newRoster.roleId;
+                        nr.userId = newRoster.userId;
+                        nr.teamId = newRoster.teamId;
+                        nr.matchId = newRoster.matchId;
+                        let savedRoster = await this.rosterService.createOrUpdate(nr);
+                    
                         if (savedRoster) {
                             await this.notifyRosterChange(user, savedRoster, "Scoring");
                         }
