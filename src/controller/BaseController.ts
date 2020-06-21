@@ -296,10 +296,8 @@ export class BaseController {
                       match.startTime.getSeconds()
                   )
               );
-              let matchDate = dateFormatter.format(matchStartTime);
-
-              // let matchMonth = 1;
-              // let matchDate = `${match.startTime.getDate()}/${match.startTime.getMonth()}/${match.startTime.getFullYear()}`;
+              // date formatter was formatting as mm/dd/yyyy
+              let matchDate = `${match.startTime.getDate()}/${match.startTime.getMonth()+1}/${match.startTime.getFullYear()}`;
               let matchTime = timeFormatter.format(matchStartTime);
 
               let messageBody = '';
@@ -308,13 +306,13 @@ export class BaseController {
                         `new Umpiring Duty for ${matchDate} at ${matchTime}.`;
               } else {
                 messageBody = `${match.competition.name} has sent you a ` +
-                        `new Umpiring Duty for ${matchDate} at ${matchTime}.` +
+                        `new Umpiring Duty for ${matchDate} at ${matchTime}. ` +
                         `Please log into your Netball Live Scores ` +
                         `App to accept/decline.`;
               }
               this.firebaseService.sendMessageChunked({
                   tokens: tokens,
-                  title: `Umpiring Duty`,
+                  title: `Hi ${matchUmpire.umpireName}`,
                   body: messageBody,
                   data: {
                       type: 'add_umpire_match',

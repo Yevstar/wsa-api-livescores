@@ -271,6 +271,7 @@ export class MatchController extends BaseController {
                         let mu = new MatchUmpire();
                         mu.matchId = newRoster.matchId;
                         mu.userId = newRoster.userId;
+                        mu.umpireName = '';
                         this.umpireAddRoster(mu, false);
                     }
                 } else if (newRoster.roleId == Role.SCORER) {
