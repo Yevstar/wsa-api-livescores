@@ -297,6 +297,9 @@ export class BaseController {
                   )
               );
               let matchDate = dateFormatter.format(matchStartTime);
+
+              // let matchMonth = 1;
+              // let matchDate = `${match.startTime.getDate()}/${match.startTime.getMonth()}/${match.startTime.getFullYear()}`;
               let matchTime = timeFormatter.format(matchStartTime);
 
               let messageBody = '';
@@ -311,7 +314,7 @@ export class BaseController {
               }
               this.firebaseService.sendMessageChunked({
                   tokens: tokens,
-                  title: `Hi ${matchUmpire.umpireName}`,
+                  title: `Umpiring Duty`,
                   body: messageBody,
                   data: {
                       type: 'add_umpire_match',

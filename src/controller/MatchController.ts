@@ -261,7 +261,6 @@ export class MatchController extends BaseController {
             for (let newRoster of match.rosters) {
                
                 if (newRoster.roleId == Role.UMPIRE  && competition.recordUmpireType == "USERS") {
-                    
                     let newRosterToAdd = true;
                     for (let oldRoster of oldRosters) {
                         if (oldRoster.roleId == Role.UMPIRE && oldRoster.userId == newRoster.userId) {
@@ -271,7 +270,7 @@ export class MatchController extends BaseController {
                     if (newRosterToAdd) {
                         let mu = new MatchUmpire();
                         mu.matchId = newRoster.matchId;
-                        mu.userId = newRoster.matchId;
+                        mu.userId = newRoster.userId;
                         this.umpireAddRoster(mu, false);
                     }
                 } else if (newRoster.roleId == Role.SCORER) {
@@ -279,14 +278,7 @@ export class MatchController extends BaseController {
                     for (let oldRoster of oldRosters) {
                         if (oldRoster.roleId == Role.SCORER && oldRoster.userId == newRoster.userId && oldRoster.teamId == newRoster.teamId) {
                             newRosterToAdd = false;
-                            // return response.status(400).send({
-                            //     name: 'roster', message: 'new'
-                            // });
-                        } else {
-                            // return response.status(400).send({
-                            //     name: 'roster', message: 'old'
-                            // });
-                        }
+                        } 
                     }
                     if (newRosterToAdd) {
                         let nr = new Roster();
@@ -331,7 +323,7 @@ export class MatchController extends BaseController {
                     } else if (oldRoster.roleId == Role.UMPIRE) {
                         let mu = new MatchUmpire();
                         mu.matchId = oldRoster.matchId;
-                        mu.userId = oldRoster.matchId;
+                        mu.userId = oldRoster.userId;
                         this.umpireRemoveRoster(mu);
                     }
                 }
