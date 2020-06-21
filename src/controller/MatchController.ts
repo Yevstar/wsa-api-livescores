@@ -33,6 +33,7 @@ import { IsEmpty } from 'class-validator';
 import { Roster } from '../models/security/Roster';
 import { Role } from '../models/security/Role';
 import{ GamePosition } from "../models/GamePosition";
+import { MatchUmpire } from '../models/MatchUmpire';
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
@@ -229,9 +230,32 @@ export class MatchController extends BaseController {
         let competition = await this.competitionService.findById(match.competitionId);
         let oldRosters = await this.rosterService.findAllRostersByParam([match.id])
         if (competition.recordUmpireType == "NAMES" && match.matchUmpires) {
-            this.matchUmpireService.batchCreateOrUpdate(match.matchUmpires);
+            let oldMatchUmpires = await this.matchUmpireService.findByMatchIds([match.id])
+            for (let mu of match.matchUmpires) {
+                if (mu.umpireName) {
+                    var oldId;
+                    var muSequence = mu.sequence;
+                    for (let oldMu of oldMatchUmpires) {
+                        newMatchUmpire = new MatchUmpire();
+                        if (oldMu.sequence == muSequence) {
+                            oldId = oldMu.id;
+                        }
+                    }
+                    var newMatchUmpire = new MatchUmpire();
+                    if (oldId) {
+                        newMatchUmpire.id = oldId;
+                    }
+                    newMatchUmpire.matchId = mu.matchId;
+                    newMatchUmpire.organisationId = mu.organisationId;
+                    newMatchUmpire.umpireName = mu.umpireName;
+                    newMatchUmpire.umpireType = mu.umpireType;
+                    newMatchUmpire.sequence = mu.sequence;
+                    newMatchUmpire.createdBy = user.id;
+                    this.matchUmpireService.createOrUpdate(newMatchUmpire);
+                }
+            }
         }
-        
+
         let errors = false;
         if (isArrayPopulated(match.rosters)) {
             for (let newRoster of match.rosters) {
@@ -255,17 +279,21 @@ export class MatchController extends BaseController {
                             await this.notifyRosterChange(user, savedRoster, "Umpiring");
                         }
                     }
-                }
-                if (newRoster.roleId == Role.SCORER) {
-                    
+                } else if (newRoster.roleId == Role.SCORER) {
                     let newRosterToAdd = true;
                     for (let oldRoster of oldRosters) {
                         if (oldRoster.roleId == Role.SCORER && oldRoster.userId == newRoster.userId && oldRoster.teamId == newRoster.teamId) {
                             newRosterToAdd = false;
+                            // return response.status(400).send({
+                            //     name: 'roster', message: 'new'
+                            // });
+                        } else {
+                            // return response.status(400).send({
+                            //     name: 'roster', message: 'old'
+                            // });
                         }
                     }
                     if (newRosterToAdd) {
-                        
                         let nr = new Roster();
                         nr.roleId = newRoster.roleId;
                         nr.userId = newRoster.userId;
