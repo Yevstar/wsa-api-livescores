@@ -345,17 +345,17 @@ export class MatchUmpireController extends BaseController {
             umpiresList.results.push({
                 ['Match Id']: '',
                 ['Start Time']: '',
-                ['Home']: 'N/A',
-                ['Away']: 'N/A',
-                ['Round']: 'N/A',
-                ['Umpire 1 Id']: 'N/A',
-                ['Umpire 1']: 'N/A',
-                ['Umpire 1 Response']: 'N/A',
-                ['Umpire 1 Organisation']: 'N/A',
-                ['Umpire 2 Id']: 'N/A',
-                ['Umpire 2']: 'N/A',
-                ['Umpire 2 Response']: 'N/A',
-                ['Umpire 2 Organisation']: 'N/A'
+                ['Home']: '',
+                ['Away']: '',
+                ['Round']: '',
+                ['Umpire 1 Id']: '',
+                ['Umpire 1']: '',
+                ['Umpire 1 Response']: '',
+                ['Umpire 1 Organisation']: '',
+                ['Umpire 2 Id']: '',
+                ['Umpire 2']: '',
+                ['Umpire 2 Response']: '',
+                ['Umpire 2 Organisation']: ''
             });
         }
 
