@@ -258,48 +258,12 @@ export class MatchController extends BaseController {
 
         let errors = false;
         if (isArrayPopulated(match.rosters)) {
-            for (let newRoster of match.rosters) {
-               
-                if (newRoster.roleId == Role.UMPIRE  && competition.recordUmpireType == "USERS") {
-                    let newRosterToAdd = true;
-                    for (let oldRoster of oldRosters) {
-                        if (oldRoster.roleId == Role.UMPIRE && oldRoster.userId == newRoster.userId) {
-                            newRosterToAdd = false;
-                        }
-                    }
-                    if (newRosterToAdd) {
-                        let mu = new MatchUmpire();
-                        mu.matchId = newRoster.matchId;
-                        mu.userId = newRoster.userId;
-                        mu.umpireName = '';
-                        this.umpireAddRoster(mu, false);
-                    }
-                } else if (newRoster.roleId == Role.SCORER) {
-                    let newRosterToAdd = true;
-                    for (let oldRoster of oldRosters) {
-                        if (oldRoster.roleId == Role.SCORER && oldRoster.userId == newRoster.userId && oldRoster.teamId == newRoster.teamId) {
-                            newRosterToAdd = false;
-                        } 
-                    }
-                    if (newRosterToAdd) {
-                        let nr = new Roster();
-                        nr.roleId = newRoster.roleId;
-                        nr.userId = newRoster.userId;
-                        nr.teamId = newRoster.teamId;
-                        nr.matchId = newRoster.matchId;
-                        let savedRoster = await this.rosterService.createOrUpdate(nr);
-                    
-                        if (savedRoster) {
-                            await this.notifyRosterChange(user, savedRoster, "Scoring");
-                        }
-                    }
-                }
-            }
 
             for (let oldRoster of oldRosters) {
                 let oldRosterToDelete = true;
+                // delete old roster only if it doesn't match new role, user, team
                 for (let newRoster of match.rosters) {
-                    if (oldRoster.roleId == newRoster.roleId && oldRoster.userId == newRoster.roleId && oldRoster.teamId == newRoster.teamId) {
+                    if (oldRoster.roleId == newRoster.roleId && oldRoster.userId == newRoster.userId && oldRoster.teamId == newRoster.teamId) {
                         oldRosterToDelete = false;
                     }
                 }
@@ -329,6 +293,48 @@ export class MatchController extends BaseController {
                     }
                 }
             }
+
+            for (let newRoster of match.rosters) {
+               
+                if (newRoster.roleId == Role.UMPIRE  && competition.recordUmpireType == "USERS") {
+                    let newRosterToAdd = true;
+                    // add new umpire roster only if it doesn't match old role, user
+                    for (let oldRoster of oldRosters) {
+                        if (oldRoster.roleId == Role.UMPIRE && oldRoster.userId == newRoster.userId) {
+                            newRosterToAdd = false;
+                        }
+                    }
+                    if (newRosterToAdd) {
+                        let mu = new MatchUmpire();
+                        mu.matchId = newRoster.matchId;
+                        mu.userId = newRoster.userId;
+                        mu.umpireName = '';
+                        this.umpireAddRoster(mu, false);
+                    }
+                } else if (newRoster.roleId == Role.SCORER) {
+                    let newRosterToAdd = true;
+                    // add new umpire roster only if it doesn't match old role, user, team
+                    for (let oldRoster of oldRosters) {
+                        if (oldRoster.roleId == Role.SCORER && oldRoster.userId == newRoster.userId && oldRoster.teamId == newRoster.teamId) {
+                            newRosterToAdd = false;
+                        } 
+                    }
+                    if (newRosterToAdd) {
+                        let nr = new Roster();
+                        nr.roleId = newRoster.roleId;
+                        nr.userId = newRoster.userId;
+                        nr.teamId = newRoster.teamId;
+                        nr.matchId = newRoster.matchId;
+                        let savedRoster = await this.rosterService.createOrUpdate(nr);
+                    
+                        if (savedRoster) {
+                            await this.notifyRosterChange(user, savedRoster, "Scoring");
+                        }
+                    }
+                }
+            }
+
+            
         }
 
 
