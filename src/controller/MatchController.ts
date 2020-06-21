@@ -269,15 +269,10 @@ export class MatchController extends BaseController {
                         }
                     }
                     if (newRosterToAdd) {
-                        let nr = new Roster();
-                        nr.roleId = newRoster.roleId;
-                        nr.userId = newRoster.userId;
-                        nr.teamId = newRoster.teamId;
-                        nr.matchId = newRoster.matchId;
-                        let savedRoster = await this.rosterService.createOrUpdate(nr);
-                        if (savedRoster) {
-                            await this.notifyRosterChange(user, savedRoster, "Umpiring");
-                        }
+                        let mu = new MatchUmpire();
+                        mu.matchId = newRoster.matchId;
+                        mu.userId = newRoster.matchId;
+                        this.umpireAddRoster(mu, false);
                     }
                 } else if (newRoster.roleId == Role.SCORER) {
                     let newRosterToAdd = true;
@@ -316,21 +311,28 @@ export class MatchController extends BaseController {
                     }
                 }
                 if (oldRosterToDelete) {
-                    let tokens = (await this.deviceService.findScorerDeviceFromRoster(undefined, oldRoster.id)).map(device => device.deviceId);
-                    let result = await this.rosterService.delete(oldRoster);
-                    if (result) {
-                        if (tokens && tokens.length > 0) {
-                            this.firebaseService.sendMessageChunked({
-                                tokens: tokens,
-                                data: {
-                                    type: 'remove_scorer_match',
-                                    rosterId: oldRoster.id.toString(),
-                                    matchId: oldRoster.matchId.toString()
-                                }
-                            })
+                    if (oldRoster.roleId == Role.SCORER) {
+                        let tokens = (await this.deviceService.findScorerDeviceFromRoster(undefined, oldRoster.id)).map(device => device.deviceId);
+                        let result = await this.rosterService.delete(oldRoster);
+                        if (result) {
+                            if (tokens && tokens.length > 0) {
+                                this.firebaseService.sendMessageChunked({
+                                    tokens: tokens,
+                                    data: {
+                                        type: 'remove_scorer_match',
+                                        rosterId: oldRoster.id.toString(),
+                                        matchId: oldRoster.matchId.toString()
+                                    }
+                                })
+                            }
+                        } else {
+                            errors = true;
                         }
-                    } else {
-                        errors = true;
+                    } else if (oldRoster.roleId == Role.UMPIRE) {
+                        let mu = new MatchUmpire();
+                        mu.matchId = oldRoster.matchId;
+                        mu.userId = oldRoster.matchId;
+                        this.umpireRemoveRoster(mu);
                     }
                 }
             }
