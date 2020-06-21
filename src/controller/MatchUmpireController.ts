@@ -302,14 +302,19 @@ export class MatchUmpireController extends BaseController {
                 if (e['umpires'] && e['umpires'][0]) {
                     e['Umpire 1 Id'] = e['umpires'][0]['userId'];
                     e['Umpire 1'] = e['umpires'][0]['umpireName'];
-                    e['Umpire 2 Organisation'] = e['umpires'][0]['status'];
+                    e['Umpire 1 Response'] = e['umpires'][0]['status'];
                     const organisationName = [];
                     if (isArrayPopulated(e['umpires'][0]['organisations'])) {
                         for (let r of e['umpires'][0]['organisations']) {
                             organisationName.push(r['name']);
                         }
                     }
-                    e['Organisation 1 Name'] = organisationName.toString().replace(",", '\n');
+                    e['Umpire 1 Organisation'] = organisationName.toString();
+                } else {
+                    e['Umpire 1 Id'] = '';
+                    e['Umpire 1'] = '';
+                    e['Umpire 1 Response'] = '';
+                    e['Umpire 1 Organisation'] =  '';
                 }
                 if (e['umpires'] && e['umpires'][1]) {
                     e['Umpire 2 Id'] = e['umpires'][1]['userId'];
@@ -321,7 +326,12 @@ export class MatchUmpireController extends BaseController {
                             organisationName.push(r['name']);
                         }
                     }
-                    e['Umpire 2 Organisation'] = organisationName.toString().replace(",", '\n');
+                    e['Umpire 2 Organisation'] = organisationName.toString();
+                } else {
+                    e['Umpire 2 Id'] = '';
+                    e['Umpire 2'] = '';
+                    e['Umpire 2 Response'] = '';
+                    e['Umpire 2 Organisation'] =  '';
                 }
                 delete e['id'];
                 delete e['startTime'];
@@ -333,21 +343,23 @@ export class MatchUmpireController extends BaseController {
             });
         } else {
             umpiresList.results.push({
-                ['Match Id']: 'N/A',
-                ['Start Time']: 'N/A',
+                ['Match Id']: '',
+                ['Start Time']: '',
                 ['Home']: 'N/A',
                 ['Away']: 'N/A',
                 ['Round']: 'N/A',
                 ['Umpire 1 Id']: 'N/A',
                 ['Umpire 1']: 'N/A',
+                ['Umpire 1 Response']: 'N/A',
                 ['Umpire 1 Organisation']: 'N/A',
                 ['Umpire 2 Id']: 'N/A',
                 ['Umpire 2']: 'N/A',
+                ['Umpire 2 Response']: 'N/A',
                 ['Umpire 2 Organisation']: 'N/A'
             });
         }
 
-        response.setHeader('Content-disposition', 'attachment; filename=umpire.csv');
+        response.setHeader('Content-disposition', 'attachment; filename=match-umpires.csv');
         response.setHeader('content-type', 'text/csv');
         fastcsv.write(umpiresList.results, { headers: true })
             .on("finish", function () { })
