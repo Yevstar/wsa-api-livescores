@@ -10,15 +10,7 @@ export default class OrganisationService extends BaseService<Organisation> {
         return Organisation.name;
     }
 
-    public async findByName(name?: string): Promise<Organisation[]> {
-        let query = this.entityManager.createQueryBuilder(Organisation, 'organisation');
-        if (name) {
-            query = query.where('LOWER(organisation.name) like :name', {name: `${name.toLowerCase()}%`});
-        }
-        return query.getMany()
-    }
-
-    public async findByNameAndCompetitionId(name: string, competitionId: number): Promise<Organisation[]> {
+    public async findByNameAndCompetitionId(name: string, competitionId?: number): Promise<Organisation[]> {
         let query = this.entityManager.createQueryBuilder(Organisation, 'organisation');
         if (name) {
             query = query.where('LOWER(organisation.name) like :name', {name: `${name.toLowerCase()}%`});

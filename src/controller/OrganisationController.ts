@@ -15,11 +15,6 @@ export class OrganisationController extends BaseController {
         @QueryParam('name') name: string,
         @QueryParam('competitionId') competitionId: number = undefined
     ): Promise<Organisation[]> {
-        if (competitionId) {
-            return this.organisationService.findByNameAndCompetitionId(name, competitionId);
-        } else {
-            return this.organisationService.findByName(name);
-        }
+        return this.organisationService.findByNameAndCompetitionId(name, competitionId);
     }
-
 }
