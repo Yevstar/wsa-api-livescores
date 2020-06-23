@@ -218,27 +218,34 @@ export class MatchController extends BaseController {
         @Body() match: Match,
         @Res() response: Response
     ) {
+        // Saving match scores
         if (userId) {
             const matchScores = new MatchScores();
             matchScores.userId = userId;
             matchScores.matchId = match.id;
             matchScores.team1Score = match.team1Score;
             matchScores.team2Score = match.team2Score;
-            await this.matchScorerService.createOrUpdate(matchScores);
+
+            this.matchScorerService.createOrUpdate(matchScores);
         }
+
+        // Saving match
         const saved = await this.matchService.createOrUpdate(match);
-        let competition = await this.competitionService.findById(match.competitionId);
-        let oldRosters = await this.rosterService.findAllRostersByParam([match.id])
+
+        // Getting match competition and rosters existing for the match
+        const competition = await this.competitionService.findById(match.competitionId);
+        const oldRosters = await this.rosterService.findAllRostersByParam([match.id]);
+
+        // Updating umpires
         if (competition.recordUmpireType == "NAMES" && match.matchUmpires) {
-            let oldMatchUmpires = await this.matchUmpireService.findByMatchIds([match.id])
+            let oldMatchUmpires = await this.matchUmpireService.findByMatchIds([match.id]);
             for (let mu of match.matchUmpires) {
                 if (mu.umpireName) {
                     var oldId;
-                    var muSequence = mu.sequence;
                     for (let oldMu of oldMatchUmpires) {
-                        newMatchUmpire = new MatchUmpire();
-                        if (oldMu.sequence == muSequence) {
+                        if (oldMu.sequence == mu.sequence) {
                             oldId = oldMu.id;
+                            break;
                         }
                     }
                     var newMatchUmpire = new MatchUmpire();
@@ -258,18 +265,18 @@ export class MatchController extends BaseController {
 
         let errors = false;
         if (isArrayPopulated(match.rosters)) {
-
             for (let oldRoster of oldRosters) {
                 let oldRosterToDelete = true;
                 // delete old roster only if it doesn't match new role, user, team
                 for (let newRoster of match.rosters) {
                     if (oldRoster.roleId == newRoster.roleId && oldRoster.userId == newRoster.userId && oldRoster.teamId == newRoster.teamId) {
                         oldRosterToDelete = false;
+                        break;
                     }
                 }
                 if (oldRosterToDelete) {
                     if (oldRoster.roleId == Role.SCORER) {
-                        let tokens = (await this.deviceService.findScorerDeviceFromRoster(undefined, oldRoster.id)).map(device => device.deviceId);
+                        let tokens = (await this.deviceService.findScorerDeviceFromRoster(saved.id, oldRoster.id)).map(device => device.deviceId);
                         let result = await this.rosterService.delete(oldRoster);
                         if (result) {
                             if (tokens && tokens.length > 0) {
@@ -289,26 +296,30 @@ export class MatchController extends BaseController {
                         let mu = new MatchUmpire();
                         mu.matchId = oldRoster.matchId;
                         mu.userId = oldRoster.userId;
+
                         this.umpireRemoveRoster(mu);
                     }
                 }
             }
 
             for (let newRoster of match.rosters) {
-               
+
                 if (newRoster.roleId == Role.UMPIRE  && competition.recordUmpireType == "USERS") {
                     let newRosterToAdd = true;
                     // add new umpire roster only if it doesn't match old role, user
                     for (let oldRoster of oldRosters) {
                         if (oldRoster.roleId == Role.UMPIRE && oldRoster.userId == newRoster.userId) {
                             newRosterToAdd = false;
+                            break;
                         }
                     }
+
                     if (newRosterToAdd) {
                         let mu = new MatchUmpire();
                         mu.matchId = newRoster.matchId;
                         mu.userId = newRoster.userId;
                         mu.umpireName = '';
+
                         this.umpireAddRoster(mu, false);
                     }
                 } else if (newRoster.roleId == Role.SCORER) {
@@ -317,8 +328,10 @@ export class MatchController extends BaseController {
                     for (let oldRoster of oldRosters) {
                         if (oldRoster.roleId == Role.SCORER && oldRoster.userId == newRoster.userId && oldRoster.teamId == newRoster.teamId) {
                             newRosterToAdd = false;
-                        } 
+                            break;
+                        }
                     }
+
                     if (newRosterToAdd) {
                         let nr = new Roster();
                         nr.roleId = newRoster.roleId;
@@ -326,15 +339,13 @@ export class MatchController extends BaseController {
                         nr.teamId = newRoster.teamId;
                         nr.matchId = newRoster.matchId;
                         let savedRoster = await this.rosterService.createOrUpdate(nr);
-                    
+
                         if (savedRoster) {
                             await this.notifyRosterChange(user, savedRoster, "Scoring");
                         }
                     }
                 }
             }
-
-            
         }
 
 
