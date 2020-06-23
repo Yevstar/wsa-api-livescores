@@ -13,7 +13,7 @@ export class OrganisationController extends BaseController {
     @Get('/')
     async find(
         @QueryParam('name') name: string,
-        @QueryParam('competitionId') competitionId: number = undefined
+        @QueryParam('competitionId') competitionId: number
     ): Promise<Organisation[]> {
         return this.organisationService.findByNameAndCompetitionId(name, competitionId);
     }
