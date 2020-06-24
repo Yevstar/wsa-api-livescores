@@ -26,7 +26,7 @@ export class ReferenceController extends BaseController {
 
     @Get('/incidentTypes')
     async getIncidentTypes(): Promise<IncidentType[]> {
-        return this.cacheReferences('incidentTypes', this.matchService.loadIncidentTypes(), HOUR);
+        return this.cacheReferences('incidentTypes', this.incidentService.loadIncidentTypes(), HOUR);
     }
 
     private async cacheReferences(key, action, ttl = undefined) {

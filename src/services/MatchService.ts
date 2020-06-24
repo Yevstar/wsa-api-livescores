@@ -7,12 +7,7 @@ import {GamePosition} from "../models/GamePosition";
 import {GameStat} from "../models/GameStat";
 import {MatchEvent} from "../models/MatchEvent";
 import {MatchPausedTime} from "../models/MatchPausedTime";
-import {IncidentType} from "../models/IncidentType";
-import {Incident} from "../models/Incident";
 import {Lineup} from "../models/Lineup";
-import {MatchUmpire} from "../models/MatchUmpire";
-import {IncidentPlayer} from "../models/IncidentPlayer";
-import {IncidentMedia} from "../models/IncidentMedia";
 import {RequestFilter} from "../models/RequestFilter";
 import {paginationData, stringTONumber, isNotNullAndUndefined, s3 } from "../utils/Utils";
 import {StateTimezone} from "../models/StateTimezone";
@@ -232,27 +227,6 @@ export default class MatchService extends BaseService<Match> {
         return this.entityManager.createQueryBuilder(GameStat, 'gs').getMany();
     }
 
-    public async loadIncidentTypes() {
-        return this.entityManager.createQueryBuilder(IncidentType, 'it').getMany();
-    }
-
-    public async saveIncident(incident: Incident): Promise<Incident> {
-        return this.entityManager.save(incident);
-    }
-
-    public async findIncidentsByParam(matchId: number, competitionId: number, teamId: number, playerId: number,
-                                      incidentTypeId: number): Promise<Incident[]> {
-        let query = this.entityManager.createQueryBuilder(Incident, 'i')
-            .innerJoin(IncidentPlayer, 'pi', 'pi.incidentId = i.id')
-            .andWhere('i.teamId = :teamId', {teamId})
-            .andWhere('pi.playerId = :playerId', {playerId});
-
-        if (competitionId) query.andWhere("i.competitionId = :competitionId", {competitionId});
-        if (matchId) query.andWhere("i.matchId = :matchId", {matchId});
-        if (incidentTypeId) query.andWhere("i.incidentTypeId = :incidentTypeId", {incidentTypeId});
-        return query.getMany()
-    }
-
     public async findLineupsByParam(matchId: number, competitionId: number, teamId: number, playerId: number,
                                     positionId: number): Promise<Lineup[]> {
         let query = this.entityManager.createQueryBuilder(Lineup, 'lu')
@@ -269,26 +243,9 @@ export default class MatchService extends BaseService<Match> {
         return this.entityManager.save(Lineup.name, lineups);
     }
 
-    public async batchSavePlayersIncident(incidents: IncidentPlayer[]) {
-        return this.entityManager.save(IncidentPlayer.name, incidents);
-    }
-
     public async deleteLineups(matchId: number, teamId: number) {
         return this.entityManager.createQueryBuilder().delete().from(Lineup)
             .andWhere("matchId = :matchId and teamId = :teamId", {matchId, teamId}).execute();
-    }
-
-    public async saveIncidentMedia(media: IncidentMedia[]) {
-        return this.entityManager.save(media);
-    }
-
-    public createIncidentMedia(id: number, userId: number, url: string, type: string): IncidentMedia {
-        let media = new IncidentMedia();
-        media.incidentId = id;
-        media.mediaUrl = url;
-        media.mediaType = type;
-        media.userId = userId;
-        return media;
     }
 
     public async logMatchEvent(matchId: number, category: string, type: string, period: number, eventTimestamp: Date,
