@@ -28,8 +28,6 @@ import {IncidentPlayer} from "../models/IncidentPlayer";
 import {Round} from "../models/Round";
 import {RequestFilter} from "../models/RequestFilter";
 import * as fastcsv from 'fast-csv';
-import {MatchPausedTime} from "../models/MatchPausedTime";
-import { IsEmpty } from 'class-validator';
 import { Roster } from '../models/security/Roster';
 import { Role } from '../models/security/Role';
 import{ GamePosition } from "../models/GamePosition";
