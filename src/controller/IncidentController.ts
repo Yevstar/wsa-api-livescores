@@ -60,7 +60,7 @@ export class IncidentControllerController extends BaseController {
         @QueryParam('playerId', {required: true}) playerId: number,
         @QueryParam('incidentTypeId') incidentTypeId: number,
         @Res() response: Response) {
-        return this.matchService.findIncidentsByParam(matchId, competitionId, teamId, playerId, incidentTypeId);
+        return this.incidentService.findIncidentsByParam(matchId, competitionId, teamId, playerId, incidentTypeId);
     }
 
     @Authorized()
@@ -96,14 +96,14 @@ export class IncidentControllerController extends BaseController {
                         name: 'validation_error',
                         message: `Incident type id required parameter`
                     });
-                const result = await this.matchService.saveIncident(incident);
+                const result = await this.incidentService.createOrUpdate(incident);
                 // save player incidents
                 let save: IncidentPlayer[] = [];
                 if (playerIds && !Array.isArray(playerIds)) playerIds = [playerIds];
                 for (const playerId of playerIds) {
                     save.push(new IncidentPlayer(playerId, result.id));
                 }
-                await this.matchService.batchSavePlayersIncident(save);
+                await this.incidentService.batchSavePlayersIncident(save);
                 return response.status(200).send({success: true, incidentId: result.id});
             } else {
                 return response.status(400).send(
@@ -154,13 +154,13 @@ export class IncidentControllerController extends BaseController {
                     let upload = await this.firebaseService.upload(filename, file);
                     if (upload) {
                         let url = `${upload['url']}?alt=media`;
-                        media.push(this.matchService.createIncidentMedia(incidentId, user.id, url, file.mimetype));
+                        media.push(this.incidentService.createIncidentMedia(incidentId, user.id, url, file.mimetype));
                         result.push({file: file.originalname, success: true})
                     } else {
                         result.push({file: file.originalname, success: false})
                     }
                 }
-                await this.matchService.saveIncidentMedia(media);
+                await this.incidentService.saveIncidentMedia(media);
                 return response.status(200).send({success: true, data: result});
             } else {
                 return response.status(400).send({

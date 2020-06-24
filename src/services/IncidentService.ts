@@ -4,7 +4,6 @@ import {Incident} from "../models/Incident";
 import {IncidentType} from "../models/IncidentType";
 import {IncidentMedia} from "../models/IncidentMedia";
 import {IncidentPlayer} from "../models/IncidentPlayer";
-import {Match} from "../models/Match";
 import { isNotNullAndUndefined } from "../utils/Utils";
 
 @Service()
@@ -64,5 +63,39 @@ export default class IncidentService extends BaseService<Incident> {
         if (to) query.andWhere("incident.createdAt <= :to", { to });
         query.orderBy("incident.createdAt", "DESC");
         return query.getMany();
+    }
+
+    public async loadIncidentTypes() {
+        return this.entityManager.createQueryBuilder(IncidentType, 'it').getMany();
+    }
+
+    public async batchSavePlayersIncident(incidents: IncidentPlayer[]) {
+        return this.entityManager.save(IncidentPlayer.name, incidents);
+    }
+
+    public async findIncidentsByParam(matchId: number, competitionId: number, teamId: number, playerId: number,
+                                      incidentTypeId: number): Promise<Incident[]> {
+        let query = this.entityManager.createQueryBuilder(Incident, 'i')
+            .innerJoin(IncidentPlayer, 'pi', 'pi.incidentId = i.id')
+            .andWhere('i.teamId = :teamId', {teamId})
+            .andWhere('pi.playerId = :playerId', {playerId});
+
+        if (competitionId) query.andWhere("i.competitionId = :competitionId", {competitionId});
+        if (matchId) query.andWhere("i.matchId = :matchId", {matchId});
+        if (incidentTypeId) query.andWhere("i.incidentTypeId = :incidentTypeId", {incidentTypeId});
+        return query.getMany()
+    }
+
+    public async saveIncidentMedia(media: IncidentMedia[]) {
+        return this.entityManager.save(media);
+    }
+
+    public createIncidentMedia(id: number, userId: number, url: string, type: string): IncidentMedia {
+        let media = new IncidentMedia();
+        media.incidentId = id;
+        media.mediaUrl = url;
+        media.mediaType = type;
+        media.userId = userId;
+        return media;
     }
 }
