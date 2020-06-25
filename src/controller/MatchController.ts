@@ -693,7 +693,7 @@ export class MatchController extends BaseController {
             if (match) {
                 var dataDict = {};
                 dataDict["type"] = "match_updated";
-                dataDict["matchId"] = match.id.toString();
+                dataDict["matchIds"] = [match.id].toString();
                 if (user) {
                     dataDict["userId"] = user.id.toString();
                 }
@@ -1066,10 +1066,11 @@ export class MatchController extends BaseController {
                 }
             }
         }
+
         if (arr.length > 0) {
             let data = await this.matchService.batchCreateOrUpdate(arr);
             if (data) {
-                this.sendBulkMatchUpdateNotification(data);
+                this.sendBulkMatchUpdateNotification(data, 'bulk_end_matches');
             }
         }
         return response.status(200).send({success: true});
@@ -1135,7 +1136,7 @@ export class MatchController extends BaseController {
         if (arr.length > 0) {
             let data = await this.matchService.batchCreateOrUpdate(arr);
             if (data) {
-                this.sendBulkMatchUpdateNotification(data);
+                this.sendBulkMatchUpdateNotification(data, 'bulk_time_matches');
             }
         }
         return response.status(200).send({success: true});
@@ -1513,11 +1514,14 @@ export class MatchController extends BaseController {
             .pipe(response);
     }
 
-    private async sendBulkMatchUpdateNotification(matches: Match[]) {
+    private async sendBulkMatchUpdateNotification(matches: Match[], subtype?: string) {
         try {
             if (isArrayPopulated(matches)) {
                 var deviceTokensArray = Array();
+                var matchIdsArray = Array();
                 for (let match of matches) {
+                    matchIdsArray.push(match.id);
+
                     //send by roster and ure
                     let matchDevices = await this.deviceService.findDeviceByMatch(match);
                     let matchDeviceTokens = (matchDevices).map(device => device.deviceId);
@@ -1536,6 +1540,10 @@ export class MatchController extends BaseController {
                     let uniqTokens = new Set(deviceTokensArray);
                     let dataDict = {};
                     dataDict["type"] = "match_updated";
+                    dataDict["matchIds"] = JSON.stringify(matchIdsArray);
+                    if (subtype) {
+                        dataDict["subtype"] = subtype;
+                    }
                     this.firebaseService.sendMessageChunked({
                         tokens: Array.from(uniqTokens),
                         data: dataDict
