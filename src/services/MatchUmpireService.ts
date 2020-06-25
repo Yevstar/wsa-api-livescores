@@ -49,44 +49,6 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
     }
 
     public async findByRosterAndCompetition(organisationId: number, competitionId: number, matchId: number, divisionId: number, venueId: number, requestFilter: RequestFilter): Promise<any> {
-        
-        /*let recordUmpires = 'NONE';
-        let query = this.entityManager.createQueryBuilder(Match, 'match')
-        .select(['match.id', 'match.startTime'])
-        .innerJoinAndSelect('match.competition', 'competition')
-        .innerJoin('match.team1', 'team1')
-        .addSelect(['team1.id', 'team1.name'])
-        .innerJoin('match.team2', 'team2')
-        .addSelect(['team2.id', 'team2.name'])
-        .leftJoin('match.round', 'round')
-        .addSelect(['round.id', 'round.name'])
-        .innerJoinAndSelect('match.venueCourt', 'venueCourt')
-        .innerJoinAndSelect('venueCourt.venue', 'venue')
-        .leftJoinAndSelect('match.allUmpires', 'allUmpires')
-        .leftJoinAndSelect('allUmpires.user', 'user')
-        .leftJoinAndSelect('user.userRoleEntities', 'userRoleEntity')
-        .leftJoinAndSelect('userRoleEntity.organisation', 'organisation')
-        .andWhere('match.deleted_at is null')
-        .andWhere('competition.deleted_at is null')
-        .andWhere('userRoleEntity.entityTypeId is null or (userRoleEntity.entityTypeId = 2 and userRoleEntity.roleId = 15) ')
-        .andWhere('competition.recordUmpireType != :recordUmpires', { recordUmpires: 'NONE' })
-        ;
-
-        if (competitionId) {
-            query.andWhere('match.competitionId = :competitionId', {competitionId});
-        }
-
-        if (matchId) {
-            query.andWhere('match.id = :matchId', {matchId});
-        }
-
-        if (divisionId) {
-            query.andWhere('match.divisionId = :divisionId', {divisionId});
-        }
-
-        if (venueCourtId) {
-            query.andWhere('venueCourt.id = :venueCourtId', {venueCourtId});
-        }*/
 
         let limit = 50000; 
         let offset = 0;

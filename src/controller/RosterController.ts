@@ -388,4 +388,65 @@ export class RosterController extends BaseController {
             });
         }
     }
+
+    @Authorized()
+    @Get('/export/umpire')
+    async exportUmpire(
+        @QueryParam("competitionId") competitionId: number,
+        @QueryParam("roleId") roleId: number,
+        @QueryParam("status") status: string,
+        @Res() response: Response): Promise<any> {
+
+        if (competitionId && roleId) {
+            const rosterData = await this.rosterService.findUserRostersByCompetition(competitionId, roleId, status, null);
+
+            if (isArrayPopulated(rosterData.results)) {
+                rosterData.results.map(e => {
+                    e['First Name'] = e['user']['firstName']
+                    e['Last Name'] = e['user']['lastName']
+                    const orgArray = [];
+                    if (isArrayPopulated(e['user']['userRoleEntities'])) {
+                        for (let i of e['user']['userRoleEntities']) {
+                            orgArray.push(i['organisation']['name']);
+                        }
+                    }
+                    e['Affiliate'] = orgArray.toString().replace(",", '\n');
+                    e['Match Id'] = e['matchId'];
+                    e['Start Time'] = e['match']['startTime'];
+                    e['Status'] = e['status'];
+
+                    delete e['id'];
+                    delete e['roleId'];
+                    delete e['matchId'];
+                    delete e['teamId'];
+                    delete e['userId'];
+                    delete e['eventOccurrenceId'];
+                    delete e['status'];
+                    delete e['locked'];
+                    delete e['match'];
+                    delete e['user'];
+                    return e;
+                });
+            } else {
+                rosterData.users.push({
+                    ['First Name']: 'N/A',
+                    ['Last Name']: 'N/A',
+                    ['Affiliate']: 'N/A',
+                    ['Match Id']: 'N/A',
+                    ['Start Time']: 'N/A',
+                    ['Status']: 'N/A'
+                });
+            }
+
+            response.setHeader('Content-disposition', 'attachment; filename=umpire-roster.csv');
+            response.setHeader('content-type', 'text/csv');
+            fastcsv.write(rosterData.results, { headers: true })
+                .on("finish", function () { })
+                .pipe(response);
+        } else {
+            return response.status(212).send({
+                name: 'parameter_required', message: `Invalid parameters passed`
+            });
+        }
+    }
 }
