@@ -18,6 +18,7 @@ export default class PlayerService extends BaseService<Player> {
             .innerJoinAndSelect("player.team", "team")
             .innerJoinAndSelect("team.division", "division")
             .innerJoinAndSelect("player.competition", "competition")
+            .leftJoinAndSelect("player.user", "user")
             .leftJoin("team.organisation", "organisation");
 
         if (name) {
@@ -62,6 +63,20 @@ export default class PlayerService extends BaseService<Player> {
         return this.entityManager.query('select pmt.playerId as playerId,\n' +
             '       JSON_OBJECT(\n' +
             '               \'id\', p.id,\n' +
+            '               \'userId\', p.userId,\n' +
+            '               \'user\', JSON_OBJECT(\n' +
+            '               \'id\', u.id, \n' +
+            '               \'firstName\', u.firstName, \n' +
+            '               \'lastName\', u.lastName, \n' +
+            '               \'mobileNumber\', u.mobileNumber, \n' +
+            '               \'email\', u.email, \n' +
+            '               \'dateOfBirth\', u.dateOfBirth, \n' +
+            '               \'genderRefId\', u.genderRefId, \n' +
+            '               \'statusRefId\', u.statusRefId, \n' +
+            '               \'marketingOptIn\', u.marketingOptIn, \n' +
+            '               \'photoUrl\', u.photoUrl, \n' +
+            '               \'firebaseUID\', u.firebaseUID \n' +
+            '               ), \n' +
             '               \'firstName\', p.firstName,\n' +
             '               \'lastName\', p.lastName,\n' +
             '               \'photoUrl\', p.photoUrl,\n' +
@@ -77,6 +92,7 @@ export default class PlayerService extends BaseService<Player> {
             '       sum(pmt.duration) as totalTime\n' +
             'from playerMinuteTracking pmt\n' +
             '     inner join player p on p.id = pmt.playerId\n' +
+            '     left join wsa_users.user u on u.id = p.userId\n' +
             'and pmt.teamId = ?\n' +
             'group by pmt.playerId, player', [teamId]);
     }
@@ -85,6 +101,20 @@ export default class PlayerService extends BaseService<Player> {
         return this.entityManager.query('select pmt.playerId as playerId,\n' +
             '       JSON_OBJECT(\n' +
             '               \'id\', p.id,\n' +
+            '               \'userId\', p.userId,\n' +
+            '               \'user\', JSON_OBJECT(\n' +
+            '               \'id\', u.id, \n' +
+            '               \'firstName\', u.firstName, \n' +
+            '               \'lastName\', u.lastName, \n' +
+            '               \'mobileNumber\', u.mobileNumber, \n' +
+            '               \'email\', u.email, \n' +
+            '               \'dateOfBirth\', u.dateOfBirth, \n' +
+            '               \'genderRefId\', u.genderRefId, \n' +
+            '               \'statusRefId\', u.statusRefId, \n' +
+            '               \'marketingOptIn\', u.marketingOptIn, \n' +
+            '               \'photoUrl\', u.photoUrl, \n' +
+            '               \'firebaseUID\', u.firebaseUID \n' +
+            '               ), \n' +
             '               \'firstName\', p.firstName,\n' +
             '               \'lastName\', p.lastName,\n' +
             '               \'photoUrl\', p.photoUrl,\n' +
@@ -99,7 +129,8 @@ export default class PlayerService extends BaseService<Player> {
             '           )             as player,\n' +
             '       sum(pmt.duration) as totalTime\n' +
             'from playerMinuteTracking pmt\n' +
-            '         inner join player p on p.id = pmt.playerId\n' +
+            '     inner join player p on p.id = pmt.playerId\n' +
+            '     left join wsa_users.user u on u.id = p.userId\n' +
             'where pmt.matchId = ?\n' +
             'and pmt.teamId = ?\n' +
             'group by pmt.playerId, player', [matchId, teamId]);

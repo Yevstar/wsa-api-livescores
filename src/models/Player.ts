@@ -2,6 +2,7 @@ import { BaseEntity, Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGen
 import { Competition } from './Competition';
 import { Team } from './Team';
 import { Lineup } from './Lineup';
+import { User } from './User';
 import { IsDate, IsNumber, IsString, ValidateNested } from "class-validator";
 
 @Entity()
@@ -14,7 +15,12 @@ export class Player extends BaseEntity {
     @IsNumber()
     @Column()
     userId: number;
-    
+
+    @ValidateNested()
+    @OneToOne(type => User)
+    @JoinColumn()
+    user: User;
+
     @IsString()
     @Column()
     firstName: string;
