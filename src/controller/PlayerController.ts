@@ -217,6 +217,9 @@ export class PlayerController extends BaseController {
         @QueryParam('status') status: string,
         @Body() requestFilter: RequestFilter
     ): Promise<any[]> {
+        if (status === undefined || status === '') status = null;
+        if (requestFilter.search === undefined || requestFilter.search === '') requestFilter.search = null;
+
         return this.playerService.listTeamPlayerActivity(competitionId, requestFilter, status);
     }
 
