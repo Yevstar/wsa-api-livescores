@@ -32,7 +32,6 @@ import { Roster } from '../models/security/Roster';
 import { Role } from '../models/security/Role';
 import{ GamePosition } from "../models/GamePosition";
 import { MatchUmpire } from '../models/MatchUmpire';
-import { query } from 'winston';
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
