@@ -402,27 +402,16 @@ export class UserController extends BaseController {
     async loadOrgUserByRole(
         @QueryParam('roleId', {required: true}) roleId: number,
         @QueryParam('organisationId', {required: true}) organisationId: number,
-        @QueryParam('search') search: string,
+        @QueryParam('userName') userName: string,
         @QueryParam('offset') offset: number,
         @QueryParam('limit') limit: number,
-    ): Promise<any> {
+        @Res() response: Response) {
 
-        const resultsFound = await this.userService.getOrgUsersBySecurity(organisationId, {roleId: roleId}, search, offset, limit);
-        let result = resultsFound.result;
-        for (let u of result) {
-            u['organisations'] = JSON.parse(u['organisations']);
-        }
-        for (let u of result) {
-            u['competitions'] = JSON.parse(u['competitions']);
-        }
-
-        if (resultsFound && isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
-            let responseObject = paginationData(stringTONumber(resultsFound.countObj), limit, offset)
-            responseObject["users"] = result;
-            return responseObject;
-        } else {
-            return resultsFound.result;
-        }
+        let result = await this.userService.getUserIdBySecurity(EntityType.ORGANISATION, [organisationId], userName, {roleId: roleId});
+        // for (let u of result) {
+        //     u['linkedEntity'] = JSON.parse(u['linkedEntity']);
+        // }
+        return result;
     }
 
     @Authorized()

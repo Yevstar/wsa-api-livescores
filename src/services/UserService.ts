@@ -350,4 +350,37 @@ export default class UserService extends BaseService<User> {
         return query.getRawMany()
     }
 
+    public async getUserIdBySecurity(entityTypeId: number, entityIdList: [number], userName: string,
+        sec: { functionId?: number, roleId?: number }): Promise<User[]> {
+        let query = this.entityManager.createQueryBuilder(User, 'u')
+        .select(['u.id'])
+        .innerJoin(UserRoleEntity, 'ure', 'u.id = ure.userId')
+        .innerJoin(RoleFunction, 'fr', 'fr.roleId = ure.roleId')
+        .innerJoin(LinkedEntities, 'le', 'le.linkedEntityTypeId = ure.entityTypeId AND ' +
+            'le.linkedEntityId = ure.entityId');
+
+        if (sec.functionId) {
+            let id = sec.functionId;
+            query.innerJoin(Function, 'f', 'f.id = fr.functionId')
+            .andWhere('f.id = :id', {id});
+        }
+
+        if (sec.roleId) {
+            let id = sec.roleId;
+            query.innerJoin(Role, 'r', 'r.id = fr.roleId')
+            .andWhere('r.id = :id', {id});
+        }
+
+        query.andWhere('le.inputEntityTypeId = :entityTypeId', {entityTypeId})
+        .andWhere('le.inputEntityId in (:entityIdList)', {entityIdList: entityIdList});
+
+        if (userName) {
+            query.andWhere(new Brackets(qb => {
+            qb.andWhere('LOWER(u.firstName) like :query', {query: `${userName.toLowerCase()}%`})
+            .orWhere('LOWER(u.lastName) like :query', {query: `${userName.toLowerCase()}%`});
+            }));
+        }
+        return query.getMany();
+    }
+
 }
