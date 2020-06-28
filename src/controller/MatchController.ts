@@ -32,6 +32,7 @@ import { Roster } from '../models/security/Roster';
 import { Role } from '../models/security/Role';
 import{ GamePosition } from "../models/GamePosition";
 import { MatchUmpire } from '../models/MatchUmpire';
+import { query } from 'winston';
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
@@ -77,6 +78,7 @@ export class MatchController extends BaseController {
         @QueryParam('teamIds') teamIds: number[] = [],
         @QueryParam('playerIds') playerIds: number[],
         @QueryParam('competitionId') competitionId: number,
+        @QueryParam('divisionIds') divisionIds: number[],
         @QueryParam('organisationIds') organisationIds: number[],
         @QueryParam('matchEnded') matchEnded: boolean,
         @QueryParam('matchStatus') matchStatus: ("STARTED" | "PAUSED" | "ENDED")[],
@@ -98,7 +100,7 @@ export class MatchController extends BaseController {
 
         if(search===null ||search===undefined) search = '';
 
-        const matchFound = await this.matchService.findByParam(from, to, teamIds, playerIds, competitionId, organisationIds, matchEnded, matchStatus, offset, limit,search);
+        const matchFound = await this.matchService.findByParam(from, to, teamIds, playerIds, competitionId, divisionIds, organisationIds, matchEnded, matchStatus, offset, limit, search);
 
         if (isNotNullAndUndefined(matchFound.matchCount) && isNotNullAndUndefined(matchFound.result) && limit) {
             let responseObject = paginationData(stringTONumber(matchFound.matchCount), limit, offset)
@@ -1437,7 +1439,7 @@ export class MatchController extends BaseController {
         @QueryParam('search') search: string,
         @Res() response: Response): Promise<any> {
 
-        const getMatchesData = await this.find(from, to, teamIds, playerIds, competitionId, organisationIds, matchEnded, matchStatus, null, null, null);
+        const getMatchesData = await this.find(from, to, teamIds, playerIds, competitionId, null, organisationIds, matchEnded, matchStatus, null, null, null);
 
         if (isArrayPopulated(getMatchesData)) {
             getMatchesData.map(e => {
