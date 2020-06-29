@@ -42,7 +42,7 @@ export default class CompetitionLadderSettingsService extends BaseService<Compet
         if(isArrayPopulated(result[0])){
           if(result[0].length == 1){
             for(let item of result[0]){
-              if(item.divisions.length == 0){
+              if(!isArrayPopulated(item.divisions)){
                 item.isAllDivision = 1;
               }
             }
@@ -78,6 +78,15 @@ export default class CompetitionLadderSettingsService extends BaseService<Compet
       .delete()
       .from(CompetitionLadderSettings, 'ladderSetting')
       .where('competitionId = :id', { id })
+      .execute();
+  }
+
+  public async deleteByLadderFormatId(id?: number) {
+    return this.entityManager
+      .createQueryBuilder()
+      .delete()
+      .from(CompetitionLadderSettings, 'ladderSetting')
+      .where('ladderFormatId = :id', { id })
       .execute();
   }
 

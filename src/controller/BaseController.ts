@@ -32,6 +32,9 @@ import admin from "firebase-admin";
 import OrganisationService from "../services/OrganisationService";
 import CompetitionOrganisationService from "../services/CompetitionOrganisationService";
 import LineupService from "../services/LineupService";
+import LadderFormatService from '../services/LadderFormatService';
+import LadderFormatDivisionService from '../services/LadderFormatDivisionService';
+
 import {logger} from "../logger";
 
 export class BaseController {
@@ -113,6 +116,12 @@ export class BaseController {
 
     @Inject()
     protected lineupService: LineupService;
+
+    @Inject()
+    protected ladderFormatService: LadderFormatService;
+
+    @Inject()
+    protected ladderFormatDivisionService: LadderFormatDivisionService;
 
     @Inject()
     protected competitionOrganisationService: CompetitionOrganisationService;
