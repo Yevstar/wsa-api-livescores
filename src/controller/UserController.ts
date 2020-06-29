@@ -693,6 +693,204 @@ export class UserController extends BaseController {
     }
 
     @Authorized()
+    @Post('/add')
+    async add(
+        @HeaderParam("authorization") user: User,
+        @QueryParam("type", { required: true }) type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER",
+        @QueryParam("competitionId", { required: true }) competitionId: number,
+        @Body() userData: User,
+        @Res() response: Response
+    ) {
+      try {
+          // if existing user wasn't provided, search for the user
+          if (!userData.id) {
+                if (isNullOrEmpty(userData.email)
+                    || isNullOrEmpty(userData.firstName)
+                    || isNullOrEmpty(userData.lastName)
+                    || isNullOrEmpty(userData.mobileNumber)) {
+                        return response
+                            .status(422)
+                            .send({ name: 'validation_error', message: 'Not all required fields filled' });
+                }
+
+                const foundUser = await this.userService.findByEmail(userData.email.toLowerCase());
+                // if user exists in our database, validate the rest of their details
+                if (foundUser) {
+                    if (foundUser.firstName == userData.firstName
+                        && foundUser.lastName == userData.lastName
+                        && foundUser.mobileNumber == userData.mobileNumber) {
+                        userData.id = foundUser.id;
+                    } else {
+                        return response
+                        .status(400).send({
+                            name: 'validation_error',
+                            message: 'A user with this email address already exists however other details do not match'
+                        });
+                    }
+                } else {
+                    // create user
+                    var password = Math.random().toString(36).slice(-8);
+                    userData.email = userData.email.toLowerCase();
+                    userData.password = md5(password);
+                    const saved = await this.userService.createOrUpdate(userData);
+                    await this.updateFirebaseData(userData, userData.password);
+                    logger.info(`${type} ${userData.email} signed up.`);
+
+                    if (this.canSendMailForAdd(type, userData)) {
+                        let competitionData = await this.competitionService.findById(competitionId)
+                        this.userService.sentMail(user, null, competitionData, Role.MEMBER, saved, password);
+                    }
+
+                    userData.id = saved.id;
+                }
+            } else if (userData.firstName && userData.lastName && userData.mobileNumber) {
+                let foundUser = await this.userService.findById(userData.id);
+                foundUser.firstName = userData.firstName;
+                foundUser.lastName = userData.lastName;
+                foundUser.mobileNumber = userData.mobileNumber;
+                await this.userService.createOrUpdate(foundUser);
+            }
+
+            // existing user - delete existing team assignments
+            await this.deleteRolesNecessary(type, userData, competitionId);
+            // Create necessary URE's and notify
+            await this.createUREAndNotify(type, userData, competitionId, user.id);
+
+            return response.status(200).send({success: true});
+        } catch (error) {
+            logger.error(`Failed to add ${type} due to error -`, error);
+            return response.status(400)
+                .send({ name: 'validation_error', message: 'Failed to add user' });
+        }
+    }
+
+    private async canSendMailForAdd(
+        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER",
+        user: User
+    ) {
+        switch (type) {
+            case 'MEMBER':
+                return true;
+            case 'MANAGER':
+            case 'COACH':
+                return isArrayPopulated(user.teams);
+            case 'UMPIRE':
+                return isArrayPopulated(user.affiliates);
+            default:
+                return false;
+        }
+
+        return false;
+    }
+
+    private async deleteRolesNecessary(
+        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER",
+        user: User,
+        competitionId: number
+    ) {
+        let roleToDelete;
+        let entityType;
+        switch (type) {
+            case 'MANAGER':
+                roleToDelete = Role.MANAGER;
+                entityType = EntityType.TEAM;
+                break;
+            case 'COACH':
+                roleToDelete = Role.COACH;
+                entityType = EntityType.TEAM;
+                break;
+            case 'UMPIRE':
+                roleToDelete = Role.UMPIRE;
+                entityType = EntityType.ORGANISATION;
+                break;
+            default:
+                break;
+        }
+
+        const promiseList = [];
+        if (roleToDelete && entityType) {
+            promiseList.push(
+                this.userService.deleteRolesByUser(
+                    user.id,
+                    roleToDelete,
+                    competitionId,
+                    EntityType.COMPETITION,
+                    entityType
+                )
+            );
+        }
+        promiseList.push(
+            this.userService.deleteRolesByUser(
+                user.id,
+                Role.MEMBER,
+                competitionId,
+                EntityType.COMPETITION,
+                EntityType.COMPETITION
+            )
+        );
+        await Promise.all(promiseList);
+    }
+
+    private async createUREAndNotify(
+        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER",
+        user: User,
+        competitionId: number,
+        createdBy: number
+    ) {
+        let loopData;
+        let roleId;
+        let entityTypeId;
+        switch (type) {
+            case 'MANAGER':
+                loopData = user.teams;
+                roleId = Role.MANAGER;
+                entityTypeId = EntityType.TEAM;
+                break;
+            case 'COACH':
+                loopData = user.teams;
+                roleId = Role.COACH;
+                entityTypeId = EntityType.TEAM;
+                break;
+            case 'UMPIRE':
+                loopData = user.affiliates;
+                roleId = Role.UMPIRE;
+                entityTypeId = EntityType.ORGANISATION;
+                break;
+            default:
+                break;
+        }
+
+        /// Manager
+        let ureArray = [];
+        const managerTeamChatPromiseArray = [];
+        if (loopData && roleId && entityTypeId) {
+            for (let i of loopData) {
+                let ure = new UserRoleEntity();
+                ure.roleId = roleId;
+                ure.entityId = i.id;
+                ure.entityTypeId = entityTypeId;
+                ure.userId = user.id
+                ure.createdBy = createdBy;
+                ureArray.push(ure);
+                /// Checking manager with respect to each team for existing chat
+                managerTeamChatPromiseArray.push(
+                  this.addUserToTeamChat(i.id, user)
+                );
+            }
+        }
+        let ure1 = new UserRoleEntity();
+        ure1.roleId = Role.MEMBER;
+        ure1.entityId = competitionId;
+        ure1.entityTypeId = EntityType.COMPETITION;
+        ure1.userId = user.id
+        ure1.createdBy = createdBy;
+        ureArray.push(ure1);
+        await this.ureService.batchCreateOrUpdate(ureArray);
+        await this.notifyChangeRole(user.id);
+        Promise.all(managerTeamChatPromiseArray);
+    }
+
+    @Authorized()
     @Post('/member')
     async addMember(
         @HeaderParam("authorization") user: User,
@@ -733,7 +931,7 @@ export class UserController extends BaseController {
                 userData.password = md5(password);
                 const saved = await this.userService.createOrUpdate(userData);
                 await this.updateFirebaseData(userData, userData.password);
-                logger.info(`Manager ${userData.email} signed up.`);
+                logger.info(`Member ${userData.email} signed up.`);
 
                 let competitionData = await this.competitionService.findById(competitionId)
                 this.userService.sentMail(user, null, competitionData, Role.MEMBER, saved, password);
@@ -926,7 +1124,7 @@ export class UserController extends BaseController {
                                 /// Checking role with respect each team for existing chat
                                 if (teamChatRequired) {
                                     teamChatPromiseArray.push(
-                                    this.addUserToTeamChat(i.id, userDetails)
+                                        this.addUserToTeamChat(i.id, userDetails)
                                     );
                                 }
                             }
