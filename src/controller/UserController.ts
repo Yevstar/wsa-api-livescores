@@ -840,19 +840,16 @@ export class UserController extends BaseController {
         let loopData;
         let roleId;
         let entityTypeId;
-        let addToTeamChat = false;
         switch (type) {
             case 'MANAGER':
                 loopData = user.teams;
                 roleId = Role.MANAGER;
                 entityTypeId = EntityType.TEAM;
-                addToTeamChat = true;
                 break;
             case 'COACH':
                 loopData = user.teams;
                 roleId = Role.COACH;
                 entityTypeId = EntityType.TEAM;
-                addToTeamChat = true;
                 break;
             case 'UMPIRE':
                 loopData = user.affiliates;
@@ -875,13 +872,10 @@ export class UserController extends BaseController {
                 ure.userId = user.id
                 ure.createdBy = createdBy;
                 ureArray.push(ure);
-                
-                if (addToTeamChat) {
-                    /// Checking with respect to each team for existing chat
-                    managerTeamChatPromiseArray.push(
-                      this.addUserToTeamChat(i.id, user)
-                    );
-                }
+                /// Checking manager with respect to each team for existing chat
+                managerTeamChatPromiseArray.push(
+                  this.addUserToTeamChat(i.id, user)
+                );
             }
         }
         let ure1 = new UserRoleEntity();
@@ -1022,20 +1016,20 @@ export class UserController extends BaseController {
         if (isArrayPopulated(jsonObj)) {
             for (let i of jsonObj) {
                 if ( teamRequired &&
-                    (isEmpty(i['Team']) || isEmpty(i['DivisionName']))
+                    (isEmpty(i['Team']) || isEmpty(i['DivisionName'])) 
                 ) {
-                   // Skip entry
+                   // Skip entry 
                    return response.status(212).send(`Team and DivisionName are required`);
                 } else if ( !teamRequired &&
                     isEmpty(i['Organisation'])
                 ) {
-                   // Skip entry
+                   // Skip entry 
                    return response.status(212).send(`Organisation is required`);
                 } else if (isNotNullAndUndefined(i['Email']) && (i['Email'] != '') &&
                     isNotNullAndUndefined(i['First Name']) && (i['First Name'] != '') &&
                     isNotNullAndUndefined(i['Last Name']) && (i['Last Name'] != '') &&
                     isNotNullAndUndefined(i['Contact No']) && (i['Contact No'] != '')) {
-
+                        
                     const userDetails = new User();
                     let newUser = false;
                     let teamDetailArray: any = [];
@@ -1081,7 +1075,7 @@ export class UserController extends BaseController {
 
                         userDetails.id = savedUserDetail.id;
                     }
-
+                    
                     if (!infoMisMatchArray.includes(i['Email'])) {
                         if (teamRequired) {
                             if (isNotNullAndUndefined(i['Team'])) {
@@ -1114,7 +1108,7 @@ export class UserController extends BaseController {
                                 }
                             }
                         }
-
+                        
                         let ureArray = [];
                         const teamChatPromiseArray = [];
                         if (isArrayPopulated(teamDetailArray)) {
