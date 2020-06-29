@@ -81,9 +81,10 @@ export class MatchController extends BaseController {
         @QueryParam('organisationIds') organisationIds: number[],
         @QueryParam('matchEnded') matchEnded: boolean,
         @QueryParam('matchStatus') matchStatus: ("STARTED" | "PAUSED" | "ENDED")[],
+        @QueryParam('roundName') roundName: string,
+        @QueryParam('search') search: string,
         @QueryParam('offset') offset: number = undefined,
-        @QueryParam('limit') limit: number = undefined,
-        @QueryParam('search') search: string
+        @QueryParam('limit') limit: number = undefined
     ): Promise<any> {
         // Add all teams of supplied players.
         if (playerIds) {
@@ -99,7 +100,7 @@ export class MatchController extends BaseController {
 
         if(search===null ||search===undefined) search = '';
 
-        const matchFound = await this.matchService.findByParam(from, to, teamIds, playerIds, competitionId, divisionIds, organisationIds, matchEnded, matchStatus, offset, limit, search);
+        const matchFound = await this.matchService.findByParam(from, to, teamIds, playerIds, competitionId, divisionIds, organisationIds, matchEnded, matchStatus, roundName, search, offset, limit);
 
         if (isNotNullAndUndefined(matchFound.matchCount) && isNotNullAndUndefined(matchFound.result) && limit) {
             let responseObject = paginationData(stringTONumber(matchFound.matchCount), limit, offset)

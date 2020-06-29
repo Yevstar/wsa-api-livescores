@@ -35,7 +35,7 @@ export default class MatchService extends BaseService<Match> {
             }));
         }
     }
-
+    
     private addDefaultJoin(query) {
         query.innerJoinAndSelect('match.team1', 'team1')
             .innerJoinAndSelect('match.team2', 'team2')
@@ -100,7 +100,7 @@ export default class MatchService extends BaseService<Match> {
 
     public async findByParam(from: Date, to: Date, teamIds: number[] = [], playerIds: number[],
         competitionId: number, divisionIds: number[], organisationIds: number[], matchEnded: boolean,
-        matchStatus: ("STARTED" | "PAUSED" | "ENDED")[], offset: number = undefined, limit: number = undefined, search: string): Promise<any> {
+        matchStatus: ("STARTED" | "PAUSED" | "ENDED")[], roundName: string, search: string, offset: number = undefined, limit: number = undefined): Promise<any> {
 
         let query = await this.entityManager.createQueryBuilder(Match, 'match');
         if (from) query.andWhere("match.startTime >= :from", { from });
@@ -110,6 +110,7 @@ export default class MatchService extends BaseService<Match> {
         if (matchEnded != undefined) query.andWhere("match.matchEnded is :matchEnded", { matchEnded });
         if (matchStatus) query.andWhere("match.matchStatus in (:matchStatus)", { matchStatus });
         if (divisionIds != undefined && divisionIds != null) query.andWhere("match.divisionId in (:divisionIds)", { divisionIds });
+        if (isNotNullAndUndefined(roundName) && roundName !== '') query.andWhere("round.name = :roundName", { roundName });
         if (isNotNullAndUndefined(search) && search!=='') {
             const search_ = `%${search.toLowerCase()}%`;
             query.andWhere(
