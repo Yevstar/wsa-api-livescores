@@ -28,7 +28,8 @@ export default class CompetitionLadderSettingsService extends BaseService<Compet
 
       let responseObj = {
         ladders : [],
-        divisions: []
+        divisions: [],
+        defaultLadders: []
       };   
 
       if(result!= null){
@@ -49,6 +50,7 @@ export default class CompetitionLadderSettingsService extends BaseService<Compet
         }
          
         responseObj.divisions = result[2];
+        responseObj.defaultLadders = result[1];
         
       }
       return responseObj;
