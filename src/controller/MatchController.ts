@@ -81,9 +81,10 @@ export class MatchController extends BaseController {
         @QueryParam('organisationIds') organisationIds: number[],
         @QueryParam('matchEnded') matchEnded: boolean,
         @QueryParam('matchStatus') matchStatus: ("STARTED" | "PAUSED" | "ENDED")[],
+        @QueryParam('roundName') roundName: string,
+        @QueryParam('search') search: string,
         @QueryParam('offset') offset: number = undefined,
-        @QueryParam('limit') limit: number = undefined,
-        @QueryParam('search') search: string
+        @QueryParam('limit') limit: number = undefined
     ): Promise<any> {
         // Add all teams of supplied players.
         if (playerIds) {
@@ -99,7 +100,7 @@ export class MatchController extends BaseController {
 
         if(search===null ||search===undefined) search = '';
 
-        const matchFound = await this.matchService.findByParam(from, to, teamIds, playerIds, competitionId, divisionIds, organisationIds, matchEnded, matchStatus, offset, limit, search);
+        const matchFound = await this.matchService.findByParam(from, to, teamIds, playerIds, competitionId, divisionIds, organisationIds, matchEnded, matchStatus, roundName, search, offset, limit);
 
         if (isNotNullAndUndefined(matchFound.matchCount) && isNotNullAndUndefined(matchFound.result) && limit) {
             let responseObject = paginationData(stringTONumber(matchFound.matchCount), limit, offset)
@@ -980,6 +981,7 @@ export class MatchController extends BaseController {
         return this.matchService.findLineupsByParam(matchId, competitionId, teamId, playerId, positionId);
     }
 
+    @Authorized()
     @Patch('/lineup/status')
     async updateLineupService(
         @Body() lineup: Lineup,
@@ -995,6 +997,7 @@ export class MatchController extends BaseController {
         }
     }
 
+    @Authorized()
     @Patch('/lineup/update')
     async updateLineups(
         @QueryParam('matchId') matchId: number,
@@ -1064,6 +1067,46 @@ export class MatchController extends BaseController {
                 gaPlayerId
             );
         }
+    }
+
+    @Authorized()
+    @Post('/bulk/update')
+    async bulkUpdateMatches (
+        @Body() matchesData: Match[],
+        @Res() response: Response
+    ) {
+        let arr = [];
+        let endTime = Date.now();
+        for (let match of matchesData) {
+            if (match.matchStatus != "ENDED") {
+                if (match.team1Score != null && match.team2Score != null) {
+                    if (match.team1Score > match.team2Score) {
+                        match.team1ResultId = 1;
+                        match.team2ResultId = 2;
+                        arr.push(match);
+                    } else if (match.team2Score > match.team1Score) {
+                        match.team1ResultId = 2;
+                        match.team2ResultId = 1;
+                        arr.push(match);
+                    } else {
+                        match.team1ResultId = 3;
+                        match.team2ResultId = 3;
+                        arr.push(match);
+                    }
+                }
+                match.endTime = new Date(endTime);
+                match.matchStatus = "ENDED";
+            } else {
+                arr.push(match);
+            }
+        }
+        if (arr.length > 0) {
+            let data = await this.matchService.batchCreateOrUpdate(arr);
+            if (data) {
+                this.sendBulkMatchUpdateNotification(data, 'bulk_end_matches');
+            }
+        }
+        return response.status(200).send({success: true});
     }
 
     @Authorized()
