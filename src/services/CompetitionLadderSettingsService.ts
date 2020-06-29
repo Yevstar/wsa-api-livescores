@@ -53,6 +53,10 @@ export default class CompetitionLadderSettingsService extends BaseService<Compet
           }
 
           responseObj.ladders = result[0];
+
+          result[1][0]["isAllDivision"] = 0;
+          result[1][0]["ladderFormatId"] = 0;
+          result[1][0]["divisions"] =  result[2];
         }
         else{
           result[1][0]["isAllDivision"] = 0;
