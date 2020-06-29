@@ -42,7 +42,7 @@ export default class CompetitionLadderSettingsService extends BaseService<Compet
         if(isArrayPopulated(result[0])){
           if(result[0].length == 1){
             for(let item of result[0]){
-              if(!isArrayPopulated(item.divisions)){
+              if(!isArrayPopulated(item.selectedDivisions)){
                 item.isAllDivision = 1;
               }
             }
