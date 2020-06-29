@@ -213,39 +213,58 @@ export class CompetitionController extends BaseController {
             }
 
             // TODO set up default template
-            await this.competitionLadderSettingsService.deleteByCompetitionId(saved.id);
-            let ladderSettingsArray = [];
-            let cls = new CompetitionLadderSettings();
-            cls.competitionId = saved.id;
-            cls.resultTypeId = 1
-            cls.points = 3;
-            ladderSettingsArray.push(cls);
-            cls.resultTypeId = 2
-            cls.points = 2;
-            ladderSettingsArray.push(cls);
-            cls.resultTypeId = 3
-            cls.points = 1;
-            ladderSettingsArray.push(cls);
-            cls.resultTypeId = 4
-            cls.points = 2;
-            ladderSettingsArray.push(cls);
-            cls.resultTypeId = 5
-            cls.points = 0
-            ladderSettingsArray.push(cls);
-            cls.resultTypeId = 6
-            cls.points = 2;
-            ladderSettingsArray.push(cls);
-            cls.resultTypeId = 7
-            cls.points = 3;
-            ladderSettingsArray.push(cls);
-            cls.resultTypeId = 8
-            cls.points = 2;
-            ladderSettingsArray.push(cls);
-            cls.resultTypeId = 9
-            cls.points = 2
-            ladderSettingsArray.push(cls);
-            let ladder = await this.competitionLadderSettingsService.batchCreateOrUpdate(ladderSettingsArray)
+            if(c.id === 0){
+                let ladderFormat = new LadderFormat();
+                ladderFormat.id = 0;
+                ladderFormat.competitionId = saved.id;
+                ladderFormat.createdBy = user.id;
+                ladderFormat.created_at = new Date();
+    
+                let ladderFormatSave = await this.ladderFormatService.createOrUpdate(ladderFormat);
+              //  await this.competitionLadderSettingsService.deleteByCompetitionId(saved.id);
 
+                let ladderSettingsArray = [];
+                let cls = new CompetitionLadderSettings();
+                cls.competitionId = saved.id;
+                cls.resultTypeId = 1
+                cls.points = 3;
+                cls.ladderFormatId = ladderFormatSave.id;
+                ladderSettingsArray.push(cls);
+                cls.resultTypeId = 2
+                cls.points = 2;
+                cls.ladderFormatId = ladderFormatSave.id;
+                ladderSettingsArray.push(cls);
+                cls.resultTypeId = 3
+                cls.points = 1;
+                cls.ladderFormatId = ladderFormatSave.id;
+                ladderSettingsArray.push(cls);
+                cls.resultTypeId = 4
+                cls.points = 2;
+                cls.ladderFormatId = ladderFormatSave.id;
+                ladderSettingsArray.push(cls);
+                cls.resultTypeId = 5
+                cls.points = 0
+                cls.ladderFormatId = ladderFormatSave.id;
+                ladderSettingsArray.push(cls);
+                cls.resultTypeId = 6
+                cls.points = 2;
+                cls.ladderFormatId = ladderFormatSave.id;
+                ladderSettingsArray.push(cls);
+                cls.resultTypeId = 7
+                cls.points = 3;
+                cls.ladderFormatId = ladderFormatSave.id;
+                ladderSettingsArray.push(cls);
+                cls.resultTypeId = 8
+                cls.points = 2;
+                cls.ladderFormatId = ladderFormatSave.id;
+                ladderSettingsArray.push(cls);
+                cls.resultTypeId = 9
+                cls.points = 2
+                cls.ladderFormatId = ladderFormatSave.id;
+                ladderSettingsArray.push(cls);
+                await this.competitionLadderSettingsService.batchCreateOrUpdate(ladderSettingsArray)
+            }
+            
             return this.competitionService.findById(saved.id);
 
         } else {
@@ -463,8 +482,8 @@ export class CompetitionController extends BaseController {
                                     ladderFormatDivArr.push(div); 
                                 }
                             }
-    
-                            await this.competitionLadderSettingsService.deleteByCompetitionId(item.id);
+                            console.log("item.id" + item.id);
+                            await this.competitionLadderSettingsService.deleteByLadderFormatId(item.id);
                         }
                     }
     

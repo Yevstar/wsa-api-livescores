@@ -86,7 +86,7 @@ export default class CompetitionLadderSettingsService extends BaseService<Compet
   }
 
   public async deleteByLadderFormatId(id?: number) {
-    return this.entityManager
+    return await this.entityManager
       .createQueryBuilder()
       .delete()
       .from(CompetitionLadderSettings, 'ladderSetting')
