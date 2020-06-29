@@ -980,6 +980,7 @@ export class MatchController extends BaseController {
         return this.matchService.findLineupsByParam(matchId, competitionId, teamId, playerId, positionId);
     }
 
+    @Authorized()
     @Patch('/lineup/status')
     async updateLineupService(
         @Body() lineup: Lineup,
@@ -995,6 +996,7 @@ export class MatchController extends BaseController {
         }
     }
 
+    @Authorized()
     @Patch('/lineup/update')
     async updateLineups(
         @QueryParam('matchId') matchId: number,
@@ -1064,6 +1066,15 @@ export class MatchController extends BaseController {
                 gaPlayerId
             );
         }
+    }
+
+    @Authorized()
+    @Post('/bulk/update')
+    async bulkUpdateMatches (
+        @Body() matches: Match[],
+        @Res() response: Response
+    ) {
+        return await this.matchService.batchCreateOrUpdate(matches);
     }
 
     @Authorized()
