@@ -48,6 +48,22 @@ export default class CompetitionLadderSettingsService extends BaseService<Compet
           result[1][0]["ladderFormatId"] = 0;
           responseObj.ladders = result[1];
         }
+
+        if(isArrayPopulated(result[2])){
+          result[2].map((i, index) => {
+            i.isAdded = 0;
+          });
+
+          responseObj.ladders.map((item) => {
+            (item.divisions || []).map((div) => {
+              result[2].map((division) =>{
+                if(div == division.divisionId){
+                  division.isAdded = 1;
+                }
+              })
+            })
+          })
+        }
          
         responseObj.divisions = result[2];
         responseObj.defaultLadders = result[1];
