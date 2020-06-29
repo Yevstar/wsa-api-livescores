@@ -20,7 +20,7 @@ import {RequestFilter} from "../models/RequestFilter";
 import { CompetitionVenue } from "../models/CompetitionVenue";
 import { isPhoto, fileExt, stringTONumber, stringToBoolean, timestamp, uuidv4, isArrayPopulated, isNotNullAndUndefined } from "../utils/Utils"
 import { CompetitionOrganisation } from "../models/CompetitionOrganisation";
-
+import { logger } from "../logger";
 
 @JsonController('/competitions')
 export class CompetitionController extends BaseController {
@@ -320,10 +320,21 @@ export class CompetitionController extends BaseController {
     @Authorized()
     @Get('/ladderSettings')
     async getLadderSettings(
-        @Body() ladderSettings: CompetitionLadderSettings[],
-        @QueryParam('competitionId') competitionId: number
+        @HeaderParam("authorization") currentUser: User,
+        @QueryParam('competitionId') competitionUniqueKey: string,
+        @Res() response: Response
     ) {
-        return await this.competitionLadderSettingsService.getByCompetitionId(competitionId);
+        try {
+            let competitionId = await this.competitionService.findByUniquekey(competitionUniqueKey);
+
+            return await this.competitionLadderSettingsService.getLadderSettings(competitionId);
+        } catch (error) {
+            logger.error(`Error Occurred in  getLadderSettingse   ${currentUser.id}` + error);
+                return response.status(500).send({
+                    message: 'Something went wrong. Please contact administrator'
+                });
+        }
+        
     }
 
     @Authorized()
