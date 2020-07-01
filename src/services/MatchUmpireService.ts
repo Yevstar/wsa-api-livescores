@@ -50,16 +50,16 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
 
     public async findByRosterAndCompetition(organisationId: number, competitionId: number, matchId: number, divisionId: number, venueId: number, requestFilter: RequestFilter): Promise<any> {
 
-        let limit = 50000; 
+        let limit = 50000;
         let offset = 0;
-        if (requestFilter && isNotNullAndUndefined(requestFilter) 
+        if (requestFilter && isNotNullAndUndefined(requestFilter)
             && isNotNullAndUndefined(requestFilter.paging)
-            && isNotNullAndUndefined(requestFilter.paging.limit) 
+            && isNotNullAndUndefined(requestFilter.paging.limit)
             && isNotNullAndUndefined(requestFilter.paging.offset)) {
             limit = requestFilter.paging.limit;
             offset = requestFilter.paging.offset;
         }
-        let result = await this.entityManager.query("call wsa.usp_get_umpires(?,?,?,?,?,?,?)", 
+        let result = await this.entityManager.query("call wsa.usp_get_umpires(?,?,?,?,?,?,?)",
             [organisationId, competitionId, matchId, divisionId, venueId, limit, offset]);
 
         if (result != null) {
@@ -70,5 +70,14 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
         } else {
             return [];
         }
+    }
+
+    public async deleteByParms(matchId: number, userId: number): Promise<DeleteResult> {
+        return this.entityManager.createQueryBuilder()
+            .delete()
+            .from(MatchUmpire)
+            .andWhere("matchId = :matchId", {matchId})
+            .andWhere("userId = :userId", {userId})
+            .execute();
     }
 }

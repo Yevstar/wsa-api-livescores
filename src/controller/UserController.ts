@@ -629,9 +629,10 @@ export class UserController extends BaseController {
                 break;
         }
 
-        /// Manager
+        /// Loop through the loop data and create necessary URE and also
+        /// add user to team chat if applicable
         let ureArray = [];
-        const managerTeamChatPromiseArray = [];
+        const teamChatPromiseArray = [];
         if (loopData && roleId && entityTypeId) {
             for (let i of loopData) {
                 let ure = new UserRoleEntity();
@@ -641,10 +642,10 @@ export class UserController extends BaseController {
                 ure.userId = user.id
                 ure.createdBy = createdBy;
                 ureArray.push(ure);
-
+                
                 if (addUserToChat) {
                     /// Checking with respect to each team for existing chat
-                    managerTeamChatPromiseArray.push(
+                    teamChatPromiseArray.push(
                       this.addUserToTeamChat(i.id, user)
                     );
                 }
@@ -659,7 +660,7 @@ export class UserController extends BaseController {
         ureArray.push(ure1);
         await this.ureService.batchCreateOrUpdate(ureArray);
         await this.notifyChangeRole(user.id);
-        Promise.all(managerTeamChatPromiseArray);
+        Promise.all(teamChatPromiseArray);
     }
 
     @Authorized()
