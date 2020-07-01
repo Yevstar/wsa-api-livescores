@@ -107,4 +107,10 @@ export default class CompetitionService extends BaseService<Competition> {
             } else return [];
         }
     }
+
+    public async findByUniquekey(competitionUniquekey: string): Promise<number> {
+        let query = this.entityManager.createQueryBuilder(Competition, 'competition')
+        query.where('competition.uniqueKey= :competitionUniquekey and competition.deleted_at is null', {competitionUniquekey})
+        return (await query.getOne()).id;
+    }
 }

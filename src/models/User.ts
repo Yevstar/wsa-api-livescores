@@ -70,4 +70,19 @@ export class User extends BaseEntity {
     @OneToMany(type => UserRoleEntity, userRoleEntity => userRoleEntity.user)
     userRoleEntities: UserRoleEntity[];
 
+    @IsNumber()
+    @Column({ default: 0 })
+    isDeleted: number;
+    
+    @IsBoolean()
+    @Column()
+    tfaEnabled: boolean;
+
+    @IsString()
+    @Column({select: false})
+    tfaSecret: string;
+
+    @IsString()
+    @Column({select: false})
+    tfaSecretUrl: string;
 }

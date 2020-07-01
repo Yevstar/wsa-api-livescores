@@ -18,6 +18,10 @@ export class CompetitionLadderSettings extends BaseEntity {
     @Column()
     competitionId: number;
 
+    @IsNumber()
+    @Column()
+    ladderFormatId: number;
+
     @OneToOne(type => MatchResultType)
     @JoinColumn()
     resultType: MatchResultType;
@@ -29,6 +33,22 @@ export class CompetitionLadderSettings extends BaseEntity {
     @IsNumber()
     @Column()
     points: number;
+
+    @IsNumber()
+    @Column()
+    createdBy: number;
+
+    @IsNumber()
+    @Column({ nullable: true, default: null })
+    updatedBy: number;
+
+    @IsDate()
+    @Column()
+    created_at: Date;
+
+    @IsDate()
+    @Column()
+    updated_at: Date;
 
     @IsDate()
     @DeleteDateColumn({ nullable:true, default:null, name: 'deleted_at' })
