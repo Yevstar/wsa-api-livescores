@@ -88,6 +88,24 @@ export default class TeamService extends BaseService<Team> {
         return query.getMany();
     }
 
+
+    public async getLadderList(divisionId: number, competitionId: number) {
+        try {
+            let result = await this.entityManager.query("call wsa.usp_get_ladder(?,?)",
+            [competitionId, divisionId]);
+            let response = []
+            if(result!= null){
+                if(isArrayPopulated(result[0])){
+                    response = result[0];
+                }
+            }
+            return response;
+        } catch (error) {
+            throw error;
+        }
+        
+    }
+
     public async teamIdsByOrganisationIds(organisationIds: number[]): Promise<any[]> {
         return this.entityManager.createQueryBuilder(Team, 'team')
             .select('DISTINCT team.id', 'id')

@@ -90,24 +90,45 @@ export class TeamController extends BaseController {
         return this.teamService.findByNameAndCompetition(name, competitionId);
     }
 
-    @Get('/ladder')
+    // @Get('/ladder')
+    // async loadTeamLadder(
+    //     @QueryParam('name') name: string,
+    //     @QueryParam('teamIds') teamIds: number[],
+    //     @QueryParam('divisionIds') divisionIds: number[],
+    //     @QueryParam('competitionIds') competitionIds: number[],
+    //     @QueryParam('competitionKey') competitionUniqueKey: string,
+    // ): Promise<TeamLadder[]> {
+
+    //     if (isNotNullAndUndefined(competitionUniqueKey)) {
+    //         const getCompetitions = await this.competitionService.getCompetitionByUniquekey(competitionUniqueKey);
+    //         competitionIds = getCompetitions.id;
+    //     }
+
+    //     if (teamIds && !Array.isArray(teamIds)) teamIds = [teamIds];
+    //     if (divisionIds && !Array.isArray(divisionIds)) divisionIds = [divisionIds];
+    //     if (competitionIds && !Array.isArray(competitionIds)) competitionIds = [competitionIds];
+    //     return this.teamService.loadLadder(name, teamIds, divisionIds, competitionIds);
+    // }
+
+    @Authorized()
+    @Post('/ladder')
     async loadTeamLadder(
-        @QueryParam('name') name: string,
-        @QueryParam('teamIds') teamIds: number[],
-        @QueryParam('divisionIds') divisionIds: number[],
-        @QueryParam('competitionIds') competitionIds: number[],
-        @QueryParam('competitionKey') competitionUniqueKey: string,
-    ): Promise<TeamLadder[]> {
+        @HeaderParam("authorization") currentUser: User,
+        @Body() requestBody,
+        @Res() response: Response
+    ){
+        try {
+            const getCompetition = await this.competitionService.getCompetitionByUniquekey(requestBody.competitionId);
+            let competitionId = getCompetition.id;
+    
+            return await this.teamService.getLadderList(requestBody.divisionId, competitionId);
 
-        if (isNotNullAndUndefined(competitionUniqueKey)) {
-            const getCompetitions = await this.competitionService.getCompetitionByUniquekey(competitionUniqueKey);
-            competitionIds = getCompetitions.id;
+        } catch (error) {
+            logger.error(`Error Occurred in  loadTeamLadder   ${currentUser.id}` + error);
+            return response.status(500).send({
+                message: 'Something went wrong. Please contact administrator'
+            });
         }
-
-        if (teamIds && !Array.isArray(teamIds)) teamIds = [teamIds];
-        if (divisionIds && !Array.isArray(divisionIds)) divisionIds = [divisionIds];
-        if (competitionIds && !Array.isArray(competitionIds)) competitionIds = [competitionIds];
-        return this.teamService.loadLadder(name, teamIds, divisionIds, competitionIds);
     }
 
     @Authorized()
