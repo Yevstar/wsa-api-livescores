@@ -1076,37 +1076,36 @@ export class MatchController extends BaseController {
         @Res() response: Response
     ) {
         let arr = [];
-        let endTime = Date.now();
+        let data = [];
         for (let match of matchesData) {
-            if (match.matchStatus != "ENDED") {
-                if (match.team1Score != null && match.team2Score != null) {
-                    if (match.team1Score > match.team2Score) {
-                        match.team1ResultId = 1;
-                        match.team2ResultId = 2;
-                        arr.push(match);
-                    } else if (match.team2Score > match.team1Score) {
-                        match.team1ResultId = 2;
-                        match.team2ResultId = 1;
-                        arr.push(match);
-                    } else {
-                        match.team1ResultId = 3;
-                        match.team2ResultId = 3;
-                        arr.push(match);
-                    }
+            if (match.team1Score != null && match.team2Score != null) {
+                if (match.matchStatus != "ENDED") {
+                    let endTime = Date.now();
+                    match.endTime = new Date(endTime);
+                    match.matchStatus = "ENDED";
                 }
-                match.endTime = new Date(endTime);
-                match.matchStatus = "ENDED";
-            } else {
-                arr.push(match);
+                if (match.team1Score > match.team2Score) {
+                    match.team1ResultId = 1;
+                    match.team2ResultId = 2;
+                    arr.push(match);
+                } else if (match.team2Score > match.team1Score) {
+                    match.team1ResultId = 2;
+                    match.team2ResultId = 1;
+                    arr.push(match);
+                } else {
+                    match.team1ResultId = 3;
+                    match.team2ResultId = 3;
+                    arr.push(match);
+                }
             }
         }
         if (arr.length > 0) {
-            let data = await this.matchService.batchCreateOrUpdate(arr);
+            data = await this.matchService.batchCreateOrUpdate(arr);
             if (data) {
                 this.sendBulkMatchUpdateNotification(data, 'bulk_end_matches');
             }
         }
-        return response.status(200).send({success: true});
+        return await this.matchService.findByIds(matchesData.map(o => o.id));
     }
 
     @Authorized()
