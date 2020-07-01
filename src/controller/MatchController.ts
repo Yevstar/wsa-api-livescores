@@ -1103,46 +1103,62 @@ export class MatchController extends BaseController {
 
     @Authorized()
     @Post('/bulk/update')
-    async bulkUpdateMatches (
+    async bulkUpdate (
         @Body() matchesData: Match[],
         @Res() response: Response
     ) {
-        let arr = [];
-        let data = [];
-        for (let match of matchesData) {
-            if (match.team1Score != null && match.team2Score != null) {
-                if (match.matchStatus != "ENDED") {
+        if (matchesData.length == 0) {
+            return response.status(400).send({
+                name: 'validation_error',
+                message: `Empty match data provided`
+            });
+        }
+
+        const promises = matchesData.map(async match => {
+            let dbMatch = await this.matchService.findById(match.id);
+            if (match.team1Score && match.team2Score) {
+                dbMatch.team1Score = match.team1Score;
+                dbMatch.team2Score = match.team2Score;
+                if (dbMatch.matchStatus != "ENDED") {
                     let endTime = Date.now();
-                    match.endTime = new Date(endTime);
-                    match.matchStatus = "ENDED";
+                    dbMatch.endTime = new Date(endTime);
+                    dbMatch.matchStatus = "ENDED";
                 }
                 if (match.team1Score > match.team2Score) {
-                    match.team1ResultId = 1;
-                    match.team2ResultId = 2;
-                    arr.push(match);
+                    dbMatch.team1ResultId = 1;
+                    dbMatch.team2ResultId = 2;
                 } else if (match.team2Score > match.team1Score) {
-                    match.team1ResultId = 2;
-                    match.team2ResultId = 1;
-                    arr.push(match);
+                    dbMatch.team1ResultId = 2;
+                    dbMatch.team2ResultId = 1;
                 } else {
-                    match.team1ResultId = 3;
-                    match.team2ResultId = 3;
-                    arr.push(match);
+                    dbMatch.team1ResultId = 3;
+                    dbMatch.team2ResultId = 3;
                 }
             }
-        }
+
+            return dbMatch;
+        });
+
+        const arr = await Promise.all(promises);
+
         if (arr.length > 0) {
-            data = await this.matchService.batchCreateOrUpdate(arr);
+            let data = await this.matchService.batchCreateOrUpdate(arr);
             if (data) {
                 this.sendBulkMatchUpdateNotification(data, 'bulk_end_matches');
             }
+            return data;
+        } else {
+            return response.status(212)
+                .send({
+                    success: false,
+                    message: "None of the match data got updated"
+                });
         }
-        return await this.matchService.findByIds(matchesData.map(o => o.id));
     }
 
     @Authorized()
     @Post('/bulk/end')
-    async bulkUpdate(
+    async bulkEnd(
         @QueryParam('competitionId', { required: true }) competitionId: number,
         @QueryParam('startTimeStart', { required: true }) startTimeStart: Date,
         @QueryParam('startTimeEnd', { required: true }) startTimeEnd: Date,
