@@ -24,7 +24,7 @@ export default class IncidentService extends BaseService<Incident> {
             .leftJoinAndSelect('incident.incidentMediaList', 'incidentMedia')
             .innerJoinAndSelect('incident.match', 'match')
             .innerJoinAndSelect('incident.incidentType', 'incidentType');
-            
+
         if (incidentId) query.andWhere("incident.id = :incidentId", {incidentId});
         if (competitionId) query.andWhere("incident.competitionId = :competitionId", {competitionId});
 
@@ -97,5 +97,35 @@ export default class IncidentService extends BaseService<Incident> {
         media.mediaType = type;
         media.userId = userId;
         return media;
+    }
+
+    public async deleteIncidentPlayers(id: number) {
+      return this.entityManager
+          .createQueryBuilder()
+          .delete()
+          .from(IncidentPlayer, 'ip')
+          .where('incidentId = :id', { id })
+          .execute();
+    }
+
+    public async mediaCount(id: number): Promise<number> {
+        let query = this.entityManager.createQueryBuilder(IncidentMedia, 'im')
+            .where("im.incidentId = :id", {id: id});
+        return query.getCount();
+    }
+
+    public async fetchIncidentMedia(id: number): Promise<IncidentMedia[]> {
+        let query = this.entityManager.createQueryBuilder(IncidentMedia, 'im')
+            .where("im.incidentId = :id", {id: id});
+        return query.getMany();
+    }
+
+    public async removeIncidentMedia(incidentMedia: IncidentMedia) {
+        return this.entityManager
+            .createQueryBuilder()
+            .delete()
+            .from(IncidentMedia, 'im')
+            .where('id = :id', { id: incidentMedia.id })
+            .execute();
     }
 }
