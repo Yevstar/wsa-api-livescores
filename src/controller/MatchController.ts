@@ -349,6 +349,11 @@ export class MatchController extends BaseController {
             await Promise.all(deleteRosterPromises);
         }
 
+         // Team Ladder 
+         let arr = [];
+         arr.push(match);
+         await this.performTeamLadderOperation(arr, user.id);
+
         this.sendMatchEvent(saved); // This is to send notification for devices
         return saved;
     }
@@ -752,6 +757,12 @@ export class MatchController extends BaseController {
         eventTimestamp = msFromStart ? new Date(time.getTime() + msFromStart) : Date.now();
         this.matchService.logMatchEvent(match.id, 'timer', 'periodEnd', scores.period,
             eventTimestamp, user.id);
+
+        // Team Ladder 
+        let arr = [];
+        arr.push(match);
+        await this.performTeamLadderOperation(arr, user.id);
+       
         return match;
     }
 
@@ -1104,6 +1115,7 @@ export class MatchController extends BaseController {
     @Authorized()
     @Post('/bulk/update')
     async bulkUpdate (
+        @HeaderParam("authorization") currentUser: User,
         @Body() matchesData: Match[],
         @Res() response: Response
     ) {
@@ -1144,6 +1156,7 @@ export class MatchController extends BaseController {
         if (arr.length > 0) {
             let data = await this.matchService.batchCreateOrUpdate(arr);
             if (data) {
+                await this.performTeamLadderOperation(arr, currentUser.id);
                 this.sendBulkMatchUpdateNotification(data, 'bulk_end_matches');
             }
             return data;
@@ -1159,6 +1172,7 @@ export class MatchController extends BaseController {
     @Authorized()
     @Post('/bulk/end')
     async bulkEnd(
+        @HeaderParam("authorization") currentUser: User,
         @QueryParam('competitionId', { required: true }) competitionId: number,
         @QueryParam('startTimeStart', { required: true }) startTimeStart: Date,
         @QueryParam('startTimeEnd', { required: true }) startTimeEnd: Date,
@@ -1206,10 +1220,41 @@ export class MatchController extends BaseController {
         if (arr.length > 0) {
             let data = await this.matchService.batchCreateOrUpdate(arr);
             if (data) {
+                await this.performTeamLadderOperation(arr, currentUser.id);
                 this.sendBulkMatchUpdateNotification(data, 'bulk_end_matches');
             }
         }
         return response.status(200).send({success: true});
+    }
+
+    private async performTeamLadderOperation(matches: Match[], userId){
+        try {
+           // console.log("matches::" + JSON.stringify(matches));
+            let divisionMap = new Map();
+            let arr = [];
+            //Team Ladder Operation
+           for(let item of matches){
+                let ladderSettings = divisionMap.get(item.divisionId);
+                if(ladderSettings == undefined){
+                    ladderSettings = await this.competitionLadderSettingsService.
+                                getByCompetitionDivisionId(item.competitionId, item.divisionId);
+                    divisionMap.set(item.divisionId, ladderSettings);
+                    //console.log("Ladder Settings" + JSON.stringify(ladderSettings));
+                }
+               
+                if(isArrayPopulated(ladderSettings)){
+                    let teamLadderList = await this.teamLadderService.getTeamLadderByMatch(item, ladderSettings, userId);
+                    if(isArrayPopulated(teamLadderList)){
+                        arr.push(...teamLadderList);
+                    }
+                }
+            }
+            if(isArrayPopulated(arr)){
+                await this.teamLadderService.batchCreateOrUpdate(arr);
+            }
+        } catch (error) {
+            throw error;
+        }
     }
 
     @Authorized()

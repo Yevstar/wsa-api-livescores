@@ -94,4 +94,21 @@ export default class CompetitionLadderSettingsService extends BaseService<Compet
       .execute();
   }
 
+  public async getByCompetitionDivisionId(competitionId: number, divisionId: number): Promise<CompetitionLadderSettings[]>{
+    try {
+        let response = await this.entityManager.query(`
+        select cls.* from wsa.competition_ladder_settings cls 
+        inner join wsa.ladderFormat lf 
+          on lf.id = cls.ladderFormatId and lf.competitionId = cls.competitionId and lf.deleted_at is NULL 
+        left join wsa.ladderFormatDivision lfd 
+          on lfd.ladderFormatId = lf.id and lfd.deleted_at is null
+        where lf.competitionId = ?  and (lfd.divisionId is null or lfd.divisionId = ?)`,
+          [competitionId, divisionId]);
+
+        return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
 }

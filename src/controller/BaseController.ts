@@ -34,6 +34,7 @@ import CompetitionOrganisationService from "../services/CompetitionOrganisationS
 import LineupService from "../services/LineupService";
 import LadderFormatService from '../services/LadderFormatService';
 import LadderFormatDivisionService from '../services/LadderFormatDivisionService';
+import TeamLadderService from '../services/TeamLadderService';
 
 import {logger} from "../logger";
 
@@ -125,6 +126,9 @@ export class BaseController {
 
     @Inject()
     protected competitionOrganisationService: CompetitionOrganisationService;
+
+    @Inject()
+    protected teamLadderService: TeamLadderService;
 
     protected async updateFirebaseData(user: User, password: string) {
         user.password = password;
