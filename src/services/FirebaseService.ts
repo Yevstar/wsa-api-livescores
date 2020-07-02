@@ -210,4 +210,22 @@ export default class FirebaseService {
                 return undefined;
             });
     }
+
+    public async removeMedia(filePath: string): Promise<any> {
+      const bucket = admin.storage().bucket(firebaseConfig.storageBucket);
+
+      const deleteFile = async (): Promise<any> =>
+          new Promise<any>((resolve, reject): void => {
+              bucket.file(filePath).exists()
+                  .then((info) => {
+                      bucket.file(filePath).delete();
+                      resolve({ success: true });
+                  })
+                  .catch((error) => {
+                      reject(error);
+                  });
+          });
+
+      return deleteFile();
+    }
 }

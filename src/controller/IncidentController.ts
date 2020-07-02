@@ -3,8 +3,9 @@ import {Get,
     QueryParam,
     Param,
     Authorized,
-    Res, 
+    Res,
     Post,
+    Patch,
     HeaderParam,
     UploadedFiles,
     BodyParam
@@ -12,6 +13,7 @@ import {Get,
 import {BaseController} from "./BaseController";
 import {Incident} from "../models/Incident";
 import {IncidentPlayer} from "../models/IncidentPlayer";
+import {IncidentMedia} from "../models/IncidentMedia";
 import {Response} from "express";
 import {fileExt, isPhoto, isVideo, timestamp, stringTONumber, paginationData, isNotNullAndUndefined} from "../utils/Utils";
 import {logger} from "../logger";
@@ -68,62 +70,170 @@ export class IncidentControllerController extends BaseController {
     async addIncident(
         @QueryParam('playerIds', {required: true}) playerIds: number[] = undefined,
         @BodyParam("incident", {required: true}) incident: Incident,
-        @Res() response: Response) {
-        try {
-            if (incident) {
-                if (incident.id)
-                    return response.status(400).send({
-                        name: 'validation_error',
-                        message: `Update incident not supported`
-                    });
-                if (!incident.matchId)
-                    return response.status(400).send({
-                        name: 'validation_error',
-                        message: `Match id required parameter`
-                    });
-                if (!incident.competitionId)
-                    return response.status(400).send({
-                        name: 'validation_error',
-                        message: `Competition id required parameter`
-                    });
-                if (!incident.teamId)
-                    return response.status(400).send({
-                        name: 'validation_error',
-                        message: `Team id required parameter`
-                    });
-                if (!incident.incidentTypeId)
-                    return response.status(400).send({
-                        name: 'validation_error',
-                        message: `Incident type id required parameter`
-                    });
-                const result = await this.incidentService.createOrUpdate(incident);
-                // save player incidents
-                let save: IncidentPlayer[] = [];
-                if (playerIds && !Array.isArray(playerIds)) playerIds = [playerIds];
-                for (const playerId of playerIds) {
-                    save.push(new IncidentPlayer(playerId, result.id));
-                }
-                await this.incidentService.batchSavePlayersIncident(save);
-                return response.status(200).send({success: true, incidentId: result.id});
-            } else {
-                return response.status(400).send(
-                    {name: 'validation_error', message: `Incident can not be null`});
-            }
-        } catch (e) {
-            logger.error(`Failed to create incident`, e);
-            return response.status(400).send(
-                {name: 'validation_error', message: `Failed to create incident`});
-        }
-    } 
+        @Res() response: Response
+    ) {
+        return await this.addOrEditIncident(
+            false,
+            playerIds,
+            incident,
+            response
+        );
+    }
+
+    private async addOrEditIncident(
+        isEdit: boolean,
+        playerIds: number[],
+        incident: Incident,
+        response: Response
+    ) {
+      try {
+          if (incident) {
+              if (!isEdit && incident.id) {
+                  return response.status(400).send({
+                      name: 'validation_error',
+                      message: `Update incident not supported`
+                  });
+              } else if (isEdit && !incident.id) {
+                  return response.status(400).send({
+                      name: 'validation_error',
+                      message: `Incident id not provided`
+                  });
+              }
+
+              if (!incident.matchId)
+                  return response.status(400).send({
+                      name: 'validation_error',
+                      message: `Match id required parameter`
+                  });
+              if (!incident.competitionId)
+                  return response.status(400).send({
+                      name: 'validation_error',
+                      message: `Competition id required parameter`
+                  });
+              if (!incident.teamId)
+                  return response.status(400).send({
+                      name: 'validation_error',
+                      message: `Team id required parameter`
+                  });
+              if (!incident.incidentTypeId)
+                  return response.status(400).send({
+                      name: 'validation_error',
+                      message: `Incident type id required parameter`
+                  });
+              /// Save or Update incident provided
+              const result = await this.incidentService.createOrUpdate(incident);
+
+              // If edit then need to clear incident player list
+              if (isEdit) {
+                  await this.incidentService.deleteIncidentPlayers(incident.id);
+              }
+              // save player incidents
+              let save: IncidentPlayer[] = [];
+              if (playerIds && !Array.isArray(playerIds)) playerIds = [playerIds];
+              for (const playerId of playerIds) {
+                  save.push(new IncidentPlayer(playerId, result.id));
+              }
+              await this.incidentService.batchSavePlayersIncident(save);
+
+              return response.status(200).send({success: true, incidentId: result.id});
+          } else {
+              return response.status(400).send(
+                  {name: 'validation_error', message: `Incident can not be null`});
+          }
+      } catch (e) {
+          logger.error(`Failed to create incident`, e);
+          return response.status(400).send({
+              name: 'validation_error',
+              message: isEdit ? 'Failed to edit incident' : 'Failed to create incident'
+          });
+      }
+    }
+
+    @Authorized()
+    @Patch('/edit')
+    async editIncident(
+        @QueryParam('playerIds', {required: true}) playerIds: number[] = undefined,
+        @BodyParam("incident", {required: true}) incident: Incident,
+        @Res() response: Response
+    ) {
+        return await this.addOrEditIncident(
+            true,
+            playerIds,
+            incident,
+            response
+        );
+    }
 
     @Authorized()
     @Post('/media')
-    async uploadIncidentMedia(
+    async addIncidentMedia(
         @HeaderParam("authorization") user: User,
         @QueryParam("incidentId", {required: true}) incidentId: number,
         @UploadedFiles("media", {required: true}) files: Express.Multer.File[],
-        @Res() response: Response) {
+        @Res() response: Response
+    ) {
+        if (!files || files.length == 0) {
+            return response.status(400).send({
+                success: false,
+                name: 'upload_error',
+                message: `Incident media required`
+            });
+        }
+        let mediaCount = await this.incidentService.mediaCount(incidentId);
+        if (mediaCount > 0) {
+            return response.status(400).send({
+                success: false,
+                name: 'upload_error',
+                message: `Some media already exists for this incident`
+            });
+        }
+
+        return await this.uploadOrRemoveIncidentMedia(
+            user,
+            incidentId,
+            files,
+            [],
+            response
+        );
+    }
+
+    private async uploadOrRemoveIncidentMedia(
+      user: User,
+      incidentId: number,
+      files: Express.Multer.File[],
+      incidentMediaIds: number[],
+      @Res() response: Response
+    ) {
         try {
+            var removedIncidentMediaArray: IncidentMedia[];
+            if (incidentMediaIds && incidentMediaIds.length > 0) {
+                /// If there are some incident media ids then we need to keep
+                /// those media and remove others existing for that incident id
+                removedIncidentMediaArray = (await this.incidentService.fetchIncidentMedia(incidentId))
+                    .filter(incidentMedia => (incidentMediaIds.indexOf(incidentMedia.id) === -1));
+            } else if (!incidentMediaIds) {
+                /// If no media ids provided then remove all the existing media
+                removedIncidentMediaArray = await this.incidentService.fetchIncidentMedia(incidentId);
+            }
+            /// Process removal of media if any in the list and also
+            /// remove db entry in the incident media
+            if (removedIncidentMediaArray && removedIncidentMediaArray.length > 0) {
+                const mediaRemovalPromises = [];
+                removedIncidentMediaArray.forEach(async incidentMedia => {
+                    if (incidentMedia.mediaUrl) {
+                        var filepath = incidentMedia.mediaUrl.split("/incidents%2F").pop();
+                        const nameSplit = filepath.split('?generation=');
+                        filepath = nameSplit[0];
+                        this.firebaseService.removeMedia(`/incidents/${filepath}`);
+
+                        mediaRemovalPromises.push(
+                            this.incidentService.removeIncidentMedia(incidentMedia)
+                        );
+                    }
+                });
+                await Promise.all(mediaRemovalPromises);
+            }
+
             if (files && files.length > 0) {
                 let result = [];
                 let media = [];
@@ -162,12 +272,6 @@ export class IncidentControllerController extends BaseController {
                 }
                 await this.incidentService.saveIncidentMedia(media);
                 return response.status(200).send({success: true, data: result});
-            } else {
-                return response.status(400).send({
-                    success: false,
-                    name: 'upload_error',
-                    message: `Incident media required`
-                });
             }
         } catch (e) {
             logger.error(`Failed to create incident media`, e);
@@ -177,5 +281,25 @@ export class IncidentControllerController extends BaseController {
                 message: `Fail upload incident media`
             });
         }
+
+        return response.status(200).send({success: true});
+    }
+
+    @Authorized()
+    @Patch('/media/edit')
+    async editIncidentMedia(
+        @HeaderParam("authorization") user: User,
+        @QueryParam("incidentId", {required: true}) incidentId: number,
+        @QueryParam("incidentMediaIds") incidentMediaIds: number[],
+        @UploadedFiles("media") files: Express.Multer.File[],
+        @Res() response: Response
+    ) {
+        return await this.uploadOrRemoveIncidentMedia(
+            user,
+            incidentId,
+            files,
+            incidentMediaIds,
+            response
+        );
     }
 }

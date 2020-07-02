@@ -35,7 +35,7 @@ export default class MatchService extends BaseService<Match> {
             }));
         }
     }
-    
+
     private addDefaultJoin(query) {
         query.innerJoinAndSelect('match.team1', 'team1')
             .innerJoinAndSelect('match.team2', 'team2')
@@ -365,9 +365,9 @@ export default class MatchService extends BaseService<Match> {
           return this.entityManager.insert(MatchPausedTime, matchPausedTime);
     }
 
-    public async getMatchTimezone(location: Location): Promise<StateTimezone> {
+    public async getMatchTimezone(locationId: number): Promise<StateTimezone> {
         let query = await this.entityManager.createQueryBuilder(StateTimezone, 'stateTimezone')
-                              .andWhere('stateTimezone.stateRefId = :locationId', {locationId: location.id});
+                              .andWhere('stateTimezone.stateRefId = :locationId', {locationId: locationId});
         return query.getOne();
     }
 

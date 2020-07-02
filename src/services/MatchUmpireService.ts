@@ -66,6 +66,9 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
             let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
             let responseObject = paginationData(stringTONumber(totalCount), limit,offset);
             responseObject["results"] = result[0];
+            let locationId = (result[2] && result[2].find(y=>y)) ? result[2].find(y=>y).locationId : 0;
+            responseObject["locationId"] = locationId;
+
             return responseObject;
         } else {
             return [];

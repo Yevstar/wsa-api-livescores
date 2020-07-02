@@ -15,9 +15,12 @@ import {Response} from "express";
 import {BaseController} from "./BaseController";
 import {EntityType} from "../models/security/EntityType";
 import {User} from "../models/User";
+import {Competition} from "../models/Competition";
 import {stringTONumber, paginationData, isArrayPopulated} from "../utils/Utils";
 import {RequestFilter} from "../models/RequestFilter";
 import * as fastcsv from 'fast-csv';
+import {convertMatchStartTimeByTimezone} from "../utils/TimeFormatterUtils";
+import {StateTimezone} from "../models/StateTimezone";
 
 @JsonController('/roster')
 export class RosterController extends BaseController {
@@ -395,13 +398,19 @@ export class RosterController extends BaseController {
         @QueryParam("competitionId") competitionId: number,
         @QueryParam("roleId") roleId: number,
         @QueryParam("status") status: string,
-        @Res() response: Response): Promise<any> {
-
+        @Res() response: Response
+    ): Promise<any> {
         if (competitionId && roleId) {
-            const rosterData = await this.rosterService.findUserRostersByCompetition(competitionId, roleId, status, null);
+            const dict = await this.rosterService.findUserRostersByCompetition(competitionId, roleId, status, null);
+            let competition: Competition = await this.competitionService.findById(competitionId);
+            let competitionTimezone: StateTimezone;
+            if (competition && competition.locationId) {
+                competitionTimezone = await this.matchService.getMatchTimezone(competition.locationId);
+            }
 
-            if (isArrayPopulated(rosterData.results)) {
-                rosterData.results.map(e => {
+            if (isArrayPopulated(dict.results)) {
+                let constants = require('../constants/Constants');
+                dict.results.map(e => {
                     e['First Name'] = e['user']['firstName']
                     e['Last Name'] = e['user']['lastName']
                     const orgArray = [];
@@ -412,7 +421,11 @@ export class RosterController extends BaseController {
                     }
                     e['Affiliate'] = orgArray.toString().replace(",", '\n');
                     e['Match Id'] = e['matchId'];
-                    e['Start Time'] = e['match']['startTime'];
+                    e['Start Time'] = convertMatchStartTimeByTimezone(
+                        e['match']['startTime'],
+                        competitionTimezone != null ? competitionTimezone.timezone : null,
+                        `${constants.DATE_FORMATTER_KEY} ${constants.TIME_FORMATTER_KEY}`
+                    );
                     e['Status'] = e['status'];
 
                     delete e['id'];
@@ -428,7 +441,7 @@ export class RosterController extends BaseController {
                     return e;
                 });
             } else {
-                rosterData.users.push({
+                dict.results.push({
                     ['First Name']: 'N/A',
                     ['Last Name']: 'N/A',
                     ['Affiliate']: 'N/A',
@@ -440,7 +453,7 @@ export class RosterController extends BaseController {
 
             response.setHeader('Content-disposition', 'attachment; filename=umpire-roster.csv');
             response.setHeader('content-type', 'text/csv');
-            fastcsv.write(rosterData.results, { headers: true })
+            fastcsv.write(dict.results, { headers: true })
                 .on("finish", function () { })
                 .pipe(response);
         } else {

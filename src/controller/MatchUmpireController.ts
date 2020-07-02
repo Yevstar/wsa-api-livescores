@@ -3,6 +3,7 @@ import {MatchUmpire} from '../models/MatchUmpire';
 import {Roster} from '../models/security/Roster';
 import {Response} from "express";
 import {stringTONumber, paginationData, isNotNullAndUndefined, isArrayPopulated} from "../utils/Utils";
+import {convertMatchStartTimeByTimezone} from "../utils/TimeFormatterUtils";
 import {BaseController} from "./BaseController";
 import {RequestFilter} from "../models/RequestFilter";
 import {Match} from "../models/Match";
@@ -194,18 +195,37 @@ export class MatchUmpireController extends BaseController {
         @QueryParam('matchId') matchId: number,
         @QueryParam('divisionId') divisionId: number,
         @QueryParam('venueId') venueId: number,
-        @Res() response: Response): Promise<any> {
-
+        @Res() response: Response
+    ): Promise<any> {
         if (!organisationId) {
             return response.status(200).send(
                 {name: 'search_error', message: `Required fields are missing`});
         }
-        let umpiresList = await this.matchUmpireService.findByRosterAndCompetition(organisationId, competitionId, matchId, divisionId, venueId, null);
 
-        if (isArrayPopulated(umpiresList.results)) {
-            umpiresList.results.map(e => {
-                e['Match ID'] = e['id']
-                e['Start Time'] = e['startTime'] // todo date
+        let dict = await this.matchUmpireService
+                              .findByRosterAndCompetition(
+                                  organisationId,
+                                  competitionId,
+                                  matchId,
+                                  divisionId,
+                                  venueId,
+                                  null
+                              );
+        let competitionTimezone: StateTimezone;
+        if (dict.locationId) {
+            competitionTimezone = await this.matchService.getMatchTimezone(dict.locationId);
+        }
+
+        if (isArrayPopulated(dict.results)) {
+            let constants = require('../constants/Constants');
+
+            dict.results.map(e => {
+                e['Match ID'] = e['id'];
+                e['Start Time'] = convertMatchStartTimeByTimezone(
+                    e['startTime'],
+                    competitionTimezone != null ? competitionTimezone.timezone : null,
+                    `${constants.DATE_FORMATTER_KEY} ${constants.TIME_FORMATTER_KEY}`
+                );
                 e['Home'] = e['team1']['name'];
                 e['Away'] = e['team2']['name'];
                 e['Round'] = e['round']['name'];
@@ -252,7 +272,7 @@ export class MatchUmpireController extends BaseController {
                 return e;
             });
         } else {
-            umpiresList.results.push({
+            dict.results.push({
                 ['Match Id']: '',
                 ['Start Time']: '',
                 ['Home']: '',
@@ -271,7 +291,7 @@ export class MatchUmpireController extends BaseController {
 
         response.setHeader('Content-disposition', 'attachment; filename=match-umpires.csv');
         response.setHeader('content-type', 'text/csv');
-        fastcsv.write(umpiresList.results, { headers: true })
+        fastcsv.write(dict.results, { headers: true })
             .on("finish", function () { })
             .pipe(response);
     }
@@ -282,7 +302,7 @@ export class MatchUmpireController extends BaseController {
         @HeaderParam("authorization") user: User,
         @QueryParam('competitionId', { required: true }) competitionId: number,
         @UploadedFile("file", { required: true }) file: Express.Multer.File,
-        @Res() response: Response) 
+        @Res() response: Response)
     {
         let bufferString = file.buffer.toString('utf8');
         let arr = bufferString.split('\n');
@@ -292,7 +312,7 @@ export class MatchUmpireController extends BaseController {
         let importSuccess: boolean = false;
 
         // File columns:
-        //Match ID	Start Time	Home	Away	Round 	
+        //Match ID	Start Time	Home	Away	Round
         //Umpire 1 Id	Umpire 1 First Name	Umpire 1 Surname	Umpire 1 Organisation
         //Umpire 2 Id	Umpire 2 First Name	Umpire 2 Surname	Umpire 2 Organisation
 
@@ -308,7 +328,7 @@ export class MatchUmpireController extends BaseController {
             for (let i of jsonObj) {
                 if (isNotNullAndUndefined(i['Match ID']) && (i['Match ID'] != '')) {
                     if (isNotNullAndUndefined(i['Umpire 1 Id']) && (i['Umpire 1 Id'] != '')) {
-                        
+
                         const matchUmpire = new MatchUmpire();
                         matchUmpire.matchId = i['Match ID'];
                         matchUmpire.userId = i['Umpire 1 Id'];
@@ -362,7 +382,7 @@ export class MatchUmpireController extends BaseController {
                         }
                     }
                 }
-                
+
             }
 
             if (importSuccess) {
@@ -373,5 +393,5 @@ export class MatchUmpireController extends BaseController {
         }
     }
 
-    
+
 }
