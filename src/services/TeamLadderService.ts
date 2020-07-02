@@ -15,13 +15,16 @@ export default class TeamLadderService extends BaseService<TeamLadder> {
         try {
             let team1Arr = [];
             let team2Arr = [];
-            if(match.team1Id!= 1)
-                team1Arr = this.teamLadderRow(match, 1, competitionLadderSettings);
+            if(match.resultStatus != "In Dispute" && match.resultStatus!= "Unconfirmed"){
+                if(match.team1Id!= 1)
+                    team1Arr = this.teamLadderRow(match, 1, competitionLadderSettings);
             
-            if(match.team2Id!= 1)
-                team2Arr = this.teamLadderRow(match, 2, competitionLadderSettings);
+                if(match.team2Id!= 1)
+                    team2Arr = this.teamLadderRow(match, 2, competitionLadderSettings);
 
-            teamLadderArr = [...team1Arr, ...team2Arr];
+                teamLadderArr = [...team1Arr, ...team2Arr];
+            }
+           
             await this.deleteExistingData(match, userId);
         } catch (error) {
             throw error;
