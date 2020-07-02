@@ -352,6 +352,7 @@ export class MatchController extends BaseController {
          // Team Ladder 
          let arr = [];
          arr.push(match);
+         console.log("arr::" + JSON.stringify(arr));
          await this.performTeamLadderOperation(arr, user.id);
 
         this.sendMatchEvent(saved); // This is to send notification for devices
@@ -1229,7 +1230,7 @@ export class MatchController extends BaseController {
 
     private async performTeamLadderOperation(matches: Match[], userId){
         try {
-           // console.log("matches::" + JSON.stringify(matches));
+           
             let divisionMap = new Map();
             let arr = [];
             //Team Ladder Operation
@@ -1239,7 +1240,7 @@ export class MatchController extends BaseController {
                     ladderSettings = await this.competitionLadderSettingsService.
                                 getByCompetitionDivisionId(item.competitionId, item.divisionId);
                     divisionMap.set(item.divisionId, ladderSettings);
-                    //console.log("Ladder Settings" + JSON.stringify(ladderSettings));
+                   // console.log("Ladder Settings" + JSON.stringify(ladderSettings));
                 }
                
                 if(isArrayPopulated(ladderSettings)){
@@ -1249,6 +1250,7 @@ export class MatchController extends BaseController {
                     }
                 }
             }
+           // console.log("final::" + JSON.stringify(arr));
             if(isArrayPopulated(arr)){
                 await this.teamLadderService.batchCreateOrUpdate(arr);
             }

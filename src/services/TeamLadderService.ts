@@ -15,7 +15,12 @@ export default class TeamLadderService extends BaseService<TeamLadder> {
         try {
             let team1Arr = [];
             let team2Arr = [];
-            if(match.resultStatus != "In Dispute" && match.resultStatus!= "Unconfirmed"){
+            let resultStatus = null;
+            if(match.resultStatus!= null && match.resultStatus!= undefined){
+                resultStatus = match.resultStatus.toLowerCase();
+            }
+           
+            if(resultStatus != "dispute" && resultStatus!= "unconfirmed"){
                 if(match.team1Id!= 1)
                     team1Arr = this.teamLadderRow(match, 1, competitionLadderSettings);
             
