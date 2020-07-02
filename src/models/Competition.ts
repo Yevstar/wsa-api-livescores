@@ -88,6 +88,10 @@ export class Competition extends BaseEntity {
     @Column({select: false})
     mnbUrl: string;
 
+    @IsNumber()
+    @Column()
+    locationId: number;
+
     @ValidateNested()
     @OneToOne(type => Location)
     @JoinColumn()

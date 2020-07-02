@@ -34,6 +34,7 @@ import CompetitionOrganisationService from "../services/CompetitionOrganisationS
 import LineupService from "../services/LineupService";
 import LadderFormatService from '../services/LadderFormatService';
 import LadderFormatDivisionService from '../services/LadderFormatDivisionService';
+import {convertMatchStartTimeByTimezone} from "../utils/TimeFormatterUtils";
 
 import {logger} from "../logger";
 
@@ -284,38 +285,21 @@ export class BaseController {
         if (tokens && tokens.length > 0) {
           try {
             if (match.competition && match.competition.location && match.competition.location.id) {
-              let stateTimezone: StateTimezone = await this.matchService.getMatchTimezone(match.competition.location);
-              let dateOptions = {
-                  timeZone: stateTimezone.timezone,
-                  year: 'numeric', month: 'numeric', day: 'numeric'
-              };
-              let timeOptions = {
-                  timeZone: stateTimezone.timezone,
-                  hour: 'numeric', minute: 'numeric'
-              };
-              let dateFormatter = new Intl.DateTimeFormat('en-AU', dateOptions);
-              let timeFormatter = new Intl.DateTimeFormat('en-AU', timeOptions);
-
-              let matchStartTime = new Date(
-                  Date.UTC(match.startTime.getFullYear(),
-                      match.startTime.getMonth(),
-                      match.startTime.getDate(),
-                      match.startTime.getHours(),
-                      match.startTime.getMinutes(),
-                      match.startTime.getSeconds()
-                  )
+              let constants = require('../constants/Constants');
+              let stateTimezone: StateTimezone = await this.matchService.getMatchTimezone(match.competition.locationId);
+              let matchTime = convertMatchStartTimeByTimezone(
+                  match.startTime,
+                  stateTimezone != null ? stateTimezone.timezone : null,
+                  `${constants.DATE_FORMATTER_KEY} at ${constants.TIME_FORMATTER_KEY}`
               );
-              // date formatter was formatting as mm/dd/yyyy
-              let matchDate = `${match.startTime.getDate()}/${match.startTime.getMonth()+1}/${match.startTime.getFullYear()}`;
-              let matchTime = timeFormatter.format(matchStartTime);
 
               let messageBody = '';
               if (rosterLocked) {
                 messageBody = `${match.competition.name} has sent you a ` +
-                        `new Umpiring Duty for ${matchDate} at ${matchTime}.`;
+                        `new Umpiring Duty for ${matchTime}.`;
               } else {
                 messageBody = `${match.competition.name} has sent you a ` +
-                        `new Umpiring Duty for ${matchDate} at ${matchTime}. ` +
+                        `new Umpiring Duty for ${matchTime}. ` +
                         `Please log into your Netball Live Scores ` +
                         `App to accept/decline.`;
               }
