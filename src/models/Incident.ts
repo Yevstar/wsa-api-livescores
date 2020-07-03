@@ -34,7 +34,15 @@ export class Incident extends BaseEntity {
 
     @IsDate()
     @Column()
+    incidentTime: Date;
+
+    @IsDate()
+    @Column()
     createdAt: Date;
+
+    @IsDate()
+    @Column()
+    updated_at: Date;
 
     @ValidateNested()
     @OneToOne(type => IncidentType)
@@ -49,7 +57,7 @@ export class Incident extends BaseEntity {
     @IsArray({each: true})
     @OneToMany(type => IncidentPlayer, incidentPlayer => incidentPlayer.incident)
     incidentPlayers: IncidentPlayer[];
-    
+
     @IsArray({each: true})
     @OneToMany(type => Match, match => match.round)
     matches: Match[];
