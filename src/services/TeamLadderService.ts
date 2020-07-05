@@ -16,8 +16,9 @@ export default class TeamLadderService extends BaseService<TeamLadder> {
             let team1Arr = [];
             let team2Arr = [];
             let resultStatus = null;
+            console.log("Match Result Status ::" + match.resultStatus);
             if(match.resultStatus!= null && match.resultStatus!= undefined){
-                resultStatus = match.resultStatus.toLowerCase();
+                resultStatus = match.resultStatus.toString().toLowerCase();
             }
            
             if(resultStatus != "dispute" && resultStatus!= "unconfirmed"){
