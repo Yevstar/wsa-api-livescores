@@ -218,6 +218,7 @@ export class MatchController extends BaseController {
         @Body() match: Match,
         @Res() response: Response
     ) {
+        let isNewMatch = false;
         // Saving match scores if match id and userId are present
         if (userId && match.id) {
             const matchScores = new MatchScores();
@@ -227,6 +228,10 @@ export class MatchController extends BaseController {
             matchScores.team2Score = match.team2Score;
 
             this.matchScorerService.createOrUpdate(matchScores);
+        }
+
+        if(match.id == 0){
+            isNewMatch = true;
         }
 
         // Saving match
@@ -349,11 +354,14 @@ export class MatchController extends BaseController {
             await Promise.all(deleteRosterPromises);
         }
 
+        console.log("isNewMatch::" + isNewMatch);
          // Team Ladder
-         let arr = [];
-         arr.push(match);
-         console.log("arr::" + JSON.stringify(arr));
-         await this.performTeamLadderOperation(arr, user.id);
+         if(!isNewMatch){
+            let arr = [];
+            arr.push(match);
+           
+            await this.performTeamLadderOperation(arr, user.id);
+         }
 
         this.sendMatchEvent(saved); // This is to send notification for devices
         return saved;
