@@ -264,6 +264,7 @@ export class CompetitionController extends BaseController {
             cls3.createdBy = userId;
             ladderSettingsArray.push(cls3);
             let cls4 = new CompetitionLadderSettings();
+            cls4.competitionId = competition.id;
             cls4.resultTypeId = 4
             cls4.points = 2;
             cls4.ladderFormatId = ladderFormatSave.id;

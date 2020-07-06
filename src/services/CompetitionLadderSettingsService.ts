@@ -31,13 +31,13 @@ export default class CompetitionLadderSettingsService extends BaseService<Compet
         divisions: [],
         defaultLadders: []
       };   
-
       if(result!= null){
 
         if(isArrayPopulated(result[2])){
           result[2].map((i) => {
             i.isDisabled = 0;
           });
+        }
 
         if(isArrayPopulated(result[0])){
           if(result[0].length == 1){
@@ -64,11 +64,8 @@ export default class CompetitionLadderSettingsService extends BaseService<Compet
           result[1][0]["divisions"] =  result[2];
           responseObj.ladders = result[1];
         }
-
         responseObj.divisions = result[2];
         responseObj.defaultLadders = result[1];
-        
-      }
     }
       return responseObj;
     } catch (error) {
