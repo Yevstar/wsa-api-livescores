@@ -58,6 +58,7 @@ export default class CompetitionLadderSettingsService extends BaseService<Compet
 
           for(let item of result[0]){
             item["divisions"] = result[2];
+            item.settings.sort((a,b) => (a.sortOrder > b.sortOrder) ? 1 : ((b.sortOrder > a.sortOrder) ? -1 : 0));
           }
           responseObj.ladders = result[0];
 
@@ -71,6 +72,9 @@ export default class CompetitionLadderSettingsService extends BaseService<Compet
         //   result[1][0]["divisions"] =  result[2];
         //   responseObj.ladders = result[1];
         // }
+        for(let item of result[1]){
+          item.settings.sort((a,b) => (a.sortOrder > b.sortOrder) ? 1 : ((b.sortOrder > a.sortOrder) ? -1 : 0));
+        }
         responseObj.divisions = result[2];
         responseObj.defaultLadders = result[1];
     }
