@@ -9,7 +9,7 @@ import {MatchEvent} from "../models/MatchEvent";
 import {MatchPausedTime} from "../models/MatchPausedTime";
 import {Lineup} from "../models/Lineup";
 import {RequestFilter} from "../models/RequestFilter";
-import {paginationData, stringTONumber, isNotNullAndUndefined, s3 } from "../utils/Utils";
+import {paginationData, stringTONumber, isNotNullAndUndefined, s3, isArrayPopulated } from "../utils/Utils";
 import {StateTimezone} from "../models/StateTimezone";
 import {Location} from "../models/Location";
 import avro from 'avsc';
@@ -80,6 +80,11 @@ export default class MatchService extends BaseService<Match> {
         }
         let result = await this.entityManager.query("call wsa.usp_get_match(?,?)",[matchId, lineups]);
         if(result!= null && result[0]!= null) {
+            if(isArrayPopulated(result[0])){
+                result[0].map((x) => {
+                    x.resultStatus  = x.resultStatus == 0 ? null : x.resultStatus;
+                })
+            }
             response.match = result[0];
             response.umpires = result[1];
             response.team1players = result[2];
