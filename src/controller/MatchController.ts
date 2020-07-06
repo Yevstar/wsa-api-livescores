@@ -349,7 +349,7 @@ export class MatchController extends BaseController {
             await Promise.all(deleteRosterPromises);
         }
 
-         // Team Ladder 
+         // Team Ladder
          let arr = [];
          arr.push(match);
          console.log("arr::" + JSON.stringify(arr));
@@ -759,11 +759,11 @@ export class MatchController extends BaseController {
         this.matchService.logMatchEvent(match.id, 'timer', 'periodEnd', scores.period,
             eventTimestamp, user.id);
 
-        // Team Ladder 
+        // Team Ladder
         let arr = [];
         arr.push(match);
         await this.performTeamLadderOperation(arr, user.id);
-       
+
         return match;
     }
 
@@ -784,7 +784,7 @@ export class MatchController extends BaseController {
             if (match) {
                 var dataDict = {};
                 dataDict["type"] = "match_updated";
-                dataDict["matchIds"] = [match.id].toString();
+                dataDict["matchIds"] = JSON.stringify([match.id]);
                 if (user) {
                     dataDict["userId"] = user.id.toString();
                 }
@@ -1230,7 +1230,7 @@ export class MatchController extends BaseController {
 
     private async performTeamLadderOperation(matches: Match[], userId){
         try {
-           
+
             let divisionMap = new Map();
             let arr = [];
             //Team Ladder Operation
@@ -1242,7 +1242,7 @@ export class MatchController extends BaseController {
                     divisionMap.set(item.divisionId, ladderSettings);
                    // console.log("Ladder Settings" + JSON.stringify(ladderSettings));
                 }
-               
+
                 if(isArrayPopulated(ladderSettings)){
                     let teamLadderList = await this.teamLadderService.getTeamLadderByMatch(item, ladderSettings, userId);
                     if(isArrayPopulated(teamLadderList)){
