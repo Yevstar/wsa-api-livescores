@@ -238,6 +238,7 @@ export class CompetitionController extends BaseController {
             ladderFormat.competitionId = competition.id;
             ladderFormat.createdBy = userId;
             ladderFormat.created_at = new Date();
+            ladderFormat.isAllDivision = 1;
 
             let ladderFormatSave = await this.ladderFormatService.createOrUpdate(ladderFormat);
           //  await this.competitionLadderSettingsService.deleteByCompetitionId(saved.id);
