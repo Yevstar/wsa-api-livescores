@@ -14,6 +14,10 @@ export class LadderFormat extends BaseEntity {
 
     @IsNumber()
     @Column()
+    isAllDivision: number;
+
+    @IsNumber()
+    @Column()
     createdBy: number;
 
     @IsNumber()

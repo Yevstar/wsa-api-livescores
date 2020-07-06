@@ -409,6 +409,7 @@ export class CompetitionController extends BaseController {
                 for(let item of requestBody){
                     let ladderFormat = new LadderFormat();
                     ladderFormat.id = item.ladderFormatId;
+                    ladderFormat.isAllDivision = item.isAllDivision;
                     ladderFormat.competitionId = competitionId;
                     if(item.ladderFormatId!= null && item.ladderFormatId!= 0){
                         ladderFormat.updatedBy = currentUser.id;
@@ -418,6 +419,11 @@ export class CompetitionController extends BaseController {
                         ladderFormat.createdBy = currentUser.id;
                         ladderFormat.created_at = new Date();
                     }
+
+                    if(ladderFormat.isAllDivision == 1){
+                        item.selectedDivisions = [];
+                    }
+
                     ladderFormatMap.set(item.ladderFormatId, ladderFormat);
     
                     let ladderFormatSave = await this.ladderFormatService.createOrUpdate(ladderFormat);
