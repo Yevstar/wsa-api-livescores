@@ -61,6 +61,7 @@ export class CompetitionController extends BaseController {
     ): Promise<any> {
         try {
         if (competition) {
+            let isNewCompetition = false;
             // updates with multipart have some issue, fields need to be mapped directly, and id needs to be converted explicitly to number
             let c = new Competition();
             if (competition.id) {
@@ -90,10 +91,13 @@ export class CompetitionController extends BaseController {
             c.buzzerEnabled = stringToBoolean(competition.buzzerEnabled);
             c.warningBuzzerEnabled = stringToBoolean(competition.warningBuzzerEnabled);
 
-            if(c.id===0) c.uniqueKey = uuidv4();
+            if(c.id===0){ 
+                c.uniqueKey = uuidv4();
+                isNewCompetition = true;
+            }
 
             let saved = await this.competitionService.createOrUpdate(c);
-
+           
             if (isNotNullAndUndefined(competition.invitedTo) && competition.invitedTo !== '') {
                 competition.invitedTo = JSON.parse(competition.invitedTo)
             }
@@ -189,6 +193,10 @@ export class CompetitionController extends BaseController {
             }
             let data = await this.competitionVenueService.batchCreateOrUpdate(cvArray)
 
+            if(isNewCompetition){
+                this.insertIntoLadderSettings(saved,user.id);
+            }
+
             if (file && isPhoto(file.mimetype)) {
                 let filename = `/comp_${saved.id}/logo_${timestamp()}.${fileExt(file.originalname)}`;
                 let result = await this.firebaseService.upload(filename, file);
@@ -211,60 +219,7 @@ export class CompetitionController extends BaseController {
                 }
                 */
             }
-
-            // TODO set up default template
-            if(c.id === 0){
-                let ladderFormat = new LadderFormat();
-                ladderFormat.id = 0;
-                ladderFormat.competitionId = saved.id;
-                ladderFormat.createdBy = user.id;
-                ladderFormat.created_at = new Date();
-    
-                let ladderFormatSave = await this.ladderFormatService.createOrUpdate(ladderFormat);
-              //  await this.competitionLadderSettingsService.deleteByCompetitionId(saved.id);
-
-                let ladderSettingsArray = [];
-                let cls = new CompetitionLadderSettings();
-                cls.competitionId = saved.id;
-                cls.resultTypeId = 1
-                cls.points = 3;
-                cls.ladderFormatId = ladderFormatSave.id;
-                ladderSettingsArray.push(cls);
-                cls.resultTypeId = 2
-                cls.points = 2;
-                cls.ladderFormatId = ladderFormatSave.id;
-                ladderSettingsArray.push(cls);
-                cls.resultTypeId = 3
-                cls.points = 1;
-                cls.ladderFormatId = ladderFormatSave.id;
-                ladderSettingsArray.push(cls);
-                cls.resultTypeId = 4
-                cls.points = 2;
-                cls.ladderFormatId = ladderFormatSave.id;
-                ladderSettingsArray.push(cls);
-                cls.resultTypeId = 5
-                cls.points = 0
-                cls.ladderFormatId = ladderFormatSave.id;
-                ladderSettingsArray.push(cls);
-                cls.resultTypeId = 6
-                cls.points = 2;
-                cls.ladderFormatId = ladderFormatSave.id;
-                ladderSettingsArray.push(cls);
-                cls.resultTypeId = 7
-                cls.points = 3;
-                cls.ladderFormatId = ladderFormatSave.id;
-                ladderSettingsArray.push(cls);
-                cls.resultTypeId = 8
-                cls.points = 2;
-                cls.ladderFormatId = ladderFormatSave.id;
-                ladderSettingsArray.push(cls);
-                cls.resultTypeId = 9
-                cls.points = 2
-                cls.ladderFormatId = ladderFormatSave.id;
-                ladderSettingsArray.push(cls);
-                await this.competitionLadderSettingsService.batchCreateOrUpdate(ladderSettingsArray)
-            }
-            
+          
             return this.competitionService.findById(saved.id);
 
         } else {
@@ -273,6 +228,78 @@ export class CompetitionController extends BaseController {
         }
         } catch(err) {
             return response.send(`An error occured while creating competition ${err}`)
+        }
+    }
+
+    private async insertIntoLadderSettings(competition, userId){
+        try {
+            let ladderFormat = new LadderFormat();
+            ladderFormat.id = 0;
+            ladderFormat.competitionId = competition.id;
+            ladderFormat.createdBy = userId;
+            ladderFormat.created_at = new Date();
+
+            let ladderFormatSave = await this.ladderFormatService.createOrUpdate(ladderFormat);
+          //  await this.competitionLadderSettingsService.deleteByCompetitionId(saved.id);
+            let ladderSettingsArray = [];
+            let cls = new CompetitionLadderSettings();
+            cls.competitionId = competition.id;
+            cls.resultTypeId = 1
+            cls.points = 3;
+            cls.ladderFormatId = ladderFormatSave.id;
+            cls.createdBy = userId;
+            ladderSettingsArray.push(cls);
+            let cls2 = new CompetitionLadderSettings();
+            cls2.resultTypeId = 2
+            cls2.points = 2;
+            cls2.ladderFormatId = ladderFormatSave.id;
+            cls2.createdBy = userId;
+            ladderSettingsArray.push(cls2);
+            let cls3 = new CompetitionLadderSettings();
+            cls3.resultTypeId = 3
+            cls3.points = 1;
+            cls3.ladderFormatId = ladderFormatSave.id;
+            cls3.createdBy = userId;
+            ladderSettingsArray.push(cls3);
+            let cls4 = new CompetitionLadderSettings();
+            cls4.resultTypeId = 4
+            cls4.points = 2;
+            cls4.ladderFormatId = ladderFormatSave.id;
+            cls4.createdBy = userId;
+            ladderSettingsArray.push(cls4);
+            let cls5 = new CompetitionLadderSettings();
+            cls5.resultTypeId = 5
+            cls5.points = 0
+            cls5.ladderFormatId = ladderFormatSave.id;
+            cls5.createdBy = userId;
+            ladderSettingsArray.push(cls5);
+            let cls6 = new CompetitionLadderSettings();
+            cls6.resultTypeId = 6
+            cls6.points = 2;
+            cls6.ladderFormatId = ladderFormatSave.id;
+            cls6.createdBy = userId;
+            ladderSettingsArray.push(cls6);
+            let cls7 = new CompetitionLadderSettings();
+            cls7.resultTypeId = 7
+            cls7.points = 3;
+            cls7.ladderFormatId = ladderFormatSave.id;
+            cls7.createdBy = userId;
+            ladderSettingsArray.push(cls7);
+            let cls8 = new CompetitionLadderSettings();
+            cls8.resultTypeId = 8
+            cls8.points = 2;
+            cls8.ladderFormatId = ladderFormatSave.id;
+            cls8.createdBy = userId;
+            ladderSettingsArray.push(cls8);
+            let cls9 = new CompetitionLadderSettings();
+            cls9.resultTypeId = 9
+            cls9.points = 2
+            cls9.ladderFormatId = ladderFormatSave.id;
+            cls9.createdBy = userId;
+            ladderSettingsArray.push(cls9);
+            await this.competitionLadderSettingsService.batchCreateOrUpdate(ladderSettingsArray)
+        } catch (error) {
+            throw error;
         }
     }
 
