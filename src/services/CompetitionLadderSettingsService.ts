@@ -40,30 +40,37 @@ export default class CompetitionLadderSettingsService extends BaseService<Compet
         }
 
         if(isArrayPopulated(result[0])){
-          if(result[0].length == 1){
+         // console.log("***********" + JSON.stringify( result[0]));
+          if(result[0].length == 1 && result[0][0].isAllDivision == 1){
+            
             for(let item of result[0]){
-              if(!isArrayPopulated(item.selectedDivisions)){
-                item.isAllDivision = 1;
+              let arr = [];
+              if(isArrayPopulated(result[2])){
+                for(let div of result[2]){
+                  arr.push(div.divisionId)
+                }
+                item.selectedDivisions.push(...arr);
               }
+
+              
             }
           }
 
           for(let item of result[0]){
-            item["divisions"] = result[2]
+            item["divisions"] = result[2];
           }
-
           responseObj.ladders = result[0];
 
           result[1][0]["isAllDivision"] = 0;
           result[1][0]["ladderFormatId"] = 0;
           result[1][0]["divisions"] =  result[2];
         }
-        else{
-          result[1][0]["isAllDivision"] = 0;
-          result[1][0]["ladderFormatId"] = 0;
-          result[1][0]["divisions"] =  result[2];
-          responseObj.ladders = result[1];
-        }
+        // else{
+        //   result[1][0]["isAllDivision"] = 0;
+        //   result[1][0]["ladderFormatId"] = 0;
+        //   result[1][0]["divisions"] =  result[2];
+        //   responseObj.ladders = result[1];
+        // }
         responseObj.divisions = result[2];
         responseObj.defaultLadders = result[1];
     }
