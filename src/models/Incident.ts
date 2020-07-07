@@ -12,6 +12,10 @@ export class Incident extends BaseEntity {
     @PrimaryGeneratedColumn()
     id: number;
 
+    @IsString()
+    @Column()
+    guid: string;
+
     @IsNumber()
     @Column()
     matchId: number;

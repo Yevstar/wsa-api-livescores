@@ -8,7 +8,7 @@ import {Get,
     Patch,
     HeaderParam,
     UploadedFiles,
-    BodyParam
+    Body
 } from "routing-controllers";
 import {BaseController} from "./BaseController";
 import {Incident} from "../models/Incident";
@@ -20,7 +20,7 @@ import {logger} from "../logger";
 import {User} from "../models/User";
 
 @JsonController("/incident")
-export class IncidentControllerController extends BaseController {
+export class IncidentController extends BaseController {
 
     @Authorized()
     @Get('/id/:id')
@@ -69,7 +69,7 @@ export class IncidentControllerController extends BaseController {
     @Post('/')
     async addIncident(
         @QueryParam('playerIds', {required: true}) playerIds: number[] = undefined,
-        @BodyParam("incident", {required: true}) incident: Incident,
+        @Body() incident: Incident,
         @Res() response: Response
     ) {
         return await this.addOrEditIncident(
@@ -122,6 +122,8 @@ export class IncidentControllerController extends BaseController {
                   });
               /// Save or Update incident provided
               const result = await this.incidentService.createOrUpdate(incident);
+              /// Update incident media with incident id if any
+              await this.updateMediaIncidentId(result);
 
               // If edit then need to clear incident player list
               if (isEdit) {
@@ -153,7 +155,7 @@ export class IncidentControllerController extends BaseController {
     @Patch('/edit')
     async editIncident(
         @QueryParam('playerIds', {required: true}) playerIds: number[] = undefined,
-        @BodyParam("incident", {required: true}) incident: Incident,
+        @Body() incident: Incident,
         @Res() response: Response
     ) {
         return await this.addOrEditIncident(
@@ -168,7 +170,8 @@ export class IncidentControllerController extends BaseController {
     @Post('/media')
     async addIncidentMedia(
         @HeaderParam("authorization") user: User,
-        @QueryParam("incidentId", {required: true}) incidentId: number,
+        @QueryParam("incidentId") incidentId: number,
+        @QueryParam("guid") guid: string,
         @UploadedFiles("media", {required: true}) files: Express.Multer.File[],
         @Res() response: Response
     ) {
@@ -179,7 +182,14 @@ export class IncidentControllerController extends BaseController {
                 message: `Incident media required`
             });
         }
-        let mediaCount = await this.incidentService.mediaCount(incidentId);
+        if (!incidentId && !guid) {
+            return response.status(400).send({
+                success: false,
+                name: 'upload_error',
+                message: `Incident id or guid parameter data required`
+            });
+        }
+        let mediaCount = await this.incidentService.mediaCount(incidentId, guid);
         if (mediaCount > 0) {
             return response.status(400).send({
                 success: false,
@@ -191,6 +201,7 @@ export class IncidentControllerController extends BaseController {
         return await this.uploadOrRemoveIncidentMedia(
             user,
             incidentId,
+            guid,
             files,
             [],
             response
@@ -200,6 +211,7 @@ export class IncidentControllerController extends BaseController {
     private async uploadOrRemoveIncidentMedia(
       user: User,
       incidentId: number,
+      guid: string,
       files: Express.Multer.File[],
       incidentMediaIds: number[],
       @Res() response: Response
@@ -209,11 +221,11 @@ export class IncidentControllerController extends BaseController {
             if (incidentMediaIds && incidentMediaIds.length > 0) {
                 /// If there are some incident media ids then we need to keep
                 /// those media and remove others existing for that incident id
-                removedIncidentMediaArray = (await this.incidentService.fetchIncidentMedia(incidentId))
+                removedIncidentMediaArray = (await this.incidentService.fetchIncidentMedia(incidentId, guid))
                     .filter(incidentMedia => (incidentMediaIds.indexOf(incidentMedia.id) === -1));
             } else if (!incidentMediaIds) {
                 /// If no media ids provided then remove all the existing media
-                removedIncidentMediaArray = await this.incidentService.fetchIncidentMedia(incidentId);
+                removedIncidentMediaArray = await this.incidentService.fetchIncidentMedia(incidentId, guid);
             }
             /// Process removal of media if any in the list and also
             /// remove db entry in the incident media
@@ -260,17 +272,20 @@ export class IncidentControllerController extends BaseController {
 
                 for (const file of files) {
                     logger.debug(file.originalname);
-                    let filename = `/incidents/i${incidentId}_u${user.id}_${timestamp()}.${fileExt(file.originalname)}`;
+                    let filename = `/incidents/u${user.id}_${timestamp()}.${fileExt(file.originalname)}`;
                     let upload = await this.firebaseService.upload(filename, file);
                     if (upload) {
                         let url = `${upload['url']}?alt=media`;
-                        media.push(this.incidentService.createIncidentMedia(incidentId, user.id, url, file.mimetype));
+                        media.push(this.incidentService.createIncidentMedia(incidentId, guid, user.id, url, file.mimetype));
                         result.push({file: file.originalname, success: true})
                     } else {
                         result.push({file: file.originalname, success: false})
                     }
                 }
                 await this.incidentService.saveIncidentMedia(media);
+                /// Update incident media with incident id if any
+                const incident = await this.incidentService.fetchIncidentByGUID(guid);
+                await this.updateMediaIncidentId(incident);
                 return response.status(200).send({success: true, data: result});
             }
         } catch (e) {
@@ -289,17 +304,39 @@ export class IncidentControllerController extends BaseController {
     @Patch('/media/edit')
     async editIncidentMedia(
         @HeaderParam("authorization") user: User,
-        @QueryParam("incidentId", {required: true}) incidentId: number,
+        @QueryParam("incidentId") incidentId: number,
+        @QueryParam("guid") guid: string,
         @QueryParam("incidentMediaIds") incidentMediaIds: number[],
         @UploadedFiles("media") files: Express.Multer.File[],
         @Res() response: Response
     ) {
+        if (!incidentId && !guid) {
+            return response.status(400).send({
+                success: false,
+                name: 'upload_error',
+                message: `Incident id or guid parameter data required`
+            });
+        }
+
         return await this.uploadOrRemoveIncidentMedia(
             user,
             incidentId,
+            guid,
             files,
             incidentMediaIds,
             response
         );
+    }
+
+    private async updateMediaIncidentId(incident: Incident) {
+        let incidentMediaList = await this.incidentService.fetchIncidentMedia(incident.id, incident.guid);
+        let incidentMediaArray: IncidentMedia[] = [];
+        for (const incidentMedia of incidentMediaList) {
+            if (incidentMedia.incidentId != incident.id) {
+              incidentMedia.incidentId = incident.id;
+              incidentMediaArray.push(incidentMedia);
+            }
+        }
+        await this.incidentService.batchSaveIncidentMedia(incidentMediaArray);
     }
 }
