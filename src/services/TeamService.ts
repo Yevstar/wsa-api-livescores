@@ -74,25 +74,53 @@ export default class TeamService extends BaseService<Team> {
 
 
     public async loadLadder(name: string, ids: number[], divisionIds: number[], competitionIds: number[]): Promise<TeamLadder[]> {
-        let query = this.entityManager.createQueryBuilder(TeamLadder, 'tl');
+        // let query = this.entityManager.createQueryBuilder(TeamLadder, 'tl');
 
-        if (name != undefined) query.andWhere("LOWER(tl.name) like :name", { name: `${name.toLowerCase()}%` });
-        if (ids) query.andWhere("tl.id in (:ids)", { ids });
-        if (divisionIds) query.andWhere("tl.divisionId in (:divisionIds)", { divisionIds });
-        if (competitionIds) query.andWhere("tl.competitionId in (:competitionIds)", { competitionIds });
-        query.orderBy('tl.competitionId')
-            .addOrderBy('tl.divisionId')
-            .addOrderBy('tl.Pts', 'DESC')
-            .addOrderBy('tl.SMR', 'DESC')
-            .addOrderBy('tl.name');
-        return query.getMany();
+        // if (name != undefined) query.andWhere("LOWER(tl.name) like :name", { name: `${name.toLowerCase()}%` });
+        // if (ids) query.andWhere("tl.id in (:ids)", { ids });
+        // if (divisionIds) query.andWhere("tl.divisionId in (:divisionIds)", { divisionIds });
+        // if (competitionIds) query.andWhere("tl.competitionId in (:competitionIds)", { competitionIds });
+        // query.orderBy('tl.competitionId')
+        //     .addOrderBy('tl.divisionId')
+        //     .addOrderBy('tl.Pts', 'DESC')
+        //     .addOrderBy('tl.SMR', 'DESC')
+        //     .addOrderBy('tl.name');
+        // return query.getMany();
+
+
+        try {
+            let vTeamIds = null;
+            let vCompetitionIds = null;
+            let vDivisionIds = null;
+            if(ids){
+                vTeamIds = ids;
+            }
+            if(divisionIds){
+                vDivisionIds = divisionIds;
+            }
+            if(competitionIds){
+                vCompetitionIds = competitionIds;
+            }
+ 
+            let result = await this.entityManager.query("call wsa.usp_get_ladder(?,?,?,?,?)",
+            [null, null, vCompetitionIds,vTeamIds,  vDivisionIds]);
+            let response = []
+            if(result!= null){
+                if(isArrayPopulated(result[0])){
+                    response = result[0];
+                }
+            }
+            return response;
+        } catch (error) {
+            throw error;
+        }
     }
 
 
     public async getLadderList(divisionId: number, competitionId: number) {
         try {
-            let result = await this.entityManager.query("call wsa.usp_get_ladder(?,?)",
-            [competitionId, divisionId]);
+            let result = await this.entityManager.query("call wsa.usp_get_ladder(?,?,?,?,?)",
+            [competitionId, divisionId, null,null,null]);
             let response = []
             if(result!= null){
                 if(isArrayPopulated(result[0])){

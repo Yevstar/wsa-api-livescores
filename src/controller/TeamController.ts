@@ -104,9 +104,9 @@ export class TeamController extends BaseController {
             competitionIds = getCompetitions.id;
         }
 
-        if (teamIds && !Array.isArray(teamIds)) teamIds = [teamIds];
-        if (divisionIds && !Array.isArray(divisionIds)) divisionIds = [divisionIds];
-        if (competitionIds && !Array.isArray(competitionIds)) competitionIds = [competitionIds];
+        // if (teamIds && !Array.isArray(teamIds)) teamIds = [teamIds];
+        // if (divisionIds && !Array.isArray(divisionIds)) divisionIds = [divisionIds];
+        // if (competitionIds && !Array.isArray(competitionIds)) competitionIds = [competitionIds];
         return this.teamService.loadLadder(name, teamIds, divisionIds, competitionIds);
     }
 
