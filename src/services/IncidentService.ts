@@ -47,6 +47,8 @@ export default class IncidentService extends BaseService<Incident> {
     public async findIncidents(competitionId: number): Promise<Incident[]> {
         let query = this.entityManager
             .createQueryBuilder(Incident, "incident")
+            .andWhere('competitionId = :competitionId', {competitionId});
+
         return query.getMany();
     }
 
@@ -90,9 +92,10 @@ export default class IncidentService extends BaseService<Incident> {
         return this.entityManager.save(media);
     }
 
-    public createIncidentMedia(id: number, userId: number, url: string, type: string): IncidentMedia {
+    public createIncidentMedia(id: number, guid: string, userId: number, url: string, type: string): IncidentMedia {
         let media = new IncidentMedia();
         media.incidentId = id;
+        media.guid = guid;
         media.mediaUrl = url;
         media.mediaType = type;
         media.userId = userId;
@@ -108,15 +111,25 @@ export default class IncidentService extends BaseService<Incident> {
           .execute();
     }
 
-    public async mediaCount(id: number): Promise<number> {
-        let query = this.entityManager.createQueryBuilder(IncidentMedia, 'im')
-            .where("im.incidentId = :id", {id: id});
+    public async mediaCount(id: number, guid: string): Promise<number> {
+        let query = this.entityManager.createQueryBuilder(IncidentMedia, 'im');
+        if (id) {
+            query.where("incidentId = :id", {id: id});
+        }
+        if (guid) {
+          query.where("guid = :guid", {guid: guid});
+        }
         return query.getCount();
     }
 
-    public async fetchIncidentMedia(id: number): Promise<IncidentMedia[]> {
-        let query = this.entityManager.createQueryBuilder(IncidentMedia, 'im')
-            .where("im.incidentId = :id", {id: id});
+    public async fetchIncidentMedia(id: number, guid: string): Promise<IncidentMedia[]> {
+        let query = this.entityManager.createQueryBuilder(IncidentMedia, 'im');
+        if (id) {
+            query.where("incidentId = :id", {id: id});
+        }
+        if (guid) {
+          query.where("guid = :guid", {guid: guid});
+        }
         return query.getMany();
     }
 
@@ -127,5 +140,17 @@ export default class IncidentService extends BaseService<Incident> {
             .from(IncidentMedia, 'im')
             .where('id = :id', { id: incidentMedia.id })
             .execute();
+    }
+
+    public async batchSaveIncidentMedia(incidentMedias: IncidentMedia[]) {
+        return this.entityManager.save(IncidentMedia.name, incidentMedias);
+    }
+
+    public async fetchIncidentByGUID(guid: string): Promise<Incident> {
+      let query = this.entityManager
+          .createQueryBuilder(Incident, "incident")
+          .andWhere('guid = :guid', {guid});
+
+      return query.getOne();
     }
 }

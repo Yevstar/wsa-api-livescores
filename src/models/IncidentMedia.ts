@@ -15,6 +15,10 @@ export class IncidentMedia extends BaseEntity {
 
     @IsString()
     @Column()
+    guid: string;
+
+    @IsString()
+    @Column()
     mediaUrl: string;
 
     @IsString()
@@ -28,7 +32,7 @@ export class IncidentMedia extends BaseEntity {
     @IsDate()
     @Column()
     createdAt: Date;
-    
+
     @ValidateNested()
     @ManyToOne(type => Incident, (incident: Incident) => incident.incidentMediaList)
     @JoinColumn()
