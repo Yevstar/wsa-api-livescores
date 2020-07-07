@@ -94,11 +94,12 @@ export class MatchUmpireController extends BaseController {
           });
         }
 
+        let umpireWithDetailsList = await this.matchUmpireService.findByMatchIds([matchId]);
         const promises = umpires.map(async umpire => {
             if (umpire.id != null || umpire.id != undefined) {
-                let umpireWithDetailsList = await this.matchUmpireService.findByMatchIds([umpire.matchId]);
                 if (isArrayPopulated(umpireWithDetailsList)) {
-                    let existingUmpire = umpireWithDetailsList[0];
+                    let existingUmpire = umpireWithDetailsList
+                        .find(u => (u.sequence == umpire.sequence));
 
                     let updatedUmpire = new MatchUmpire();
                     updatedUmpire.id = umpire.id;
