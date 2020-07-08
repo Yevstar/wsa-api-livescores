@@ -159,12 +159,16 @@ export default class PlayerService extends BaseService<Player> {
     }
 
     public async loadPlayersBorrows(competitionId: number, teamId: number) {
-        return this.entityManager.query('select playerId, count(distinct matchId) as borrows \n' +
-            'from player p, gameTimeAttendance gta\n' +
+        return this.entityManager.query(
+            'select gta.playerId, count(distinct gta.matchId) as borrows, \n' +
+            'SUM(pmt.duration) as totalTime \n' +
+            'from player p, gameTimeAttendance gta, playerMinuteTracking pmt\n' +
             'where isBorrowed = TRUE\n' +
             'and p.id = gta.playerId\n' +
             'and p.competitionId = ?\n' +
             'and p.teamId = ?\n' +
+            'and pmt.playerId = p.id\n' +
+            'and pmt.teamId = p.teamId\n' +
             'group by playerId', [competitionId, teamId]);
     }
 
