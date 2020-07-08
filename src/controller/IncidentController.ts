@@ -182,13 +182,7 @@ export class IncidentController extends BaseController {
                 message: `Incident media required`
             });
         }
-        if (!incidentId && !guid) {
-            return response.status(400).send({
-                success: false,
-                name: 'upload_error',
-                message: `Incident id or guid parameter data required`
-            });
-        }
+
         let mediaCount = await this.incidentService.mediaCount(incidentId, guid);
         if (mediaCount > 0) {
             return response.status(400).send({
@@ -216,6 +210,14 @@ export class IncidentController extends BaseController {
       incidentMediaIds: number[],
       @Res() response: Response
     ) {
+        if (!incidentId && !guid) {
+            return response.status(400).send({
+                success: false,
+                name: 'upload_error',
+                message: `Incident id or guid parameter data required`
+            });
+        }
+
         try {
             var removedIncidentMediaArray: IncidentMedia[];
             if (incidentMediaIds && incidentMediaIds.length > 0) {
@@ -284,8 +286,10 @@ export class IncidentController extends BaseController {
                 }
                 await this.incidentService.saveIncidentMedia(media);
                 /// Update incident media with incident id if any
-                const incident = await this.incidentService.fetchIncidentByGUID(guid);
-                await this.updateMediaIncidentId(incident);
+                if (guid) {
+                    const incident = await this.incidentService.fetchIncidentByGUID(guid);
+                    await this.updateMediaIncidentId(incident);
+                }
                 return response.status(200).send({success: true, data: result});
             }
         } catch (e) {
@@ -310,14 +314,6 @@ export class IncidentController extends BaseController {
         @UploadedFiles("media") files: Express.Multer.File[],
         @Res() response: Response
     ) {
-        if (!incidentId && !guid) {
-            return response.status(400).send({
-                success: false,
-                name: 'upload_error',
-                message: `Incident id or guid parameter data required`
-            });
-        }
-
         return await this.uploadOrRemoveIncidentMedia(
             user,
             incidentId,
