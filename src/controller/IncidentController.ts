@@ -293,7 +293,7 @@ export class IncidentController extends BaseController {
             return response.status(400).send({
                 success: false,
                 name: 'upload_error',
-                message: `Fail upload incident media`
+                message: `Failed to upload incident media, due to ${e}`
             });
         }
 
