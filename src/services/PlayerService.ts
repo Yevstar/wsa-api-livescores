@@ -64,7 +64,7 @@ export default class PlayerService extends BaseService<Player> {
             '       JSON_OBJECT(\n' +
             '               \'id\', p.id,\n' +
             '               \'userId\', p.userId,\n' +
-            '               \'user\', JSON_OBJECT(\n' +
+            '               \'user\', IF(p.userId != null, JSON_OBJECT(\n' +
             '               \'id\', u.id, \n' +
             '               \'firstName\', u.firstName, \n' +
             '               \'lastName\', u.lastName, \n' +
@@ -76,7 +76,7 @@ export default class PlayerService extends BaseService<Player> {
             '               \'marketingOptIn\', u.marketingOptIn, \n' +
             '               \'photoUrl\', u.photoUrl, \n' +
             '               \'firebaseUID\', u.firebaseUID \n' +
-            '               ), \n' +
+            '               ), null), \n' +
             '               \'firstName\', p.firstName,\n' +
             '               \'lastName\', p.lastName,\n' +
             '               \'photoUrl\', p.photoUrl,\n' +
@@ -93,7 +93,7 @@ export default class PlayerService extends BaseService<Player> {
             'from playerMinuteTracking pmt\n' +
             '     inner join player p on p.id = pmt.playerId\n' +
             '     left join wsa_users.user u on u.id = p.userId\n' +
-            'and pmt.teamId = ?\n' +
+            'where pmt.teamId = ?\n' +
             'group by pmt.playerId, player', [teamId]);
     }
 
@@ -102,7 +102,7 @@ export default class PlayerService extends BaseService<Player> {
             '       JSON_OBJECT(\n' +
             '               \'id\', p.id,\n' +
             '               \'userId\', p.userId,\n' +
-            '               \'user\', JSON_OBJECT(\n' +
+            '               \'user\', IF(p.userId != null, JSON_OBJECT(\n' +
             '               \'id\', u.id, \n' +
             '               \'firstName\', u.firstName, \n' +
             '               \'lastName\', u.lastName, \n' +
@@ -114,7 +114,7 @@ export default class PlayerService extends BaseService<Player> {
             '               \'marketingOptIn\', u.marketingOptIn, \n' +
             '               \'photoUrl\', u.photoUrl, \n' +
             '               \'firebaseUID\', u.firebaseUID \n' +
-            '               ), \n' +
+            '               ), null), \n' +
             '               \'firstName\', p.firstName,\n' +
             '               \'lastName\', p.lastName,\n' +
             '               \'photoUrl\', p.photoUrl,\n' +
