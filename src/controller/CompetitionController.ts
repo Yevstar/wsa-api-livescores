@@ -90,14 +90,17 @@ export class CompetitionController extends BaseController {
             c.timerType = competition.timerType;
             c.buzzerEnabled = stringToBoolean(competition.buzzerEnabled);
             c.warningBuzzerEnabled = stringToBoolean(competition.warningBuzzerEnabled);
+            c.playerBorrowingType = competition.playerBorrowingType;
+            c.gamesBorrowedThreshold = competition.gamesBorrowedThreshold;
+            c.linkedCompetitionId = competition.linkedCompetitionId;
 
-            if(c.id===0){ 
+            if(c.id===0){
                 c.uniqueKey = uuidv4();
                 isNewCompetition = true;
             }
 
             let saved = await this.competitionService.createOrUpdate(c);
-           
+
             if (isNotNullAndUndefined(competition.invitedTo) && competition.invitedTo !== '') {
                 competition.invitedTo = JSON.parse(competition.invitedTo)
             }
@@ -219,7 +222,7 @@ export class CompetitionController extends BaseController {
                 }
                 */
             }
-          
+
             return this.competitionService.findById(saved.id);
 
         } else {
@@ -391,7 +394,7 @@ export class CompetitionController extends BaseController {
                     message: 'Something went wrong. Please contact administrator'
                 });
         }
-        
+
     }
 
     @Authorized()
@@ -426,11 +429,11 @@ export class CompetitionController extends BaseController {
                     }
 
                     ladderFormatMap.set(item.ladderFormatId, ladderFormat);
-    
+
                     let ladderFormatSave = await this.ladderFormatService.createOrUpdate(ladderFormat);
-    
+
                     let laddeerFormDivFromDB = await this.ladderFormatDivisionService.findByLadderFormatId(ladderFormatSave.id);
-    
+
                     // Ladder Format Division
                     let ladderDivisionTemp = []; let ladderDivisionMap = new Map();
                     if(isArrayPopulated(item.selectedDivisions)){
@@ -444,7 +447,7 @@ export class CompetitionController extends BaseController {
                             ladderDivisionMap.set(divisionId, ladderDivision);
                             ladderDivisionTemp.push(ladderDivision);
                         }
-    
+
                         if(isArrayPopulated(laddeerFormDivFromDB)){
                             for(let division of laddeerFormDivFromDB){
                                 let divisionData = ladderDivisionMap.get(division.divisionId);
@@ -474,11 +477,11 @@ export class CompetitionController extends BaseController {
                             }
                         }
                     }
-    
+
                     if(isArrayPopulated(ladderDivisionTemp)){
                         await this.ladderFormatDivisionService.batchCreateOrUpdate(ladderDivisionTemp);
                     }
-    
+
                     // Competition Ladder settings
                     let settingsArr = [];
                     if(isArrayPopulated(item.settings)){
@@ -497,16 +500,16 @@ export class CompetitionController extends BaseController {
                                 compSetting.createdBy = currentUser.id;
                                 compSetting.created_at = new Date();
                             }
-    
+
                             settingsArr.push(compSetting);
                         }
-    
+
                         await this.competitionLadderSettingsService.batchCreateOrUpdate(settingsArr);
                     }
                 }
-    
+
                 if(isArrayPopulated(ladderFormatFromDb)){
-                    let ladderFormatArr = []; 
+                    let ladderFormatArr = [];
                     let ladderFormatDivArr = [];
                     for(let item of ladderFormatFromDb){
                         if(ladderFormatMap.get(item.id) == undefined){
@@ -514,21 +517,21 @@ export class CompetitionController extends BaseController {
                             item.updatedBy = currentUser.id;
                             item.deleted_at = new Date();
                             ladderFormatArr.push(item);
-    
+
                             let laddeerFormDivFromDB = await this.ladderFormatDivisionService.findByLadderFormatId(item.id);
                             if(isArrayPopulated(laddeerFormDivFromDB)){
                                 for(let div of laddeerFormDivFromDB){
                                     div.updated_at = new Date();
                                     div.updatedBy = currentUser.id;
                                     div.deleted_at = new Date();
-                                    ladderFormatDivArr.push(div); 
+                                    ladderFormatDivArr.push(div);
                                 }
                             }
                             console.log("item.id" + item.id);
                             await this.competitionLadderSettingsService.deleteByLadderFormatId(item.id);
                         }
                     }
-    
+
                     await this.ladderFormatService.batchCreateOrUpdate(ladderFormatArr);
                     await this.ladderFormatDivisionService.batchCreateOrUpdate(ladderFormatDivArr);
                 }
@@ -543,9 +546,9 @@ export class CompetitionController extends BaseController {
             logger.error(`Error Occurred in  save LadderSettings   ${currentUser.id}` + error);
             return response.status(500).send({
                 message: 'Something went wrong. Please contact administrator'
-            });  
+            });
         }
-        
+
     }
 
     @Authorized()
