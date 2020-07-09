@@ -19,7 +19,7 @@ import * as _ from 'lodash';
 import {MatchScores} from "../models/MatchScores";
 import {Response} from "express";
 import {BaseController} from "./BaseController";
-import {logger} from "../logger";
+import {logger, wrapConsole} from "../logger";
 import {User} from "../models/User";
 import {contain, fileExt, isPhoto, isVideo, timestamp, stringTONumber, paginationData, isArrayPopulated, isNotNullAndUndefined} from "../utils/Utils";
 import {Incident} from "../models/Incident";
@@ -1620,5 +1620,35 @@ export class MatchController extends BaseController {
         } catch (e) {
             logger.error(`Failed send message for matches ${matches}`, e);
         }
+    }
+
+    @Authorized()
+    @Get('/print')
+    async print(
+        @HeaderParam('authorization') user: User,
+        @QueryParam('divisionIds') divisionIds: number[] = [],
+        @QueryParam('matchPrintTemplateId') matchPrintTemplateId: number,
+        @QueryParam('competitionId') competitionId: number,
+        @QueryParam('teamIds') teamIds: number[],
+        @Res() response: Response
+    ): Promise<any> {
+        console.log('authorization', user);
+        const competition = await this.competitionService.findById(competitionId);
+        const organisation = await this.organisationService.findById(competition.organisationId);
+        const matchFound = await this.matchService.findByParam(null, null, teamIds, null, competitionId, divisionIds, null, null, null, null, null, null, null);
+        const matches = matchFound.result;
+        const matchDetails = [];
+
+        for (let i = 0; i < matches.length; i++) {
+            const matchDetail = await this.matchService.findAdminMatchById(matches[i].id, 2);
+            matchDetails.push(matchDetail);
+        }
+
+        console.log('organisation', organisation);
+        console.log('competition', competition);
+        console.log('matchFound', matchFound);
+        console.log('matchDetails', matchDetails);
+
+        return response.status(200).send('OK');
     }
 }

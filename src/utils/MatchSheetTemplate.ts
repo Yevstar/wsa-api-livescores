@@ -1,0 +1,435 @@
+import moment from 'moment';
+
+import {Organisation} from '../models/Organisation';
+import {Match} from '../models/Match';
+import {Player} from '../models/Player';
+import {MatchUmpire} from '../models/MatchUmpire';
+
+const getMatchSheetTemplate = (
+  templateType: string,
+  organisation: Organisation,
+  team1players: Player[],
+  team2players: Player[],
+  umpires: MatchUmpire[],
+  match: Match
+) => {
+  return `
+    <!doctype html>
+    <html>
+       <head>
+          <meta charset="utf-8">
+          <title>PDF Template</title>
+          <style>
+             .page {
+                max-width: 800px;
+                padding: 16px;
+                width: 100%;
+                background-color: #FFFFFF;
+             }
+             .document {
+                width: 100%;
+             }
+             .header {
+                padding: 0 8px 0 16px;
+                margin-bottom: 8px;
+                width: 100%;
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+                box-sizing: border-box;
+             }
+             .associationName {
+                font-size: 14px;
+                font-weight: bold;
+                padding: 8px 0;
+             }
+             .templateType {
+                font-size: 12px;
+             }
+             .title {
+                width: 50%;
+             }
+             .logo {
+                width: 50px;
+                height: 50px;
+             }
+             .matchInfo {
+                padding: 8px;
+                display: flex;
+                flex-direction: row;
+             }
+             .infoContentLeft {
+                width: 50%;
+                padding-right: 16px;
+                padding-left: 8px;
+             }
+             .infoContentRight {
+                width: 50%;
+                padding-right: 16px;
+                padding-left: 24px;
+             }
+             .infodiv {
+                 font-size: 9px;
+                 margin-bottom: 4px;
+             }
+             .tableContent {
+                width: 100%;
+                display: flex;
+                flex-direction: row;
+                padding-left: 8px;
+             }
+             .signTable {
+                width: 50%;
+                padding: 8px 16px 8px 8px;
+             }
+             .table {   
+                border: 1px solid black;
+                border-right: 0;
+                border-bottom: 0;
+             }
+             .row {
+                width: 100%;
+                height: 10px;
+                display: flex;
+                flex-direction: row;
+                font-size: 8px;
+                border-bottom: 1px solid black;
+             }
+             .cell {
+                width: 8%;
+                border-right: 1px solid black;
+                text-align: center;
+             }
+             .largeCell {
+                width: 30%;
+                border-right: 1px solid black;
+                text-align: center;
+             }
+             .subTitle {
+                padding: 9px 9px 9px 16px;
+                font-size: 9px;
+             }
+             .passCell {
+                width: 2.5%;
+                border-right: 1px solid black;
+                text-align: center;
+             }
+             .passTable {
+                width: 100%;
+                padding: 8px 16px 8px 8px;
+             }
+             .passRow {
+                width: 100%;
+                height: 16px;
+                display: flex;
+                flex-direction: row;
+                font-size: 9px;
+                border-bottom: 1px solid black;
+             }
+             .scoreTableRight {
+                width: 50%;
+                padding: 8px 16px 8px 8px;
+             }
+             .scoreTableLeft {
+                width: 50%;
+                padding: 8px 16px 8px 8px;
+                border-right: 1px solid black;
+             }
+             .scoreCell {
+                width: 5%;
+                text-align: center;
+             }
+             .scoreRow {
+                width: 100%;
+                height: 12px;
+                display: flex;
+                flex-direction: row;
+                font-size: 9px;
+             }
+             .tableTitle {
+                font-size: 9px;
+                margin-bottom: 12px;
+             }
+             .summaryTable {
+                width: 100%;
+                padding: 8px 16px 8px 8px;
+             }
+             .summaryRow {
+                width: 100%;
+                height: 15px;
+                display: flex;
+                flex-direction: row;
+                font-size: 9px;
+                border-bottom: 1px solid black;
+             }
+             .summaryCell {
+                width: 28%;
+                padding-left: 12px;
+                padding-top: 2px;
+             }
+             .gapCell {
+                width: 4%;
+                border-right: 1px solid black;
+                text-align: center;
+             }
+             .signatureCell {
+                width: 20%;
+                padding-top: 2px;
+                border-right: 1px solid black;
+             }
+             .voteCell {
+                width: 20%;
+                padding-left: 12px;
+                padding-top: 2px;
+                border-right: 1px solid black;
+             }
+             .teamCell {
+                width: 40%;
+                padding-left: 12px;
+                padding-top: 2px;
+                border-right: 1px solid black;
+             }
+             .goalTable {
+                width: 100%;
+                padding: 8px 16px 8px 8px;
+             }
+             .goalRow {
+                width: 100%;
+                height: 24px;
+                display: flex;
+                flex-direction: row;
+                font-size: 8px;
+                border-bottom: 1px solid black;
+             }
+             .goalCell {
+                width: 6%;
+                border-right: 1px solid black;
+                text-align: center;
+             }
+             .goalCheckCell {
+                width: 29%;
+                border-right: 1px solid black;
+             }
+             .goalSubCell {
+                height: 10px;
+                text-align: center;
+                padding: 1px;
+                border-bottom: 1px solid black;
+             }
+          </style>
+       </head>
+       <body>
+          <div class="page">
+            <div class="header">
+                <div class="title">
+                    <div class="associationName">${organisation.name || 'Association'}</div>
+                    <div class="templateType">${templateType} Scoresheet</div>
+                </div>
+                <img class="logo" src="${organisation.logoUrl || "https://img.icons8.com/color/myspace"}"/> 
+            </div>
+            <div class="matchInfo">
+                <div class="infoContentLeft">
+                    <div class="infodiv">${match.round ? match.round.name : ''}</div>
+                    <div class="infodiv">${match.venueCourt && match.venueCourt.venue ? match.venueCourt.venue.name : ''}</div>
+                    <div class="infodiv">${match.team1 ? match.team1.name : ''}</div>
+                </div>
+                <div class="infoContentRight">
+                    <div class="infodiv">Date: ${moment(new Date(match.startTime)).format('DD/MM/YYYY')}</div>
+                    <div class="infodiv">Time: ${moment(new Date(match.startTime)).format('HH:MM a')}</div>
+                    <div class="infodiv">${match.team2 ? match.team2.name : ''}</div>
+                </div>
+            </div>
+            ${templateType !== 'Carnival' ? (
+                `<div class="tableContent">
+                    <div class="signTable">
+                        <div class="table">
+                            <div class="row">
+                                <div class="cell">#</div>
+                                <div class="largeCell">Player Name</div>
+                                <div class="largeCell">Signature</div>
+                                <div class="cell">1</div>
+                                <div class="cell">2</div>
+                                <div class="cell">3</div>
+                                <div class="cell">4</div>
+                            </div>
+                            ${team1players.length > 0 ? team1players.map((player, index) => (
+                                `<div class="row">
+                                    <div class="cell">${index}</div>
+                                    <div class="largeCell">${player.firstName} ${player.lastName}</div>
+                                    <div class="largeCell"></div>
+                                    <div class="cell"></div>
+                                    <div class="cell"></div>
+                                    <div class="cell"></div>
+                                    <div class="cell"></div>
+                                </div>`
+                            )) : ''}
+                        </div>
+                    </div>
+                    <div class="signTable">
+                        <div class="table">
+                            <div class="row">
+                                <div class="cell">#</div>
+                                <div class="largeCell">Player Name</div>
+                                <div class="largeCell">Signature</div>
+                                <div class="cell">1</div>
+                                <div class="cell">2</div>
+                                <div class="cell">3</div>
+                                <div class="cell">4</div>
+                            </div>
+                            ${team2players.length > 0 ? team2players.map((player, index) => (
+                                `<div class="row">
+                                    <div class="cell">${index}</div>
+                                    <div class="largeCell">${player.firstName} ${player.lastName}</div>
+                                    <div class="largeCell"></div>
+                                    <div class="cell"></div>
+                                    <div class="cell"></div>
+                                    <div class="cell"></div>
+                                    <div class="cell"></div>
+                                </div>`
+                            )) : ''}
+                        </div>
+                    </div>
+                </div>`
+            ) : ''}
+            <div class="subTitle">Centre Pass</div>
+            <div class="tableContent">
+                <div class="passTable">
+                    <div class="table">
+                        ${[...Array(4).keys()].map((rowIndex) => (
+                           `<div class="passRow">
+                              ${[...Array(40).keys()].map((cellIndex) => (
+                                  `<div class="passCell"></div>`
+                              ))}
+                            </div>`
+                        ))}
+                    </div>
+                </div>
+            </div>
+            <div class="subTitle">Progressive Score</div>
+            <div class="tableContent">
+                <div class="scoreTableLeft">
+                    <div class="tableTitle">Team 1</div>
+                    ${[...Array(4).keys()].map((rowIndex) => (
+                        `<div class="scoreRow">
+                          ${[...Array(20).keys()].map((cellIndex) => (
+                              `<div class="scoreCell">${cellIndex + 1 + 20 * rowIndex}</div>`
+                            ))}
+                        </div>`
+                    ))}
+                </div>
+                <div class="scoreTableRight">
+                    <div class="tableTitle">Team 2</div>
+                    ${[...Array(4).keys()].map((rowIndex) => (
+                        `<div class="scoreRow">
+                            ${[...Array(20).keys()].map((cellIndex) => (
+                                `<div class="scoreCell">${cellIndex + 1 + 20 * rowIndex}</div>`
+                            ))}
+                        </div>`
+                    ))}
+                </div>
+            </div>
+            ${templateType !== 'Social' ? (
+                `<div>
+                    <div class="subTitle">Goal Statistics</div>
+                    <div class="tableContent">
+                        <div class="goalTable">
+                            <div class="table">
+                                ${[...Array(4).keys()].map((rowIndex) => (
+                                    `<div class="goalRow">
+                                        <div class="goalCell">
+                                            <div class="goalSubCell">Q ${rowIndex + 1}</div>
+                                            <div></div>
+                                        </div>
+                                        <div class="goalCell">
+                                            <div class="goalSubCell">GS</div>
+                                            <div>GA</div>
+                                        </div>
+                                        <div class="goalCheckCell">
+                                            <div class="goalSubCell"></div>
+                                            <div></div>
+                                        </div>
+                                        <div class="goalCell">
+                                            <div class="goalSubCell"></div>
+                                            <div></div>
+                                        </div>
+                                        <div class="goalCell"></div>
+                                        <div class="goalCell">
+                                            <div class="goalSubCell">GS</div>
+                                            <div>GA</div>
+                                        </div>
+                                        <div class="goalCheckCell">
+                                            <div class="goalSubCell"></div>
+                                            <div></div>
+                                        </div>
+                                        <div class="goalCell">
+                                            <div class="goalSubCell"></div>
+                                            <div></div>
+                                        </div>
+                                        <div class="goalCell"></div>
+                                    </div>`
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="subTitle">MVP</div>
+                    <div class="tableContent">
+                        <div class="summaryTable">
+                            <div class="table">
+                                <div class="summaryRow">
+                                    <div class="voteCell">3 Votes</div>
+                                    <div class="teamCell">Name</div>
+                                    <div class="teamCell">Team</div>
+                                </div>
+                                <div class="summaryRow">
+                                    <div class="voteCell">2 Votes</div>
+                                    <div class="teamCell">Name</div>
+                                    <div class="teamCell">Team</div>
+                                </div>
+                                <div class="summaryRow">
+                                    <div class="voteCell">1 Votes</div>
+                                    <div class="teamCell">Name</div>
+                                    <div class="teamCell">Team</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`
+            ) : ''}
+            <div class="tableContent">
+                <div class="summaryTable">
+                    <div class="table">
+                        <div class="summaryRow">
+                            <div class="summaryCell">
+                                Scorer 1
+                            </div>
+                            <div class="signatureCell">Signature</div>
+                            <div class="gapCell"></div>
+                            <div class="summaryCell">
+                                Scorer 2
+                            </div>
+                            <div class="signatureCell">Signature</div>
+                        </div>
+                        <div class="summaryRow">
+                            <div class="summaryCell">Umpire</div>
+                            <div class="signatureCell">Signature</div>
+                            <div class="gapCell"></div>
+                            <div class="summaryCell">Umpire</div>
+                            <div class="signatureCell">Signature</div>
+                        </div>
+                        <div class="summaryRow">
+                            <div class="summaryCell">Captain</div>
+                            <div class="signatureCell">Signature</div>
+                            <div class="gapCell"></div>
+                            <div class="summaryCell">Captain</div>
+                            <div class="signatureCell">Signature</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+       </body>
+    </html>
+    `;
+};
+
+export default getMatchSheetTemplate;
