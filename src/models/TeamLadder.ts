@@ -31,6 +31,10 @@ export class TeamLadder  extends BaseEntity {
     @IsNumber()
     @Column()
     teamLadderTypeValue: number;
+    
+    @IsString()
+    @Column()
+    adjustmentReason: string;
 
     @IsNumber()
     @Column()

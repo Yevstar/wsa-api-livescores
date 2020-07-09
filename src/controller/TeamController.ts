@@ -2,7 +2,8 @@ import { Get, Delete, Param, JsonController, QueryParam, Post, Authorized, Heade
 import { Request, Response } from 'express';
 import { Team } from '../models/Team';
 import { Player } from '../models/Player'
-import { TeamLadder } from "../models/views/TeamLadder";
+//import { TeamLadder } from "../models/views/TeamLadder";
+import { TeamLadder } from "../models/TeamLadder";
 import { BaseController } from "./BaseController";
 import { User } from "../models/User";
 import { UserRoleEntity } from "../models/security/UserRoleEntity";
@@ -97,7 +98,7 @@ export class TeamController extends BaseController {
         @QueryParam('divisionIds') divisionIds: number[],
         @QueryParam('competitionIds') competitionIds: number[],
         @QueryParam('competitionKey') competitionUniqueKey: string,
-    ): Promise<TeamLadder[]> {
+    ): Promise<any> {
 
         if (isNotNullAndUndefined(competitionUniqueKey)) {
             const getCompetitions = await this.competitionService.getCompetitionByUniquekey(competitionUniqueKey);
@@ -450,5 +451,86 @@ export class TeamController extends BaseController {
         fastcsv.write(getTeamsData, { headers: true })
             .on("finish", function () { })
             .pipe(response);
+    }
+
+    @Authorized()
+    @Post('/ladder/adjustment')
+    async saveTeamLadderAdjustments(
+        @HeaderParam("authorization") currentUser: User,
+        @Body() requestBody,
+        @Res() response: Response
+    ){
+        try {
+            const getCompetition = await this.competitionService.getCompetitionByUniquekey(requestBody.competitionUniqueKey);
+            let competitionId = getCompetition.id;
+
+            const existingTeamLadderAdjustments = await this.teamLadderService.findExistingTeamLadderAdj(competitionId, requestBody.divisionId);
+            let teamLadderMap = new Map();
+            if(isArrayPopulated(requestBody.adjustments)){
+                for(let adj of requestBody.adjustments){
+                    let teamLadder = new TeamLadder;
+                    teamLadder.id = adj.teamLadderId;
+                    teamLadder.teamId = adj.teamId;
+                    teamLadder.divisionId = requestBody.divisionId;
+                    teamLadder.competitionId = competitionId;
+                    if(adj.teamLadderId == 0){
+                        teamLadder.teamLadderTypeRefId = 25;
+                        teamLadder.createdBy = currentUser.id;
+                    }
+                    else{
+                        teamLadder.updatedBy = currentUser.id;
+                        teamLadder.updated_at = new Date();
+                    }
+                    teamLadder.teamLadderTypeValue = adj.points;
+                    teamLadder.adjustmentReason = adj.adjustmentReason;
+                    let teamLadderRes = await this.teamLadderService.createOrUpdate(teamLadder);
+                    teamLadderMap.set(teamLadderRes.id, teamLadderRes);
+                }
+            }
+            if(isArrayPopulated(existingTeamLadderAdjustments)){
+                for(let tl of existingTeamLadderAdjustments){
+                    if(teamLadderMap.get(tl.id) == undefined){
+                        let teamLadderModel = new TeamLadder();
+                        teamLadderModel.id = tl.id;
+                        teamLadderModel.deleted_at = new Date();
+                        teamLadderModel.updatedBy = currentUser.id;
+                        teamLadderModel.updated_at = new Date();
+                        await this.teamLadderService.createOrUpdate(teamLadderModel);
+                    }
+                }
+            }
+            
+            return response.status(200).send('Updated Successfully.');
+
+        } catch (error) {
+            logger.error(`Error Occurred in  save ladder adjustments   ${currentUser.id}` + error);
+            return response.status(500).send({
+                message: 'Something went wrong. Please contact administrator'
+            });
+        }
+    }
+
+    @Authorized()
+    @Get('/ladder/adjustment')
+    async getTeamLadderAdjustments(
+        @QueryParam('competitionUniqueKey') competitionUniqueKey: string,
+        @QueryParam('divisionId') divisionId: number,
+        @HeaderParam("authorization") currentUser: User,
+        @Res() response: Response
+    ){
+        try {
+            const getCompetition = await this.competitionService.getCompetitionByUniquekey(competitionUniqueKey);
+            let competitionId = getCompetition.id;
+
+            const ladderAdjustments = await this.teamLadderService.getTeamLadderAdjustments(competitionId, divisionId);
+            
+            return response.status(200).send(ladderAdjustments);
+
+        } catch (error) {
+            logger.error(`Error Occurred in  get ladder adjustments   ${currentUser.id}` + error);
+            return response.status(500).send({
+                message: 'Something went wrong. Please contact administrator'
+            });
+        }
     }
 }
