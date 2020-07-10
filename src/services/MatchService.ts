@@ -255,6 +255,11 @@ export default class MatchService extends BaseService<Match> {
             .andWhere("matchId = :matchId and teamId = :teamId", {matchId, teamId}).execute();
     }
 
+    public async deleteLineupById(id: number) {
+        return this.entityManager.createQueryBuilder().delete().from(Lineup)
+            .andWhere("id = :id", {id}).execute();
+    }
+
     public async logMatchEvent(matchId: number, category: string, type: string, period: number, eventTimestamp: Date,
                                userId: number,
                                attribute1Key: string = undefined, attribute1Value: string = undefined,
