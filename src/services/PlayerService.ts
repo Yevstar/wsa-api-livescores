@@ -163,12 +163,12 @@ export default class PlayerService extends BaseService<Player> {
             'select gta.playerId, count(distinct gta.matchId) as borrows, \n' +
             'SUM(pmt.duration) as totalTime \n' +
             'from player p, gameTimeAttendance gta, playerMinuteTracking pmt\n' +
-            'where isBorrowed = TRUE\n' +
+            'where gta.isBorrowed = TRUE\n' +
             'and p.id = gta.playerId\n' +
             'and p.competitionId = ?\n' +
             'and p.teamId = ?\n' +
-            'and pmt.playerId = p.id\n' +
-            'and pmt.teamId = p.teamId\n' +
+            'and pmt.playerId = gta.playerId\n' +
+            'and pmt.matchId = gta.matchId\n' +
             'group by playerId', [competitionId, teamId]);
     }
 
@@ -195,4 +195,25 @@ export default class PlayerService extends BaseService<Player> {
         }
     }
 
+
+    public async loadBorrowsForPlayer(playerId: number) {
+        return this.entityManager.query(
+            'select t.name as teamName, \n' +
+            '       t.logoUrl as teamLogoUrl, \n' +
+            '       m.id as matchId, \n' +
+            '       m.startTime as matchStartTime, \n' +
+            '       m.matchDuration as matchDuration, \n' +
+            '       SUM(pmt.duration) as borrowedTime \n' +
+            'from wsa.gameTimeAttendance gta, \n' +
+            '       wsa.playerMinuteTracking pmt, \n' +
+            '       wsa.team t, \n' +
+            '       wsa.match m \n' +
+            'where gta.isBorrowed = TRUE \n' +
+            '       and gta.playerId = ? \n' +
+            '       and t.id = gta.teamId \n' +
+            '       and pmt.playerId = gta.playerId \n' +
+            '       and pmt.matchId = gta.matchId \n' +
+            '       and pmt.teamId = gta.teamId \n' +
+            '       and m.id = gta.matchId', [playerId]);
+    }
 }

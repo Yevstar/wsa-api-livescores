@@ -238,4 +238,18 @@ export class StatController extends BaseController {
                 { name: 'search_error', message: `Required fields not filled` });
         }
     }
+
+    @Authorized()
+    @Get('/borrowsForPlayer')
+    async borrowsForPlayer(
+        @QueryParam('playerId', {required: true}) playerId: number = undefined,
+        @Res() response: Response
+    ) {
+        if (playerId) {
+            return this.playerService.loadBorrowsForPlayer(playerId);
+        } else {
+            return response.status(200).send(
+                {name: 'search_error', message: `CompetitionId, teamId & playerId are mandatory fields`});
+        }
+    }
 }
