@@ -257,7 +257,7 @@ export class StatController extends BaseController {
     @Get('/positionTracking')
     async positionTracking(
         @QueryParam('aggregate') aggregate: ("MATCH" | "TOTAL"),
-        @QueryParam('reporting') reporting: ("PERIOD" | "MINUTES"),
+        @QueryParam('reporting') reporting: ("PERIOD" | "MINUTE"),
         @QueryParam('competitionId', {required: true}) competitionId: number = undefined,
         @QueryParam('teamId') teamId: number = undefined,
         @Res() response: Response) {
