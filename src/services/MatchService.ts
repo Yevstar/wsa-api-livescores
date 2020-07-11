@@ -1,4 +1,9 @@
 import {Service} from "typedi";
+import fs from 'fs';
+import pdf from 'html-pdf';
+import hummus from 'hummus';
+import memoryStreams from 'memory-streams';
+import avro from 'avsc';
 import BaseService from "./BaseService";
 import {Match} from "../models/Match";
 import {Brackets, DeleteResult} from "typeorm-plus";
@@ -12,10 +17,13 @@ import {RequestFilter} from "../models/RequestFilter";
 import {paginationData, stringTONumber, isNotNullAndUndefined, s3, isArrayPopulated } from "../utils/Utils";
 import {StateTimezone} from "../models/StateTimezone";
 import {Location} from "../models/Location";
-import avro from 'avsc';
+import {Organisation} from "../models/Organisation";
+import getMatchSheetTemplate from '../utils/MatchSheetTemplate';
+import {Competition} from "../models/Competition";
+import {logger} from "../logger";
 
 @Service()
-export default class MatchService extends BaseService<Match> {
+export default class MatchService extends BaseService<Match>  {
 
     modelName(): string {
         return Match.name;
@@ -395,5 +403,108 @@ export default class MatchService extends BaseService<Match> {
                         .andWhere("attribute1Key = :team", {team})
                         .andWhere("attribute1Value = :gamePositionId", {gamePositionId});
         return query.execute();
+    }
+
+    /**
+     * Concatenate two PDFs in Buffers
+     * @param {Buffer} firstBuffer
+     * @param {Buffer} secondBuffer
+     * @returns {Buffer} - a Buffer containing the concactenated PDFs
+     */
+    private combinePDFBuffers = (firstBuffer: Buffer, secondBuffer: Buffer): Buffer => {
+        const outStream = new memoryStreams.WritableStream();
+
+        try {
+            const firstPDFStream = new hummus.PDFRStreamForBuffer(firstBuffer);
+            const secondPDFStream = new hummus.PDFRStreamForBuffer(secondBuffer);
+
+            const pdfWriter = hummus.createWriterToModify(firstPDFStream, new hummus.PDFStreamForResponse(outStream));
+            pdfWriter.appendPDFPagesFromPDF(secondPDFStream);
+            pdfWriter.end();
+            const newBuffer = outStream.toBuffer();
+            outStream.end();
+
+            return newBuffer;
+        }
+        catch(e){
+            outStream.end();
+        }
+    };
+
+    /**
+     * Generate PDF
+     * @param {String} templateType
+     * @param {Organisation} organisation
+     * @param {Competition} competition
+     * @param {number[]} divisionIds
+     * @param {number[]} teamIds
+     * @returns {String} - generated PDF download link
+     */
+    public async printMatchSheetTemplate (
+        templateType: string,
+        organisation: Organisation,
+        competition: Competition,
+        divisionIds: number[],
+        teamIds: number[],
+    ): Promise<String> {
+        const downloadLink = '';
+        try {
+            const matchFound = await this.findByParam(
+              null,
+              null,
+              teamIds,
+              null,
+              competition.id,
+              divisionIds,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            );
+            const matches = matchFound.result;
+
+            const createPDF = (html, options): Promise<Buffer> => new Promise(((resolve, reject) => {
+                pdf.create(html, options).toBuffer((err, buffer) => {
+                    if (err !== null) {reject(err);}
+                    else {resolve(buffer);}
+                });
+            }));
+
+            let pdfBuf: Buffer;
+
+            for (let i = 0; i< matches.length; i++) {
+                const matchDetail = await this.findAdminMatchById(matches[i].id, 2);
+                const {team1players, team2players, umpires} = matchDetail;
+                const htmlTmpl = getMatchSheetTemplate(
+                  'Fixtures',
+                  organisation,
+                  team1players,
+                  team2players,
+                  umpires,
+                  matches[i]
+                );
+
+                const options = {format: 'A4'};
+
+                await createPDF(htmlTmpl, options).then((newBuffer) => {
+                    if (pdfBuf) {
+                        pdfBuf = this.combinePDFBuffers(pdfBuf, newBuffer);
+                    } else {
+                        pdfBuf = newBuffer;
+                    }
+                });
+            }
+
+            // console.log(pdfBuf);
+            // fs.writeFileSync("sample.pdf", pdfBuf);
+        }
+        catch (e) {
+            logger.error(`Failed generating PDF`, e);
+        }
+
+        return downloadLink;
     }
 }

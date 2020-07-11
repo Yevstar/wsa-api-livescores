@@ -19,7 +19,7 @@ import * as _ from 'lodash';
 import {MatchScores} from "../models/MatchScores";
 import {Response} from "express";
 import {BaseController} from "./BaseController";
-import {logger} from "../logger";
+import {logger, wrapConsole} from "../logger";
 import {User} from "../models/User";
 import {contain, fileExt, isPhoto, isVideo, timestamp, stringTONumber, paginationData, isArrayPopulated, isNotNullAndUndefined} from "../utils/Utils";
 import {Incident} from "../models/Incident";
@@ -60,7 +60,18 @@ export class MatchController extends BaseController {
         @Param("id") id: number,
         @QueryParam('lineups') lineups: number = 0,
     ) {
-        return this.matchService.findAdminMatchById(id, lineups);
+        const matchDetails = await this.matchService.findAdminMatchById(id, lineups);
+        if (matchDetails && matchDetails.match[0]) {
+            const competitionId = matchDetails.match[0].competitionId;
+            const competition = await this.competitionService.findById(competitionId);
+            const organisationId = competition.organisationId;
+            const organisation = await this.organisationService.findById(organisationId);
+
+            return {
+                ...matchDetails,
+                organisation,
+            }
+        }
     }
 
     @Get('/list')
@@ -1654,6 +1665,36 @@ export class MatchController extends BaseController {
             }
         } catch (e) {
             logger.error(`Failed send message for matches ${matches}`, e);
+        }
+    }
+
+    @Authorized()
+    @Get('/print')
+    async print(
+        @HeaderParam('authorization') user: User,
+        @QueryParam('divisionIds') divisionIds: number[] = [],
+        @QueryParam('matchPrintTemplateId') matchPrintTemplateId: number,
+        @QueryParam('competitionId') competitionId: number,
+        @QueryParam('teamIds') teamIds: number[],
+        @Res() response: Response
+    ): Promise<any> {
+        try {
+            const competition = await this.competitionService.findById(competitionId);
+            const organisation = await this.organisationService.findById(competition.organisationId);
+            console.log(organisation);
+
+            const pdfLink = await this.matchService.printMatchSheetTemplate(
+              'Fixtures',
+              organisation,
+              competition,
+              divisionIds,
+              teamIds
+            );
+
+            return response.status(200).send({success: true, downloadLink: pdfLink});
+        }
+        catch (e) {
+            return response.status(212).send({success: false});
         }
     }
 }
