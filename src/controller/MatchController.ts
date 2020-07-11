@@ -60,7 +60,18 @@ export class MatchController extends BaseController {
         @Param("id") id: number,
         @QueryParam('lineups') lineups: number = 0,
     ) {
-        return this.matchService.findAdminMatchById(id, lineups);
+        const matchDetails = await this.matchService.findAdminMatchById(id, lineups);
+        if (matchDetails && matchDetails.match[0]) {
+            const competitionId = matchDetails.match[0].competitionId;
+            const competition = await this.competitionService.findById(competitionId);
+            const organisationId = competition.organisationId;
+            const organisation = await this.organisationService.findById(organisationId);
+
+            return {
+                ...matchDetails,
+                organisation,
+            }
+        }
     }
 
     @Get('/list')
@@ -1632,23 +1643,23 @@ export class MatchController extends BaseController {
         @QueryParam('teamIds') teamIds: number[],
         @Res() response: Response
     ): Promise<any> {
-        console.log('authorization', user);
-        const competition = await this.competitionService.findById(competitionId);
-        const organisation = await this.organisationService.findById(competition.organisationId);
-        const matchFound = await this.matchService.findByParam(null, null, teamIds, null, competitionId, divisionIds, null, null, null, null, null, null, null);
-        const matches = matchFound.result;
-        const matchDetails = [];
+        try {
+            const competition = await this.competitionService.findById(competitionId);
+            const organisation = await this.organisationService.findById(competition.organisationId);
+            console.log(organisation);
 
-        for (let i = 0; i < matches.length; i++) {
-            const matchDetail = await this.matchService.findAdminMatchById(matches[i].id, 2);
-            matchDetails.push(matchDetail);
+            const pdfLink = await this.matchService.printMatchSheetTemplate(
+              'Fixtures',
+              organisation,
+              competition,
+              divisionIds,
+              teamIds
+            );
+
+            return response.status(200).send({success: true, downloadLink: pdfLink});
         }
-
-        console.log('organisation', organisation);
-        console.log('competition', competition);
-        console.log('matchFound', matchFound);
-        console.log('matchDetails', matchDetails);
-
-        return response.status(200).send('OK');
+        catch (e) {
+            return response.status(212).send({success: false});
+        }
     }
 }

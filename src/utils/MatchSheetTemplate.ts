@@ -6,7 +6,7 @@ import {Player} from '../models/Player';
 import {MatchUmpire} from '../models/MatchUmpire';
 
 const getMatchSheetTemplate = (
-  templateType: string,
+  templateType: string = 'Fixtures',
   organisation: Organisation,
   team1players: Player[],
   team2players: Player[],
@@ -20,20 +20,29 @@ const getMatchSheetTemplate = (
           <meta charset="utf-8">
           <title>PDF Template</title>
           <style>
+          @media print {
+             body {
+                width: 100%;
+             }
              .page {
+                width: 100%;
                 max-width: 800px;
                 padding: 16px;
-                width: 100%;
                 background-color: #FFFFFF;
+                box-sizing: border-box;
              }
              .document {
                 width: 100%;
              }
              .header {
-                padding: 0 8px 0 16px;
+                padding: 0 16px;
                 margin-bottom: 8px;
                 width: 100%;
+                display: -webkit-box;
+                display: -webkit-flex;
+                -webkit-flex-wrap: wrap;
                 display: flex;
+                flex-wrap: wrap;
                 flex-direction: row;
                 justify-content: space-between;
                 box-sizing: border-box;
@@ -42,6 +51,7 @@ const getMatchSheetTemplate = (
                 font-size: 14px;
                 font-weight: bold;
                 padding: 8px 0;
+                box-sizing: border-box;
              }
              .templateType {
                 font-size: 12px;
@@ -52,21 +62,27 @@ const getMatchSheetTemplate = (
              .logo {
                 width: 50px;
                 height: 50px;
+                margin-left: auto;
+                margin-right: 16px;
              }
              .matchInfo {
-                padding: 8px;
+                padding: 16px;
+                display: -webkit-box;
+                display: -webkit-flex;
+                -webkit-flex-wrap: wrap;
                 display: flex;
+                flex-wrap: wrap;
                 flex-direction: row;
+                box-sizing: border-box;
              }
              .infoContentLeft {
                 width: 50%;
-                padding-right: 16px;
-                padding-left: 8px;
+                box-sizing: border-box;
              }
              .infoContentRight {
                 width: 50%;
-                padding-right: 16px;
-                padding-left: 24px;
+                padding-left: 8px;
+                box-sizing: border-box;
              }
              .infodiv {
                  font-size: 9px;
@@ -74,15 +90,20 @@ const getMatchSheetTemplate = (
              }
              .tableContent {
                 width: 100%;
+                display: -webkit-box;
+                display: -webkit-flex;
+                -webkit-flex-wrap: wrap;
                 display: flex;
+                flex-wrap: wrap;
                 flex-direction: row;
-                padding-left: 8px;
+                box-sizing: border-box;
              }
              .signTable {
-                width: 50%;
-                padding: 8px 16px 8px 8px;
+                width: 49%;
+                padding: 0 16px;
+                box-sizing: border-box;
              }
-             .table {   
+             .table {
                 border: 1px solid black;
                 border-right: 0;
                 border-bottom: 0;
@@ -90,50 +111,66 @@ const getMatchSheetTemplate = (
              .row {
                 width: 100%;
                 height: 10px;
+                display: -webkit-box;
+                display: -webkit-flex;
+                -webkit-flex-wrap: wrap;
                 display: flex;
+                flex-wrap: wrap;
                 flex-direction: row;
                 font-size: 8px;
                 border-bottom: 1px solid black;
              }
              .cell {
-                width: 8%;
+                width: 8.1%;
                 border-right: 1px solid black;
                 text-align: center;
              }
              .largeCell {
-                width: 30%;
+                width: 28.7%;
                 border-right: 1px solid black;
                 text-align: center;
              }
              .subTitle {
                 padding: 9px 9px 9px 16px;
                 font-size: 9px;
+                box-sizing: border-box;
              }
              .passCell {
-                width: 2.5%;
+                width: 2.3%;
                 border-right: 1px solid black;
                 text-align: center;
              }
              .passTable {
                 width: 100%;
-                padding: 8px 16px 8px 8px;
+                padding-left: 16px;
+                padding-right: 32px;
+                box-sizing: border-box;
+             }
+             .passTable .table {
+                border-right: 1px solid black;
              }
              .passRow {
                 width: 100%;
                 height: 16px;
+                display: -webkit-box;
+                display: -webkit-flex;
+                -webkit-flex-wrap: wrap;
                 display: flex;
+                flex-wrap: wrap;
                 flex-direction: row;
                 font-size: 9px;
                 border-bottom: 1px solid black;
              }
              .scoreTableRight {
                 width: 50%;
-                padding: 8px 16px 8px 8px;
+                padding: 8px 24px 8px 8px;
+                box-sizing: border-box;
              }
              .scoreTableLeft {
                 width: 50%;
-                padding: 8px 16px 8px 8px;
+                padding: 8px 8px 8px 16px;
                 border-right: 1px solid black;
+                box-sizing: border-box;
              }
              .scoreCell {
                 width: 5%;
@@ -142,7 +179,11 @@ const getMatchSheetTemplate = (
              .scoreRow {
                 width: 100%;
                 height: 12px;
+                display: -webkit-box;
+                display: -webkit-flex;
+                -webkit-flex-wrap: wrap;
                 display: flex;
+                flex-wrap: wrap;
                 flex-direction: row;
                 font-size: 9px;
              }
@@ -152,12 +193,17 @@ const getMatchSheetTemplate = (
              }
              .summaryTable {
                 width: 100%;
-                padding: 8px 16px 8px 8px;
+                padding: 8px 32px 8px 16px;
+                box-sizing: border-box;
              }
              .summaryRow {
                 width: 100%;
                 height: 15px;
+                display: -webkit-box;
+                display: -webkit-flex;
+                -webkit-flex-wrap: wrap;
                 display: flex;
+                flex-wrap: wrap;
                 flex-direction: row;
                 font-size: 9px;
                 border-bottom: 1px solid black;
@@ -166,9 +212,10 @@ const getMatchSheetTemplate = (
                 width: 28%;
                 padding-left: 12px;
                 padding-top: 2px;
+                box-sizing: border-box;
              }
              .gapCell {
-                width: 4%;
+                width: 3.8%;
                 border-right: 1px solid black;
                 text-align: center;
              }
@@ -176,33 +223,44 @@ const getMatchSheetTemplate = (
                 width: 20%;
                 padding-top: 2px;
                 border-right: 1px solid black;
+                box-sizing: border-box;
              }
              .voteCell {
                 width: 20%;
                 padding-left: 12px;
                 padding-top: 2px;
                 border-right: 1px solid black;
+                box-sizing: border-box;
              }
              .teamCell {
                 width: 40%;
                 padding-left: 12px;
                 padding-top: 2px;
                 border-right: 1px solid black;
+                box-sizing: border-box;
              }
              .goalTable {
                 width: 100%;
-                padding: 8px 16px 8px 8px;
+                padding: 8px 32px 8px 16px;
+                box-sizing: border-box;
+             }
+             .goalTable .table {
+                border-right: 1px solid black;
              }
              .goalRow {
                 width: 100%;
                 height: 24px;
+                display: -webkit-box;
+                display: -webkit-flex;
+                -webkit-flex-wrap: wrap;
                 display: flex;
+                flex-wrap: wrap;
                 flex-direction: row;
                 font-size: 8px;
                 border-bottom: 1px solid black;
              }
              .goalCell {
-                width: 6%;
+                width: 5.85%;
                 border-right: 1px solid black;
                 text-align: center;
              }
@@ -211,11 +269,11 @@ const getMatchSheetTemplate = (
                 border-right: 1px solid black;
              }
              .goalSubCell {
-                height: 10px;
+                height: 12px;
                 text-align: center;
-                padding: 1px;
                 border-bottom: 1px solid black;
              }
+           }
           </style>
        </head>
        <body>
@@ -262,7 +320,7 @@ const getMatchSheetTemplate = (
                                     <div class="cell"></div>
                                     <div class="cell"></div>
                                 </div>`
-                            )) : ''}
+                            )).join('') : ''}
                         </div>
                     </div>
                     <div class="signTable">
@@ -286,7 +344,7 @@ const getMatchSheetTemplate = (
                                     <div class="cell"></div>
                                     <div class="cell"></div>
                                 </div>`
-                            )) : ''}
+                            )).join('') : ''}
                         </div>
                     </div>
                 </div>`
@@ -299,9 +357,9 @@ const getMatchSheetTemplate = (
                            `<div class="passRow">
                               ${[...Array(40).keys()].map((cellIndex) => (
                                   `<div class="passCell"></div>`
-                              ))}
+                              )).join('')}
                             </div>`
-                        ))}
+                        )).join('')}
                     </div>
                 </div>
             </div>
@@ -313,9 +371,9 @@ const getMatchSheetTemplate = (
                         `<div class="scoreRow">
                           ${[...Array(20).keys()].map((cellIndex) => (
                               `<div class="scoreCell">${cellIndex + 1 + 20 * rowIndex}</div>`
-                            ))}
+                            )).join('')}
                         </div>`
-                    ))}
+                    )).join('')}
                 </div>
                 <div class="scoreTableRight">
                     <div class="tableTitle">Team 2</div>
@@ -323,9 +381,9 @@ const getMatchSheetTemplate = (
                         `<div class="scoreRow">
                             ${[...Array(20).keys()].map((cellIndex) => (
                                 `<div class="scoreCell">${cellIndex + 1 + 20 * rowIndex}</div>`
-                            ))}
+                            )).join('')}
                         </div>`
-                    ))}
+                    )).join('')}
                 </div>
             </div>
             ${templateType !== 'Social' ? (
@@ -367,7 +425,7 @@ const getMatchSheetTemplate = (
                                         </div>
                                         <div class="goalCell"></div>
                                     </div>`
-                                ))}
+                                )).join('')}
                             </div>
                         </div>
                     </div>
