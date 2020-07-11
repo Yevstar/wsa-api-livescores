@@ -28,7 +28,7 @@ import { Role } from "./models/security/Role";
 
 require("dotenv").config();
 
-// wrapConsole();
+wrapConsole();
 
 //TODO: Need to Confirm whether to have this function in Livescores module
 async function checkFirebaseUser(user, password: string) {
