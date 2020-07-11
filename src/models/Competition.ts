@@ -146,6 +146,18 @@ export class Competition extends BaseEntity {
     @Column()
     warningBuzzerEnabled: boolean;
 
+    @IsString()
+    @Column()
+    playerBorrowingType: "GAMES" | "MINUTES";
+
+    @IsNumber()
+    @Column()
+    gamesBorrowedThreshold: number;
+
+    @IsNumber()
+    @Column()
+    linkedCompetitionId: number;
+
     @DeleteDateColumn({ nullable:true, default:null, name: 'deleted_at' })
     public deleted_at: Date;
 

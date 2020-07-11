@@ -64,7 +64,7 @@ export default class PlayerService extends BaseService<Player> {
             '       JSON_OBJECT(\n' +
             '               \'id\', p.id,\n' +
             '               \'userId\', p.userId,\n' +
-            '               \'user\', JSON_OBJECT(\n' +
+            '               \'user\', IF(p.userId != null, JSON_OBJECT(\n' +
             '               \'id\', u.id, \n' +
             '               \'firstName\', u.firstName, \n' +
             '               \'lastName\', u.lastName, \n' +
@@ -76,7 +76,7 @@ export default class PlayerService extends BaseService<Player> {
             '               \'marketingOptIn\', u.marketingOptIn, \n' +
             '               \'photoUrl\', u.photoUrl, \n' +
             '               \'firebaseUID\', u.firebaseUID \n' +
-            '               ), \n' +
+            '               ), null), \n' +
             '               \'firstName\', p.firstName,\n' +
             '               \'lastName\', p.lastName,\n' +
             '               \'photoUrl\', p.photoUrl,\n' +
@@ -93,7 +93,7 @@ export default class PlayerService extends BaseService<Player> {
             'from playerMinuteTracking pmt\n' +
             '     inner join player p on p.id = pmt.playerId\n' +
             '     left join wsa_users.user u on u.id = p.userId\n' +
-            'and pmt.teamId = ?\n' +
+            'where pmt.teamId = ?\n' +
             'group by pmt.playerId, player', [teamId]);
     }
 
@@ -102,7 +102,7 @@ export default class PlayerService extends BaseService<Player> {
             '       JSON_OBJECT(\n' +
             '               \'id\', p.id,\n' +
             '               \'userId\', p.userId,\n' +
-            '               \'user\', JSON_OBJECT(\n' +
+            '               \'user\', IF(p.userId != null, JSON_OBJECT(\n' +
             '               \'id\', u.id, \n' +
             '               \'firstName\', u.firstName, \n' +
             '               \'lastName\', u.lastName, \n' +
@@ -114,7 +114,7 @@ export default class PlayerService extends BaseService<Player> {
             '               \'marketingOptIn\', u.marketingOptIn, \n' +
             '               \'photoUrl\', u.photoUrl, \n' +
             '               \'firebaseUID\', u.firebaseUID \n' +
-            '               ), \n' +
+            '               ), null), \n' +
             '               \'firstName\', p.firstName,\n' +
             '               \'lastName\', p.lastName,\n' +
             '               \'photoUrl\', p.photoUrl,\n' +
@@ -159,12 +159,16 @@ export default class PlayerService extends BaseService<Player> {
     }
 
     public async loadPlayersBorrows(competitionId: number, teamId: number) {
-        return this.entityManager.query('select playerId, count(distinct matchId) as borrows \n' +
-            'from player p, gameTimeAttendance gta\n' +
-            'where isBorrowed = TRUE\n' +
+        return this.entityManager.query(
+            'select gta.playerId, count(distinct gta.matchId) as borrows, \n' +
+            'SUM(pmt.duration) as totalTime \n' +
+            'from player p, gameTimeAttendance gta, playerMinuteTracking pmt\n' +
+            'where gta.isBorrowed = TRUE\n' +
             'and p.id = gta.playerId\n' +
             'and p.competitionId = ?\n' +
             'and p.teamId = ?\n' +
+            'and pmt.playerId = gta.playerId\n' +
+            'and pmt.matchId = gta.matchId\n' +
             'group by playerId', [competitionId, teamId]);
     }
 
@@ -191,4 +195,25 @@ export default class PlayerService extends BaseService<Player> {
         }
     }
 
+
+    public async loadBorrowsForPlayer(playerId: number) {
+        return this.entityManager.query(
+            'select t.name as teamName, \n' +
+            '       t.logoUrl as teamLogoUrl, \n' +
+            '       m.id as matchId, \n' +
+            '       m.startTime as matchStartTime, \n' +
+            '       m.matchDuration as matchDuration, \n' +
+            '       SUM(pmt.duration) as borrowedTime \n' +
+            'from wsa.gameTimeAttendance gta, \n' +
+            '       wsa.playerMinuteTracking pmt, \n' +
+            '       wsa.team t, \n' +
+            '       wsa.match m \n' +
+            'where gta.isBorrowed = TRUE \n' +
+            '       and gta.playerId = ? \n' +
+            '       and t.id = gta.teamId \n' +
+            '       and pmt.playerId = gta.playerId \n' +
+            '       and pmt.matchId = gta.matchId \n' +
+            '       and pmt.teamId = gta.teamId \n' +
+            '       and m.id = gta.matchId', [playerId]);
+    }
 }

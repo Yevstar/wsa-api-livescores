@@ -63,16 +63,21 @@ export default class GameTimeAttendanceService extends BaseService<GameTimeAtten
     }
 
 
-    public async deleteByMatchAndTeam(matchId: number, teamId: number, period: number): Promise<DeleteResult> {
+    public async deleteByMatchAndTeam(matchId: number, teamId: number, period: number, allPeriods: boolean = false, playerId: number): Promise<DeleteResult> {
         let query = this.entityManager.createQueryBuilder().delete().from(GameTimeAttendance);
         query.andWhere("matchId = :matchId", {matchId});
         if (teamId) {
             query.andWhere("teamId = :teamId", {teamId});
         }
-        if (period >= 0) {
-            query.andWhere("period = :period", {period});
-        } else {
-            query.andWhere("period is null");
+        if (!allPeriods) {
+            if (period >= 0) {
+                query.andWhere("period = :period", {period});
+            } else {
+                query.andWhere("period is null");
+            }
+        }
+        if (playerId) {
+            query.andWhere("playerId = :playerId", {playerId});
         }
         return query.execute();
     }

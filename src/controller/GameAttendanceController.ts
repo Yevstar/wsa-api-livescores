@@ -57,7 +57,7 @@ export class GameAttendanceController extends BaseController {
         let match = await this.matchService.findById(matchId);
 
         if (match.matchStatus == null && match.matchStatus != 'ENDED') {
-            await this.gameTimeAttendanceService.deleteByMatchAndTeam(matchId, teamId, period);
+            await this.gameTimeAttendanceService.deleteByMatchAndTeam(matchId, teamId, period, false, null);
             if (attendance.length > 0) {
                 for (let att of attendance) {
                     att.matchId = matchId;
@@ -177,7 +177,7 @@ export class GameAttendanceController extends BaseController {
         @QueryParam('period') period: number,
         @Res() response: Response
     ): Promise<any> {
-        let result = await this.gameTimeAttendanceService.deleteByMatchAndTeam(matchId, teamId, period);
+        let result = await this.gameTimeAttendanceService.deleteByMatchAndTeam(matchId, teamId, period, false, null);
         if (result.affected > 0) {
             return response.status(200).send({name: 'delete', message: 'record deleted'});
         } else {

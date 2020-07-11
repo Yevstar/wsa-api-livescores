@@ -961,12 +961,47 @@ export class MatchController extends BaseController {
                         }
                     })
                 }
-                return response.status(200).send({message: 'Lineup updated'});
+                return this.matchService.findLineupsByParam(matchId, match.competitionId, teamId, null, null);
             } else {
                 return response.status(400).send({name: 'updated_lineup_error', message: 'List lineup is empty'});
             }
         } else {
             return response.status(400).send({name: 'update_lineup_error', message: 'Lineup cannot be submitted after a match has ended'});
+        }
+    }
+
+    @Authorized()
+    @Delete('/lineup')
+    async deleteLineup(
+        @QueryParam('updateMatchEvents') updateMatchEvents: boolean,
+        @Body() lineup: Lineup,
+        @Res() response: Response
+    ) {
+
+        if (lineup) {
+            console.time('matchService.findById');
+            let match = await this.matchService.findById(lineup.matchId);
+            console.timeEnd('matchService.findById');
+
+            await this.matchService.deleteLineupById(lineup.id);
+            await await this.gameTimeAttendanceService.deleteByMatchAndTeam(lineup.matchId, lineup.teamId, 0, true, lineup.playerId);
+            if (updateMatchEvents) {
+                this.updateMatchEventsForLineup(match, lineup.teamId, [lineup]);
+            }
+            let tokens = (await this.deviceService.findScorerDeviceFromRoster(lineup.matchId)).map(device => device.deviceId);
+            if (tokens && tokens.length > 0) {
+                this.firebaseService.sendMessage({
+                    tokens: tokens,
+                    data: {
+                        type: 'attendance_added',
+                        matchId: lineup.matchId.toString(),
+                        teamId: lineup.teamId.toString()
+                    }
+                })
+            }
+            return response.status(200).send({success: true});
+        } else {
+            return response.status(400).send({name: 'delete_lineup_error', message: 'List lineup is empty'});
         }
     }
 

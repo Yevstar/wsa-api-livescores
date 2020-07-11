@@ -73,7 +73,7 @@ export default class TeamService extends BaseService<Team> {
     }
 
 
-    public async loadLadder(name: string, ids: number[], divisionIds: number[], competitionIds: number[]): Promise<TeamLadder[]> {
+    public async loadLadder(name: string, ids: number[], divisionIds: number[], competitionIds: number[]): Promise<any> {
         // let query = this.entityManager.createQueryBuilder(TeamLadder, 'tl');
 
         // if (name != undefined) query.andWhere("LOWER(tl.name) like :name", { name: `${name.toLowerCase()}%` });

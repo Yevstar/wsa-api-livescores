@@ -125,4 +125,32 @@ export default class TeamLadderService extends BaseService<TeamLadder> {
         }
     }
 
+    public async findExistingTeamLadderAdj(competitionId: number, divisionId: number): Promise<TeamLadder[]>{
+        try{
+            let result = await this.entityManager.createQueryBuilder(TeamLadder, 'tl')
+                         .where('tl.competitionId = :competitionId and tl.divisionId = :divisionId and tl.teamLadderTypeRefId = 25 and tl.deleted_at is null',
+                         {competitionId: competitionId, divisionId: divisionId})
+                         .getMany()
+            
+            return result;
+        }
+        catch(error){
+            throw error;
+        }
+    }
+
+    public async getTeamLadderAdjustments(competitionId: number, divisionId: number): Promise<TeamLadder[]>{
+        try{
+            let result = await this.entityManager.query(
+                `Select tl.id as teamLadderId, tl.teamId, tl.teamLadderTypeValue as points, tl.adjustmentReason
+                 from wsa.teamLadder tl 
+                 where tl.competitionId = ? and tl.divisionId = ?
+                 and tl.teamLadderTypeRefId = 25 and tl.deleted_at is null `,[competitionId, divisionId]);
+            
+            return result;
+        }
+        catch(error){
+            throw error;
+        }
+    }
 }
