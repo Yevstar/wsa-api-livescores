@@ -252,4 +252,20 @@ export class StatController extends BaseController {
                 {name: 'search_error', message: `CompetitionId, teamId & playerId are mandatory fields`});
         }
     }
+
+    @Authorized()
+    @Get('/positionTracking')
+    async positionTracking(
+        @QueryParam('aggregate') aggregate: ("MATCH" | "TOTAL"),
+        @QueryParam('reporting') reporting: ("PERIOD" | "MINUTES"),
+        @QueryParam('competitionId', {required: true}) competitionId: number = undefined,
+        @QueryParam('teamId') teamId: number = undefined,
+        @Res() response: Response) {
+        if (competitionId) {
+            return this.gameTimeAttendanceService.loadPositionTrackingStats(aggregate, reporting, competitionId, teamId);
+        } else {
+            return response.status(200).send(
+                {name: 'search_error', message: `Competition id required field`});
+        }
+    }
 }

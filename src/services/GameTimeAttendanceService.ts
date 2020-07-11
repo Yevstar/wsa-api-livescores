@@ -108,4 +108,45 @@ export default class GameTimeAttendanceService extends BaseService<GameTimeAtten
                 .andWhere("gta.matchId = :matchId", {matchId})
                 .getCount();
     }
+
+    public async loadPositionTrackingStats(aggregate: ("MATCH" | "TOTAL"), reporting: ("PERIOD" | "MINUTES"), competitionId: number, teamId: number): Promise<any[]> {
+        let query = `
+            SELECT 
+            json_object('id', pc.teamId) as team,
+            json_object('id', pc.playerId, 'firstName', p.firstName, 'lastName', p.lastName, 'photoUrl', ifnull(u.photoUrl, p.photoUrl)) as player,
+            sum(m.matchDuration) as playDuration,
+            IFNULL(SUM(pc.gs), 0) AS gs,
+            IFNULL(SUM(pc.ga), 0) AS ga,
+            IFNULL(SUM(pc.wa), 0) AS wa,
+            IFNULL(SUM(pc.c), 0) AS c,
+            IFNULL(SUM(pc.wd), 0) AS wd,
+            IFNULL(SUM(pc.gd), 0) AS gd,
+            IFNULL(SUM(pc.gk), 0) AS gk,
+            IFNULL(SUM(pc.i), 0) AS i,
+            IFNULL(SUM(pc.play), 0) AS play,
+            IFNULL(SUM(pc.bench), 0) AS bench,
+            IFNULL(SUM(pc.noplay), 0) AS noplay`;
+        if (aggregate == 'MATCH') {
+            query = query + ", json_object('id', m.id) as `match`";
+        }
+        if (reporting == 'PERIOD') {
+            query = query + " FROM position_periods_crosstab pc "
+        } else {
+            query = query + " FROM position_minutes_crosstab pc "
+        }
+        query = query + 
+            'left join player p on pc.playerId = p.id \n' +
+            'left join wsa_users.`user` u on p.userId = u.id \n' +
+            'left join `match` m on pc.matchId = m.id \n' +
+            'left join team t on pc.teamId = t.id \n';
+        query = query + 'where t.competitionId =' + competitionId;
+        if (teamId) {
+            query = query + 'and teamId =' + teamId;
+        }
+        query = query + 'group by pc.teamId, playerId';
+        if (aggregate == 'MATCH') {
+            query = query + ', matchId';
+        }
+        return this.entityManager.query(query);
+    }
 }
