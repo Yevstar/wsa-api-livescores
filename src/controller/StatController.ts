@@ -254,15 +254,17 @@ export class StatController extends BaseController {
     }
 
     @Authorized()
-    @Get('/positionTracking')
+    @Post('/positionTracking')
     async positionTracking(
         @QueryParam('aggregate') aggregate: ("MATCH" | "TOTAL"),
         @QueryParam('reporting') reporting: ("PERIOD" | "MINUTE"),
         @QueryParam('competitionId', {required: true}) competitionId: number = undefined,
         @QueryParam('teamId') teamId: number = undefined,
+        @QueryParam('search') search: string = undefined,
+        @Body() requestFilter: RequestFilter,
         @Res() response: Response) {
         if (competitionId) {
-            return this.gameTimeAttendanceService.loadPositionTrackingStats(aggregate, reporting, competitionId, teamId);
+            return this.gameTimeAttendanceService.loadPositionTrackingStats(aggregate, reporting, competitionId, teamId, search, requestFilter);
         } else {
             return response.status(200).send(
                 {name: 'search_error', message: `Competition id required field`});

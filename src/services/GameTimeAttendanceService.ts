@@ -2,6 +2,8 @@ import {Service} from "typedi";
 import BaseService from "./BaseService";
 import {GameTimeAttendance} from "../models/GameTimeAttendance";
 import {DeleteResult} from "typeorm-plus";
+import {RequestFilter} from "../models/RequestFilter";
+import {isNotNullAndUndefined, paginationData, stringTONumber} from "../utils/Utils"
 
 @Service()
 export default class GameTimeAttendanceService extends BaseService<GameTimeAttendance> {
@@ -109,13 +111,12 @@ export default class GameTimeAttendanceService extends BaseService<GameTimeAtten
                 .getCount();
     }
 
-    public async loadPositionTrackingStats(aggregate: ("MATCH" | "TOTAL"), reporting: ("PERIOD" | "MINUTE"), competitionId: number, teamId: number): Promise<any[]> {
-        let query = `
-            SELECT 
-            json_object('id', pc.teamId) as team,
-            json_object('id', pc.playerId, 'firstName', p.firstName, 'lastName', p.lastName, 'photoUrl', ifnull(u.photoUrl, p.photoUrl)) as player,
+    public async loadPositionTrackingStats(aggregate: ("MATCH" | "TOTAL"), reporting: ("PERIOD" | "MINUTE"), competitionId: number, teamId: number, search: string, requestFilter: RequestFilter): Promise<any> {
+        let queryFields = `SELECT 
+            json_object('id', pc.teamId, 'name', t.name) as team,
+            json_object('id', pc.playerId, 'firstName', p.firstName, 'lastName', p.lastName, 'photoUrl', ifnull(u.photoUrl, p.photoUrl), 'userId', p.userId) as player,
             sum(m.matchDuration) as playDuration,
-            IFNULL(SUM(pc.gs), 0) AS gs,
+            IFNULL(SUM(pc.gs + 0), 0) AS gs,
             IFNULL(SUM(pc.ga), 0) AS ga,
             IFNULL(SUM(pc.wa), 0) AS wa,
             IFNULL(SUM(pc.c), 0) AS c,
@@ -126,10 +127,11 @@ export default class GameTimeAttendanceService extends BaseService<GameTimeAtten
             IFNULL(SUM(pc.play), 0) AS play,
             IFNULL(SUM(pc.bench), 0) AS bench,
             IFNULL(SUM(pc.noplay), 0) AS noplay`;
-        if (aggregate == 'MATCH') {
-            query = query + ", json_object('id', m.id) as `match`";
+        if (aggregate === 'MATCH') {
+            queryFields = queryFields + ", json_object('id', m.id) as `match`";
         }
-        if (reporting == 'PERIOD') {
+        let query = '';
+        if (reporting === 'PERIOD') {
             query = query + " FROM position_periods_crosstab pc "
         } else {
             query = query + " FROM position_minutes_crosstab pc "
@@ -143,10 +145,43 @@ export default class GameTimeAttendanceService extends BaseService<GameTimeAtten
         if (teamId) {
             query = query + ' and pc.teamId =' + teamId;
         }
+        let countResult;
+        if (search) {
+            query = query + ' and lower(concat_ws(" ", p.firstName, p.lastName)) like ?';
+            countResult = await this.entityManager.query('select count(*) as totalCount' + query, ['%' + search + '%']);
+        } else {
+            countResult = await this.entityManager.query('select count(*) as totalCount' + query);
+        }
+
         query = query + ' group by pc.teamId, playerId';
-        if (aggregate == 'MATCH') {
+        if (aggregate === 'MATCH') {
             query = query + ', matchId';
         }
-        return this.entityManager.query(query);
+
+        if (isNotNullAndUndefined(requestFilter) 
+                && isNotNullAndUndefined(requestFilter.paging)
+                && isNotNullAndUndefined(requestFilter.paging.limit) 
+                && isNotNullAndUndefined(requestFilter.paging.offset)) {
+            let result;
+            query = query + ' LIMIT ' + requestFilter.paging.offset + ', ' + requestFilter.paging.limit;
+            if (search) {
+                result =  await this.entityManager.query(queryFields + query, ['%' + search + '%']);
+            } else {
+                result = await this.entityManager.query(queryFields + query);
+            }
+            let totalCount = countResult[0]['totalCount'];
+            let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);
+            responseObject["results"] = result;
+            return responseObject;
+        } else {
+            if (search) {
+                return this.entityManager.query(queryFields + query, ['%' + search + '%']);
+            } else {
+                return this.entityManager.query(queryFields + query);
+            }
+        }
+
+
+        
     }
 }
