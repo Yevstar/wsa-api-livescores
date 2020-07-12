@@ -32,18 +32,19 @@ export class PlayerController extends BaseController {
         @Res() response: Response
     ) {
       if (playerInput) {
+            let existingPlayer;
             // changed the type of player from "Player" to any as id should be integer for edit mode
             // and while using formdata content-type id is of type string
             let p = new Player();
-            if (playerInput.id) {
-                p.id = stringTONumber(playerInput.id);;
+            if (playerInput.id && playerInput.id != 0) {
+                p.id = stringTONumber(playerInput.id);
+                existingPlayer = await this.playerService.findById(p.id);
             }
 
             // Getting existing player for the id if we have a player already
             // for checking with email so we can update invite status.
             // Also ensure web doesn't overwrite details of the existing player
             // web form is only sending back firstName, lastName, dateOfBirth, phoneNumber, mnbPlayerId, teamId, competitionId, photo
-            let existingPlayer = await this.playerService.findById(p.id);
             if (existingPlayer) {
                 p = existingPlayer;
             }
@@ -60,7 +61,6 @@ export class PlayerController extends BaseController {
                 p.shirt = playerInput.shirt;
                 p.nameFilter = playerInput.nameFilter;
             }
-
             if (playerInput.email) {
                 if (existingPlayer &&
                     existingPlayer.email &&
@@ -101,9 +101,11 @@ export class PlayerController extends BaseController {
             }
             let saved = await this.playerService.createOrUpdate(p);
             if (saved.userId == null) {
+                //return await this.loadPlayerUser(saved);
                 let user = await this.loadPlayerUser(saved);
                 saved.userId = user.id;
                 saved = await this.playerService.createOrUpdate(saved);
+                
             }
             return this.playerService.findById(saved.id);
         } else {
@@ -207,8 +209,8 @@ export class PlayerController extends BaseController {
                     let data = await this.playerService.batchCreateOrUpdate(playerArr);
                     for (let p of data) {
                         let user = await this.loadPlayerUser(p);
-                        p.userId = user.id;
-                        await this.playerService.createOrUpdate(p);
+                        // p.userId = user.id;
+                        // await this.playerService.createOrUpdate(p);
                     }
                     outputArr = [...data, ...outputArr];
                     resolve(outputArr)
@@ -318,20 +320,19 @@ export class PlayerController extends BaseController {
     private async loadPlayerUser(
         player: Player
     ): Promise<User> {
-
+       
         if (isNotNullAndUndefined(player.firstName) &&
         isNotNullAndUndefined(player.lastName) &&
         isNotNullAndUndefined(player.phoneNumber)) {
-
+           
             const userDetails = new User();
             let newUser = false;
             let teamDetailArray: any = [];
             let orgDetailArray: any = [];
             let savedUserDetail: User;
-            const password = Math.random().toString(36).slice(-8);
-
-            const userResults = await this.userService.findByParam(player.firstName, player.lastName, player.phoneNumber);
-            if (userResults) {
+            
+            const userResults = await this.userService.findByParam(player.firstName, player.lastName, player.phoneNumber, player.dateOfBirth);
+            if (userResults && userResults[0]) {
                 let foundUser = userResults[0];
                 newUser = false;
                 if (foundUser.firstName == player.firstName

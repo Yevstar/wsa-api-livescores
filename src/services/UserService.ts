@@ -153,10 +153,12 @@ export default class UserService extends BaseService<User> {
         }
     }
 
-    public async findByParam(firstName: string, lastName: string, mobileNumber: String): Promise<User[]> {
+    public async findByParam(firstName: string, lastName: string, mobileNumber: String, dateOfBirth: Date): Promise<User[]> {
         let query = this.entityManager.createQueryBuilder(User, 'u')
-        .select('u.id as id');
-
+        .select(['u.id as id', 'LOWER(u.email) as email', 'u.firstName as firstName', 'u.lastName as lastName',
+        'u.mobileNumber as mobileNumber', 'u.genderRefId as genderRefId',
+        'u.marketingOptIn as marketingOptIn', 'u.photoUrl as photoUrl',
+        'u.firebaseUID as firebaseUID', 'u.statusRefId as statusRefId', 'u.dateOfBirth as dateOfBirth'])
         if (firstName) {
             query.andWhere('u.firstName = :firstName', {firstName});
         }
@@ -166,6 +168,9 @@ export default class UserService extends BaseService<User> {
         if (mobileNumber) {
             query.andWhere('u.mobileNumber = :mobileNumber', {mobileNumber});
         }
+        // if (dateOfBirth) {
+        //     query.andWhere('u.dateOfBirth = :dateOfBirth', {dateOfBirth});
+        // }
         return query.getRawMany();
     }
 
