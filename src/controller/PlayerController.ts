@@ -101,7 +101,7 @@ export class PlayerController extends BaseController {
             }
             let saved = await this.playerService.createOrUpdate(p);
             if (saved.userId == null) {
-                let user = await this.loadPlayerUser(p);
+                let user = await this.loadPlayerUser(saved);
                 saved.userId = user.id;
                 saved = await this.playerService.createOrUpdate(saved);
             }
