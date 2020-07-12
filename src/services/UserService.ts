@@ -159,6 +159,8 @@ export default class UserService extends BaseService<User> {
         'u.mobileNumber as mobileNumber', 'u.genderRefId as genderRefId',
         'u.marketingOptIn as marketingOptIn', 'u.photoUrl as photoUrl',
         'u.firebaseUID as firebaseUID', 'u.statusRefId as statusRefId', 'u.dateOfBirth as dateOfBirth'])
+        .leftJoin(UserRoleEntity, 'ure', 'u.id = ure.userId');
+
         if (firstName) {
             query.andWhere('u.firstName = :firstName', {firstName});
         }

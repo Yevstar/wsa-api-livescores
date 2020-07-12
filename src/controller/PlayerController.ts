@@ -1,6 +1,9 @@
 import {Authorized, Post, HeaderParam, Body, Res, Get, JsonController, QueryParam, UploadedFile} from 'routing-controllers';
 import {Player} from '../models/Player';
 import {User} from '../models/User';
+import {Role} from '../models/security/Role';
+import {EntityType} from '../models/security/EntityType';
+import {UserRoleEntity} from '../models/security/UserRoleEntity';
 import {BaseController} from "./BaseController";
 import {Response} from "express";
 import * as  fastcsv from 'fast-csv';
@@ -27,6 +30,7 @@ export class PlayerController extends BaseController {
     @Authorized()
     @Post('/')
     async create(
+        @HeaderParam("authorization") user: User,
         @Body() playerInput: any,
         @UploadedFile("photo") file: Express.Multer.File,
         @Res() response: Response
@@ -102,8 +106,8 @@ export class PlayerController extends BaseController {
             let saved = await this.playerService.createOrUpdate(p);
             if (saved.userId == null) {
                 //return await this.loadPlayerUser(saved);
-                let user = await this.loadPlayerUser(saved);
-                saved.userId = user.id;
+                let playerUser = await this.loadPlayerUser(user, saved);
+                saved.userId = playerUser.id;
                 saved = await this.playerService.createOrUpdate(saved);
                 
             }
@@ -166,6 +170,7 @@ export class PlayerController extends BaseController {
     @Authorized()
     @Post('/import')
     async importCSV(
+        @HeaderParam("authorization") user: User,
         @QueryParam('competitionId', { required: true }) competitionId: number,
         @UploadedFile("file") file: Express.Multer.File,
     ) {
@@ -208,9 +213,9 @@ export class PlayerController extends BaseController {
 
                     let data = await this.playerService.batchCreateOrUpdate(playerArr);
                     for (let p of data) {
-                        let user = await this.loadPlayerUser(p);
-                        // p.userId = user.id;
-                        // await this.playerService.createOrUpdate(p);
+                        let playerUser = await this.loadPlayerUser(user, p);
+                        p.userId = playerUser.id;
+                        await this.playerService.createOrUpdate(p);
                     }
                     outputArr = [...data, ...outputArr];
                     resolve(outputArr)
@@ -318,8 +323,9 @@ export class PlayerController extends BaseController {
     }
 
     private async loadPlayerUser(
+        creator: User,
         player: Player
-    ): Promise<User> {
+    ): Promise<any> {
        
         if (isNotNullAndUndefined(player.firstName) &&
         isNotNullAndUndefined(player.lastName) &&
@@ -338,7 +344,11 @@ export class PlayerController extends BaseController {
                 if (foundUser.firstName == player.firstName
                     && foundUser.lastName == player.lastName
                     && foundUser.mobileNumber == player.phoneNumber) {
-                        return foundUser;
+                        savedUserDetail = foundUser;
+
+                    await this.userService.deleteRolesByUser(foundUser.id, Role.PLAYER, player.competitionId, EntityType.COMPETITION, EntityType.TEAM);
+                    await this.userService.deleteRolesByUser(foundUser.id, Role.MEMBER, player.competitionId, EntityType.COMPETITION, EntityType.COMPETITION);
+
                 } else {
                     // TODO: found user with same email but different details
                     // They could be the child or need to be merged e.g. number is out of date
@@ -353,8 +363,29 @@ export class PlayerController extends BaseController {
                 userDetails.statusRefId = 1;
                 savedUserDetail = await this.userService.createOrUpdate(userDetails);
                 await this.updateFirebaseData(userDetails, userDetails.password);
-                return savedUserDetail;
             }
+
+            let ureArray = [];
+            let ure = new UserRoleEntity();
+            ure.roleId = Role.PLAYER;
+            ure.entityId = player.teamId;
+            ure.entityTypeId = EntityType.TEAM;
+            ure.userId = savedUserDetail.id;
+            ure.createdBy = creator.id;
+            ureArray.push(ure);
+
+            let ure1 = new UserRoleEntity();
+            ure1.roleId = Role.MEMBER;
+            ure1.entityId = player.competitionId;
+            ure1.entityTypeId = EntityType.COMPETITION;
+            ure.userId = savedUserDetail.id;
+            ure.createdBy = creator.id;
+            ureArray.push(ure1);
+            await this.ureService.batchCreateOrUpdate(ureArray);
+
+            return savedUserDetail;
         }
     }
+
+
 }
