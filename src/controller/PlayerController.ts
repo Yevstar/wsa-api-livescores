@@ -4,7 +4,7 @@ import {User} from '../models/User';
 import {BaseController} from "./BaseController";
 import {Response} from "express";
 import * as  fastcsv from 'fast-csv';
-import { isPhoto, fileExt, timestamp, stringTONumber, paginationData, isArrayPopulated } from '../utils/Utils';
+import { isPhoto, fileExt, timestamp, stringTONumber, paginationData, isArrayPopulated, isNotNullAndUndefined } from '../utils/Utils';
 import {RequestFilter} from "../models/RequestFilter";
 
 @JsonController('/players')
@@ -99,6 +99,8 @@ export class PlayerController extends BaseController {
                             { name: 'validation_error', message: 'File mime type not supported' });
                 }
             }
+            let user = await this.loadPlayerUser(p);
+            p.userId = user.id;
             let saved = await this.playerService.createOrUpdate(p);
             return this.playerService.findById(saved.id);
         } else {
@@ -183,7 +185,7 @@ export class PlayerController extends BaseController {
                         if (teamId) {
                             //var parts =i.DOB.split('/');
                             //var dateOfBirth = new Date(parts[0], parts[1] - 1, parts[2]);
-
+                            
                             let playerObj = new Player();
                             playerObj.teamId = teamId[0].id;
                             playerObj.firstName = i['first name'];
@@ -192,6 +194,8 @@ export class PlayerController extends BaseController {
                             playerObj.dateOfBirth = i.DOB;
                             playerObj.phoneNumber = i['contact no'];
                             playerObj.competitionId = competitionId;
+                            let user = await this.loadPlayerUser(playerObj);
+                            playerObj.userId = user.id;
                             playerArr.push(playerObj);
 
                         } else {
@@ -303,5 +307,46 @@ export class PlayerController extends BaseController {
         fastcsv.write(teamAttendanceData, { headers: true })
             .on("finish", function () { })
             .pipe(response);
+    }
+
+    private async loadPlayerUser(
+        player: Player
+    ): Promise<User> {
+
+        if (isNotNullAndUndefined(i['Email']) && (i['Email'] != '') &&
+        isNotNullAndUndefined(i['First Name']) && (i['First Name'] != '') &&
+        isNotNullAndUndefined(i['Last Name']) && (i['Last Name'] != '') &&
+        isNotNullAndUndefined(i['Contact No']) && (i['Contact No'] != '')) {
+
+            const userDetails = new User();
+            let newUser = false;
+            let teamDetailArray: any = [];
+            let orgDetailArray: any = [];
+            let savedUserDetail: User;
+            const password = Math.random().toString(36).slice(-8);
+
+            const foundUser = await this.userService.findByEmail(player.email);
+            if (foundUser) {
+                newUser = false;
+                if (foundUser.firstName == player.firstName
+                    && foundUser.lastName == player.lastName
+                    && foundUser.mobileNumber == player.phoneNumber) {
+                        return foundUser;
+                } else {
+                    // TODO: found user with same email but different details
+                    // They could be the child or need to be merged e.g. number is out of date
+                }
+            } else {
+                newUser = true;
+                userDetails.email = player.email;
+                userDetails.password = md5(password);
+                userDetails.firstName = player.firstName;
+                userDetails.lastName = player.lastName;
+                userDetails.mobileNumber = player.phoneNumber;
+                savedUserDetail = await this.userService.createOrUpdate(userDetails);
+                await this.updateFirebaseData(userDetails, userDetails.password);
+                return savedUserDetail;
+            }
+        }
     }
 }
