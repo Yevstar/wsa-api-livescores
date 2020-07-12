@@ -313,10 +313,9 @@ export class PlayerController extends BaseController {
         player: Player
     ): Promise<User> {
 
-        if (isNotNullAndUndefined(i['Email']) && (i['Email'] != '') &&
-        isNotNullAndUndefined(i['First Name']) && (i['First Name'] != '') &&
-        isNotNullAndUndefined(i['Last Name']) && (i['Last Name'] != '') &&
-        isNotNullAndUndefined(i['Contact No']) && (i['Contact No'] != '')) {
+        if (isNotNullAndUndefined(player.firstName) &&
+        isNotNullAndUndefined(player.lastName) &&
+        isNotNullAndUndefined(player.phoneNumber)) {
 
             const userDetails = new User();
             let newUser = false;
@@ -339,7 +338,7 @@ export class PlayerController extends BaseController {
             } else {
                 newUser = true;
                 userDetails.email = player.email;
-                userDetails.password = md5(password);
+                //userDetails.password = md5(password);
                 userDetails.firstName = player.firstName;
                 userDetails.lastName = player.lastName;
                 userDetails.mobileNumber = player.phoneNumber;
