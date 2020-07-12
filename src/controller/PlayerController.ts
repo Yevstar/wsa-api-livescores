@@ -4,7 +4,7 @@ import {User} from '../models/User';
 import {BaseController} from "./BaseController";
 import {Response} from "express";
 import * as  fastcsv from 'fast-csv';
-import { isPhoto, fileExt, timestamp, stringTONumber, paginationData, isArrayPopulated, isNotNullAndUndefined } from '../utils/Utils';
+import { isPhoto, fileExt, timestamp, stringTONumber, paginationData, isArrayPopulated, isNotNullAndUndefined, md5 } from '../utils/Utils';
 import {RequestFilter} from "../models/RequestFilter";
 
 @JsonController('/players')
@@ -41,7 +41,7 @@ export class PlayerController extends BaseController {
 
             // Getting existing player for the id if we have a player already
             // for checking with email so we can update invite status.
-            // Also ensure web doesn't overwrite details of the esisting player
+            // Also ensure web doesn't overwrite details of the existing player
             // web form is only sending back firstName, lastName, dateOfBirth, phoneNumber, mnbPlayerId, teamId, competitionId, photo
             let existingPlayer = await this.playerService.findById(p.id);
             if (existingPlayer) {
@@ -99,9 +99,12 @@ export class PlayerController extends BaseController {
                             { name: 'validation_error', message: 'File mime type not supported' });
                 }
             }
-            let user = await this.loadPlayerUser(p);
-            p.userId = user.id;
             let saved = await this.playerService.createOrUpdate(p);
+            if (saved.userId == null) {
+                let user = await this.loadPlayerUser(p);
+                saved.userId = user.id;
+                saved = await this.playerService.createOrUpdate(saved);
+            }
             return this.playerService.findById(saved.id);
         } else {
             return response.status(400).send({ name: 'validation_error', message: 'Player required' });
@@ -194,8 +197,6 @@ export class PlayerController extends BaseController {
                             playerObj.dateOfBirth = i.DOB;
                             playerObj.phoneNumber = i['contact no'];
                             playerObj.competitionId = competitionId;
-                            let user = await this.loadPlayerUser(playerObj);
-                            playerObj.userId = user.id;
                             playerArr.push(playerObj);
 
                         } else {
@@ -203,7 +204,12 @@ export class PlayerController extends BaseController {
                         }
                     }
 
-                    let data = await this.playerService.batchCreateOrUpdate(playerArr)
+                    let data = await this.playerService.batchCreateOrUpdate(playerArr);
+                    for (let p of data) {
+                        let user = await this.loadPlayerUser(p);
+                        p.userId = user.id;
+                        await this.playerService.createOrUpdate(p);
+                    }
                     outputArr = [...data, ...outputArr];
                     resolve(outputArr)
 
@@ -324,8 +330,9 @@ export class PlayerController extends BaseController {
             let savedUserDetail: User;
             const password = Math.random().toString(36).slice(-8);
 
-            const foundUser = await this.userService.findByEmail(player.email);
-            if (foundUser) {
+            const userResults = await this.userService.findByParam(player.firstName, player.lastName, player.phoneNumber);
+            if (userResults) {
+                let foundUser = userResults[0];
                 newUser = false;
                 if (foundUser.firstName == player.firstName
                     && foundUser.lastName == player.lastName
@@ -337,11 +344,12 @@ export class PlayerController extends BaseController {
                 }
             } else {
                 newUser = true;
-                userDetails.email = player.email;
-                //userDetails.password = md5(password);
+                userDetails.email = 'player' + player.id + '@wsa.com';
+                userDetails.password = md5('password');
                 userDetails.firstName = player.firstName;
                 userDetails.lastName = player.lastName;
                 userDetails.mobileNumber = player.phoneNumber;
+                userDetails.statusRefId = 1;
                 savedUserDetail = await this.userService.createOrUpdate(userDetails);
                 await this.updateFirebaseData(userDetails, userDetails.password);
                 return savedUserDetail;

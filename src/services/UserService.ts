@@ -153,6 +153,22 @@ export default class UserService extends BaseService<User> {
         }
     }
 
+    public async findByParam(firstName: string, lastName: string, mobileNumber: String): Promise<User[]> {
+        let query = this.entityManager.createQueryBuilder(User, 'u')
+        .select('u.id as id');
+
+        if (firstName) {
+            query.andWhere('u.firstName = :firstName', {firstName});
+        }
+        if (lastName) {
+            query.andWhere('u.lastName = :lastName', {lastName});
+        }
+        if (mobileNumber) {
+            query.andWhere('u.mobileNumber = :mobileNumber', {mobileNumber});
+        }
+        return query.getRawMany();
+    }
+
     public async sentMail(userData: User, teamData, competitionData: Competition, toRoleId: number, receiverData: User, password: string) {
 
         let url = `https://netballivescores://wsa.app/link`;
