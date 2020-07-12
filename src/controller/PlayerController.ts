@@ -361,6 +361,7 @@ export class PlayerController extends BaseController {
                 userDetails.lastName = player.lastName;
                 userDetails.mobileNumber = player.phoneNumber;
                 userDetails.statusRefId = 1;
+                userDetails.dateOfBirth = player.dateOfBirth;
                 savedUserDetail = await this.userService.createOrUpdate(userDetails);
                 await this.updateFirebaseData(userDetails, userDetails.password);
             }
