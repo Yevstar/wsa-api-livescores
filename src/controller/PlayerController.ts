@@ -186,7 +186,7 @@ export class PlayerController extends BaseController {
 
                 .on('end', async () => {
                     for (let i of arr) {
-                        let teamId = await this.teamService.findByNameAndCompetition(i.team, competitionId)
+                        let teamId = await this.teamService.findByNameAndCompetition(i.team, competitionId, i.Grade);
                         if (teamId) {
                             //var parts =i.DOB.split('/');
                             //var dateOfBirth = new Date(parts[0], parts[1] - 1, parts[2]);
