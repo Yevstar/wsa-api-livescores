@@ -1341,97 +1341,23 @@ export class MatchController extends BaseController {
             if (i.Date !== "") {
                 var dateArray = i.Date.split(".");
                 var str = i.Time;
-                let isPM = str.includes("P");
-                if (isPM) {
+                var timeZoneString = i["Timezone GMT"];
+                if (i["Timezone GMT"].includes(":")) {
+                    timeZoneString = i["Timezone GMT"].split(":")[0];
+                }
+                var hr;
+                var min;
+                //"2011-10-10T14:48:00.000+09:00"
+                if (str.includes("P")) {
                     var array = str.split("P");
                     var timeArray = array[0].split(":");
-                    var timeZoneArray = i["Timezone GMT"].split(":");
-                    if (timeZoneArray.length > 1) {
-
-                        var hr = parseInt(timeArray[0]) + 12 + parseInt(timeZoneArray[0]);
-
-                        if (timeZoneArray[0].startsWith("-")) {
-                            var min = parseInt(timeArray[1]) - parseInt(timeZoneArray[1]);
-                        } else {
-                            var min = parseInt(timeArray[1]) + parseInt(timeZoneArray[1]);
-                        }
-
-                        if (min >= 60) {
-                            min -= 60
-                            hr++;
-                        } else if (min < 0) {
-                            min += 60
-                            hr--;
-                        }
-
-                        if (hr > 24) {
-                            hr -= 24;
-                            dateArray[0]++;
-                        } else if (hr < 0) {
-                            hr += 24;
-                            dateArray[0]--;
-                        }
-
-                    } else {
-
-                        var hr = parseInt(timeArray[0]) + 12 + parseInt(timeZoneArray[0]);
-                        var min = parseInt(timeArray[1]);
-
-                        if (hr > 24) {
-                            hr -= 24;
-                            dateArray[0]++;
-                        }
-                    }
-
+                    hr = parseInt(timeArray[0]) + 12;
+                    min = parseInt(timeArray[1]);
                 } else {
                     var array = str.split("A");
                     var timeArray = array[0].split(":");
-                    var timeZoneArray = i["Timezone GMT"].split(":");
-                    if (timeZoneArray.length > 1) {
-
-                        var hr = parseInt(timeArray[0]) + parseInt(timeZoneArray[0]);
-
-                        if (timeZoneArray[0].startsWith("-")) {
-                            var min = parseInt(timeArray[1]) - parseInt(timeZoneArray[1]);
-                        } else {
-                            var min = parseInt(timeArray[1]) + parseInt(timeZoneArray[1]);
-                        }
-
-                        if (min >= 60) {
-                            min -= 60
-                            hr++;
-                        } else if (min < 0) {
-                            min += 60
-                            hr--;
-                        }
-
-                    } else {
-
-                        var hr = parseInt(timeArray[0]) + parseInt(timeZoneArray[0]);
-
-                        if (timeZoneArray[0].startsWith("-")) {
-                            var min = parseInt(timeArray[1]);
-                        } else {
-                            var min = parseInt(timeArray[1]);
-                        }
-                    }
-
-                }
-
-                if (min >= 60) {
-                    min -= 60
-                    hr++;
-                } else if (min < 0) {
-                    min += 60
-                    hr--;
-                }
-
-                if (hr > 24) {
-                    hr -= 24;
-                    dateArray[0]++;
-                } else if (hr < 0) {
-                    hr += 24;
-                    dateArray[0]--;
+                    hr = parseInt(timeArray[0]);
+                    min = parseInt(timeArray[1]);
                 }
 
                 let stringHr = hr + '';
@@ -1444,8 +1370,8 @@ export class MatchController extends BaseController {
                     stringMin = '0' + min
                 }
 
-                let timeZone = `${dateArray[2]}-${dateArray[1]}-${dateArray[0]}T${stringHr}:${stringMin}`;
-                let a = new Date(timeZone);
+                let timeZone = `${dateArray[2]}-${dateArray[1]}-${dateArray[0]}T${stringHr}:${stringMin}:00.000+${timeZoneString}:00`;
+                let startTimeinUTC = new Date(timeZone);
                 let divisionData = await this.divisionService.findByName(i["Grade"], competitionId);
                 let team1Data = await this.teamService.findByNameAndCompetition(i["Home Team"], competitionId);
                 let team2Data = await this.teamService.findByNameAndCompetition(i["Away Team"], competitionId);
@@ -1474,7 +1400,7 @@ export class MatchController extends BaseController {
                 }
 
                 let match = new Match();
-                match.startTime = a;
+                match.startTime = startTimeinUTC;
                 match.competitionId = competitionId;
                 match.type = i.type;
                 match.matchDuration = i.matchDuration;
