@@ -64,8 +64,8 @@ export class DashboardController extends BaseController {
                         if (each !== null) {
                             if (each.scorer1Status !== null) { element['scorer1Status'] = each.scorer1Status; } else { element['scorer1Status'] = null; }
                             if (each.scorer2Status !== null) { element['scorer2Status'] = each.scorer2Status; }
-                            if (each.teamAttendanceCountA !== null) { element['teamAttendanceCountA'] = each.scorer1Status; }
-                            if (each.teamAttendanceCountB !== null) { element['teamAttendanceCountB'] = each.scorer2Status; }
+                            if (each.teamAttendanceCountA !== null) { element['teamAttendanceCountA'] = each.teamAttendanceCountA; }
+                            if (each.teamAttendanceCountB !== null) { element['teamAttendanceCountB'] = each.teamAttendanceCountB; }
                         } else {
                             element['scorer1Status'] = null;
                         }
