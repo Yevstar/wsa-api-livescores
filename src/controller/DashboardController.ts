@@ -62,14 +62,17 @@ export class DashboardController extends BaseController {
                 return this.getRosterAndTeamAttendance(element.id, element.team1Id, element.team2Id)
                     .then((each: any) => {
                         if (each !== null) {
-                            element['scorer1Status'] = each.scorer1Status;
-                            element['scorer2Status'] = each.scorer2Status;
-                            element['teamAttendanceCountA'] = each.teamAttendanceCountA;
-                            element['teamAttendanceCountB'] = each.teamAttendanceCountB;
+                            if (each.scorer1Status !== null) { element['scorer1Status'] = each.scorer1Status; }
+                            if (each.scorer2Status !== null) { element['scorer2Status'] = each.scorer2Status; }
+                            if (each.teamAttendanceCountA !== null) { element['teamAttendanceCountA'] = each.scorer1Status; }
+                            if (each.teamAttendanceCountB !== null) { element['teamAttendanceCountB'] = each.scorer2Status; }
+                        } else {
+                            element['scorer1Status'] = null;
                         }
                         return element;
                     }).catch(err => console.log('err  :::: ', err));
             });
+
             return await Promise.all(promises)
         }
     }
