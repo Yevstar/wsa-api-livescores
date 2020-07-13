@@ -62,14 +62,17 @@ export class DashboardController extends BaseController {
                 return this.getRosterAndTeamAttendance(element.id, element.team1Id, element.team2Id)
                     .then((each: any) => {
                         if (each !== null) {
-                            element['scorer1Status'] = each.scorer1Status;
-                            element['scorer2Status'] = each.scorer2Status;
-                            element['teamAttendanceCountA'] = each.teamAttendanceCountA;
-                            element['teamAttendanceCountB'] = each.teamAttendanceCountB;
+                            if (each.scorer1Status !== null) { element['scorer1Status'] = each.scorer1Status; } else { element['scorer1Status'] = null; }
+                            if (each.scorer2Status !== null) { element['scorer2Status'] = each.scorer2Status; }
+                            if (each.teamAttendanceCountA !== null) { element['teamAttendanceCountA'] = each.teamAttendanceCountA; }
+                            if (each.teamAttendanceCountB !== null) { element['teamAttendanceCountB'] = each.teamAttendanceCountB; }
+                        } else {
+                            element['scorer1Status'] = null;
                         }
                         return element;
                     }).catch(err => console.log('err  :::: ', err));
             });
+
             return await Promise.all(promises)
         }
     }
@@ -81,11 +84,7 @@ export class DashboardController extends BaseController {
         let teamAttendanceCountA = await this.gameTimeAttendanceService.getPlayerAttendanceCount(team1Id, matchId);
         let teamAttendanceCountB = await this.gameTimeAttendanceService.getPlayerAttendanceCount(team2Id, matchId);
         return new Promise((resolve, reject) => {
-            if (scorer1Status || scorer2Status || teamAttendanceCountA || teamAttendanceCountB) {
-                resolve({ scorer1Status, scorer2Status, teamAttendanceCountA, teamAttendanceCountB });
-            } else {
-                reject(null);
-            }
+            resolve({ scorer1Status, scorer2Status, teamAttendanceCountA, teamAttendanceCountB });
         });
     }
 }

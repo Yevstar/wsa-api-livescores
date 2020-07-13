@@ -780,7 +780,7 @@ export class UserController extends BaseController {
                                 if (isArrayPopulated(teamArray)) {
                                     for(let t of teamArray) {
                                         if (isNotNullAndUndefined(t) && isNotNullAndUndefined(t.name)) {
-                                            teamDetail = await this.teamService.findByNameAndCompetition(t, competitionId, i['DivisionName']);
+                                            teamDetail = await this.teamService.findByNameAndCompetition(t, competitionId, i['Grade']);
                                             if(isArrayPopulated(teamDetail)) {
                                                 teamDetailArray.push(...teamDetail);
                                             }

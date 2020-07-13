@@ -78,7 +78,7 @@ export default class RosterService extends BaseService<Roster> {
 
     // keeping the query as light as possible but more fields can be added if needed - used for umpire roster list
     public async findUserRostersByCompetition(competitionId: number, roleId: number, status: string, requestFilter: RequestFilter): Promise<any> {
-        
+
         let query = this.entityManager.createQueryBuilder(Roster, 'roster')
             .innerJoinAndSelect('roster.match', 'match')
             .innerJoinAndSelect('roster.user', 'user')
@@ -99,9 +99,9 @@ export default class RosterService extends BaseService<Roster> {
                 }
             }
 
-            if (isNotNullAndUndefined(requestFilter) 
+            if (isNotNullAndUndefined(requestFilter)
                 && isNotNullAndUndefined(requestFilter.paging)
-                && isNotNullAndUndefined(requestFilter.paging.limit) 
+                && isNotNullAndUndefined(requestFilter.paging.limit)
                 && isNotNullAndUndefined(requestFilter.paging.offset)) {
                 const result = await query.skip(requestFilter.paging.offset).take(requestFilter.paging.limit).getMany();
                 let totalCount = await query.getCount();
@@ -114,7 +114,7 @@ export default class RosterService extends BaseService<Roster> {
                 return responseObject;
             }
     }
-    
+
     public async findRosterId(rosterId: number): Promise<Roster> {
         return this.entityManager.createQueryBuilder(Roster, 'roster')
             .innerJoinAndSelect('roster.match', 'match')
@@ -196,7 +196,7 @@ export default class RosterService extends BaseService<Roster> {
                 .andWhere("r.roleId = :roleId", {roleId})
                 .andWhere("r.teamId = :teamId", {teamId})
                 .andWhere("r.matchId = :matchId", {matchId})
-                .execute();
+                .getOne();
     }
 
     public async deleteByEventOccurrence(eventOccurrenceId: number): Promise<DeleteResult> {

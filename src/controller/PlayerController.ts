@@ -1,10 +1,13 @@
 import {Authorized, Post, HeaderParam, Body, Res, Get, JsonController, QueryParam, UploadedFile} from 'routing-controllers';
 import {Player} from '../models/Player';
 import {User} from '../models/User';
+import {Role} from '../models/security/Role';
+import {EntityType} from '../models/security/EntityType';
+import {UserRoleEntity} from '../models/security/UserRoleEntity';
 import {BaseController} from "./BaseController";
 import {Response} from "express";
 import * as  fastcsv from 'fast-csv';
-import { isPhoto, fileExt, timestamp, stringTONumber, paginationData, isArrayPopulated } from '../utils/Utils';
+import { isPhoto, fileExt, timestamp, stringTONumber, paginationData, isArrayPopulated, isNotNullAndUndefined, md5 } from '../utils/Utils';
 import {RequestFilter} from "../models/RequestFilter";
 
 @JsonController('/players')
@@ -27,23 +30,25 @@ export class PlayerController extends BaseController {
     @Authorized()
     @Post('/')
     async create(
+        @HeaderParam("authorization") user: User,
         @Body() playerInput: any,
         @UploadedFile("photo") file: Express.Multer.File,
         @Res() response: Response
     ) {
       if (playerInput) {
+            let existingPlayer;
             // changed the type of player from "Player" to any as id should be integer for edit mode
             // and while using formdata content-type id is of type string
             let p = new Player();
-            if (playerInput.id) {
-                p.id = stringTONumber(playerInput.id);;
+            if (playerInput.id && playerInput.id != 0) {
+                p.id = stringTONumber(playerInput.id);
+                existingPlayer = await this.playerService.findById(p.id);
             }
 
             // Getting existing player for the id if we have a player already
             // for checking with email so we can update invite status.
-            // Also ensure web doesn't overwrite details of the esisting player
+            // Also ensure web doesn't overwrite details of the existing player
             // web form is only sending back firstName, lastName, dateOfBirth, phoneNumber, mnbPlayerId, teamId, competitionId, photo
-            let existingPlayer = await this.playerService.findById(p.id);
             if (existingPlayer) {
                 p = existingPlayer;
             }
@@ -60,7 +65,6 @@ export class PlayerController extends BaseController {
                 p.shirt = playerInput.shirt;
                 p.nameFilter = playerInput.nameFilter;
             }
-
             if (playerInput.email) {
                 if (existingPlayer &&
                     existingPlayer.email &&
@@ -100,6 +104,13 @@ export class PlayerController extends BaseController {
                 }
             }
             let saved = await this.playerService.createOrUpdate(p);
+            if (saved.userId == null) {
+                //return await this.loadPlayerUser(saved);
+                let playerUser = await this.loadPlayerUser(user, saved);
+                saved.userId = playerUser.id;
+                saved = await this.playerService.createOrUpdate(saved);
+                
+            }
             return this.playerService.findById(saved.id);
         } else {
             return response.status(400).send({ name: 'validation_error', message: 'Player required' });
@@ -159,6 +170,7 @@ export class PlayerController extends BaseController {
     @Authorized()
     @Post('/import')
     async importCSV(
+        @HeaderParam("authorization") user: User,
         @QueryParam('competitionId', { required: true }) competitionId: number,
         @UploadedFile("file") file: Express.Multer.File,
     ) {
@@ -179,11 +191,11 @@ export class PlayerController extends BaseController {
 
                 .on('end', async () => {
                     for (let i of arr) {
-                        let teamId = await this.teamService.findByNameAndCompetition(i.team, competitionId)
+                        let teamId = await this.teamService.findByNameAndCompetition(i.team, competitionId, i.grade);
                         if (teamId) {
                             //var parts =i.DOB.split('/');
                             //var dateOfBirth = new Date(parts[0], parts[1] - 1, parts[2]);
-
+                            
                             let playerObj = new Player();
                             playerObj.teamId = teamId[0].id;
                             playerObj.firstName = i['first name'];
@@ -199,7 +211,12 @@ export class PlayerController extends BaseController {
                         }
                     }
 
-                    let data = await this.playerService.batchCreateOrUpdate(playerArr)
+                    let data = await this.playerService.batchCreateOrUpdate(playerArr);
+                    for (let p of data) {
+                        let playerUser = await this.loadPlayerUser(user, p);
+                        p.userId = playerUser.id;
+                        await this.playerService.createOrUpdate(p);
+                    }
                     outputArr = [...data, ...outputArr];
                     resolve(outputArr)
 
@@ -304,4 +321,72 @@ export class PlayerController extends BaseController {
             .on("finish", function () { })
             .pipe(response);
     }
+
+    private async loadPlayerUser(
+        creator: User,
+        player: Player
+    ): Promise<any> {
+       
+        if (isNotNullAndUndefined(player.firstName) &&
+        isNotNullAndUndefined(player.lastName) &&
+        isNotNullAndUndefined(player.phoneNumber)) {
+           
+            const userDetails = new User();
+            let newUser = false;
+            let teamDetailArray: any = [];
+            let orgDetailArray: any = [];
+            let savedUserDetail: User;
+            
+            const userResults = await this.userService.findByParam(player.firstName, player.lastName, player.phoneNumber, player.dateOfBirth);
+            if (userResults && userResults[0]) {
+                let foundUser = userResults[0];
+                newUser = false;
+                if (foundUser.firstName == player.firstName
+                    && foundUser.lastName == player.lastName
+                    && foundUser.mobileNumber == player.phoneNumber) {
+                        savedUserDetail = foundUser;
+
+                    await this.userService.deleteRolesByUser(foundUser.id, Role.PLAYER, player.competitionId, EntityType.COMPETITION, EntityType.TEAM);
+                    await this.userService.deleteRolesByUser(foundUser.id, Role.MEMBER, player.competitionId, EntityType.COMPETITION, EntityType.COMPETITION);
+
+                } else {
+                    // TODO: found user with same email but different details
+                    // They could be the child or need to be merged e.g. number is out of date
+                }
+            } else {
+                newUser = true;
+                userDetails.email = 'player' + player.id + '@wsa.com';
+                userDetails.password = md5('password');
+                userDetails.firstName = player.firstName;
+                userDetails.lastName = player.lastName;
+                userDetails.mobileNumber = player.phoneNumber;
+                userDetails.statusRefId = 1;
+                userDetails.dateOfBirth = player.dateOfBirth;
+                savedUserDetail = await this.userService.createOrUpdate(userDetails);
+                await this.updateFirebaseData(userDetails, userDetails.password);
+            }
+
+            let ureArray = [];
+            let ure = new UserRoleEntity();
+            ure.roleId = Role.PLAYER;
+            ure.entityId = player.teamId;
+            ure.entityTypeId = EntityType.TEAM;
+            ure.userId = savedUserDetail.id;
+            ure.createdBy = creator.id;
+            ureArray.push(ure);
+
+            let ure1 = new UserRoleEntity();
+            ure1.roleId = Role.MEMBER;
+            ure1.entityId = player.competitionId;
+            ure1.entityTypeId = EntityType.COMPETITION;
+            ure.userId = savedUserDetail.id;
+            ure.createdBy = creator.id;
+            ureArray.push(ure1);
+            await this.ureService.batchCreateOrUpdate(ureArray);
+
+            return savedUserDetail;
+        }
+    }
+
+
 }
