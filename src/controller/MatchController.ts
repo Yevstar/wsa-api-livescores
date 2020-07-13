@@ -1622,20 +1622,20 @@ export class MatchController extends BaseController {
 
             console.log('matchSheet', matchSheet);
 
-            const result = await this.matchSheetService.createOrUpdate(matchSheet)
-              .then((data) => {
-                console.log('data', data)
-              })
-              .catch((e) => {
-                  console.log('err', e)
-              });
-
-            console.log('result', result);
-
-
-            const userSheet = await this.matchSheetService.findByUserId(user.id);
-
-            console.log('userSheet', userSheet);
+            // const result = await this.matchSheetService.createOrUpdate(matchSheet)
+            //   .then((data) => {
+            //     console.log('data', data)
+            //   })
+            //   .catch((e) => {
+            //       console.log('err', e)
+            //   });
+            //
+            // console.log('result', result);
+            //
+            //
+            // const userSheet = await this.matchSheetService.findByUserId(user.id);
+            //
+            // console.log('userSheet', userSheet);
 
             return response.status(200).send({success: true});
         }
