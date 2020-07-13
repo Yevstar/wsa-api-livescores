@@ -21,6 +21,9 @@ import {Organisation} from "../models/Organisation";
 import getMatchSheetTemplate from '../utils/MatchSheetTemplate';
 import {Competition} from "../models/Competition";
 import {logger} from "../logger";
+import {User} from "../models/User";
+import {MatchSheet} from "../models/MatchSheet";
+import {MatchUmpire} from "../models/MatchUmpire";
 
 @Service()
 export default class MatchService extends BaseService<Match>  {
@@ -434,6 +437,7 @@ export default class MatchService extends BaseService<Match>  {
     /**
      * Generate PDF
      * @param {String} templateType
+     * @param {User} user
      * @param {Organisation} organisation
      * @param {Competition} competition
      * @param {number[]} divisionIds
@@ -442,12 +446,12 @@ export default class MatchService extends BaseService<Match>  {
      */
     public async printMatchSheetTemplate (
         templateType: string,
+        user: User,
         organisation: Organisation,
         competition: Competition,
         divisionIds: number[],
         teamIds: number[],
-    ): Promise<String> {
-        const downloadLink = '';
+    ): Promise<MatchSheet> {
         try {
             const matchFound = await this.findByParam(
               null,
@@ -465,17 +469,20 @@ export default class MatchService extends BaseService<Match>  {
               null
             );
             const matches = matchFound.result;
+            let pdfBuf: Buffer;
 
             const createPDF = (html, options): Promise<Buffer> => new Promise(((resolve, reject) => {
                 pdf.create(html, options).toBuffer((err, buffer) => {
-                    if (err !== null) {reject(err);}
-                    else {resolve(buffer);}
+                    if (err !== null) {
+                        reject(err);
+                    } else {
+                        resolve(buffer);
+                    }
                 });
             }));
 
-            let pdfBuf: Buffer;
-
-            for (let i = 0; i< matches.length; i++) {
+            for (let i = 0; i < matches.length; i++) {
+                console.log(i, matches.length);
                 const matchDetail = await this.findAdminMatchById(matches[i].id, 2);
                 const {team1players, team2players, umpires} = matchDetail;
                 const htmlTmpl = getMatchSheetTemplate(
@@ -498,13 +505,32 @@ export default class MatchService extends BaseService<Match>  {
                 });
             }
 
-            // console.log(pdfBuf);
-            // fs.writeFileSync("sample.pdf", pdfBuf);
+            let matchSheet = new MatchSheet();
+
+            if (matches.length > 0) {
+                const fileName = `${competition.name}_${templateType}_${Date.now()}.pdf`;
+                const params = {
+                    Bucket: process.env.MATCH_SHEET_STORE_BUCKET,
+                    Key: fileName,
+                    Body: pdfBuf,
+                    ACL: 'public-read'
+                };
+
+                await s3.upload(params).promise().then((data) => {
+                    console.log("File uploaded successfully", data);
+
+                    matchSheet.userId = user.id;
+                    matchSheet.name = fileName;
+                    matchSheet.downloadUrl = data.Location;
+                    matchSheet.competitionId = competition.id;
+                    matchSheet.competitionName = competition.name;
+                });
+            }
+
+            return matchSheet;
         }
         catch (e) {
             logger.error(`Failed generating PDF`, e);
         }
-
-        return downloadLink;
     }
 }

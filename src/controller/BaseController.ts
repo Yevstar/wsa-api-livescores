@@ -36,6 +36,7 @@ import LadderFormatService from '../services/LadderFormatService';
 import LadderFormatDivisionService from '../services/LadderFormatDivisionService';
 import {convertMatchStartTimeByTimezone} from "../utils/TimeFormatterUtils";
 import TeamLadderService from '../services/TeamLadderService';
+import MatchSheetService from "../services/MatchSheetService";
 
 import {logger} from "../logger";
 
@@ -64,6 +65,9 @@ export class BaseController {
 
     @Inject()
     protected matchService: MatchService;
+
+    @Inject()
+    protected matchSheetService: MatchSheetService;
 
     @Inject()
     protected gameTimeAttendanceService: GameTimeAttendanceService;
