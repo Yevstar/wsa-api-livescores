@@ -370,7 +370,7 @@ export class MatchController extends BaseController {
          if(!isNewMatch){
             let arr = [];
             arr.push(match);
-           
+
             await this.performTeamLadderOperation(arr, user.id);
          }
 
@@ -803,7 +803,7 @@ export class MatchController extends BaseController {
             if (match) {
                 var dataDict = {};
                 dataDict["type"] = "match_updated";
-                dataDict["matchIds"] = JSON.stringify([match.id]);
+                dataDict["matchId"] = match.id.toString();
                 if (user) {
                     dataDict["userId"] = user.id.toString();
                 }
@@ -1648,7 +1648,7 @@ export class MatchController extends BaseController {
                 if (isArrayPopulated(deviceTokensArray)) {
                     let uniqTokens = new Set(deviceTokensArray);
                     let dataDict = {};
-                    dataDict["type"] = "match_updated";
+                    dataDict["type"] = "bulk_matches_updated";
                     dataDict["matchIds"] = JSON.stringify(matchIdsArray);
                     if (subtype) {
                         dataDict["subtype"] = subtype;
