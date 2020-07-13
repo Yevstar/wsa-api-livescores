@@ -62,7 +62,7 @@ export class DashboardController extends BaseController {
                 return this.getRosterAndTeamAttendance(element.id, element.team1Id, element.team2Id)
                     .then((each: any) => {
                         if (each !== null) {
-                            if (each.scorer1Status !== null) { element['scorer1Status'] = each.scorer1Status; }
+                            if (each.scorer1Status !== null) { element['scorer1Status'] = each.scorer1Status; } else { element['scorer1Status'] = null; }
                             if (each.scorer2Status !== null) { element['scorer2Status'] = each.scorer2Status; }
                             if (each.teamAttendanceCountA !== null) { element['teamAttendanceCountA'] = each.scorer1Status; }
                             if (each.teamAttendanceCountB !== null) { element['teamAttendanceCountB'] = each.scorer2Status; }
@@ -84,11 +84,7 @@ export class DashboardController extends BaseController {
         let teamAttendanceCountA = await this.gameTimeAttendanceService.getPlayerAttendanceCount(team1Id, matchId);
         let teamAttendanceCountB = await this.gameTimeAttendanceService.getPlayerAttendanceCount(team2Id, matchId);
         return new Promise((resolve, reject) => {
-            if (scorer1Status || scorer2Status || teamAttendanceCountA || teamAttendanceCountB) {
-                resolve({ scorer1Status, scorer2Status, teamAttendanceCountA, teamAttendanceCountB });
-            } else {
-                reject(null);
-            }
+            resolve({ scorer1Status, scorer2Status, teamAttendanceCountA, teamAttendanceCountB });
         });
     }
 }
