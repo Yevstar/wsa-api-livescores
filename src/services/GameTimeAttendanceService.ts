@@ -112,7 +112,7 @@ export default class GameTimeAttendanceService extends BaseService<GameTimeAtten
     }
 
     public async loadPositionTrackingStats(aggregate: ("MATCH" | "TOTAL"), reporting: ("PERIOD" | "MINUTE"), competitionId: number, teamId: number, search: string, requestFilter: RequestFilter): Promise<any> {
-        let queryFields = `SELECT 
+        let queryFields = `SELECT
             json_object('id', pc.teamId, 'name', t.name) as team,
             json_object('id', pc.playerId, 'firstName', p.firstName, 'lastName', p.lastName, 'photoUrl', ifnull(u.photoUrl, p.photoUrl), 'userId', p.userId) as player,
             sum(m.matchDuration) as playDuration,
@@ -136,7 +136,7 @@ export default class GameTimeAttendanceService extends BaseService<GameTimeAtten
         } else {
             query = query + " FROM position_minutes_crosstab pc "
         }
-        query = query + 
+        query = query +
             'left join player p on pc.playerId = p.id \n' +
             'left join wsa_users.`user` u on p.userId = u.id \n' +
             'left join `match` m on pc.matchId = m.id \n' +
@@ -158,9 +158,9 @@ export default class GameTimeAttendanceService extends BaseService<GameTimeAtten
             query = query + ', matchId';
         }
 
-        if (isNotNullAndUndefined(requestFilter) 
+        if (isNotNullAndUndefined(requestFilter)
                 && isNotNullAndUndefined(requestFilter.paging)
-                && isNotNullAndUndefined(requestFilter.paging.limit) 
+                && isNotNullAndUndefined(requestFilter.paging.limit)
                 && isNotNullAndUndefined(requestFilter.paging.offset)) {
             let result;
             query = query + ' LIMIT ' + requestFilter.paging.offset + ', ' + requestFilter.paging.limit;
@@ -180,8 +180,19 @@ export default class GameTimeAttendanceService extends BaseService<GameTimeAtten
                 return this.entityManager.query(queryFields + query);
             }
         }
+    }
 
+    public async findByParams(
+        matchId: number,
+        teamId: number,
+        borrowed: boolean
+    ): Promise<GameTimeAttendance[]> {
+        let query = this.entityManager.createQueryBuilder(GameTimeAttendance, 'gta')
+                          .andWhere("gta.matchId = :matchId", {matchId});
 
-        
+        if (teamId) query.andWhere("gta.teamId = :teamId", {teamId});
+        if (borrowed) query.andWhere('gta.isBorrowed = :borrowed', { borrowed: borrowed ? 1 : 0 });
+
+        return query.getMany()
     }
 }

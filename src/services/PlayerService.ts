@@ -2,6 +2,8 @@ import {Service} from "typedi";
 import BaseService from "./BaseService";
 import {Player} from "../models/Player";
 import {PlayerMinuteTracking} from "../models/PlayerMinuteTracking";
+import {GameTimeAttendance} from "../models/GameTimeAttendance";
+import {Lineup} from "../models/Lineup";
 import {RequestFilter} from "../models/RequestFilter";
 import {paginationData, stringTONumber, isNotNullAndUndefined } from "../utils/Utils";
 
@@ -195,7 +197,6 @@ export default class PlayerService extends BaseService<Player> {
         }
     }
 
-
     public async loadBorrowsForPlayer(playerId: number) {
         return this.entityManager.query(
             'select t.name as teamName, \n' +
@@ -215,5 +216,16 @@ export default class PlayerService extends BaseService<Player> {
             '       and pmt.matchId = gta.matchId \n' +
             '       and pmt.teamId = gta.teamId \n' +
             '       and m.id = gta.matchId', [playerId]);
+    }
+
+    public async getBorrowedPlayersById(
+        playerIds: number[]
+    ): Promise<Player[]> {
+      let query = this.entityManager.createQueryBuilder(Player, 'player')
+          .innerJoinAndSelect("player.team", "team")
+          .leftJoinAndSelect("player.user", "user")
+          .where('player.id in (:playerIds)', {playerIds});
+
+        return query.getMany();
     }
 }

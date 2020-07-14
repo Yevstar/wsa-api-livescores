@@ -109,7 +109,7 @@ export class PlayerController extends BaseController {
                 let playerUser = await this.loadPlayerUser(user, saved);
                 saved.userId = playerUser.id;
                 saved = await this.playerService.createOrUpdate(saved);
-                
+
             }
             return this.playerService.findById(saved.id);
         } else {
@@ -195,7 +195,7 @@ export class PlayerController extends BaseController {
                         if (teamId) {
                             //var parts =i.DOB.split('/');
                             //var dateOfBirth = new Date(parts[0], parts[1] - 1, parts[2]);
-                            
+
                             let playerObj = new Player();
                             playerObj.teamId = teamId[0].id;
                             playerObj.firstName = i['first name'];
@@ -326,17 +326,17 @@ export class PlayerController extends BaseController {
         creator: User,
         player: Player
     ): Promise<any> {
-       
+
         if (isNotNullAndUndefined(player.firstName) &&
         isNotNullAndUndefined(player.lastName) &&
         isNotNullAndUndefined(player.phoneNumber)) {
-           
+
             const userDetails = new User();
             let newUser = false;
             let teamDetailArray: any = [];
             let orgDetailArray: any = [];
             let savedUserDetail: User;
-            
+
             const userResults = await this.userService.findByParam(player.firstName, player.lastName, player.phoneNumber, player.dateOfBirth);
             if (userResults && userResults[0]) {
                 let foundUser = userResults[0];
@@ -388,5 +388,52 @@ export class PlayerController extends BaseController {
         }
     }
 
+    @Get('/borrowed')
+    async findBorrowedPlayers(
+        @QueryParam('matchId', {required: true}) matchId: number,
+        @QueryParam('teamId', {required: true}) teamId: number,
+        @QueryParam('lineupSelectionEnabled', {required: true}) lineupSelectionEnabled: boolean,
+        @QueryParam('competitionId') competitionId: number,
+        @Res() response: Response
+    ) {
+        if (!matchId || !teamId || (lineupSelectionEnabled == null)) {
+          return response.status(400).send(
+            {name: 'service_error', message: 'Please provide all required parameter data'});
+        } else if (lineupSelectionEnabled && !competitionId) {
+          return response.status(400).send(
+            {name: 'service_error', message: 'Provide competitionId when lineup selection is enabled'});
+        }
 
+        let playerIds: number[] = new Array();
+        if (lineupSelectionEnabled) {
+            let lineupList = await this.lineupService.findByParams(
+                matchId,
+                competitionId,
+                teamId,
+                true
+            );
+            lineupList.forEach(lineup => {
+                if (lineup.playerId) {
+                    playerIds.push(lineup.playerId);
+                }
+            });
+        } else {
+            let gtaList = await this.gameTimeAttendanceService.findByParams(
+                matchId,
+                teamId,
+                true
+            );
+            gtaList.forEach(gta => {
+                if (gta.playerId) {
+                    playerIds.push(gta.playerId);
+                }
+            });
+        }
+
+        if (isArrayPopulated(playerIds)) {
+          return this.playerService.getBorrowedPlayersById(playerIds);
+        } else {
+          return [];
+        }
+    }
 }
