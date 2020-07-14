@@ -1605,19 +1605,39 @@ export class MatchController extends BaseController {
         @Res() response: Response
     ): Promise<any> {
         try {
+
+            console.log(teamIds);
             const competition = await this.competitionService.findById(competitionId);
             const organisation = await this.organisationService.findById(competition.organisationId);
-            console.log(organisation);
 
-            const pdfLink = await this.matchService.printMatchSheetTemplate(
+
+            const matchSheet = await this.matchService.printMatchSheetTemplate(
               'Fixtures',
+              user,
               organisation,
               competition,
               divisionIds,
               teamIds
             );
 
-            return response.status(200).send({success: true, downloadLink: pdfLink});
+            console.log('matchSheet', matchSheet);
+
+            // const result = await this.matchSheetService.createOrUpdate(matchSheet)
+            //   .then((data) => {
+            //     console.log('data', data)
+            //   })
+            //   .catch((e) => {
+            //       console.log('err', e)
+            //   });
+            //
+            // console.log('result', result);
+            //
+            //
+            // const userSheet = await this.matchSheetService.findByUserId(user.id);
+            //
+            // console.log('userSheet', userSheet);
+
+            return response.status(200).send({success: true});
         }
         catch (e) {
             return response.status(212).send({success: false});
