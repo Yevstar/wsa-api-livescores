@@ -1,7 +1,7 @@
 import {BaseEntity, Column, Entity, PrimaryGeneratedColumn} from 'typeorm-plus';
 import {IsNumber, IsString} from "class-validator";
 
-@Entity()
+@Entity('matchSheet')
 export class MatchSheet extends BaseEntity {
 
   @IsNumber()

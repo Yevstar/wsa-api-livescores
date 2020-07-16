@@ -12,8 +12,12 @@ export default class MatchSheetService extends BaseService<MatchSheet> {
   public async findByUserId(userId?: number): Promise<MatchSheet[]> {
     let query = this.entityManager.createQueryBuilder(MatchSheet, 'matchSheet');
     if (userId !== undefined && userId !== null) {
+      const from = new Date();
+      from.setDate(from.getDate() - 7);
+
       query = this.entityManager.createQueryBuilder(MatchSheet, 'matchSheet')
-        .andWhere('matchSheet.userId = :userId', {userId});
+        .andWhere('matchSheet.userId = :userId', {userId})
+        .andWhere("matchSheet.createdAt >= :from", { from });
     }
 
     return query.getMany()

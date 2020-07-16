@@ -517,13 +517,12 @@ export default class MatchService extends BaseService<Match>  {
                 };
 
                 await s3.upload(params).promise().then((data) => {
-                    console.log("File uploaded successfully", data);
-
                     matchSheet.userId = user.id;
                     matchSheet.name = fileName;
                     matchSheet.downloadUrl = data.Location;
                     matchSheet.competitionId = competition.id;
                     matchSheet.competitionName = competition.name;
+                    matchSheet.createdAt = new Date();
                 });
             }
 
