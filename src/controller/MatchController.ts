@@ -230,8 +230,12 @@ export class MatchController extends BaseController {
         @Res() response: Response
     ) {
         let isNewMatch = false;
+        if(match.id == 0){
+            isNewMatch = true;
+        }
+
         // Saving match scores if match id and userId are present
-        if (userId && match.id) {
+        if (userId && match.id && !isNewMatch) {
             const matchScores = new MatchScores();
             matchScores.userId = userId;
             matchScores.matchId = match.id;
@@ -241,12 +245,11 @@ export class MatchController extends BaseController {
             this.matchScorerService.createOrUpdate(matchScores);
         }
 
-        if(match.id == 0){
-            isNewMatch = true;
-        }
-
         // Saving match
         const saved = await this.matchService.createOrUpdate(match);
+        if (isNewMatch) {
+          match.id = saved.id;
+        }
 
         // Getting match competition and rosters existing for the match
         const competition = await this.competitionService.findById(match.competitionId);
@@ -271,6 +274,7 @@ export class MatchController extends BaseController {
             /// Updating umpires data
             for (let newUmpire of newUmpires) {
                 if (newUmpire.umpireName) {
+                    newUmpire.matchId = saved.id;
                     let oldMatchingUmpireList = oldUmpires.filter(umpire => umpire.sequence == newUmpire.sequence);
                     if (oldMatchingUmpireList.length > 0) {
                         let oldUmpire = oldMatchingUmpireList[0];
@@ -318,6 +322,7 @@ export class MatchController extends BaseController {
 
             let umpireSequence = 0;
             for (let newRoster of match.rosters) {
+                newRoster.matchId = saved.id;
                 if (newRoster.roleId == Role.UMPIRE) {
                     // Increment the umpire sequence if the roster role is umpire
                     ++umpireSequence;

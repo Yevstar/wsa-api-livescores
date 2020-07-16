@@ -73,6 +73,7 @@ export default class RosterService extends BaseService<Roster> {
             .leftJoinAndSelect('venueCourt.venue', 'venue')
             .andWhere('roster.matchId in (:matchId)', {matchId})
             .andWhere('match.deleted_at is null')
+            .andWhere('roster.userId != 0')
             .getMany();
     }
 
