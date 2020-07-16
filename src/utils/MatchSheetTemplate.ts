@@ -24,12 +24,16 @@ const getMatchSheetTemplate = (
              body {
                 width: 100%;
              }
+             .no-break {
+               page-break-inside: avoid;
+             }
              .page {
                 width: 100%;
                 max-width: 800px;
                 padding: 16px;
                 background-color: #FFFFFF;
                 box-sizing: border-box;
+                page-break-before:avoid;
              }
              .document {
                 width: 100%;
@@ -278,14 +282,14 @@ const getMatchSheetTemplate = (
        </head>
        <body>
           <div class="page">
-            <div class="header">
+            <div class="header no-break">
                 <div class="title">
                     <div class="associationName">${organisation.name || 'Association'}</div>
                     <div class="templateType">${templateType} Scoresheet</div>
                 </div>
                 <img class="logo" src="${organisation.logoUrl || "https://img.icons8.com/color/myspace"}"/> 
             </div>
-            <div class="matchInfo">
+            <div class="matchInfo no-break">
                 <div class="infoContentLeft">
                     <div class="infodiv">${match.round ? match.round.name : ''}</div>
                     <div class="infodiv">${match.venueCourt && match.venueCourt.venue ? match.venueCourt.venue.name : ''}</div>
@@ -298,7 +302,7 @@ const getMatchSheetTemplate = (
                 </div>
             </div>
             ${templateType !== 'Carnival' ? (
-                `<div class="tableContent">
+                `<div class="tableContent no-break">
                     <div class="signTable">
                         <div class="table">
                             <div class="row">
@@ -323,7 +327,7 @@ const getMatchSheetTemplate = (
                             )).join('') : ''}
                         </div>
                     </div>
-                    <div class="signTable">
+                    <div class="signTable no-break">
                         <div class="table">
                             <div class="row">
                                 <div class="cell">#</div>
@@ -350,7 +354,7 @@ const getMatchSheetTemplate = (
                 </div>`
             ) : ''}
             <div class="subTitle">Centre Pass</div>
-            <div class="tableContent">
+            <div class="tableContent no-break">
                 <div class="passTable">
                     <div class="table">
                         ${[...Array(4).keys()].map((rowIndex) => (
@@ -364,7 +368,7 @@ const getMatchSheetTemplate = (
                 </div>
             </div>
             <div class="subTitle">Progressive Score</div>
-            <div class="tableContent">
+            <div class="tableContent no-break">
                 <div class="scoreTableLeft">
                     <div class="tableTitle">Team 1</div>
                     ${[...Array(4).keys()].map((rowIndex) => (
@@ -389,7 +393,7 @@ const getMatchSheetTemplate = (
             ${templateType !== 'Social' ? (
                 `<div>
                     <div class="subTitle">Goal Statistics</div>
-                    <div class="tableContent">
+                    <div class="tableContent no-break">
                         <div class="goalTable">
                             <div class="table">
                                 ${[...Array(4).keys()].map((rowIndex) => (
@@ -430,7 +434,7 @@ const getMatchSheetTemplate = (
                         </div>
                     </div>
                     <div class="subTitle">MVP</div>
-                    <div class="tableContent">
+                    <div class="tableContent no-break">
                         <div class="summaryTable">
                             <div class="table">
                                 <div class="summaryRow">
@@ -453,7 +457,7 @@ const getMatchSheetTemplate = (
                     </div>
                 </div>`
             ) : ''}
-            <div class="tableContent">
+            <div class="tableContent no-break">
                 <div class="summaryTable">
                     <div class="table">
                         <div class="summaryRow">
