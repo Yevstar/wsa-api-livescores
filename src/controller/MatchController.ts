@@ -1602,42 +1602,41 @@ export class MatchController extends BaseController {
         @QueryParam('matchPrintTemplateId') matchPrintTemplateId: number,
         @QueryParam('competitionId') competitionId: number,
         @QueryParam('teamIds') teamIds: number[],
+        @QueryParam('templateType') templateType: string,
         @Res() response: Response
     ): Promise<any> {
         try {
-
-            console.log(teamIds);
             const competition = await this.competitionService.findById(competitionId);
             const organisation = await this.organisationService.findById(competition.organisationId);
 
-
-            const matchSheet = await this.matchService.printMatchSheetTemplate(
-              'Fixtures',
+            this.matchService.printMatchSheetTemplate(
+              templateType,
               user,
               organisation,
               competition,
               divisionIds,
               teamIds
-            );
-
-            console.log('matchSheet', matchSheet);
-
-            // const result = await this.matchSheetService.createOrUpdate(matchSheet)
-            //   .then((data) => {
-            //     console.log('data', data)
-            //   })
-            //   .catch((e) => {
-            //       console.log('err', e)
-            //   });
-            //
-            // console.log('result', result);
-            //
-            //
-            // const userSheet = await this.matchSheetService.findByUserId(user.id);
-            //
-            // console.log('userSheet', userSheet);
+            ).then((matchSheet) => {
+                this.matchSheetService.createOrUpdate(matchSheet);
+            });
 
             return response.status(200).send({success: true});
+        }
+        catch (e) {
+            return response.status(212).send({success: false});
+        }
+    }
+
+    @Authorized()
+    @Get('/downloads')
+    async download(
+      @HeaderParam('authorization') user: User,
+      @Res() response: Response
+    ): Promise<any> {
+        try {
+            const matchSheets = await this.matchSheetService.findByUserId(user.id);
+
+            return response.status(200).send({success: true, data: matchSheets});
         }
         catch (e) {
             return response.status(212).send({success: false});
