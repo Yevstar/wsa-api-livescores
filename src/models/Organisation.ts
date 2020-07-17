@@ -8,6 +8,10 @@ export class Organisation extends BaseEntity {
     @PrimaryGeneratedColumn()
     id: number;
 
+    @IsNumber()
+    @Column()
+    organisationId: number;
+
     @IsString()
     @Column()
     name: string;

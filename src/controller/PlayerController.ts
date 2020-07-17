@@ -1,6 +1,8 @@
 import {Authorized, Post, HeaderParam, Body, Res, Get, JsonController, QueryParam, UploadedFile} from 'routing-controllers';
 import {Player} from '../models/Player';
 import {User} from '../models/User';
+import {Competition} from '../models/Competition';
+import {Organisation} from '../models/Organisation';
 import {Role} from '../models/security/Role';
 import {EntityType} from '../models/security/EntityType';
 import {UserRoleEntity} from '../models/security/UserRoleEntity';
@@ -22,9 +24,30 @@ export class PlayerController extends BaseController {
         @QueryParam('playUpFromAge') playUpFromAge: number,
         @QueryParam('playUpFromGrade') playUpFromGrade: string,
         @QueryParam('offset') offset: number,
-        @QueryParam('limit') limit: number
+        @QueryParam('limit') limit: number,
+        @QueryParam('includeLinkedCompetition') includeLinkedCompetition: boolean = false
     ): Promise<Player[]> {
-        return this.playerService.findByParam(name, competitionId, organisationId, teamId, playUpFromAge, playUpFromGrade, offset, limit, null);
+        let competition: Competition;
+        let organisation: Organisation
+        if (competitionId) {
+            competition = await this.competitionService.findById(competitionId);
+        }
+        if (organisationId) {
+            organisation = await this.organisationService.findById(organisationId);
+        }
+
+        return this.playerService.findByParam(
+            name,
+            competition,
+            organisation,
+            teamId,
+            playUpFromAge,
+            playUpFromGrade,
+            offset,
+            limit,
+            null,
+            includeLinkedCompetition
+        );
     }
 
     @Authorized()
@@ -157,7 +180,23 @@ export class PlayerController extends BaseController {
         @QueryParam('competitionId') competitionId: number,
         @Res() response: Response
     ) {
-        let playerData = await this.playerService.findByParam(null, competitionId, null, null, null, null, null, null, null);
+        let competition: Competition;
+        if (competitionId) {
+            competition = await this.competitionService.findById(competitionId);
+        }
+
+        let playerData = await this.playerService.findByParam(
+            null,
+            competition,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            false
+        );
         response.setHeader('Content-disposition', 'attachment; filename=player.csv');
         response.setHeader('content-type', 'text/csv');
         fastcsv
@@ -250,8 +289,29 @@ export class PlayerController extends BaseController {
         @QueryParam('playUpFromGrade') playUpFromGrade: string,
         @QueryParam('offset') offset: number,
         @QueryParam('limit') limit: number,
-        @QueryParam('search') search: string): Promise<{ page: {}, players: Player[] }> {
-        const playerData = await this.playerService.findByParam(name, competitionId, organisationId, teamId, playUpFromAge, playUpFromGrade, offset, limit, search);
+        @QueryParam('search') search: string
+    ): Promise<{ page: {}, players: Player[] }> {
+        let competition: Competition;
+        let organisation: Organisation
+        if (competitionId) {
+            competition = await this.competitionService.findById(competitionId);
+        }
+        if (organisationId) {
+            organisation = await this.organisationService.findById(organisationId);
+        }
+
+        const playerData = await this.playerService.findByParam(
+            name,
+            competition,
+            organisation,
+            teamId,
+            playUpFromAge,
+            playUpFromGrade,
+            offset,
+            limit,
+            search,
+            false
+        );
         if (offset !== null && offset !== undefined && limit !== null && limit !== undefined) {
             return { page: paginationData(playerData.matchCount, limit, offset).page, players: playerData.result };
         } else {
