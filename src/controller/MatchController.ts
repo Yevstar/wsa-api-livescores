@@ -1620,7 +1620,7 @@ export class MatchController extends BaseController {
               organisation,
               competition,
               divisionIds,
-              teamIds
+              teamIds,
             ).then((matchSheet) => {
                 this.matchSheetService.createOrUpdate(matchSheet);
             });
@@ -1636,14 +1636,16 @@ export class MatchController extends BaseController {
     @Get('/downloads')
     async download(
       @HeaderParam('authorization') user: User,
+      @QueryParam('competitionId') competitionId: number,
       @Res() response: Response
     ): Promise<any> {
         try {
-            const matchSheets = await this.matchSheetService.findByUserId(user.id);
+            const matchSheets = await this.matchSheetService.findByCompetitionId(user.id, competitionId);
 
             return response.status(200).send({success: true, data: matchSheets});
         }
         catch (e) {
+            console.log(e);
             return response.status(212).send({success: false});
         }
     }
