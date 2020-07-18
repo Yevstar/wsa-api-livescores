@@ -292,18 +292,21 @@ export class RosterController extends BaseController {
         if (!roster) {
             return response
                 .status(400).send({name: 'validation_error', message: 'Roster in body required.'});
+        } else if (!roster.userId || !roster.roleId || !roster.matchId) {
+            return response
+                .status(400).send({name: 'validation_error', message: 'Roster data incomplete.'});
         }
 
-        var savedRoster = await this.rosterService.getRosterStatus(roster.roleId, roster.teamId, roster.matchId);
-        if (savedRoster) {
-            savedRoster.userId = roster.userId;
-            savedRoster = await this.rosterService.createOrUpdate(savedRoster);
+        var existingRoster = await this.rosterService.getRosterStatus(roster.roleId, roster.teamId, roster.matchId);
+        if (existingRoster) {
+            existingRoster.userId = roster.userId;
+            existingRoster = await this.rosterService.createOrUpdate(existingRoster);
         } else {
-            savedRoster = await this.rosterService.createOrUpdate(roster);
+            existingRoster = await this.rosterService.createOrUpdate(roster);
         }
 
-        if (savedRoster) {
-            let tokens = (await this.deviceService.getUserDevices(savedRoster.userId)).map(device => device.deviceId);
+        if (existingRoster) {
+            let tokens = (await this.deviceService.getUserDevices(existingRoster.userId)).map(device => device.deviceId);
             if (tokens && tokens.length > 0) {
                 this.firebaseService.sendMessage({
                     tokens: tokens,
@@ -312,7 +315,7 @@ export class RosterController extends BaseController {
             }
         }
 
-        return this.rosterService.findAdminRosterId(savedRoster.id);
+        return this.rosterService.findAdminRosterId(existingRoster.id);
     }
 
     // specific response to allow inline editing for admin

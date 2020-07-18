@@ -6,6 +6,8 @@ import {GameTimeAttendance} from "../models/GameTimeAttendance";
 import {Lineup} from "../models/Lineup";
 import {RequestFilter} from "../models/RequestFilter";
 import {paginationData, stringTONumber, isNotNullAndUndefined } from "../utils/Utils";
+import {Competition} from '../models/Competition';
+import {Organisation} from '../models/Organisation';
 
 @Service()
 export default class PlayerService extends BaseService<Player> {
@@ -14,8 +16,18 @@ export default class PlayerService extends BaseService<Player> {
         return Player.name;
     }
 
-    public async findByParam(name: string, competitionId: number, organisationId: number, teamId: number,
-        playUpFromAge: number, playUpFromGrade: string, offset: number, limit: number, search: string): Promise<any> {
+    public async findByParam(
+        name: string,
+        competition: Competition,
+        organisation: Organisation,
+        teamId: number,
+        playUpFromAge: number,
+        playUpFromGrade: string,
+        offset: number,
+        limit: number,
+        search: string,
+        includeLinkedCompetition: boolean
+    ): Promise<any> {
         let query = this.entityManager.createQueryBuilder(Player, 'player')
             .innerJoinAndSelect("player.team", "team")
             .innerJoinAndSelect("team.division", "division")
@@ -38,8 +50,25 @@ export default class PlayerService extends BaseService<Player> {
             });
         }
 
-        if (competitionId) query.andWhere('team.competitionId = :competitionId', { competitionId });
-        if (organisationId) query.andWhere('organisation.id = :organisationId', { organisationId });
+        if (competition) {
+            if (includeLinkedCompetition && competition.linkedCompetitionId) {
+                query.andWhere('(team.competitionId = :competitionId OR \n' +
+                  'team.competitionId = :linkedCompetitionId)',
+                  {competitionId: competition.id,
+                    linkedCompetitionId: competition.linkedCompetitionId});
+            } else {
+                query.andWhere('team.competitionId = :id', {id: competition.id});
+            }
+        }
+
+        if (organisation) {
+            if (includeLinkedCompetition) {
+                query.andWhere('organisation.organisationId = :organisationId', {organisationId: organisation.organisationId});
+            } else {
+                query.andWhere('organisation.id = :organisationId', {organisationId: organisation.id});
+            }
+        }
+
         if (teamId) query.andWhere('team.id = :teamId', { teamId });
 
         if (playUpFromGrade && playUpFromAge) {

@@ -712,7 +712,7 @@ export class UserController extends BaseController {
         if (isArrayPopulated(jsonObj)) {
             for (let i of jsonObj) {
                 if ( teamRequired &&
-                    (isEmpty(i['Team']) || isEmpty(i['DivisionName']))
+                    (isEmpty(i['Team']) || isEmpty(i['Grade']))
                 ) {
                    // Skip entry
                    return response.status(212).send(`Team and DivisionName are required`);

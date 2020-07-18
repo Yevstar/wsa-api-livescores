@@ -892,6 +892,9 @@ export class MatchController extends BaseController {
                     return response.status(400).send(
                         {name: 'validation_error', message: `Match Id and team Id can not be null`});
                 }
+                if (teamId && matchId) {
+                    await this.checkLineupsForExisting(matchId, teamId, lineups);
+                }
                 await this.matchService.batchSaveLineups(lineups);
                 if (updateMatchEvents) {
                     let match = await this.matchService.findById(matchId);
@@ -951,6 +954,9 @@ export class MatchController extends BaseController {
         console.timeEnd('matchService.findById');
         if (match.matchStatus != 'ENDED') {
             if (lineups.length > 0) {
+                if (matchId && teamId) {
+                    await this.checkLineupsForExisting(matchId, teamId, lineups);
+                }
                 await this.matchService.batchSaveLineups(lineups);
                 if (updateMatchEvents) {
                     this.updateMatchEventsForLineup(match, teamId, lineups);
@@ -973,6 +979,27 @@ export class MatchController extends BaseController {
         } else {
             return response.status(400).send({name: 'update_lineup_error', message: 'Lineup cannot be submitted after a match has ended'});
         }
+    }
+
+    private async checkLineupsForExisting(matchId: number, teamId: number, lineups: Lineup[]) {
+        let existingLineups = await this.lineupService.findByParams(
+            matchId,
+            null,
+            teamId,
+            null
+        );
+        lineups.forEach(lineup => {
+            if (!lineup.id) {
+                const existingLineup = existingLineups.filter(el =>
+                  (el.matchId == lineup.matchId &&
+                    el.teamId == lineup.teamId &&
+                    el.playerId == lineup.playerId)
+                );
+                if (existingLineup && existingLineup.length != 0) {
+                    lineup.id = existingLineup[0].id;
+                }
+            }
+        });
     }
 
     @Authorized()
