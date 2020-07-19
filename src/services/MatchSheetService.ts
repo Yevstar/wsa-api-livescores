@@ -29,7 +29,7 @@ export default class MatchSheetService extends BaseService<MatchSheet> {
       query = this.entityManager.createQueryBuilder(MatchSheet, 'matchSheet')
         .andWhere('matchSheet.userId = :userId', {userId})
         .andWhere('matchSheet.competitionId = :competitionId', {competitionId})
-        .orderBy('created_at', 'DESC').limit(1);
+        .orderBy('created_at', 'DESC');
     }
 
     return query.getMany()

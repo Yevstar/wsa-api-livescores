@@ -316,7 +316,7 @@ const getMatchSheetTemplate = (
                             </div>
                             ${team1players.length > 0 ? team1players.map((player, index) => (
                                 `<div class="row">
-                                    <div class="cell">${index}</div>
+                                    <div class="cell">${player.id}</div>
                                     <div class="largeCell">${player.firstName || ''} ${player.lastName || ''}</div>
                                     <div class="largeCell"></div>
                                     <div class="cell"></div>
@@ -340,7 +340,7 @@ const getMatchSheetTemplate = (
                             </div>
                             ${team2players.length > 0 ? team2players.map((player, index) => (
                                 `<div class="row">
-                                    <div class="cell">${index}</div>
+                                    <div class="cell">${player.id}</div>
                                     <div class="largeCell">${player.firstName || ''} ${player.lastName || ''}</div>
                                     <div class="largeCell"></div>
                                     <div class="cell"></div>
