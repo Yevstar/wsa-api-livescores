@@ -22,4 +22,16 @@ export default class MatchSheetService extends BaseService<MatchSheet> {
 
     return query.getMany()
   }
+
+  public async findByCompetitionId(userId?: number, competitionId?: number): Promise<MatchSheet[]> {
+    let query = this.entityManager.createQueryBuilder(MatchSheet, 'matchSheet');
+    if (competitionId !== undefined && competitionId !== null) {
+      query = this.entityManager.createQueryBuilder(MatchSheet, 'matchSheet')
+        .andWhere('matchSheet.userId = :userId', {userId})
+        .andWhere('matchSheet.competitionId = :competitionId', {competitionId})
+        .orderBy('created_at', 'DESC').limit(1);
+    }
+
+    return query.getMany()
+  }
 }
