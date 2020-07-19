@@ -715,7 +715,7 @@ export class UserController extends BaseController {
                     (isEmpty(i['Team']) || isEmpty(i['Grade']))
                 ) {
                    // Skip entry
-                   return response.status(212).send(`Team and DivisionName are required`);
+                   return response.status(212).send(`Team and Grade are required`);
                 } else if ( !teamRequired &&
                     isEmpty(i['Organisation'])
                 ) {
