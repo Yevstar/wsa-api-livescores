@@ -522,7 +522,7 @@ export class UserController extends BaseController {
             // Create necessary URE's and notify
             await this.createUREAndNotify(type, userData, competitionId, user.id);
 
-            return response.status(200).send({success: true});
+            return userData;
         } catch (error) {
             logger.error(`Failed to add ${type} due to error -`, error);
             return response.status(400)
