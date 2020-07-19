@@ -8,8 +8,8 @@ import {MatchUmpire} from '../models/MatchUmpire';
 const getMatchSheetTemplate = (
   templateType: string = 'Fixtures',
   organisation: Organisation,
-  team1players: Player[],
-  team2players: Player[],
+  team1players: any[],
+  team2players: any[],
   umpires: MatchUmpire[],
   match: Match
 ) => {
@@ -281,7 +281,7 @@ const getMatchSheetTemplate = (
           </style>
        </head>
        <body>
-          <div class="page">
+          <div class="page no-break">
             <div class="header no-break">
                 <div class="title">
                     <div class="associationName">${organisation.name || 'Association'}</div>
@@ -302,7 +302,7 @@ const getMatchSheetTemplate = (
                 </div>
             </div>
             ${templateType !== 'Carnival' ? (
-                `<div class="tableContent no-break">
+                `<div class="tableContent">
                     <div class="signTable">
                         <div class="table">
                             <div class="row">
@@ -316,7 +316,7 @@ const getMatchSheetTemplate = (
                             </div>
                             ${team1players.length > 0 ? team1players.map((player, index) => (
                                 `<div class="row">
-                                    <div class="cell">${player.id}</div>
+                                    <div class="cell">${player.playerId || ''}</div>
                                     <div class="largeCell">${player.firstName || ''} ${player.lastName || ''}</div>
                                     <div class="largeCell"></div>
                                     <div class="cell"></div>
@@ -327,7 +327,7 @@ const getMatchSheetTemplate = (
                             )).join('') : ''}
                         </div>
                     </div>
-                    <div class="signTable no-break">
+                    <div class="signTable">
                         <div class="table">
                             <div class="row">
                                 <div class="cell">#</div>
@@ -340,7 +340,7 @@ const getMatchSheetTemplate = (
                             </div>
                             ${team2players.length > 0 ? team2players.map((player, index) => (
                                 `<div class="row">
-                                    <div class="cell">${player.id}</div>
+                                    <div class="cell">${player.playerId || ''}</div>
                                     <div class="largeCell">${player.firstName || ''} ${player.lastName || ''}</div>
                                     <div class="largeCell"></div>
                                     <div class="cell"></div>
@@ -354,7 +354,7 @@ const getMatchSheetTemplate = (
                 </div>`
             ) : ''}
             <div class="subTitle">Centre Pass</div>
-            <div class="tableContent no-break">
+            <div class="tableContent">
                 <div class="passTable">
                     <div class="table">
                         ${[...Array(4).keys()].map((rowIndex) => (
@@ -368,7 +368,7 @@ const getMatchSheetTemplate = (
                 </div>
             </div>
             <div class="subTitle">Progressive Score</div>
-            <div class="tableContent no-break">
+            <div class="tableContent">
                 <div class="scoreTableLeft">
                     <div class="tableTitle">Team 1</div>
                     ${[...Array(4).keys()].map((rowIndex) => (
@@ -393,7 +393,7 @@ const getMatchSheetTemplate = (
             ${templateType !== 'Social' ? (
                 `<div>
                     <div class="subTitle">Goal Statistics</div>
-                    <div class="tableContent no-break">
+                    <div class="tableContent">
                         <div class="goalTable">
                             <div class="table">
                                 ${[...Array(4).keys()].map((rowIndex) => (
@@ -434,7 +434,7 @@ const getMatchSheetTemplate = (
                         </div>
                     </div>
                     <div class="subTitle">MVP</div>
-                    <div class="tableContent no-break">
+                    <div class="tableContent">
                         <div class="summaryTable">
                             <div class="table">
                                 <div class="summaryRow">
@@ -457,7 +457,7 @@ const getMatchSheetTemplate = (
                     </div>
                 </div>`
             ) : ''}
-            <div class="tableContent no-break">
+            <div class="tableContent">
                 <div class="summaryTable">
                     <div class="table">
                         <div class="summaryRow">
