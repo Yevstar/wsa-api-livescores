@@ -101,7 +101,7 @@ export default class TeamService extends BaseService<Team> {
             if(competitionIds){
                 vCompetitionIds = competitionIds;
             }
- 
+
             let result = await this.entityManager.query("call wsa.usp_get_ladder(?,?,?,?,?)",
             [null, null, vCompetitionIds,vTeamIds,  vDivisionIds]);
             let response = []
@@ -131,7 +131,7 @@ export default class TeamService extends BaseService<Team> {
         } catch (error) {
             throw error;
         }
-        
+
     }
 
     public async teamIdsByOrganisationIds(organisationIds: number[]): Promise<any[]> {
@@ -161,37 +161,48 @@ export default class TeamService extends BaseService<Team> {
         return query.select(['player.id', 'player.firstName', 'player.lastName', 'player.email']).getMany();
     }
 
-    public async summaryScoringStat(competitionId: number, teamId: number) {
+    public async summaryScoringStat(competitionId: number, teamId: number, divisionId: number, noOfTeams: number) {
         return this.entityManager.query(
             'select\n' +
             'SUM(IF(teamId = ?, goal, 0))         as own_goal,\n' +
             'SUM(IF(teamId = ?, miss, 0))         as own_miss,\n' +
             'SUM(IF(teamId = ?, penalty_miss, 0)) as own_penalty_miss,\n' +
-            'SUM(goal)                            as avg_goal,\n' +
-            'SUM(miss)                            as avg_miss,\n' +
-            'SUM(penalty_miss)                    as avg_penalty_miss\n' +
+            '((SUM(goal)/?) * 100)                as avg_goal,\n' +
+            '((SUM(miss)/?) * 100)                as avg_miss,\n' +
+            '((SUM(penalty_miss)/?) * 100)        as avg_penalty_miss\n' +
             'from shootingStats\n' +
-            'where competitionId = ? ;', [teamId, teamId, teamId, competitionId]
+            'where competitionId = ? AND divisionId = ?;',
+            [teamId, teamId, teamId, noOfTeams, noOfTeams, noOfTeams, competitionId, divisionId]
         );
     }
 
-    public async scoringStatsByMatch(competitionId: number, teamId: number, matchId: number) {
+    public async scoringStatsByMatch(competitionId: number, teamId: number, matchId: number, divisionId: number, noOfMatches: number) {
         return this.entityManager.query(
             'select\n' +
             'SUM(IF(teamId = ? and matchId = ?, goal, 0))         as own_goal,\n' +
             'SUM(IF(teamId = ? and matchId = ?, miss, 0))         as own_miss,\n' +
             'SUM(IF(teamId = ? and matchId = ?, penalty_miss, 0)) as own_penalty_miss,\n' +
-            'SUM(goal)                                            as avg_goal,\n' +
-            'SUM(miss)                                            as avg_miss,\n' +
-            'SUM(penalty_miss)                                    as avg_penalty_miss\n' +
+            '((SUM(goal)/?) * 100)                                as avg_goal,\n' +
+            '((SUM(miss)/?) * 100)                                as avg_miss,\n' +
+            '((SUM(penalty_miss)/?) * 100)                        as avg_penalty_miss\n' +
             'from shootingStats\n' +
-            'where competitionId = ? ;', [teamId, matchId, teamId, matchId, teamId, matchId, competitionId]
+            'where competitionId = ? AND  divisionId = ?;',
+            [teamId, matchId, teamId, matchId, teamId, matchId, noOfMatches, noOfMatches, noOfMatches, competitionId, divisionId]
         );
     }
 
-    public async scoringStatsByPlayer(competitionId: number, playerId: number, aggregate: ("ALL" | "MATCH"), offset: number, limit: number, search: string): Promise<any> {
-        let result = await this.entityManager.query("call wsa.usp_get_scoring_stats_by_player(?,?,?,?,?,?)",
-            [competitionId, playerId, aggregate, limit, offset, search]);
+    public async scoringStatsByPlayer(
+        competitionId: number,
+        playerId: number,
+        aggregate: ("ALL" | "MATCH"),
+        offset: number,
+        limit: number,
+        search: string,
+        divisionId: number,
+        noOfTeams: number
+    ): Promise<any> {
+        let result = await this.entityManager.query("call wsa.usp_get_scoring_stats_by_player(?,?,?,?,?,?,?,?)",
+            [competitionId, playerId, aggregate, limit, offset, search, divisionId, noOfTeams]);
 
         if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
             return { count: result[1], finalData: result[0] }
@@ -332,5 +343,14 @@ export default class TeamService extends BaseService<Team> {
       } else {
         return [];
       }
+    }
+
+    public async findNumberOfTeams(divisionId: number): Promise<number> {
+        return this.entityManager.createQueryBuilder(Team, 'team')
+            .innerJoin('team.division', 'division')
+            .where('team.divisionId = :divisionId', {divisionId: divisionId})
+            .andWhere('team.deleted_at is null')
+            .andWhere('division.deleted_at is null')
+            .getCount();
     }
 }

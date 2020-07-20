@@ -50,10 +50,13 @@ export class StatController extends BaseController {
     @Get('/summaryScoringForTeam')
     async summaryScoringForTeam(
         @QueryParam('competitionId', {required: true}) competitionId: number = undefined,
+        @QueryParam('divisionId', {required: true}) divisionId: number = undefined,
         @QueryParam('teamId', {required: true}) teamId: number = undefined,
-        @Res() response: Response) {
-        if (competitionId && teamId) {
-            return this.teamService.summaryScoringStat(competitionId, teamId);
+        @Res() response: Response
+    ) {
+        if (competitionId && teamId && divisionId) {
+            const noOfTeams = await this.teamService.findNumberOfTeams(divisionId);
+            return this.teamService.summaryScoringStat(competitionId, teamId, divisionId, noOfTeams);
         } else {
             return response.status(200).send(
                 {name: 'search_error', message: `Required fields not filled`});
@@ -64,11 +67,14 @@ export class StatController extends BaseController {
     @Get('/scoringByMatchForTeam')
     async scoringStatsByMatchForTeam(
         @QueryParam('competitionId', {required: true}) competitionId: number = undefined,
+        @QueryParam('divisionId', {required: true}) divisionId: number = undefined,
         @QueryParam('teamId', {required: true}) teamId: number = undefined,
         @QueryParam('matchId', {required: true}) matchId: number = undefined,
-        @Res() response: Response) {
-        if (competitionId && teamId) {
-            return this.teamService.scoringStatsByMatch(competitionId, teamId, matchId);
+        @Res() response: Response
+    ) {
+        if (competitionId && teamId && divisionId) {
+            const noOfMatches = await this.matchService.findNumberOfMatches(divisionId);
+            return this.teamService.scoringStatsByMatch(competitionId, teamId, matchId, divisionId, noOfMatches);
         } else {
             return response.status(200).send(
                 {name: 'search_error', message: `Required fields not filled`});
@@ -79,14 +85,25 @@ export class StatController extends BaseController {
     @Get('/scoringByPlayer')
     async scoringStatsByPlayer(
         @QueryParam('competitionId', { required: true }) competitionId: number = undefined,
+        @QueryParam('divisionId', { required: true }) divisionId: number = undefined,
         @QueryParam('playerId') playerId: number = undefined,
         @QueryParam('aggregate') aggregate: ("ALL" | "MATCH"),
         @QueryParam('offset') offset: number,
         @QueryParam('limit') limit: number,
         @QueryParam('search') search: string,
         @Res() response: Response) {
-        if (competitionId) {
-            const getScoringData = await this.teamService.scoringStatsByPlayer(competitionId, playerId, aggregate, offset, limit, search);
+        if (competitionId && divisionId) {
+            const noOfTeams = await this.teamService.findNumberOfTeams(divisionId);
+            const getScoringData = await this.teamService.scoringStatsByPlayer(
+                competitionId,
+                playerId,
+                aggregate,
+                offset,
+                limit,
+                search,
+                divisionId,
+                noOfTeams
+            );
             if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit) && isArrayPopulated(getScoringData.count)) {
                 return { ...paginationData(stringTONumber(getScoringData.count[0]['totalCount']), limit, offset), result: getScoringData.finalData }
             } else {
@@ -177,13 +194,25 @@ export class StatController extends BaseController {
     @Get('/export/scoringByPlayer')
     async exportScoringStatsByPlayer(
         @QueryParam('competitionId', { required: true }) competitionId: number,
+        @QueryParam('divisionId', { required: true }) divisionId: number,
         @QueryParam('playerId') playerId: number,
         @QueryParam('aggregate') aggregate: ("ALL" | "MATCH"),
         @QueryParam('search') search: string,
-        @Res() response: Response) {
+        @Res() response: Response
+    ) {
         if (competitionId) {
             if (search === null || search === undefined) search = '';
-            let playerScoreData = await this.teamService.scoringStatsByPlayer(competitionId, playerId, aggregate, null, null, search);
+            const noOfTeams = await this.teamService.findNumberOfTeams(divisionId);
+            let playerScoreData = await this.teamService.scoringStatsByPlayer(
+                competitionId,
+                playerId,
+                aggregate,
+                null,
+                null,
+                search,
+                divisionId,
+                noOfTeams
+            );
 
             if (isArrayPopulated(playerScoreData)) {
                 playerScoreData.map(e => {
