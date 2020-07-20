@@ -551,13 +551,4 @@ export default class MatchService extends BaseService<Match>  {
             logger.error(`Failed generating PDF`, e);
         }
     }
-
-    public async findNumberOfMatches(divisionId: number): Promise<number> {
-        return this.entityManager.createQueryBuilder(Match, 'match')
-            .innerJoin('match.division', 'division')
-            .where('match.divisionId = :divisionId', {divisionId: divisionId})
-            .andWhere('match.deleted_at is null')
-            .andWhere('division.deleted_at is null')
-            .getCount();
-    }
 }
