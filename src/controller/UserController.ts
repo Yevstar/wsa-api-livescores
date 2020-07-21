@@ -642,7 +642,7 @@ export class UserController extends BaseController {
                 ure.userId = user.id
                 ure.createdBy = createdBy;
                 ureArray.push(ure);
-                
+
                 if (addUserToChat) {
                     /// Checking with respect to each team for existing chat
                     teamChatPromiseArray.push(
@@ -710,6 +710,7 @@ export class UserController extends BaseController {
             jsonObj.push(obj);
         }
         if (isArrayPopulated(jsonObj)) {
+            var validator = require("email-validator");
             for (let i of jsonObj) {
                 if ( teamRequired &&
                     (isEmpty(i['Team']) || isEmpty(i['Grade']))
@@ -724,7 +725,8 @@ export class UserController extends BaseController {
                 } else if (isNotNullAndUndefined(i['Email']) && (i['Email'] != '') &&
                     isNotNullAndUndefined(i['First Name']) && (i['First Name'] != '') &&
                     isNotNullAndUndefined(i['Last Name']) && (i['Last Name'] != '') &&
-                    isNotNullAndUndefined(i['Contact No']) && (i['Contact No'] != '')) {
+                    isNotNullAndUndefined(i['Contact No']) && (i['Contact No'] != '') &&
+                    validator.validate(i['Email'])) {
 
                     const userDetails = new User();
                     let newUser = false;
