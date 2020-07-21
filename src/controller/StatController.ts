@@ -49,11 +49,14 @@ export class StatController extends BaseController {
     @Authorized()
     @Get('/summaryScoringForTeam')
     async summaryScoringForTeam(
-        @QueryParam('competitionId', {required: true}) competitionId: number = undefined,
-        @QueryParam('teamId', {required: true}) teamId: number = undefined,
-        @Res() response: Response) {
-        if (competitionId && teamId) {
-            return this.teamService.summaryScoringStat(competitionId, teamId);
+        @QueryParam('competitionId', {required: true}) competitionId: number,
+        @QueryParam('divisionId', {required: true}) divisionId: number,
+        @QueryParam('teamId', {required: true}) teamId: number,
+        @Res() response: Response
+    ) {
+        if (competitionId && teamId && divisionId) {
+            const noOfTeams = await this.teamService.findNumberOfTeams(divisionId);
+            return this.teamService.summaryScoringStat(competitionId, teamId, divisionId, noOfTeams);
         } else {
             return response.status(200).send(
                 {name: 'search_error', message: `Required fields not filled`});
@@ -63,12 +66,15 @@ export class StatController extends BaseController {
     @Authorized()
     @Get('/scoringByMatchForTeam')
     async scoringStatsByMatchForTeam(
-        @QueryParam('competitionId', {required: true}) competitionId: number = undefined,
-        @QueryParam('teamId', {required: true}) teamId: number = undefined,
-        @QueryParam('matchId', {required: true}) matchId: number = undefined,
-        @Res() response: Response) {
-        if (competitionId && teamId) {
-            return this.teamService.scoringStatsByMatch(competitionId, teamId, matchId);
+        @QueryParam('competitionId', {required: true}) competitionId: number,
+        @QueryParam('divisionId', {required: true}) divisionId: number,
+        @QueryParam('teamId', {required: true}) teamId: number,
+        @QueryParam('matchId', {required: true}) matchId: number,
+        @Res() response: Response
+    ) {
+        if (competitionId && teamId && divisionId) {
+            const noOfMatches = await this.matchService.findNumberOfMatches(divisionId);
+            return this.teamService.scoringStatsByMatch(competitionId, teamId, matchId, divisionId, noOfMatches);
         } else {
             return response.status(200).send(
                 {name: 'search_error', message: `Required fields not filled`});
@@ -78,23 +84,42 @@ export class StatController extends BaseController {
     @Authorized()
     @Get('/scoringByPlayer')
     async scoringStatsByPlayer(
-        @QueryParam('competitionId', { required: true }) competitionId: number = undefined,
-        @QueryParam('playerId') playerId: number = undefined,
+        @QueryParam('competitionId', { required: true }) competitionId: number,
+        @QueryParam('divisionId') divisionId: number,
+        @QueryParam('playerId') playerId: number,
         @QueryParam('aggregate') aggregate: ("ALL" | "MATCH"),
         @QueryParam('offset') offset: number,
         @QueryParam('limit') limit: number,
         @QueryParam('search') search: string,
-        @Res() response: Response) {
-        if (competitionId) {
-            const getScoringData = await this.teamService.scoringStatsByPlayer(competitionId, playerId, aggregate, offset, limit, search);
-            if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit) && isArrayPopulated(getScoringData.count)) {
-                return { ...paginationData(stringTONumber(getScoringData.count[0]['totalCount']), limit, offset), result: getScoringData.finalData }
-            } else {
-                return getScoringData
-            }
+        @Res() response: Response
+    ) {
+        if (!competitionId) {
+            return response.status(400).send(
+                {name: 'search_error', message: `CompetitionId data is missing`});
+        }
+        if (playerId && !divisionId) {
+            return response.status(400).send(
+                {name: 'search_error', message: `DivisionId data is missing`});
+        }
+
+        let noOfTeams;
+        if (divisionId) {
+            noOfTeams = await this.teamService.findNumberOfTeams(divisionId);
+        }
+        const getScoringData = await this.teamService.scoringStatsByPlayer(
+            competitionId,
+            playerId,
+            aggregate,
+            offset,
+            limit,
+            search,
+            divisionId,
+            noOfTeams
+        );
+        if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit) && isArrayPopulated(getScoringData.count)) {
+            return { ...paginationData(stringTONumber(getScoringData.count[0]['totalCount']), limit, offset), result: getScoringData.finalData }
         } else {
-            return response.status(200).send(
-                { name: 'search_error', message: `Required fields not filled` });
+            return getScoringData
         }
     }
 
@@ -178,65 +203,85 @@ export class StatController extends BaseController {
     async exportScoringStatsByPlayer(
         @QueryParam('competitionId', { required: true }) competitionId: number,
         @QueryParam('playerId') playerId: number,
+        @QueryParam('divisionId') divisionId: number,
         @QueryParam('aggregate') aggregate: ("ALL" | "MATCH"),
         @QueryParam('search') search: string,
-        @Res() response: Response) {
-        if (competitionId) {
-            if (search === null || search === undefined) search = '';
-            let playerScoreData = await this.teamService.scoringStatsByPlayer(competitionId, playerId, aggregate, null, null, search);
-
-            if (isArrayPopulated(playerScoreData)) {
-                playerScoreData.map(e => {
-                    e['Match Id'] = e.matchId;
-                    e['Date'] = e.startTime;
-                    e['Team'] = e.teamName;
-                    e['First Name'] = e.firstName;
-                    e['Last Name'] = e.lastName;
-                    e['Position'] = e.gamePositionName;
-                    e['Misses'] = e.miss;
-                    e['Goals'] = e.goal;
-                    e['Goals %'] = (e.goal_percent * 100).toFixed(2);
-
-                    delete e.firstName;
-                    delete e.gamePositionName;
-                    delete e.goal;
-                    delete e.goal_percent;
-                    delete e.lastName;
-                    delete e.matchId;
-                    delete e.miss;
-                    delete e.mnbPlayerId;
-                    delete e.penalty_miss;
-                    delete e.playerId;
-                    delete e.startTime;
-                    delete e.team1Name;
-                    delete e.team2Name;
-                    delete e.teamId;
-                    delete e.teamName;
-                    return e;
-                });
-            } else {
-                playerScoreData.push({
-                    ['Match Id']: 'N/A',
-                    ['Date']: 'N/A',
-                    ['Team']: 'N/A',
-                    ['First Name']: 'N/A',
-                    ['Last Name']: 'N/A',
-                    ['Position']: 'N/A',
-                    ['Misses']: 'N/A',
-                    ['Goals']: 'N/A',
-                    ['Goals %']: 'N/A'
-                });
-            }
-
-            response.setHeader('Content-disposition', 'attachment; filename=scoringByPlayer.csv');
-            response.setHeader('content-type', 'text/csv');
-            fastcsv.write(playerScoreData, { headers: true })
-                .on("finish", function () { })
-                .pipe(response);
-        } else {
-            return response.status(212).send(
-                { name: 'search_error', message: `Required fields not filled` });
+        @Res() response: Response
+    ) {
+        if (!competitionId) {
+            return response.status(400).send(
+                {name: 'missing_data', message: `Data missing for field competitionId`});
         }
+        if (playerId && !divisionId) {
+            return response.status(400).send(
+                {name: 'missing_data', message: `Data missing for field divisionId`});
+        }
+
+        let noOfTeams;
+        if (divisionId) {
+            noOfTeams = await this.teamService.findNumberOfTeams(divisionId);
+        }
+
+        if (search === null || search === undefined) search = '';
+        let playerScoreData = await this.teamService.scoringStatsByPlayer(
+            competitionId,
+            playerId,
+            aggregate,
+            null,
+            null,
+            search,
+            divisionId,
+            noOfTeams
+        );
+
+        if (isArrayPopulated(playerScoreData)) {
+            playerScoreData.map(e => {
+                e['Match Id'] = e.matchId;
+                e['Date'] = e.startTime;
+                e['Team'] = e.teamName;
+                e['First Name'] = e.firstName;
+                e['Last Name'] = e.lastName;
+                e['Position'] = e.gamePositionName;
+                e['Misses'] = e.miss;
+                e['Goals'] = e.goal;
+                e['Goals %'] = (e.goal_percent * 100).toFixed(2);
+
+                delete e.firstName;
+                delete e.gamePositionName;
+                delete e.goal;
+                delete e.goal_percent;
+                delete e.lastName;
+                delete e.matchId;
+                delete e.miss;
+                delete e.mnbPlayerId;
+                delete e.penalty_miss;
+                delete e.playerId;
+                delete e.startTime;
+                delete e.team1Name;
+                delete e.team2Name;
+                delete e.teamId;
+                delete e.teamName;
+                return e;
+            });
+        } else {
+            playerScoreData.push({
+                ['Match Id']: 'N/A',
+                ['Date']: 'N/A',
+                ['Team']: 'N/A',
+                ['First Name']: 'N/A',
+                ['Last Name']: 'N/A',
+                ['Position']: 'N/A',
+                ['Misses']: 'N/A',
+                ['Goals']: 'N/A',
+                ['Goals %']: 'N/A'
+            });
+        }
+
+        response.setHeader('Content-disposition', 'attachment; filename=scoringByPlayer.csv');
+        response.setHeader('content-type', 'text/csv');
+        fastcsv.write(playerScoreData, { headers: true })
+            .on("finish", function () { })
+            .pipe(response);
     }
 
     @Authorized()
