@@ -16,6 +16,8 @@ import {RoleFunction} from "./models/security/RoleFunction";
 import {Function} from "./models/security/Function";
 import * as admin from "firebase-admin";
 import {firebaseCertAdminConfig, firebaseConfig} from "./integration/firebase.config";
+import {firebaseDevCertAdminConfig, firebaseDevConfig} from "./integration/firebase.dev.config";
+import {firebaseStgCertAdminConfig, firebaseStgConfig} from "./integration/firebase.stg.config";
 import {validationMetadatasToSchemas} from "class-validator-jsonschema";
 import {getFromContainer, MetadataStorage} from "class-validator";
 import {routingControllersToSpec} from "routing-controllers-openapi";
@@ -117,7 +119,7 @@ async function start() {
                         else{
                             query = User.createQueryBuilder('user').andWhere(
                                 'LOWER(user.email) = :email and user.password = :password and user.isDeleted = 0',
-                                {email: data[0].toLowerCase(), password: data[1]});        
+                                {email: data[0].toLowerCase(), password: data[1]});
                         }
 
                         if (action.request.url == '/users/profile' && action.request.method == 'PATCH')
@@ -163,9 +165,23 @@ async function start() {
         , middlewares: [RequestLogger, ErrorHandlerMiddleware]
     });
 
+    const currentEnv = process.env.FIREBASE_ENV;
+    var projId;
+    var cred;
+    if (process.env.FIREBASE_ENV == "development") {
+        cred = admin.credential.cert(firebaseDevCertAdminConfig);
+        projId = firebaseDevConfig.projectId;
+    } else if (process.env.FIREBASE_ENV == "staging") {
+        cred = admin.credential.cert(firebaseStgCertAdminConfig)
+        projId = firebaseStgConfig.projectId;
+    } else {
+        cred = admin.credential.cert(firebaseCertAdminConfig);
+        projId = firebaseConfig.projectId;
+    }
+
     admin.initializeApp({
-        credential: admin.credential.cert(firebaseCertAdminConfig),
-        databaseURL: `https://${firebaseConfig.projectId}.firebaseio.com`
+        credential: cred,
+        databaseURL: `https://${projId}.firebaseio.com`
     });
 
     app.set('view engine', 'ejs');
