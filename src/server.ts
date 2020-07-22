@@ -168,10 +168,10 @@ async function start() {
     const currentEnv = process.env.FIREBASE_ENV;
     var projId;
     var cred;
-    if (process.env.FIREBASE_ENV == "development") {
+    if (currentEnv == "development") {
         cred = admin.credential.cert(firebaseDevCertAdminConfig);
         projId = firebaseDevConfig.projectId;
-    } else if (process.env.FIREBASE_ENV == "staging") {
+    } else if (currentEnv == "staging") {
         cred = admin.credential.cert(firebaseStgCertAdminConfig)
         projId = firebaseStgConfig.projectId;
     } else {
