@@ -165,18 +165,18 @@ async function start() {
         , middlewares: [RequestLogger, ErrorHandlerMiddleware]
     });
 
-    const currentEnv = process.env.FIREBASE_ENV;
+    const firebaseEnv = process.env.FIREBASE_ENV;
     var projId;
     var cred;
-    if (currentEnv == "development") {
-        cred = admin.credential.cert(firebaseDevCertAdminConfig);
-        projId = firebaseDevConfig.projectId;
-    } else if (currentEnv == "staging") {
+    if (firebaseEnv == "wsa-prod") {
+        cred = admin.credential.cert(firebaseCertAdminConfig);
+        projId = firebaseConfig.projectId;
+    } else if (firebaseEnv == "wsa-stg") {
         cred = admin.credential.cert(firebaseStgCertAdminConfig)
         projId = firebaseStgConfig.projectId;
     } else {
-        cred = admin.credential.cert(firebaseCertAdminConfig);
-        projId = firebaseConfig.projectId;
+        cred = admin.credential.cert(firebaseDevCertAdminConfig);
+        projId = firebaseDevConfig.projectId;
     }
 
     admin.initializeApp({

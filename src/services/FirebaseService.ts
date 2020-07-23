@@ -21,16 +21,7 @@ export default class FirebaseService {
     }
 
     public async upload(filePath: string, file: Express.Multer.File, isPublic: boolean = false): Promise<any> {
-        const currentEnv = process.env.FIREBASE_ENV;
-        var fbStorageBuck;
-        if (currentEnv == "development") {
-            fbStorageBuck = firebaseDevConfig.storageBucket;
-        } else if (currentEnv == "staging") {
-            fbStorageBuck = firebaseStgConfig.storageBucket;
-        } else {
-            fbStorageBuck = firebaseConfig.storageBucket;
-        }
-        const bucket = admin.storage().bucket(fbStorageBuck);
+        const bucket = await this.getFirebaseStorageBucket();
 
         const uploadToStorage = async (fileContent: any, filePath: string, mimetype: string): Promise<any> =>
             new Promise<any>((resolve, reject): void => {
@@ -223,16 +214,7 @@ export default class FirebaseService {
     }
 
     public async removeMedia(filePath: string): Promise<any> {
-        const currentEnv = process.env.FIREBASE_ENV;
-        var fbStorageBuck;
-        if (currentEnv == "development") {
-            fbStorageBuck = firebaseDevConfig.storageBucket;
-        } else if (currentEnv == "staging") {
-            fbStorageBuck = firebaseStgConfig.storageBucket;
-        } else {
-            fbStorageBuck = firebaseConfig.storageBucket;
-        }
-        const bucket = admin.storage().bucket(fbStorageBuck);
+        const bucket = await this.getFirebaseStorageBucket();
 
         const deleteFile = async (): Promise<any> =>
             new Promise<any>((resolve, reject): void => {
@@ -247,5 +229,18 @@ export default class FirebaseService {
             });
 
         return deleteFile();
+    }
+
+    private async getFirebaseStorageBucket() {
+        const firebaseEnv = process.env.FIREBASE_ENV;
+        var fbStorageBuck;
+        if (firebaseEnv == "wsa-prod") {
+            fbStorageBuck = firebaseConfig.storageBucket;
+        } else if (firebaseEnv == "wsa-stg") {
+            fbStorageBuck = firebaseStgConfig.storageBucket;
+        } else {
+            fbStorageBuck = firebaseDevConfig.storageBucket;
+        }
+        return admin.storage().bucket(fbStorageBuck);
     }
 }
