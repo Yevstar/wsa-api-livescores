@@ -252,9 +252,8 @@ export default class TeamService extends BaseService<Team> {
         you to use the Netball LiveScores App so that you can view team news,
         messages and events. Of course, this is in addition to viewing live
         scores, draws and ladders!
-        <br><br> 1. If you don't have the App yet, download it from
-        <a href=https://www.worldsportaction.com>worldsportaction.com</a>,
-        go to Account and Sign up with your email.
+        <br><br> 1. If you don't have the App yet, download it from the <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
+        <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a>.
         <br><br> 2. If you have the App and haven't signed up yet,
         <a href=${signUpURL}>click here</a>.
         <br><br> 3. If you have the App and have already signed up,
