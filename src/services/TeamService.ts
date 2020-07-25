@@ -149,6 +149,7 @@ export default class TeamService extends BaseService<Team> {
 
     public async playerListByTeamId(ids: number[]): Promise<Player[]> {
         let query = this.entityManager.createQueryBuilder(Player, 'player');
+        query.innerJoinAndSelect('player.team', 'team');
         if (ids) query.andWhere("player.teamId in (:ids)", { ids });
         query.andWhere("(player.email <> '' AND player.email IS NOT NULL)")
         return query.select(['player.id', 'player.firstName', 'player.lastName', 'player.email']).getMany();
@@ -156,6 +157,7 @@ export default class TeamService extends BaseService<Team> {
 
     public async getPlayerDataByPlayerIds(ids: number[]): Promise<Player[]> {
         let query = this.entityManager.createQueryBuilder(Player, 'player');
+        query.innerJoinAndSelect('player.team', 'team')
         if (ids) query.andWhere("player.id in (:ids)", { ids });
         query.andWhere("(player.email <> '' AND player.email IS NOT NULL)")
         return query.select(['player.id', 'player.firstName', 'player.lastName', 'player.email']).getMany();
@@ -246,6 +248,14 @@ export default class TeamService extends BaseService<Team> {
         let redirectURL = `https://www.worldsportaction.com/netballinvite/`;
         let signUpURL = `${redirectURL}${uriEncodedSignUpDetails}`;
         let loggedInURL = `${redirectURL}${uriEncodedLogInDetails}`;
+        let yourLogin = 'your login';
+        if (isInviteToParents) {
+            yourLogin = 'your login to ' + player.firstName;
+        }
+        let teamName = '';
+        if (player.team && player.team.name) {
+            teamName = '-' + player.team.name;
+        }
         logger.info(`TeamService - sendInviteMail : signUpURL ${signUpURL},
             loggedInURL ${loggedInURL}`);
         let mailHtml = `${user.firstName} ${user.lastName} would like to invite
@@ -257,7 +267,7 @@ export default class TeamService extends BaseService<Team> {
         <br><br> 2. If you have the App and haven't signed up yet,
         <a href=${signUpURL}>click here</a>.
         <br><br> 3. If you have the App and have already signed up,
-        <a href="${loggedInURL}">click here</a> to link your login.
+        <a href="${loggedInURL}">click here</a> to link ${yourLogin}.
         <br><br>It's that easy!`;
 
         /// Using nodemailer to send the mail via smtp gmail host
@@ -282,7 +292,7 @@ export default class TeamService extends BaseService<Team> {
             },
             to: player.email,
             replyTo: "donotreply@worldsportaction.com",
-            subject: 'Invite Mail',
+            subject: `Invite Mail ${teamName}`,
             html: mailHtml
         };
 
