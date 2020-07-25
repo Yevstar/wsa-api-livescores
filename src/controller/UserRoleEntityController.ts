@@ -91,12 +91,14 @@ export class UserRoleEntityController extends BaseController {
         } else {
           childUser.statusRefId = 0;
           childUser.password = childUserPassword;
-          promises.push(
-            this.userService.createOrUpdate(childUser)
-          );
-          promises.push(
-            this.updateFirebaseData(childUser, childUserPassword)
-          );
+          childUser = await this.userService.createOrUpdate(childUser);
+          await this.updateFirebaseData(childUser, childUserPassword);
+          // promises.push(
+          //   this.userService.createOrUpdate(childUser)
+          // );
+          // promises.push(
+          //   this.updateFirebaseData(childUser, childUserPassword)
+          // );
         }
 
         let ure = new UserRoleEntity();
