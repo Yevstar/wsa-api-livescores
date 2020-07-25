@@ -121,7 +121,7 @@ export class TeamController extends BaseController {
         try {
             const getCompetition = await this.competitionService.getCompetitionByUniquekey(requestBody.competitionId);
             let competitionId = getCompetition.id;
-    
+
             return await this.teamService.getLadderList(requestBody.divisionId, competitionId);
 
         } catch (error) {
@@ -499,7 +499,7 @@ export class TeamController extends BaseController {
                     }
                 }
             }
-            
+
             return response.status(200).send('Updated Successfully.');
 
         } catch (error) {
@@ -523,7 +523,7 @@ export class TeamController extends BaseController {
             let competitionId = getCompetition.id;
 
             const ladderAdjustments = await this.teamLadderService.getTeamLadderAdjustments(competitionId, divisionId);
-            
+
             return response.status(200).send(ladderAdjustments);
 
         } catch (error) {

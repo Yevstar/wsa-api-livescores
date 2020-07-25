@@ -152,7 +152,7 @@ export default class TeamService extends BaseService<Team> {
         query.innerJoinAndSelect('player.team', 'team');
         if (ids) query.andWhere("player.teamId in (:ids)", { ids });
         query.andWhere("(player.email <> '' AND player.email IS NOT NULL)")
-        return query.select(['player.id', 'player.firstName', 'player.lastName', 'player.email']).getMany();
+        return query.getMany();
     }
 
     public async getPlayerDataByPlayerIds(ids: number[]): Promise<Player[]> {
@@ -160,7 +160,7 @@ export default class TeamService extends BaseService<Team> {
         query.innerJoinAndSelect('player.team', 'team')
         if (ids) query.andWhere("player.id in (:ids)", { ids });
         query.andWhere("(player.email <> '' AND player.email IS NOT NULL)")
-        return query.select(['player.id', 'player.firstName', 'player.lastName', 'player.email']).getMany();
+        return query.getMany();
     }
 
     public async summaryScoringStat(competitionId: number, teamId: number, divisionId: number, noOfTeams: number) {
@@ -254,7 +254,7 @@ export default class TeamService extends BaseService<Team> {
         }
         let teamName = '';
         if (player.team && player.team.name) {
-            teamName = '-' + player.team.name;
+            teamName = '- ' + player.team.name;
         }
         logger.info(`TeamService - sendInviteMail : signUpURL ${signUpURL},
             loggedInURL ${loggedInURL}`);
