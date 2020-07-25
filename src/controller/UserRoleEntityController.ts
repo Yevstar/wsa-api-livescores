@@ -60,6 +60,7 @@ export class UserRoleEntityController extends BaseController {
         let playerRole = await this.userService.getRole("player");
         let userEntityType = await this.userService.getEntityType("USER");
         let teamEntityType = await this.userService.getEntityType("TEAM");
+        const childUserPassword = md5('password');
 
         var childUser;
         if (player.userId != null || player.userId != undefined) {
@@ -70,8 +71,6 @@ export class UserRoleEntityController extends BaseController {
           let email = `player${player.id}@wsa.com`;
           childUser = await this.userService.findByEmail(email.toLowerCase());
           if (childUser == null || childUser == undefined) {
-              const childUserPassword = md5('password');
-
               childUser = new User();
               childUser.email = email.toLowerCase();
               childUser.password = childUserPassword;
@@ -91,8 +90,12 @@ export class UserRoleEntityController extends BaseController {
           player.userId = childUser.id;
         } else {
           childUser.statusRefId = 0;
+          childUser.password = childUserPassword;
           promises.push(
             this.userService.createOrUpdate(childUser)
+          );
+          promises.push(
+            this.updateFirebaseData(childUser, childUserPassword)
           );
         }
 
