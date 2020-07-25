@@ -504,7 +504,8 @@ export class UserController extends BaseController {
 
                     if (this.canSendMailForAdd(type, userData)) {
                         let competitionData = await this.competitionService.findById(competitionId)
-                        this.userService.sentMail(user, null, competitionData, Role.MEMBER, saved, password);
+                        let roleId = await this.getRoleIdForType(type);
+                        this.userService.sentMail(user, null, competitionData, roleId, saved, password);
                     }
 
                     userData.id = saved.id;
@@ -547,6 +548,27 @@ export class UserController extends BaseController {
         }
 
         return false;
+    }
+
+    private async getRoleIdForType(
+        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER",
+    ) {
+        let roleId;
+        switch (type) {
+            case 'MANAGER':
+                roleId = Role.MANAGER;
+            break;
+            case 'COACH':
+                roleId = Role.COACH;
+            break;
+            case 'UMPIRE':
+                roleId = Role.UMPIRE;
+            break;
+            default:
+                roleId = Role.MEMBER;
+            break;
+        }
+        return roleId;
     }
 
     private async deleteRolesNecessary(
