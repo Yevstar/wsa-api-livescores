@@ -51,10 +51,8 @@ export class UserRoleEntityController extends BaseController {
     async linkChildPlayer (
         @HeaderParam("authorization") user: User,
         @QueryParam("id", {required: true}) id: number,
-        @Res() response: Response) {
-
-        const promises = [];
-
+        @Res() response: Response
+    ) {
         let player = await this.playerService.findById(id);
         let parentRole = await this.userService.getRole("parent");
         let playerRole = await this.userService.getRole("player");
@@ -83,9 +81,7 @@ export class UserRoleEntityController extends BaseController {
               await this.updateFirebaseData(childUser, childUserPassword);
           } else {
               childUser.statusRefId = 0;
-              promises.push(
-                this.userService.createOrUpdate(childUser)
-              );
+              childUser = await this.userService.createOrUpdate(childUser);
           }
           player.userId = childUser.id;
         } else {
@@ -93,12 +89,6 @@ export class UserRoleEntityController extends BaseController {
           childUser.password = childUserPassword;
           childUser = await this.userService.createOrUpdate(childUser);
           await this.updateFirebaseData(childUser, childUserPassword);
-          // promises.push(
-          //   this.userService.createOrUpdate(childUser)
-          // );
-          // promises.push(
-          //   this.updateFirebaseData(childUser, childUserPassword)
-          // );
         }
 
         let ure = new UserRoleEntity();
@@ -116,6 +106,8 @@ export class UserRoleEntityController extends BaseController {
         newUserURE.roleId = playerRole; // Player
         newUserURE.userId = childUser.id;
         newUserURE.createdBy = user.id;
+
+        const promises = [];
 
         promises.push(
           this.ureService.createOrUpdate(newUserURE)
