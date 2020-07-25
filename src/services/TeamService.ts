@@ -223,7 +223,7 @@ export default class TeamService extends BaseService<Team> {
         );
     }
 
-    public async sendInviteMail(user: User, player: Player, isInviteToParents: boolean) {
+    public async sendInviteMail(user: User, player: Player, isInviteToParents: boolean, isExistingUser: boolean) {
         var deepLinkPlayer = new DeepLinkPlayer();
         deepLinkPlayer.id = player.id;
         deepLinkPlayer.firstName = player.firstName;
@@ -264,9 +264,15 @@ export default class TeamService extends BaseService<Team> {
         scores, draws and ladders!
         <br><br> 1. If you don't have the App yet, download it from the <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
         <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a>.
-        <br><br> 2. If you have the App and haven't signed up yet,
-        <a href=${signUpURL}>click here</a>.
-        <br><br> 3. If you have the App and have already signed up,
+        <br><br> `;
+        if (isExistingUser) {
+            mailHtml = mailHtml + `<br><br> 2. Log in to the app with your email address and your password: <b>8kul0zoi</b>. You can change this once you log in if you like.`
+        } else {
+            mailHtml = mailHtml + `2. If you have the App and haven't signed up yet,
+            <a href=${signUpURL}>click here</a>.`
+        }
+     
+        mailHtml = mailHtml + `<br><br> 3. If you have the App and have already signed up,
         <a href="${loggedInURL}">click here</a> to link ${yourLogin}.
         <br><br>It's that easy!`;
 
