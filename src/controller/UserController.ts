@@ -505,7 +505,7 @@ export class UserController extends BaseController {
                     if (this.canSendMailForAdd(type, userData)) {
                         let competitionData = await this.competitionService.findById(competitionId)
                         let roleId = await this.getRoleIdForType(type);
-                        this.userService.sentMail(user, null, competitionData, roleId, saved, password);
+                        this.userService.sentMail(user, user.teams ? user.teams : null, competitionData, roleId, saved, password);
                     }
 
                     userData.id = saved.id;
