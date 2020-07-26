@@ -501,13 +501,12 @@ export class UserController extends BaseController {
                     const saved = await this.userService.createOrUpdate(userData);
                     await this.updateFirebaseData(userData, userData.password);
                     logger.info(`${type} ${userData.email} signed up.`);
-
+                    
                     if (this.canSendMailForAdd(type, userData)) {
                         let competitionData = await this.competitionService.findById(competitionId)
                         let roleId = await this.getRoleIdForType(type);
-                        this.userService.sentMail(user, user.teams ? user.teams : null, competitionData, roleId, saved, password);
+                        this.userService.sentMail(user, userData.teams ? userData.teams : null, competitionData, roleId, saved, password);
                     }
-
                     userData.id = saved.id;
                 }
             } else if (userData.firstName && userData.lastName && userData.mobileNumber) {
