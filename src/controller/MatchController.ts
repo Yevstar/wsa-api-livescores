@@ -378,12 +378,12 @@ export class MatchController extends BaseController {
 
         console.log("isNewMatch::" + isNewMatch);
          // Team Ladder
-         if(!isNewMatch){
+        // if(!isNewMatch){
             let arr = [];
             arr.push(match);
 
             await this.performTeamLadderOperation(arr, user.id);
-         }
+        // }
 
         this.sendMatchEvent(saved); // This is to send notification for devices
         return saved;

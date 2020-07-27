@@ -120,23 +120,23 @@ export default class TeamService extends BaseService<Team> {
     }
 
 
-    public async getLadderList(requestBody: any, competitionId: number) {
+    public async getLadderList(requestBody: any, competitionId: number, competitionIds) {
         try {
             let vTeamIds = null;
-            let vCompetitionIds = null;
             let vDivisionIds = null;
+            let vDivisionId = null;
             if(requestBody.teamIds){
                 vTeamIds = requestBody.teamIds;
             }
             if(requestBody.divisionIds){
                 vDivisionIds = requestBody.divisionIds;
             }
-            if(requestBody.competitionIds){
-                vCompetitionIds = requestBody.competitionIds;
+            if(requestBody.divisionId){
+                vDivisionId = requestBody.divisionId;
             }
 
             let result = await this.entityManager.query("call wsa.usp_get_ladder(?,?,?,?,?)",
-            [competitionId, requestBody.divisionId, vCompetitionIds,vTeamIds,  vDivisionIds]);
+            [competitionId, vDivisionId, competitionIds,vTeamIds,  vDivisionIds]);
             let ladders = []
             if(result!= null){
                 if(isArrayPopulated(result[0])){

@@ -119,10 +119,18 @@ export class TeamController extends BaseController {
         @Res() response: Response
     ){
         try {
-            const getCompetition = await this.competitionService.getCompetitionByUniquekey(requestBody.competitionId);
-            let competitionId = getCompetition.id;
+            let competitionIds = null;
+            let competitionId = null;
+            if (isNotNullAndUndefined(requestBody.competitionUniqueKey)) {
+                const getCompetitions = await this.competitionService.getCompetitionByUniquekey(requestBody.competitionUniqueKey);
+                competitionIds = getCompetitions.id;
+            }
+            if (isNotNullAndUndefined(requestBody.competitionId)) {
+                const getCompetition = await this.competitionService.getCompetitionByUniquekey(requestBody.competitionId);
+                competitionId = getCompetition.id;
+            }
 
-            return await this.teamService.getLadderList(requestBody, competitionId);
+            return await this.teamService.getLadderList(requestBody, competitionId, competitionIds);
 
         } catch (error) {
             logger.error(`Error Occurred in  loadTeamLadder   ${currentUser.id}` + error);
