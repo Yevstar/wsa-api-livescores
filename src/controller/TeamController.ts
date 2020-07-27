@@ -112,7 +112,7 @@ export class TeamController extends BaseController {
     }
 
     @Authorized()
-    @Post('/ladder')
+    @Post('/ladder/web')
     async loadTeamLadder(
         @HeaderParam("authorization") currentUser: User,
         @Body() requestBody,
@@ -122,7 +122,7 @@ export class TeamController extends BaseController {
             const getCompetition = await this.competitionService.getCompetitionByUniquekey(requestBody.competitionId);
             let competitionId = getCompetition.id;
 
-            return await this.teamService.getLadderList(requestBody.divisionId, competitionId);
+            return await this.teamService.getLadderList(requestBody, competitionId);
 
         } catch (error) {
             logger.error(`Error Occurred in  loadTeamLadder   ${currentUser.id}` + error);

@@ -107,6 +107,9 @@ export default class TeamService extends BaseService<Team> {
             let response = []
             if(result!= null){
                 if(isArrayPopulated(result[0])){
+                    result[0].map((x) => {
+                        x.adjustments = x.adjustments!= null ? JSON.parse(x.adjustments) : []
+                    })
                     response = result[0];
                 }
             }
@@ -117,24 +120,33 @@ export default class TeamService extends BaseService<Team> {
     }
 
 
-    public async getLadderList(divisionId: number, competitionId: number) {
+    public async getLadderList(requestBody: any, competitionId: number) {
         try {
+            let vTeamIds = null;
+            let vCompetitionIds = null;
+            let vDivisionIds = null;
+            if(requestBody.teamIds){
+                vTeamIds = requestBody.teamIds;
+            }
+            if(requestBody.divisionIds){
+                vDivisionIds = requestBody.divisionIds;
+            }
+            if(requestBody.competitionIds){
+                vCompetitionIds = requestBody.competitionIds;
+            }
+
             let result = await this.entityManager.query("call wsa.usp_get_ladder(?,?,?,?,?)",
-            [competitionId, divisionId, null,null,null]);
+            [competitionId, requestBody.divisionId, vCompetitionIds,vTeamIds,  vDivisionIds]);
             let ladders = []
-            let adjustments = [];
             if(result!= null){
                 if(isArrayPopulated(result[0])){
+                    result[0].map((x) => {
+                        x.adjustments = x.adjustments!= null ? JSON.parse(x.adjustments) : []
+                    })
                     ladders = result[0];
                 }
-                if(isArrayPopulated(result[1])){
-                    adjustments = result[1]
-                }
             }
-            return {
-                ladders: ladders,
-                adjustments: adjustments
-            };
+            return ladders
         } catch (error) {
             throw error;
         }
