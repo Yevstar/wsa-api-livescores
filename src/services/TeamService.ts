@@ -121,13 +121,20 @@ export default class TeamService extends BaseService<Team> {
         try {
             let result = await this.entityManager.query("call wsa.usp_get_ladder(?,?,?,?,?)",
             [competitionId, divisionId, null,null,null]);
-            let response = []
+            let ladders = []
+            let adjustments = [];
             if(result!= null){
                 if(isArrayPopulated(result[0])){
-                    response = result[0];
+                    ladders = result[0];
+                }
+                if(isArrayPopulated(result[1])){
+                    adjustments = result[1]
                 }
             }
-            return response;
+            return {
+                ladders: ladders,
+                adjustments: adjustments
+            };
         } catch (error) {
             throw error;
         }
