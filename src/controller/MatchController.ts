@@ -258,37 +258,43 @@ export class MatchController extends BaseController {
         if (competition.recordUmpireType == "NAMES") {
             let oldUmpires = await this.matchUmpireService.findByMatchIds([match.id]);
             let newUmpires = match.matchUmpires;
-
-            const matchUmpireDeletePromises = [];
-            /// Checking if any of the old umpires sequences are not present in new data
-            for (let oldUmpire of oldUmpires) {
-                /// If there is no new umpire with that sequence that delete old one.
-                if (newUmpires.filter(umpire => (umpire.umpireName && umpire.sequence == oldUmpire.sequence)).length == 0) {
-                    matchUmpireDeletePromises.push(
-                        this.matchUmpireService.deleteById(oldUmpire.id)
-                    );
-                }
-            }
-            await Promise.all(matchUmpireDeletePromises);
-
-            /// Updating umpires data
-            for (let newUmpire of newUmpires) {
-                if (newUmpire.umpireName) {
-                    newUmpire.matchId = saved.id;
-                    let oldMatchingUmpireList = oldUmpires.filter(umpire => umpire.sequence == newUmpire.sequence);
-                    if (oldMatchingUmpireList.length > 0) {
-                        let oldUmpire = oldMatchingUmpireList[0];
-                        if (oldUmpire.organisationId != newUmpire.organisationId ||
-                            oldUmpire.umpireName != newUmpire.umpireName ||
-                            oldUmpire.umpireType != newUmpire.umpireType) {
-                                this.createUmpire(
-                                    newUmpire,
-                                    user.id,
-                                    oldUmpire
-                                );
+            if (newUmpires) {
+                if (oldUmpires) {
+                    const matchUmpireDeletePromises = [];
+                    /// Checking if any of the old umpires sequences are not present in new data
+                    for (let oldUmpire of oldUmpires) {
+                        /// If there is no new umpire with that sequence that delete old one.
+                        if (newUmpires.filter(umpire => (umpire.umpireName && umpire.sequence == oldUmpire.sequence)).length == 0) {
+                            matchUmpireDeletePromises.push(
+                                this.matchUmpireService.deleteById(oldUmpire.id)
+                            );
                         }
-                    } else {
-                        this.createUmpire(newUmpire, user.id);
+                    }
+                    await Promise.all(matchUmpireDeletePromises);
+                }
+
+                /// Updating umpires data
+                for (let newUmpire of newUmpires) {
+                    if (newUmpire.umpireName) {
+                        newUmpire.matchId = saved.id;
+                        var oldMatchingUmpireList = [];
+                        if (oldUmpires) {
+                            oldMatchingUmpireList = oldUmpires.filter(umpire => umpire.sequence == newUmpire.sequence);
+                        }
+                        if (oldMatchingUmpireList.length > 0) {
+                            let oldUmpire = oldMatchingUmpireList[0];
+                            if (oldUmpire.organisationId != newUmpire.organisationId ||
+                                oldUmpire.umpireName != newUmpire.umpireName ||
+                                oldUmpire.umpireType != newUmpire.umpireType) {
+                                    this.createUmpire(
+                                        newUmpire,
+                                        user.id,
+                                        oldUmpire
+                                    );
+                            }
+                        } else {
+                            this.createUmpire(newUmpire, user.id);
+                        }
                     }
                 }
             }
