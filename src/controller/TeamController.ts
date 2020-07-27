@@ -250,7 +250,7 @@ export class TeamController extends BaseController {
             let foundUser = await this.userService.findByEmail(teamData.email.toLowerCase());
             if (foundUser) {
                 if (foundUser.firstName == teamData.firstName && foundUser.lastName == teamData.lastName && foundUser.mobileNumber == teamData.mobileNumber) {
-                    managerIds[0] = user.id;
+                    managerIds[0] = foundUser.id;
                 } else {
                     return response
                     .status(400).send({
