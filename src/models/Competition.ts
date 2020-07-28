@@ -39,7 +39,7 @@ export class Competition extends BaseEntity {
 
     @ValidateNested()
     @OneToOne(type => Organisation)
-    @JoinColumn()
+    @JoinColumn({name: 'organisationId', referencedColumnName: 'organisationId'})
     organisation: Organisation;
 
     @IsNumber()
