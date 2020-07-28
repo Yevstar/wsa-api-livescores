@@ -18,7 +18,6 @@ export default class CompetitionService extends BaseService<Competition> {
             .leftJoinAndSelect('competition.competitionVenues', 'competitionVenue')
             .leftJoinAndSelect('competitionVenue.venue', 'venue');
 
-
         query.andWhere("competition.id = :id", { id });
         return query.getOne();
     }
