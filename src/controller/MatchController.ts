@@ -1199,6 +1199,7 @@ export class MatchController extends BaseController {
             let arr = [];
             //Team Ladder Operation
            for(let item of matches){
+               if(item.matchStatus == "ENDED"){
                 let ladderSettings = divisionMap.get(item.divisionId);
                 if(ladderSettings == undefined){
                     ladderSettings = await this.competitionLadderSettingsService.
@@ -1213,6 +1214,7 @@ export class MatchController extends BaseController {
                         arr.push(...teamLadderList);
                     }
                 }
+               }
             }
            // console.log("final::" + JSON.stringify(arr));
             if(isArrayPopulated(arr)){
