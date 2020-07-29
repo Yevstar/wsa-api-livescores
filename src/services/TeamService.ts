@@ -285,7 +285,7 @@ export default class TeamService extends BaseService<Team> {
         <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a>.
         <br><br> `;
         if (isExistingUser) {
-            mailHtml = mailHtml + `<br><br> 2. Log in to the app with your email address and your password: <b>8kul0zoi</b>. You can change this once you log in if you like.`
+            mailHtml = mailHtml + `<br><br> 2. If you have already logged into to the app, continue to Step 3, otherwise log in to the app with your email address and password: <b>8kul0zoi</b>. You can change this once you log in if you like.`
         } else {
             mailHtml = mailHtml + `2. If you have the App and haven't signed up yet,
             <a href=${signUpURL}>click here</a>.`
