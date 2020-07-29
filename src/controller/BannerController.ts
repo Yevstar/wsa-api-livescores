@@ -1,3 +1,4 @@
+import {Response} from "express";
 import {
     Get,
     JsonController,
@@ -10,12 +11,10 @@ import {
     Param,
     Res
 } from "routing-controllers";
-import { logger } from "../logger";
-import { BaseController } from "./BaseController";
-import { Banner } from "../models/Banner";
-import { isPhoto, fileExt, timestamp } from "../utils/Utils";
-import { Response } from "express";
 
+import {BaseController} from "./BaseController";
+import {Banner} from "../models/Banner";
+import {isPhoto, fileExt, timestamp} from "../utils/Utils";
 
 @JsonController("/banners")
 export class BannerController extends BaseController {
@@ -23,10 +22,10 @@ export class BannerController extends BaseController {
     @Get("/")
     async find(
         @QueryParam("competitionIds", { required: true }) competitionIds: number[],
-        @QueryParam("pageType")
-        pageType: "HOME" | "DRAWS" | "LADDER"
+        @QueryParam("pageType") pageType: "HOME" | "DRAWS" | "LADDER" | "CHAT" | "NEWS",
+        @QueryParam("format") format: "Horizontal" | "Square"
     ): Promise<Banner[]> {
-        return this.bannerService.findByParams(competitionIds, pageType);
+        return await this.bannerService.findByParams(competitionIds, pageType, format);
     }
 
     @Authorized()
@@ -48,25 +47,35 @@ export class BannerController extends BaseController {
                     if (fileUploaded) {
                         bannerBody.bannerUrl = fileUploaded.url;
                     } else {
-                        return response.status(400).send({ errorCode: 5, name: 'save_error', message: 'Banner Image not saved, try again later.' });
+                        return response.status(400).send({
+                            errorCode: 5,
+                            name: 'save_error',
+                            message: 'Banner Image not saved, try again later.'
+                        });
                     }
                 } else {
-                    return response.status(400).send({ errorCode: 4, name: 'validation_error', message: 'File mime type not supported' });
+                    return response.status(400).send({
+                        errorCode: 4,
+                        name: 'validation_error',
+                        message: 'File mime type not supported'
+                    });
                 }
             }
 
-            banner.id = parseInt(bannerBody.id)
-            banner.bannerUrl = bannerBody.bannerUrl
-            banner.bannerLink = bannerBody.bannerLink
-            banner.showOnHome = (bannerBody.showOnHome == '1') ? (bannerBody.showOnHome = true) : (bannerBody.showOnHome = false)
-            banner.showOnDraws = (bannerBody.showOnDraws == '1') ? (bannerBody.showOnDraws = true) : (bannerBody.showOnDraws = false)
-            banner.showOnLadder = (bannerBody.showOnLadder == '1') ? (bannerBody.showOnLadder = true) : (bannerBody.showOnLadder = false)
-            banner.competitionId = bannerBody.competitionId
-            banner.sequence = bannerBody.sequence
+            banner.id = parseInt(bannerBody.id);
+            banner.format = bannerBody.format;
+            banner.bannerUrl = bannerBody.bannerUrl;
+            banner.bannerLink = bannerBody.bannerLink;
+            banner.showOnHome = (bannerBody.showOnHome == '1') ? (bannerBody.showOnHome = true) : (bannerBody.showOnHome = false);
+            banner.showOnDraws = (bannerBody.showOnDraws == '1' && banner.format == 'Horizontal') ? (bannerBody.showOnDraws = true) : (bannerBody.showOnDraws = false);
+            banner.showOnLadder = (bannerBody.showOnLadder == '1' && banner.format == 'Horizontal') ? (bannerBody.showOnLadder = true) : (bannerBody.showOnLadder = false);
+            banner.showOnNews = (bannerBody.showOnNews == '1') ? (bannerBody.showOnNews = true) : (bannerBody.showOnNews = false);
+            banner.showOnChat = (bannerBody.showOnChat == '1' && banner.format == 'Horizontal') ? (bannerBody.showOnChat = true) : (bannerBody.showOnChat = false);
+            banner.competitionId = bannerBody.competitionId;
+            banner.sequence = bannerBody.sequence;
 
             const data = await this.bannerService.createOrUpdate(banner);
             return await this.bannerService.findById(data.id);
-
         } catch (err) {
             return response.status(212).send({
                 err, name: 'unexpected_error', message: 'Failed to save the banner detail.'
