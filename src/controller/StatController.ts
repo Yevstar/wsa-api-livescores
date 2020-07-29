@@ -305,11 +305,12 @@ export class StatController extends BaseController {
         @QueryParam('reporting') reporting: ("PERIOD" | "MINUTE"),
         @QueryParam('competitionId', {required: true}) competitionId: number = undefined,
         @QueryParam('teamId') teamId: number = undefined,
+        @QueryParam('matchId') matchId: number = undefined,
         @QueryParam('search') search: string = undefined,
         @Body() requestFilter: RequestFilter,
         @Res() response: Response) {
         if (competitionId) {
-            return this.gameTimeAttendanceService.loadPositionTrackingStats(aggregate, reporting, competitionId, teamId, search, requestFilter);
+            return this.gameTimeAttendanceService.loadPositionTrackingStats(aggregate, reporting, competitionId, teamId, matchId, search, requestFilter);
         } else {
             return response.status(200).send(
                 {name: 'search_error', message: `Competition id required field`});
