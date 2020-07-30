@@ -30,8 +30,14 @@ export default class TeamLadderService extends BaseService<TeamLadder> {
 
                 teamLadderArr = [...team1Arr, ...team2Arr];
             }
+
+            if(resultStatus == "dispute" || resultStatus == "unconfirmed"){
+                await this.deleteExistingPoints(match, userId);
+            }
+            else{
+                await this.deleteExistingData(match, userId);
+            }
            
-            await this.deleteExistingData(match, userId);
         } catch (error) {
             throw error;
         }
@@ -119,6 +125,18 @@ export default class TeamLadderService extends BaseService<TeamLadder> {
                 .update(TeamLadder)
                 .set({deleted_at: new Date(), updatedBy: userId, updated_at: new Date()})
                 .andWhere("teamLadder.matchId = :matchId",{matchId: match.id})
+                .execute()
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    private async deleteExistingPoints(match: Match, userId){
+        try {
+            await this.entityManager.createQueryBuilder(TeamLadder, 'teamLadder')
+                .update(TeamLadder)
+                .set({deleted_at: new Date(), updatedBy: userId, updated_at: new Date()})
+                .andWhere("teamLadder.matchId = :matchId and teamLadder.teamLadderTypeRefId <= 9",{matchId: match.id})
                 .execute()
         } catch (error) {
             throw error;
