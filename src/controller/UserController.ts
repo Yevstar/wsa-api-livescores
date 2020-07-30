@@ -230,8 +230,7 @@ export class UserController extends BaseController {
                 user.password = password;
                 await this.userService.update(user.email.toLowerCase(), user);
                 logger.info(`Password successfully changed ${user.email}`);
-                await this.updateFirebaseData(user, password);
-                return this.responseWithTokenAndUser(user.email.toLowerCase(), password, user, undefined, false);
+                return this.responseWithTokenAndUser(user.email.toLowerCase(), password, user, undefined);
             } else {
                 return response.status(400).send({
                     name: 'validation_error', message: 'Password field required'
@@ -315,9 +314,9 @@ export class UserController extends BaseController {
         }
     }
 
-    private async responseWithTokenAndUser(login, password, user: User, deviceId = undefined, checkFirebase = true) {
+    private async responseWithTokenAndUser(login, password, user: User, deviceId = undefined) {
         await this.processingDeviceId(deviceId, user);
-        if (checkFirebase) await this.checkFirebaseUser(user, password);
+        await this.updateFirebaseData(user, password);
         user.password = undefined;
         user.reset = undefined;
         return {
@@ -381,20 +380,6 @@ export class UserController extends BaseController {
         let organisationIds = watchlist.filter(item => item.entityTypeId == EntityType.ORGANISATION).map(item => item.entityId);
         let teamIds = watchlist.filter(item => item.entityTypeId == EntityType.TEAM).map(item => item.entityId);
         return {teamIds, organisationIds}
-    }
-
-    private async checkFirebaseUser(user, password: string) {
-        if (!user.firebaseUID) {
-            let fbUser = await this.firebaseService.loadUserByEmail(user.email.toLowerCase());
-            if (!fbUser || !fbUser.uid) {
-                fbUser = await this.firebaseService.createUser(user.email.toLowerCase(), password);
-            }
-            if (fbUser.uid) {
-                user.firebaseUID = fbUser.uid;
-                await User.save(user);
-            }
-        }
-        await this.checkFirestoreDatabase(user);
     }
 
     @Authorized()
@@ -501,7 +486,7 @@ export class UserController extends BaseController {
                     const saved = await this.userService.createOrUpdate(userData);
                     await this.updateFirebaseData(userData, userData.password);
                     logger.info(`${type} ${userData.email} signed up.`);
-                    
+
                     if (this.canSendMailForAdd(type, userData)) {
                         let competitionData = await this.competitionService.findById(competitionId)
                         let roleId = await this.getRoleIdForType(type);

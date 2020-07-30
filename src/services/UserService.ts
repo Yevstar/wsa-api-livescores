@@ -420,4 +420,9 @@ export default class UserService extends BaseService<User> {
         return query.getMany();
     }
 
+    public async findUserFullDetailsById(id: number): Promise<User> {
+        return await this.entityManager.query(
+            'select * from wsa_users.user user where user.id = ?;'
+            , [id]);
+    }
 }
