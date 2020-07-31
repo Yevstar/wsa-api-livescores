@@ -54,32 +54,71 @@ export class NewsController extends BaseController {
             n.recipientRefId = body.recipientRefId;
             n.toUserRoleIds = body.toUserRoleIds;
             n.id = stringTONumber(body.id);
-
+            let imageFilePopuldated = false;
+            let videoFilePopulated = false;    
+            let news;
+            if (n.id) {
+                news = await this.newsService.findById(n.id);
+            }
             if (n.entityId && n.title) {
+                if (body.newsImage) {
+                    n.newsImage = body.newsImage;
+                } 
+                if (body.newsVideo) {
+                    n.newsVideo = body.newsVideo
+                }
                 if (isArrayPopulated(newsMedia)) {
                     for (let i of newsMedia) {
+                        if (!isVideo(i.mimetype) && !isPhoto(i.mimetype)) {
+                            return response.status(400).send({ errorCode: 4, name: 'validation_error', message: 'File mime type not supported' });
+                        }
                         if (isPhoto(i.mimetype)) {
+                            imageFilePopuldated = true;
                             let filename = `/media/news/${n.entityId}_${n.entityId}/${n.title}_${timestamp()}.${fileExt(i.originalname)}`;
                             let fileUploaded = await this.firebaseService.upload(filename, i);
                             if (fileUploaded) {
                                 n.newsImage = fileUploaded.url;
+                                if (news && news.newsImage) {
+                                    const fileName = await this.firebaseService.getFileNameFromUrl(JSON.stringify(news.newsImage))
+                                    await this.firebaseService.removeMedia(fileName); 
+                                }
                             } else {
                                 return response.status(400).send({ errorCode: 6, name: 'save_error', message: 'News Image not saved, try again later.' });
                             }
-                        } else if (isVideo(i.mimetype)) {
+                            continue;
+                        } 
+                        if (isVideo(i.mimetype)) {
+                            videoFilePopulated = true;
                             let filename = `/media/news/${n.entityTypeId}_${n.entityId}/${n.title}_${timestamp()}.${fileExt(i.originalname)}`;
                             let fileUploaded = await this.firebaseService.upload(filename, i);
                             if (fileUploaded) {
                                 n.newsVideo = fileUploaded.url;
+                                if (news && news.newsVideo) {
+                                    const fileName = await this.firebaseService.getFileNameFromUrl(JSON.stringify(news.newsVideo));
+                                    await this.firebaseService.removeMedia(fileName);
+                                }
                             } else {
                                 return response.status(400).send({ errorCode: 5, name: 'save_error', message: 'News Video not saved, try again later.' });
                             }
-                        } else {
-                            return response.status(400).send({ errorCode: 4, name: 'validation_error', message: 'File mime type not supported' });
                         }
                     }
                 }
-
+                //removing image file
+                if (n.id && !body.newsImage && !imageFilePopuldated) {
+                    if (news.newsImage) {
+                        const fileName = await this.firebaseService.getFileNameFromUrl(JSON.stringify(news.newsImage))
+                        await this.firebaseService.removeMedia(fileName);
+                        n.newsImage = null;
+                    }  
+                }
+                //removing video file
+                if (n.id && !body.newsVideo && !videoFilePopulated) {
+                    if (news.newsVideo) {
+                    const fileName = await this.firebaseService.getFileNameFromUrl(JSON.stringify(news.newsVideo));
+                    await this.firebaseService.removeMedia(fileName);
+                    n.newsVideo = null;
+                    }
+                }
                 const savedNews = await this.newsService.createOrUpdate(n);
                 const getNews = await this.newsService.findById(savedNews.id);
                 return response.status(200).send(getNews);
@@ -91,7 +130,7 @@ export class NewsController extends BaseController {
                 })
             }
         } catch (e) {
-            return response.status(500).send({ e, name: 'upload_error', message: 'Unexpected error on load image. Try again later.' });
+            return response.status(500).send({ e, name: 'upload_error', message: e.message });
         }
     }
 

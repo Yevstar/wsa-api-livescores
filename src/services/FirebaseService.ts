@@ -243,4 +243,18 @@ export default class FirebaseService {
         }
         return admin.storage().bucket(fbStorageBuck);
     }
+    
+    public async getFileNameFromUrl(url: string): Promise<string> {
+        try {
+            const bucket = await this.getFirebaseStorageBucket();
+            let fileName = url.split(`https://www.googleapis.com/download/storage/v1/b/${bucket.name}/o/media%2Fnews%2F1_1%2F`)[1];
+            fileName = fileName.split(fileName.substring(fileName.lastIndexOf('?generation')))[0];
+            const directory = "media/news/1_1/";
+            fileName = directory.concat(fileName);
+        return fileName;
+        } catch (err) {
+            throw err;
+        }
+        
+    }
 }
