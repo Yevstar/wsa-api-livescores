@@ -135,7 +135,7 @@ export default class TeamLadderService extends BaseService<TeamLadder> {
         try {
             await this.entityManager.createQueryBuilder(TeamLadder, 'teamLadder')
                 .update(TeamLadder)
-                .set({deleted_at: new Date(), updatedBy: userId, updated_at: new Date()})
+                .set({teamLadderTypeValue: 0, updatedBy: userId, updated_at: new Date()})
                 .andWhere("teamLadder.matchId = :matchId and teamLadder.teamLadderTypeRefId <= 9",{matchId: match.id})
                 .execute()
         } catch (error) {
