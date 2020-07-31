@@ -169,7 +169,7 @@ export class TeamController extends BaseController {
     public async invitePlayer(user: User, player: Player, isInviteToParents: boolean) {
         // if a user is < 18 and we are unsure whether the email belongs to the child or parent,
         // we store the email with _ prepended to the front so that the parent can legitimately
-        // create a user record, using their details (which we don't have), otherwise we have 
+        // create a user record, using their details (which we don't have), otherwise we have
         // already got a record created for them, so they shouldn't need to create one
         //
         // 1) Invite Parent
@@ -186,7 +186,7 @@ export class TeamController extends BaseController {
         // existingUser = false -> send generic email which tell user to use existing login or create a new one; existingUser = true means we have to send them a specific password
         let existingUser = false;
         if (player.userId) {
-            let playerUser = await this.userService.findById(player.userId);
+            let playerUser = await this.userService.findUserFullDetailsById(player.userId);
             let emailUser = await this.userService.findByEmail(player.email);
             if (isInviteToParents && emailUser) {
                 existingUser = true;
@@ -195,6 +195,7 @@ export class TeamController extends BaseController {
                     if (!emailUser) {
                         playerUser.email = player.email;
                         await this.userService.createOrUpdate(playerUser);
+                        await this.updateFirebaseData(playerUser, playerUser.password);
                         existingUser = true;
                     }
                 } else if (playerUser.email == player.email) {
@@ -202,10 +203,10 @@ export class TeamController extends BaseController {
                 }
             }
         }
-        
+
         this.teamService.sendInviteMail(user, player, isInviteToParents, existingUser);
         player.inviteStatus = "INVITED";
-        this.playerService.createOrUpdate(player); 
+        this.playerService.createOrUpdate(player);
     }
 
     @Authorized()
