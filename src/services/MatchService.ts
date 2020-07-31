@@ -1,12 +1,15 @@
 import {Service} from "typedi";
-import fs from 'fs';
-import pdf from 'html-pdf';
-import hummus from 'hummus';
-import memoryStreams from 'memory-streams';
-import avro from 'avsc';
-import BaseService from "./BaseService";
-import {Match} from "../models/Match";
+import pdf from "html-pdf";
+import hummus from "hummus";
+import memoryStreams from "memory-streams";
+import avro from "avsc";
 import {Brackets, DeleteResult} from "typeorm-plus";
+
+import BaseService from "./BaseService";
+import {logger} from "../logger";
+import getMatchSheetTemplate from "../utils/MatchSheetTemplate";
+import {paginationData, stringTONumber, isNotNullAndUndefined, s3, isArrayPopulated} from "../utils/Utils";
+import {Match} from "../models/Match";
 import {MatchResultType} from "../models/MatchResultType";
 import {GamePosition} from "../models/GamePosition";
 import {GameStat} from "../models/GameStat";
@@ -14,19 +17,14 @@ import {MatchEvent} from "../models/MatchEvent";
 import {MatchPausedTime} from "../models/MatchPausedTime";
 import {Lineup} from "../models/Lineup";
 import {RequestFilter} from "../models/RequestFilter";
-import {paginationData, stringTONumber, isNotNullAndUndefined, s3, isArrayPopulated } from "../utils/Utils";
 import {StateTimezone} from "../models/StateTimezone";
-import {Location} from "../models/Location";
 import {Organisation} from "../models/Organisation";
-import getMatchSheetTemplate from '../utils/MatchSheetTemplate';
 import {Competition} from "../models/Competition";
-import {logger} from "../logger";
 import {User} from "../models/User";
 import {MatchSheet} from "../models/MatchSheet";
-import {MatchUmpire} from "../models/MatchUmpire";
 
 @Service()
-export default class MatchService extends BaseService<Match>  {
+export default class MatchService extends BaseService<Match> {
 
     modelName(): string {
         return Match.name;
@@ -36,12 +34,12 @@ export default class MatchService extends BaseService<Match>  {
         this.addDefaultJoin(query);
         if (competitionId || (teamIds && teamIds.length > 0) || (organisationIds && organisationIds.length > 0)) {
             query.andWhere(new Brackets(qb => {
-                if (competitionId) qb.orWhere("match.competitionId = :competitionId", {competitionId});
+                if (competitionId) qb.orWhere("match.competitionId = :competitionId", { competitionId });
                 if (teamIds && teamIds.length > 0) {
-                    qb.orWhere("(match.team1Id in (:teamIds) or match.team2Id in (:teamIds))", {teamIds});
+                    qb.orWhere("(match.team1Id in (:teamIds) or match.team2Id in (:teamIds))", { teamIds });
                 }
                 if (organisationIds && organisationIds.length > 0) {
-                    qb.orWhere("(team1.organisationId in (:organisationIds) or team2.organisationId in (:organisationIds))", {organisationIds});
+                    qb.orWhere("(team1.organisationId in (:organisationIds) or team2.organisationId in (:organisationIds))", { organisationIds });
                 }
             }));
         }
@@ -64,8 +62,7 @@ export default class MatchService extends BaseService<Match>  {
     public async findByMnb(): Promise<Match[]> {
         return this.entityManager.createQueryBuilder(Match, 'match')
             .innerJoin('match.competition', 'competition')
-            .select(['match', 'competition', 'competition.mnbUser',
-                'competition.mnbPassword', 'competition.mnbUrl'])
+            .select(['match', 'competition', 'competition.mnbUser', 'competition.mnbPassword', 'competition.mnbUrl'])
             .andWhere('match.mnbMatchId IS NOT NULL AND match.mnbMatchId != \'111\' ' +
                 'AND match.mnbPushed IS NULL AND DATE_ADD(match.startTime, INTERVAL 30 MINUTE) <= NOW()')
             .andWhere('match.deleted_at is null')
@@ -74,7 +71,7 @@ export default class MatchService extends BaseService<Match>  {
 
     public async findMatchById(id: number): Promise<Match> {
         let query = this.entityManager.createQueryBuilder(Match, 'match')
-            .andWhere('match.id = :id', {id});
+            .andWhere('match.id = :id', { id });
         this.addDefaultJoin(query);
         return query.getOne();
     }
@@ -89,8 +86,8 @@ export default class MatchService extends BaseService<Match>  {
             team1players: [],
             team2players: []
         }
-        let result = await this.entityManager.query("call wsa.usp_get_match(?,?)",[matchId, lineups]);
-        if(result!= null && result[0]!= null) {
+        let result = await this.entityManager.query("call wsa.usp_get_match(?,?)", [matchId, lineups]);
+        if (result != null && result[0] != null) {
             // if(isArrayPopulated(result[0])){
             //     result[0].map((x) => {
             //         x.resultStatus  = x.resultStatus == 0 ? null : x.resultStatus;
@@ -103,21 +100,24 @@ export default class MatchService extends BaseService<Match>  {
             response.umpires = result[4];
             return response;
         } else {
-          return [];
+            return [];
         }
     }
 
     public async findMatchByIds(ids: number[]): Promise<Match[]> {
         let query = this.entityManager.createQueryBuilder(Match, 'match')
-            .andWhere('match.id in (:ids)', {ids});
+            .andWhere('match.id in (:ids)', { ids });
         this.addDefaultJoin(query);
         return query.getMany();
     }
 
-    public async findByParam(from: Date, to: Date, teamIds: number[] = [], playerIds: number[],
-        competitionId: number, divisionIds: number[], organisationIds: number[], matchEnded: boolean,
-        matchStatus: ("STARTED" | "PAUSED" | "ENDED")[], roundName: string, search: string, offset: number = undefined, limit: number = undefined): Promise<any> {
-
+    public async findByParam(
+        from: Date, to: Date,
+        teamIds: number[] = [], playerIds: number[], competitionId: number, divisionIds: number[], organisationIds: number[],
+        matchEnded: boolean, matchStatus: ("STARTED" | "PAUSED" | "ENDED")[], roundName: string,
+        search: string, offset: number = undefined, limit: number = undefined,
+        sortBy: string = undefined, sortOrder: "ASC" | "DESC" = undefined
+    ): Promise<any> {
         let query = await this.entityManager.createQueryBuilder(Match, 'match');
         if (from) query.andWhere("match.startTime >= :from", { from });
         if (to) query.andWhere("match.startTime <= :to", { to });
@@ -128,13 +128,34 @@ export default class MatchService extends BaseService<Match>  {
         if (matchStatus) query.andWhere("match.matchStatus in (:matchStatus)", { matchStatus });
         if (divisionIds != undefined && divisionIds != null) query.andWhere("match.divisionId in (:divisionIds)", { divisionIds });
         if (isNotNullAndUndefined(roundName) && roundName !== '') query.andWhere("round.name = :roundName", { roundName });
-        if (isNotNullAndUndefined(search) && search!=='') {
+        if (isNotNullAndUndefined(search) && search !== '') {
             const search_ = `%${search.toLowerCase()}%`;
             query.andWhere(
                 `(lower(team1.name) like :search1 or lower(team2.name) like :search2)`,
-                { search1:search_,search2:search_ });
+                { search1: search_, search2: search_ }
+            );
         }
-        query.orderBy('match.startTime', 'ASC');
+        if (sortBy) {
+            if (sortBy === 'team1') {
+                query.orderBy('team1.name', sortOrder);
+            } else if (sortBy === 'team2') {
+                query.orderBy('team2.name', sortOrder);
+            } else if (sortBy === 'venueCourt') {
+                query.orderBy('venue.name', sortOrder);
+                query.addOrderBy('venueCourt.name', sortOrder);
+            } else if (sortBy === 'division') {
+                query.orderBy('division.name', sortOrder);
+            } else if (sortBy === 'score') {
+                query.orderBy('match.team1Score', sortOrder);
+                query.addOrderBy('match.team2Score', sortOrder);
+            } else if (sortBy === 'qtrBreak') {
+                query.orderBy('match.breakDuration', sortOrder);
+            } else {
+                query.orderBy(`match.${ sortBy }`, sortOrder);
+            }
+        } else {
+            query.orderBy('match.startTime', 'ASC');
+        }
 
         // return query.paginate(offset,limit).getMany();
         // switched to skip and limit function as with paginate(offset,limit) with offset 0, typeorm-plus gives the value
@@ -142,11 +163,11 @@ export default class MatchService extends BaseService<Match>  {
         if (isNotNullAndUndefined(limit) && isNotNullAndUndefined(offset)) {
             const matchCount = await query.getCount();
             const result = await query.skip(offset).take(limit).getMany();
-            return {matchCount,result}
+            return { matchCount, result }
         } else {
-            const matchCount =  null;
+            const matchCount = null;
             const result = await query.getMany();
-            return {matchCount,result}
+            return { matchCount, result }
         }
     }
 
@@ -174,7 +195,7 @@ export default class MatchService extends BaseService<Match>  {
             qb.andWhere("match.startTime > now()");
             if (upcomingStartTimeRange) {
                 qb.andWhere("match.startTime < (now() + interval :upcomingStartTimeRange minute )",
-                    {upcomingStartTimeRange});
+                    { upcomingStartTimeRange });
             }
             qb.andWhere("match.matchStatus is null");
         }));
@@ -187,7 +208,7 @@ export default class MatchService extends BaseService<Match>  {
         let query = this.entityManager.createQueryBuilder(Match, 'match');
         this.filterByOrganisationTeam(undefined, organisationIds, teamIds, query);
         query.andWhere(new Brackets(qb => {
-            qb.andWhere("match.endTime > (now() - interval :endTimeRange minute )", {endTimeRange})
+            qb.andWhere("match.endTime > (now() - interval :endTimeRange minute )", { endTimeRange })
                 .andWhere("match.endTime < (now())")
                 .andWhere("match.matchStatus = 'ENDED'");
         }));
@@ -198,14 +219,14 @@ export default class MatchService extends BaseService<Match>  {
     public async loadCompetitionAndDate(competitionId: number, start: Date, end: Date, live: boolean): Promise<Match[]> {
         let query = this.entityManager.createQueryBuilder(Match, 'match');
         this.addDefaultJoin(query);
-        query.andWhere("match.competitionId = :id", {id: competitionId});
+        query.andWhere("match.competitionId = :id", { id: competitionId });
         if (live) {
             query.andWhere("match.matchStatus = 'STARTED'");
         } else {
             query.andWhere("match.matchStatus is null");
         }
-        if (start) query.andWhere("match.startTime >= :start", {start});
-        if (end) query.andWhere("match.startTime <= :end", {end});
+        if (start) query.andWhere("match.startTime >= :start", { start });
+        if (end) query.andWhere("match.startTime <= :end", { end });
         query.orderBy('match.startTime', 'ASC');
         return query.getMany()
     }
@@ -214,28 +235,28 @@ export default class MatchService extends BaseService<Match>  {
         let result = await this.entityManager.query("call wsa.usp_get_matches(?,?,?,?,?)",
             [competitionId, teamId, roleId, requestFilter.paging.offset, requestFilter.paging.limit]);
 
-            if (result != null) {
-                let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
-                let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);
-                responseObject["matches"] = result[0];
-                return responseObject;
-            } else {
-                return [];
-            }
+        if (result != null) {
+            let totalCount = (result[1] && result[1].find(x => x)) ? result[1].find(x => x).totalCount : 0;
+            let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);
+            responseObject["matches"] = result[0];
+            return responseObject;
+        } else {
+            return [];
+        }
     }
 
     public async loadDashboard(competitionId: number, startDate: Date, requestFilter: RequestFilter): Promise<any> {
         let result = await this.entityManager.query("call wsa.usp_get_dashboard_matches(?,?,?,?)",
             [competitionId, startDate, requestFilter.paging.offset, requestFilter.paging.limit]);
 
-            if (result != null) {
-                let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
-                let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);
-                responseObject["matches"] = result[0];
-                return responseObject;
-            } else {
-                return [];
-            }
+        if (result != null) {
+            let totalCount = (result[1] && result[1].find(x => x)) ? result[1].find(x => x).totalCount : 0;
+            let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);
+            responseObject["matches"] = result[0];
+            return responseObject;
+        } else {
+            return [];
+        }
     }
 
     public async loadGamePositions() {
@@ -249,12 +270,12 @@ export default class MatchService extends BaseService<Match>  {
     public async findLineupsByParam(matchId: number, competitionId: number, teamId: number, playerId: number,
                                     positionId: number): Promise<Lineup[]> {
         let query = this.entityManager.createQueryBuilder(Lineup, 'lu')
-            .andWhere('lu.matchId = :matchId', {matchId})
-            .andWhere('lu.teamId = :teamId', {teamId});
+            .andWhere('lu.matchId = :matchId', { matchId })
+            .andWhere('lu.teamId = :teamId', { teamId });
 
-        if (competitionId) query.andWhere("lu.competitionId = :competitionId", {competitionId});
-        if (playerId) query.andWhere("lu.playerId = :playerId", {playerId});
-        if (positionId) query.andWhere("lu.positionId = :positionId", {positionId});
+        if (competitionId) query.andWhere("lu.competitionId = :competitionId", { competitionId });
+        if (playerId) query.andWhere("lu.playerId = :playerId", { playerId });
+        if (positionId) query.andWhere("lu.positionId = :positionId", { positionId });
         return query.getMany()
     }
 
@@ -264,12 +285,12 @@ export default class MatchService extends BaseService<Match>  {
 
     public async deleteLineups(matchId: number, teamId: number) {
         return this.entityManager.createQueryBuilder().delete().from(Lineup)
-            .andWhere("matchId = :matchId and teamId = :teamId", {matchId, teamId}).execute();
+            .andWhere("matchId = :matchId and teamId = :teamId", { matchId, teamId }).execute();
     }
 
     public async deleteLineupById(id: number) {
         return this.entityManager.createQueryBuilder().delete().from(Lineup)
-            .andWhere("id = :id", {id}).execute();
+            .andWhere("id = :id", { id }).execute();
     }
 
     public async logMatchEvent(matchId: number, category: string, type: string, period: number, eventTimestamp: Date,
@@ -298,10 +319,10 @@ export default class MatchService extends BaseService<Match>  {
         let buf = inferredType.toBuffer(me);
         const params = {
             Bucket: process.env.EVENT_STORE_BUCKET, // pass your bucket name
-            Key: Date.now()+".avro",
+            Key: Date.now() + ".avro",
             Body: buf
         };
-        s3.upload(params, function(s3Err, data) {
+        s3.upload(params, function (s3Err, data) {
             if (s3Err) throw s3Err;
 
             console.log("File uploaded successfully");
@@ -329,20 +350,20 @@ export default class MatchService extends BaseService<Match>  {
         return query.getMany()
     }
 
-     public async findByRound(roundId: number): Promise<Match[]> {
+    public async findByRound(roundId: number): Promise<Match[]> {
         let query = this.entityManager.createQueryBuilder(Match, 'match');
         query.andWhere("match.roundId = :roundId", { roundId });
         return query.getMany();
     }
 
-    public async softDelete(id: number, userId:number): Promise<DeleteResult> {
+    public async softDelete(id: number, userId: number): Promise<DeleteResult> {
         let query = this.entityManager.createQueryBuilder(Match, 'match');
         query.andWhere("match.id = :id", { id });
         return query.softDelete().execute();
     }
 
     public async findTodaysMatchByParam(from: Date, to: Date, teamIds: number[] = [], playerIds: number[],
-        competitionId: number, organisationIds: number[], offset: number = undefined, limit: number = undefined): Promise<any> {
+                                        competitionId: number, organisationIds: number[], offset: number = undefined, limit: number = undefined): Promise<any> {
 
         let query = await this.entityManager.createQueryBuilder(Match, 'match');
         if (from) query.andWhere("match.startTime >= cast(:from as datetime)", { from });
@@ -362,7 +383,7 @@ export default class MatchService extends BaseService<Match>  {
         }
     }
 
-    public async getMatchDetailsForVenueCourtUpdate(competitionId: number,startTime: Date, endTime: Date, fromCourtIds: number[]): Promise<Match[]> {
+    public async getMatchDetailsForVenueCourtUpdate(competitionId: number, startTime: Date, endTime: Date, fromCourtIds: number[]): Promise<Match[]> {
 
         let query = await this.entityManager.createQueryBuilder(Match, 'match');
         if (startTime) query.andWhere("match.startTime >= cast(:startTime as datetime)", { startTime });
@@ -378,18 +399,18 @@ export default class MatchService extends BaseService<Match>  {
         period: number,
         isBreak: boolean,
         totalPausedMs: number) {
-          let matchPausedTime = new MatchPausedTime();
-          matchPausedTime.matchId = matchId;
-          matchPausedTime.period = period;
-          matchPausedTime.isBreak = isBreak;
-          matchPausedTime.totalPausedMs = totalPausedMs;
+        let matchPausedTime = new MatchPausedTime();
+        matchPausedTime.matchId = matchId;
+        matchPausedTime.period = period;
+        matchPausedTime.isBreak = isBreak;
+        matchPausedTime.totalPausedMs = totalPausedMs;
 
-          return this.entityManager.insert(MatchPausedTime, matchPausedTime);
+        return this.entityManager.insert(MatchPausedTime, matchPausedTime);
     }
 
     public async getMatchTimezone(locationId: number): Promise<StateTimezone> {
         let query = await this.entityManager.createQueryBuilder(StateTimezone, 'stateTimezone')
-                              .andWhere('stateTimezone.stateRefId = :locationId', {locationId: locationId});
+            .andWhere('stateTimezone.stateRefId = :locationId', { locationId: locationId });
         return query.getOne();
     }
 
@@ -400,12 +421,12 @@ export default class MatchService extends BaseService<Match>  {
         playerId: number
     ) {
         let query = this.entityManager.createQueryBuilder(MatchEvent, 'me')
-                        .update(MatchEvent)
-                        .set({attribute2Value: playerId.toString()})
-                        .where("eventCategory = 'stat'")
-                        .andWhere("matchId = :matchId", {matchId})
-                        .andWhere("attribute1Key = :team", {team})
-                        .andWhere("attribute1Value = :gamePositionId", {gamePositionId});
+            .update(MatchEvent)
+            .set({ attribute2Value: playerId.toString() })
+            .where("eventCategory = 'stat'")
+            .andWhere("matchId = :matchId", { matchId })
+            .andWhere("attribute1Key = :team", { team })
+            .andWhere("attribute1Value = :gamePositionId", { gamePositionId });
         return query.execute();
     }
 
@@ -429,8 +450,7 @@ export default class MatchService extends BaseService<Match>  {
             outStream.end();
 
             return newBuffer;
-        }
-        catch(e){
+        } catch (e) {
             outStream.end();
         }
     };
@@ -445,7 +465,7 @@ export default class MatchService extends BaseService<Match>  {
      * @param {number[]} teamIds
      * @returns {String} - generated PDF download link
      */
-    public async printMatchSheetTemplate (
+    public async printMatchSheetTemplate(
         templateType: string,
         user: User,
         organisation: Organisation,
@@ -455,24 +475,24 @@ export default class MatchService extends BaseService<Match>  {
     ): Promise<MatchSheet> {
         try {
             const matchFound = await this.findByParam(
-              null,
-              null,
-              teamIds,
-              null,
-              competition.id,
-              divisionIds,
-              null,
-              null,
-              null,
-              null,
-              null,
-              null,
-              null
+                null,
+                null,
+                teamIds,
+                null,
+                competition.id,
+                divisionIds,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
             );
             const matches = matchFound.result;
             const filteredMatchByTeam = teamIds !== null
-              ? matches.filter((match) => match.team1Id === teamIds || match.team2Id === teamIds)
-              : matches;
+                ? matches.filter((match) => match.team1Id === teamIds || match.team2Id === teamIds)
+                : matches;
             let pdfBuf: Buffer;
 
             const createPDF = (html, options): Promise<Buffer> => new Promise(((resolve, reject) => {
@@ -488,17 +508,17 @@ export default class MatchService extends BaseService<Match>  {
             for (let i = 0; i < filteredMatchByTeam.length; i++) {
                 console.log(i, filteredMatchByTeam.length);
                 const matchDetail = await this.findAdminMatchById(filteredMatchByTeam[i].id, 2);
-                const {team1players, team2players, umpires} = matchDetail;
+                const { team1players, team2players, umpires } = matchDetail;
                 const htmlTmpl = getMatchSheetTemplate(
-                  'Fixtures',
-                  organisation,
-                  team1players,
-                  team2players,
-                  umpires,
-                  filteredMatchByTeam[i]
+                    'Fixtures',
+                    organisation,
+                    team1players,
+                    team2players,
+                    umpires,
+                    filteredMatchByTeam[i]
                 );
 
-                const options = {width: '595px', height: '842px', format: 'A4'};
+                const options = { width: '595px', height: '842px', format: 'A4' };
 
                 await createPDF(htmlTmpl, options).then((newBuffer) => {
                     if (pdfBuf) {
@@ -517,15 +537,15 @@ export default class MatchService extends BaseService<Match>  {
                 let teamName = 'All_teams';
                 if (teamIds !== null) {
                     teamName = filteredMatchByTeam[0].team1Id === teamIds
-                      ? replaceStr(filteredMatchByTeam[0].team1.name)
-                      : replaceStr(filteredMatchByTeam[0].team2.name);
+                        ? replaceStr(filteredMatchByTeam[0].team1.name)
+                        : replaceStr(filteredMatchByTeam[0].team2.name);
                 }
 
                 const fileName = `${competition.longName
-                  ? replaceStr(competition.longName)
-                  : ''}_${divisionIds === null
-                  ? 'All_Divisions_'
-                  :  replaceStr(filteredMatchByTeam[0].division.name)
+                    ? replaceStr(competition.longName)
+                    : ''}_${divisionIds === null
+                    ? 'All_Divisions_'
+                    : replaceStr(filteredMatchByTeam[0].division.name)
                 }_${teamName}_${templateType}_${Date.now()}.pdf`;
 
                 const params = {
@@ -546,8 +566,7 @@ export default class MatchService extends BaseService<Match>  {
             }
 
             return matchSheet;
-        }
-        catch (e) {
+        } catch (e) {
             logger.error(`Failed generating PDF`, e);
         }
     }
@@ -555,7 +574,7 @@ export default class MatchService extends BaseService<Match>  {
     public async findNumberOfMatches(divisionId: number): Promise<number> {
         return this.entityManager.createQueryBuilder(Match, 'match')
             .innerJoin('match.division', 'division')
-            .where('match.divisionId = :divisionId', {divisionId: divisionId})
+            .where('match.divisionId = :divisionId', { divisionId: divisionId })
             .andWhere('match.deleted_at is null')
             .andWhere('division.deleted_at is null')
             .getCount();
