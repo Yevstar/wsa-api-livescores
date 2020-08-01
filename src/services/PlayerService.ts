@@ -167,11 +167,11 @@ export default class PlayerService extends BaseService<Player> {
             'group by pmt.playerId, player', [matchId, teamId]);
     }
 
-    public async loadGameTime(competitionId: number, aggregate: ("GAME" | "MATCH" | "PERIOD"), requestFilter: RequestFilter): Promise<any> {
-        let result = await this.entityManager.query("call wsa.usp_get_gametime(?,?,?,?,?)",
-            [competitionId, aggregate, requestFilter.paging.limit, requestFilter.paging.offset,requestFilter.search]);
+    public async loadGameTime(competitionId: number, aggregate: ("MINUTE" | "PERIOD" | "MATCH"), teamId: number, matchId: number, requestFilter: RequestFilter): Promise<any> {
+        let result = await this.entityManager.query("call wsa.usp_get_gametime(?,?,?,?,?,?,?)",
+        [competitionId, aggregate, teamId, matchId, requestFilter.paging.limit, requestFilter.paging.offset, requestFilter.search]);
 
-            if (isNotNullAndUndefined(requestFilter.paging.limit) && isNotNullAndUndefined(requestFilter.paging.offset)) {
+        if (isNotNullAndUndefined(requestFilter.paging.limit) && isNotNullAndUndefined(requestFilter.paging.offset)) {
             if (result != null) {
                 let totalCount = (result[1] && result[1].find(x => x)) ? result[1].find(x => x).totalCount : 0;
                 let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);
