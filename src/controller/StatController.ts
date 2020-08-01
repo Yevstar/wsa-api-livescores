@@ -36,8 +36,8 @@ export class StatController extends BaseController {
     async gametime(
         @QueryParam('competitionId', {required: true}) competitionId: number = undefined,
         @QueryParam('aggregate', {required: true}) aggregate: ("MINUTE" | "PERIOD" | "MATCH"),
-        @QueryParam('teamId', {required: true}) teamId: number = undefined,
-        @QueryParam('matchId', {required: true}) matchId: number = undefined,
+        @QueryParam('teamId') teamId: number = undefined,
+        @QueryParam('matchId') matchId: number = undefined,
         @Body() requestFilter: RequestFilter,
         @Res() response: Response) {
         if (competitionId && aggregate && requestFilter) {
@@ -162,7 +162,7 @@ export class StatController extends BaseController {
         @Res() response: Response) {
 
         let gameTimeData = await this.playerService.loadGameTime(competitionId, aggregate, null, null, { paging: { offset: null, limit: null }, search: '' });
-        
+
         if (isArrayPopulated(gameTimeData)) {
             gameTimeData.map(e => {
                 e['Player Id'] = e.player.id;
