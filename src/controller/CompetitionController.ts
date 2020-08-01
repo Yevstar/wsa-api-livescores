@@ -59,176 +59,182 @@ export class CompetitionController extends BaseController {
         @UploadedFile("logo") file: Express.Multer.File,
         @Res() response: Response
     ): Promise<any> {
+
+        if (stringToBoolean(competition.positionTracking) == true && competition.attendanceRecordingPeriod == 'GAMES') {
+            return response.status(200).send(
+                {name: 'save_error', message: `Attendance recording must be set to periods or minutes if position tracking is enabled.`});
+        }
+
         try {
-        if (competition) {
-            let isNewCompetition = false;
-            // updates with multipart have some issue, fields need to be mapped directly, and id needs to be converted explicitly to number
-            let c = new Competition();
-            if (competition.id) {
-                c.id = stringTONumber(competition.id);
-            }
-            if (competition.organisationId) {
-                c.organisationId = stringTONumber(competition.organisationId);
-            }
-            c.name = competition.name;
-            c.longName = competition.longName;
-            c.name = competition.name;
-            c.recordUmpire = competition.recordUmpire;
-            c.recordUmpireType = competition.recordUmpireType;
-            c.gameTimeTracking = stringToBoolean(competition.gameTimeTracking);
-            c.positionTracking = stringToBoolean(competition.positionTracking);
-            c.recordGoalAttempts = stringToBoolean(competition.recordGoalAttempts);
-            c.centrePassEnabled = stringToBoolean(competition.centrePassEnabled);
-            c.incidentsEnabled = stringToBoolean(competition.incidentsEnabled);
-            c.attendanceRecordingType = competition.attendanceRecordingType;
-            c.attendanceRecordingPeriod = competition.attendanceRecordingPeriod;
-            c.attendanceSelectionTime = competition.attendanceSelectionTime ? stringTONumber(competition.attendanceSelectionTime) : null;
-            c.lineupMaxPlayers = competition.lineupMaxPlayers ? stringTONumber(competition.lineupMaxPlayers) : null;
-            c.lineupSelectionTime = competition.lineupSelectionTime ? stringTONumber(competition.lineupSelectionTime) : null;
-            c.lineupSelectionEnabled = stringToBoolean(competition.lineupSelectionEnabled);
-            c.scoringType = competition.scoringType;
-            c.timerType = competition.timerType;
-            c.buzzerEnabled = stringToBoolean(competition.buzzerEnabled);
-            c.warningBuzzerEnabled = stringToBoolean(competition.warningBuzzerEnabled);
-            c.playerBorrowingType = competition.playerBorrowingType;
-            c.gamesBorrowedThreshold = competition.gamesBorrowedThreshold;
-            c.linkedCompetitionId = competition.linkedCompetitionId;
+            if (competition) {
+                let isNewCompetition = false;
+                // updates with multipart have some issue, fields need to be mapped directly, and id needs to be converted explicitly to number
+                let c = new Competition();
+                if (competition.id) {
+                    c.id = stringTONumber(competition.id);
+                }
+                if (competition.organisationId) {
+                    c.organisationId = stringTONumber(competition.organisationId);
+                }
+                c.name = competition.name;
+                c.longName = competition.longName;
+                c.name = competition.name;
+                c.recordUmpire = competition.recordUmpire;
+                c.recordUmpireType = competition.recordUmpireType;
+                c.gameTimeTracking = stringToBoolean(competition.gameTimeTracking);
+                c.positionTracking = stringToBoolean(competition.positionTracking);
+                c.recordGoalAttempts = stringToBoolean(competition.recordGoalAttempts);
+                c.centrePassEnabled = stringToBoolean(competition.centrePassEnabled);
+                c.incidentsEnabled = stringToBoolean(competition.incidentsEnabled);
+                c.attendanceRecordingType = competition.attendanceRecordingType;
+                c.attendanceRecordingPeriod = competition.attendanceRecordingPeriod;
+                c.attendanceSelectionTime = competition.attendanceSelectionTime ? stringTONumber(competition.attendanceSelectionTime) : null;
+                c.lineupMaxPlayers = competition.lineupMaxPlayers ? stringTONumber(competition.lineupMaxPlayers) : null;
+                c.lineupSelectionTime = competition.lineupSelectionTime ? stringTONumber(competition.lineupSelectionTime) : null;
+                c.lineupSelectionEnabled = stringToBoolean(competition.lineupSelectionEnabled);
+                c.scoringType = competition.scoringType;
+                c.timerType = competition.timerType;
+                c.buzzerEnabled = stringToBoolean(competition.buzzerEnabled);
+                c.warningBuzzerEnabled = stringToBoolean(competition.warningBuzzerEnabled);
+                c.playerBorrowingType = competition.playerBorrowingType;
+                c.gamesBorrowedThreshold = competition.gamesBorrowedThreshold;
+                c.linkedCompetitionId = competition.linkedCompetitionId;
 
-            if(c.id===0){
-                c.uniqueKey = uuidv4();
-                isNewCompetition = true;
-            }
+                if(c.id===0){
+                    c.uniqueKey = uuidv4();
+                    isNewCompetition = true;
+                }
 
-            let saved = await this.competitionService.createOrUpdate(c);
+                let saved = await this.competitionService.createOrUpdate(c);
 
-            if (isNotNullAndUndefined(competition.invitedTo) && competition.invitedTo !== '') {
-                competition.invitedTo = JSON.parse(competition.invitedTo)
-            }
+                if (isNotNullAndUndefined(competition.invitedTo) && competition.invitedTo !== '') {
+                    competition.invitedTo = JSON.parse(competition.invitedTo)
+                }
 
-            if (isNotNullAndUndefined(competition.invitedOrganisation) && competition.invitedOrganisation !== '') {
-                competition.invitedOrganisation = JSON.parse(competition.invitedOrganisation)
-            }
+                if (isNotNullAndUndefined(competition.invitedOrganisation) && competition.invitedOrganisation !== '') {
+                    competition.invitedOrganisation = JSON.parse(competition.invitedOrganisation)
+                }
 
-            if ((isNotNullAndUndefined(competition.invitedTo) && competition.invitedTo !== '' && isArrayPopulated(competition.invitedTo)) ||
-                (isNotNullAndUndefined(competition.invitedOrganisation) && competition.invitedOrganisation !== '' && isArrayPopulated(competition.invitedOrganisation))) {
+                if ((isNotNullAndUndefined(competition.invitedTo) && competition.invitedTo !== '' && isArrayPopulated(competition.invitedTo)) ||
+                    (isNotNullAndUndefined(competition.invitedOrganisation) && competition.invitedOrganisation !== '' && isArrayPopulated(competition.invitedOrganisation))) {
 
-                let affliliateInvited = 0;
-                const INVITED_TO = competition.invitedTo;
-                let GET_ORGANISATIONS;
-                let invitationTo;
+                    let affliliateInvited = 0;
+                    const INVITED_TO = competition.invitedTo;
+                    let GET_ORGANISATIONS;
+                    let invitationTo;
 
-                const MULTIPLE_ORGANISATIONS = [];
-                const ORG_ARRAY = [];
-                const CREATE_COMP_ORG = [];
+                    const MULTIPLE_ORGANISATIONS = [];
+                    const ORG_ARRAY = [];
+                    const CREATE_COMP_ORG = [];
 
-                const AFFILIATED_ASSOCIATION = Competition.AFFILIATED_ASSOCIATION;
-                const AFFILIATED_CLUB = Competition.AFFILIATED_CLUB;
-                const ANY_ASSOCIATION = Competition.ANY_ORGANISATION_ASSOCIATION;
-                const ANY_CLUB = Competition.ANY_ORGANISATION_CLUB;
-                const DIRECT = Competition.DIRECT_INVITE;
+                    const AFFILIATED_ASSOCIATION = Competition.AFFILIATED_ASSOCIATION;
+                    const AFFILIATED_CLUB = Competition.AFFILIATED_CLUB;
+                    const ANY_ASSOCIATION = Competition.ANY_ORGANISATION_ASSOCIATION;
+                    const ANY_CLUB = Competition.ANY_ORGANISATION_CLUB;
+                    const DIRECT = Competition.DIRECT_INVITE;
 
-                if ((INVITED_TO.includes(AFFILIATED_ASSOCIATION) || INVITED_TO.includes(AFFILIATED_CLUB))
-                    && (INVITED_TO.includes(ANY_ASSOCIATION) || INVITED_TO.includes(ANY_CLUB))) {
+                    if ((INVITED_TO.includes(AFFILIATED_ASSOCIATION) || INVITED_TO.includes(AFFILIATED_CLUB))
+                        && (INVITED_TO.includes(ANY_ASSOCIATION) || INVITED_TO.includes(ANY_CLUB))) {
 
-                    if (INVITED_TO.includes(AFFILIATED_ASSOCIATION) && (!INVITED_TO.includes(AFFILIATED_CLUB))) { // Association selected
-                        affliliateInvited = 3;
-                        invitationTo = 2;
-                    } else if (INVITED_TO.includes(AFFILIATED_CLUB) && (!INVITED_TO.includes(AFFILIATED_ASSOCIATION))) { // Club selected
-                        affliliateInvited = 4;
-                        invitationTo = 3;
-                    }
-
-                    const organisationTypeRefId = await this.organisationService.findAffiliateDetailsByOrganisationId(competition.organisationId)
-                    GET_ORGANISATIONS = await this.competitionService.getAllAffiliatedOrganisations(competition.organisationId, affliliateInvited, organisationTypeRefId);
-
-                    if (isNotNullAndUndefined(competition.invitedOrganisation)) {
-                        MULTIPLE_ORGANISATIONS.push(...GET_ORGANISATIONS, ...competition.invitedOrganisation);
-                    } else {
-                        MULTIPLE_ORGANISATIONS.push(...GET_ORGANISATIONS);
-                    }
-
-                    ORG_ARRAY.push(...MULTIPLE_ORGANISATIONS);
-
-                } else {
-
-                    if (INVITED_TO.includes(AFFILIATED_ASSOCIATION) && (!INVITED_TO.includes(AFFILIATED_CLUB, DIRECT, ANY_ASSOCIATION, ANY_CLUB))) { // Association selected
-                        affliliateInvited = 3;
-                        invitationTo = 2;
-                    } else if (INVITED_TO.includes(AFFILIATED_CLUB) && (!INVITED_TO.includes(AFFILIATED_ASSOCIATION, DIRECT, ANY_ASSOCIATION, ANY_CLUB))) { // Club selected
-                        affliliateInvited = 4;
-                        invitationTo = 3;
-                    }
-
-                    GET_ORGANISATIONS = await this.competitionService.getAllAffiliatedOrganisations(competition.organisationId, affliliateInvited, invitationTo);
-
-
-                    if (INVITED_TO.includes(DIRECT) && (!INVITED_TO.includes(AFFILIATED_ASSOCIATION, AFFILIATED_CLUB, ANY_ASSOCIATION, ANY_CLUB))) { // Direct Invited
-                        GET_ORGANISATIONS = [{ organisationId: competition.organisationId }];
-                    }
-
-                    if (isNotNullAndUndefined(competition.invitedOrganisation) && isArrayPopulated(competition.invitedOrganisation)) { // Any Organisation Invited
-                        if ((INVITED_TO.includes(ANY_ASSOCIATION) || INVITED_TO.includes(ANY_CLUB)) && (!INVITED_TO.includes(AFFILIATED_ASSOCIATION, AFFILIATED_CLUB, DIRECT))) {
-                            GET_ORGANISATIONS = competition.invitedOrganisation;
+                        if (INVITED_TO.includes(AFFILIATED_ASSOCIATION) && (!INVITED_TO.includes(AFFILIATED_CLUB))) { // Association selected
+                            affliliateInvited = 3;
+                            invitationTo = 2;
+                        } else if (INVITED_TO.includes(AFFILIATED_CLUB) && (!INVITED_TO.includes(AFFILIATED_ASSOCIATION))) { // Club selected
+                            affliliateInvited = 4;
+                            invitationTo = 3;
                         }
+
+                        const organisationTypeRefId = await this.organisationService.findAffiliateDetailsByOrganisationId(competition.organisationId)
+                        GET_ORGANISATIONS = await this.competitionService.getAllAffiliatedOrganisations(competition.organisationId, affliliateInvited, organisationTypeRefId);
+
+                        if (isNotNullAndUndefined(competition.invitedOrganisation)) {
+                            MULTIPLE_ORGANISATIONS.push(...GET_ORGANISATIONS, ...competition.invitedOrganisation);
+                        } else {
+                            MULTIPLE_ORGANISATIONS.push(...GET_ORGANISATIONS);
+                        }
+
+                        ORG_ARRAY.push(...MULTIPLE_ORGANISATIONS);
+
+                    } else {
+
+                        if (INVITED_TO.includes(AFFILIATED_ASSOCIATION) && (!INVITED_TO.includes(AFFILIATED_CLUB, DIRECT, ANY_ASSOCIATION, ANY_CLUB))) { // Association selected
+                            affliliateInvited = 3;
+                            invitationTo = 2;
+                        } else if (INVITED_TO.includes(AFFILIATED_CLUB) && (!INVITED_TO.includes(AFFILIATED_ASSOCIATION, DIRECT, ANY_ASSOCIATION, ANY_CLUB))) { // Club selected
+                            affliliateInvited = 4;
+                            invitationTo = 3;
+                        }
+
+                        GET_ORGANISATIONS = await this.competitionService.getAllAffiliatedOrganisations(competition.organisationId, affliliateInvited, invitationTo);
+
+
+                        if (INVITED_TO.includes(DIRECT) && (!INVITED_TO.includes(AFFILIATED_ASSOCIATION, AFFILIATED_CLUB, ANY_ASSOCIATION, ANY_CLUB))) { // Direct Invited
+                            GET_ORGANISATIONS = [{ organisationId: competition.organisationId }];
+                        }
+
+                        if (isNotNullAndUndefined(competition.invitedOrganisation) && isArrayPopulated(competition.invitedOrganisation)) { // Any Organisation Invited
+                            if ((INVITED_TO.includes(ANY_ASSOCIATION) || INVITED_TO.includes(ANY_CLUB)) && (!INVITED_TO.includes(AFFILIATED_ASSOCIATION, AFFILIATED_CLUB, DIRECT))) {
+                                GET_ORGANISATIONS = competition.invitedOrganisation;
+                            }
+                        }
+
+                        ORG_ARRAY.push(...GET_ORGANISATIONS);
                     }
 
-                    ORG_ARRAY.push(...GET_ORGANISATIONS);
+                    for (let i of ORG_ARRAY) {
+                        const compOrg = new CompetitionOrganisation();
+                        compOrg.id = 0;
+                        compOrg.competitionId = saved.id;
+                        compOrg.orgId = i.organisationId;
+                        CREATE_COMP_ORG.push(compOrg);
+                    }
+
+                    await this.competitionOrganisationService.batchCreateOrUpdate(CREATE_COMP_ORG);
                 }
 
-                for (let i of ORG_ARRAY) {
-                    const compOrg = new CompetitionOrganisation();
-                    compOrg.id = 0;
-                    compOrg.competitionId = saved.id;
-                    compOrg.orgId = i.organisationId;
-                    CREATE_COMP_ORG.push(compOrg);
+                await this.competitionVenueService.deleteByCompetitionId(saved.id);
+                let cvArray = [];
+                for (let i of venues) {
+                    let cv = new CompetitionVenue();
+                    cv.venueId = i;
+                    cv.competitionId = saved.id;
+                    cvArray.push(cv);
+                }
+                let data = await this.competitionVenueService.batchCreateOrUpdate(cvArray)
+
+                if(isNewCompetition){
+                    this.insertIntoLadderSettings(saved,user.id);
                 }
 
-                await this.competitionOrganisationService.batchCreateOrUpdate(CREATE_COMP_ORG);
-            }
+                if (file && isPhoto(file.mimetype)) {
+                    let filename = `/comp_${saved.id}/logo_${timestamp()}.${fileExt(file.originalname)}`;
+                    let result = await this.firebaseService.upload(filename, file);
+                    if (result) {
+                        saved.logoUrl = result['url'];
+                        saved = await this.competitionService.createOrUpdate(saved);
+                        return saved;
+                    } else {
+                        return response
+                            .status(400).send(
+                                { name: 'save_error', message: 'Logo not saved, try again later.' });
+                    }
 
-            await this.competitionVenueService.deleteByCompetitionId(saved.id);
-            let cvArray = [];
-            for (let i of venues) {
-                let cv = new CompetitionVenue();
-                cv.venueId = i;
-                cv.competitionId = saved.id;
-                cvArray.push(cv);
-            }
-            let data = await this.competitionVenueService.batchCreateOrUpdate(cvArray)
-
-            if(isNewCompetition){
-                this.insertIntoLadderSettings(saved,user.id);
-            }
-
-            if (file && isPhoto(file.mimetype)) {
-                let filename = `/comp_${saved.id}/logo_${timestamp()}.${fileExt(file.originalname)}`;
-                let result = await this.firebaseService.upload(filename, file);
-                if (result) {
-                    saved.logoUrl = result['url'];
-                    saved = await this.competitionService.createOrUpdate(saved);
-                    return saved;
                 } else {
-                    return response
-                        .status(400).send(
-                            { name: 'save_error', message: 'Logo not saved, try again later.' });
+                    /*let organisation = await this.organisationService.findById(savedTeam.organisationId);
+                    if (organisation.logoUrl) {
+                        savedTeam.logoUrl = organisation.logoUrl;
+                        savedTeam = await this.teamService.createOrUpdate(savedTeam);
+                        return savedTeam;
+                    }
+                    */
                 }
+
+                return this.competitionService.findById(saved.id);
 
             } else {
-                /*let organisation = await this.organisationService.findById(savedTeam.organisationId);
-                if (organisation.logoUrl) {
-                    savedTeam.logoUrl = organisation.logoUrl;
-                    savedTeam = await this.teamService.createOrUpdate(savedTeam);
-                    return savedTeam;
-                }
-                */
+                return response.status(200).send(
+                    {name: 'search_error', message: `Required fields are missing`});
             }
-
-            return this.competitionService.findById(saved.id);
-
-        } else {
-            return response.status(200).send(
-                {name: 'search_error', message: `Required fields are missing`});
-        }
         } catch(err) {
             return response.send(`An error occured while creating competition ${err}`)
         }
