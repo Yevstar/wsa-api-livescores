@@ -95,7 +95,7 @@ export default class UserDeviceService extends BaseService<UserDevice> {
         query.orWhere('ud.userId in ' + query.subQuery().select("r.userId")
             .from(Roster, "r")
             .innerJoin('r.role', 'role')
-            .andWhere("role.name = 'scorer'")
+            .andWhere("role.name = 'scorer' or role.name = 'player' or role.name = 'umpire' or role.name = 'coach'")
             .andWhere("r.matchId = :matchId", {matchId: match.id}).getQuery());
         return query.getMany();
     }
