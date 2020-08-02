@@ -60,7 +60,7 @@ export class CompetitionController extends BaseController {
         @Res() response: Response
     ): Promise<any> {
 
-        if (stringToBoolean(competition.positionTracking) == true && competition.attendanceRecordingPeriod == 'GAMES') {
+        if (stringToBoolean(competition.positionTracking) == true && competition.attendanceRecordingPeriod == 'MATCH') {
             return response.status(200).send(
                 {name: 'save_error', message: `Attendance recording must be set to periods or minutes if position tracking is enabled.`});
         }
