@@ -161,7 +161,7 @@ export class RosterController extends BaseController {
         }
         let savedRoster = await this.rosterService.createOrUpdate(roster);
         if (savedRoster) {
-            await this.notifyRosterChange(user, roster, category);
+            await this.notifyRosterChange(user, savedRoster, category);
             return savedRoster;
         } else {
           return response.status(400).send({
