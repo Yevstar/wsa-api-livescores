@@ -1,4 +1,5 @@
 import {Service} from "typedi";
+
 import BaseService from "./BaseService";
 import {Banner} from "../models/Banner";
 
@@ -10,7 +11,8 @@ export default class BannerService extends BaseService<Banner> {
 
     public async findByParams(
         competitionIds: number[],
-        pageType: "HOME" | "DRAWS" | "LADDER"
+        pageType: "HOME" | "DRAWS" | "LADDER" | "CHAT" | "NEWS",
+        format: "Horizontal" | "Square"
     ): Promise<Banner[]> {
         let query = this.entityManager
             .createQueryBuilder(Banner, "banner")
@@ -18,6 +20,7 @@ export default class BannerService extends BaseService<Banner> {
             .where("banner.competitionId in (:competitionIds)", {
                 competitionIds
             });
+
         if (pageType) {
             switch (pageType) {
                 case "HOME":
@@ -29,11 +32,22 @@ export default class BannerService extends BaseService<Banner> {
                 case "LADDER":
                     query.andWhere("banner.showOnLadder = 1");
                     break;
+                case "NEWS":
+                    query.andWhere("banner.showOnNews = 1");
+                    break;
+                case "CHAT":
+                    query.andWhere("banner.showOnChat = 1");
+                    break;
             }
         }
+
+        if (format) {
+            query.andWhere("banner.format = :format", { format });
+        }
+
         return query.getRawMany();
     }
-    
+
     public async deleteByCompetitionId(id?: number) {
         return this.entityManager
             .createQueryBuilder()

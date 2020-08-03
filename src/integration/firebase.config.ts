@@ -20,7 +20,7 @@ export const firebaseAdminConfig = {
     "token_uri": "https://oauth2.googleapis.com/token",
     "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
     "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-br5di%40world-sport-action.iam.gserviceaccount.com"
-  };
+};
 
 export const firebaseCertAdminConfig = {
     projectId: "world-sport-action",

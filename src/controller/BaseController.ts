@@ -35,6 +35,7 @@ import LineupService from "../services/LineupService";
 import LadderFormatService from '../services/LadderFormatService';
 import LadderFormatDivisionService from '../services/LadderFormatDivisionService';
 import {convertMatchStartTimeByTimezone} from "../utils/TimeFormatterUtils";
+import {isNullOrEmpty} from "../utils/Utils";
 import TeamLadderService from '../services/TeamLadderService';
 import MatchSheetService from "../services/MatchSheetService";
 
@@ -140,7 +141,7 @@ export class BaseController {
 
         let fbUser;
         /// If there an existing firebaseUID get the firebase user via that
-        if (user.firebaseUID) {
+        if (!isNullOrEmpty(user.firebaseUID)) {
           fbUser = await this.firebaseService.loadUserByUID(user.firebaseUID);
         } else {
           /// Also we will check once if there an user alreay with that email
@@ -153,9 +154,23 @@ export class BaseController {
         }
 
         if (!fbUser || !fbUser.uid) {
-            fbUser = await this.firebaseService.createUser(user.email.toLowerCase(), password);
+            fbUser = await this.firebaseService.createUser(
+                user.email.toLowerCase(),
+                password
+            );
         } else {
-            fbUser = await this.firebaseService.updateUserByUID(user.firebaseUID, user.email.toLowerCase(), user.password);
+            if (user && isNullOrEmpty(user.firebaseUID)) {
+                fbUser = await this.firebaseService.createUser(
+                    user.email.toLowerCase(),
+                    password
+                );
+            } else if (user) {
+                fbUser = await this.firebaseService.updateUserByUID(
+                    user.firebaseUID,
+                    user.email.toLowerCase(),
+                    user.password
+                );
+            }
         }
         if (fbUser && fbUser.uid) {
             user.firebaseUID = fbUser.uid;
@@ -165,7 +180,7 @@ export class BaseController {
     }
 
     protected async checkFirestoreDatabase(user, update = false) {
-      if (user.firebaseUID) {
+      if (!isNullOrEmpty(user.firebaseUID)) {
         let db = admin.firestore();
         let usersCollectionRef = await db.collection('users');
         let queryRef = usersCollectionRef.where('uid', '==', user.firebaseUID);
@@ -240,10 +255,20 @@ export class BaseController {
     protected async notifyRosterChange(user: User, roster: Roster, category: "Scoring" | "Playing" | "Event" | "Umpiring") {
         switch (category) {
             case "Scoring":
-              let scoringDeviceTokens = (await this.deviceService.findManagerDevice(roster.teamId)).map(device => device.deviceId);
-              if (scoringDeviceTokens && scoringDeviceTokens.length > 0) {
+              let tokens = [];
+              let managerDeviceTokens = (await this.deviceService.findManagerDevice(roster.teamId)).map(device => device.deviceId);
+              if (managerDeviceTokens && managerDeviceTokens.length > 0) {
+                  Array.prototype.push.apply(tokens, managerDeviceTokens);
+              }
+              let scorerDeviceTokens = (await this.deviceService.findScorerDeviceFromRoster(roster.matchId, roster.id)).map(device => device.deviceId);
+              if (scorerDeviceTokens && scorerDeviceTokens.length > 0) {
+                  Array.prototype.push.apply(tokens, scorerDeviceTokens);
+              }
+
+              if (tokens && tokens.length > 0) {
+                  let uniqTokens = new Set(tokens);
                   this.firebaseService.sendMessage({
-                    tokens: scoringDeviceTokens,
+                    tokens: Array.from(uniqTokens),
                     data: {type: 'add_scorer_match', rosterId: roster.id.toString(),
                       matchId: roster.matchId.toString()}
                   });

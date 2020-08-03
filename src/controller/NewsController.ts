@@ -59,7 +59,7 @@ export class NewsController extends BaseController {
                 if (isArrayPopulated(newsMedia)) {
                     for (let i of newsMedia) {
                         if (isPhoto(i.mimetype)) {
-                            let filename = `/media/news/${n.entityId}_${n.entityId}/${n.title}_${timestamp()}.${fileExt(i.originalname)}`;
+                            let filename = `/media/news/${n.entityTypeId}_${n.entityId}/${n.title}_${timestamp()}.${fileExt(i.originalname)}`;
                             let fileUploaded = await this.firebaseService.upload(filename, i);
                             if (fileUploaded) {
                                 n.newsImage = fileUploaded.url;

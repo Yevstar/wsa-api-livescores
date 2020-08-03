@@ -112,17 +112,25 @@ export class TeamController extends BaseController {
     }
 
     @Authorized()
-    @Post('/ladder')
+    @Post('/ladder/web')
     async loadTeamLadder(
         @HeaderParam("authorization") currentUser: User,
         @Body() requestBody,
         @Res() response: Response
     ){
         try {
-            const getCompetition = await this.competitionService.getCompetitionByUniquekey(requestBody.competitionId);
-            let competitionId = getCompetition.id;
-    
-            return await this.teamService.getLadderList(requestBody.divisionId, competitionId);
+            let competitionIds = null;
+            let competitionId = null;
+            if (isNotNullAndUndefined(requestBody.competitionUniqueKey)) {
+                const getCompetitions = await this.competitionService.getCompetitionByUniquekey(requestBody.competitionUniqueKey);
+                competitionIds = getCompetitions.id;
+            }
+            if (isNotNullAndUndefined(requestBody.competitionId)) {
+                const getCompetition = await this.competitionService.getCompetitionByUniquekey(requestBody.competitionId);
+                competitionId = getCompetition.id;
+            }
+
+            return await this.teamService.getLadderList(requestBody, competitionId, competitionIds);
 
         } catch (error) {
             logger.error(`Error Occurred in  loadTeamLadder   ${currentUser.id}` + error);
@@ -145,21 +153,60 @@ export class TeamController extends BaseController {
             logger.info('Fetching playerData via playerIds');
             let playersData = await this.teamService.getPlayerDataByPlayerIds(playerIds);
             for (let i of playersData) {
-                this.teamService.sendInviteMail(user, i, isInviteToParents);
-                i.inviteStatus = "INVITED";
-                this.playerService.createOrUpdate(i);
+                this.invitePlayer(user, i, isInviteToParents);
             }
             return playersData;
         } else if (isArrayPopulated(teamIds)) {
             logger.info('Fetching playerData via teamIds');
             let playerList = await this.teamService.playerListByTeamId(teamIds);
             for (let i of playerList) {
-                this.teamService.sendInviteMail(user, i, isInviteToParents);
-                i.inviteStatus = "INVITED";
-                this.playerService.createOrUpdate(i);
+                this.invitePlayer(user, i, isInviteToParents);
             }
             return playerList;
         } else return [];
+    }
+
+    public async invitePlayer(user: User, player: Player, isInviteToParents: boolean) {
+        // if a user is < 18 and we are unsure whether the email belongs to the child or parent,
+        // we store the email with _ prepended to the front so that the parent can legitimately
+        // create a user record, using their details (which we don't have), otherwise we have
+        // already got a record created for them, so they shouldn't need to create one
+        //
+        // 1) Invite Parent
+        // a) their child user will have a 'child{x}+(parentemail)' email address if we already know the parent's details, and we have created a parent user account
+        // b) their child user will have a '_(unknownemail)' email address, and the parent will need to create their own account
+        // 2) Invite Player
+        // a) player.user.email will not start with '_(parentemail)' email address, and we can link record we have already created
+        // b) player.user.email will be '_(unknownemail)' email address, and player.email matches unknownemail: update user.email
+        // c) player.user.email will be '_(unknownemail)' email address, but player.email doesn't match unknownemail i.e. the "child" has provided another email address: update user.email
+        //
+        // Scenarios not handled yet:
+        // Differentiating from a user who already knows their login vs one we have set up (could look at last log in date)
+
+        // existingUser = false -> send generic email which tell user to use existing login or create a new one; existingUser = true means we have to send them a specific password
+        let existingUser = false;
+        if (player.userId) {
+            let playerUser = await this.userService.findUserFullDetailsById(player.userId);
+            let emailUser = await this.userService.findByEmail(player.email);
+            if (isInviteToParents && emailUser) {
+                existingUser = true;
+            } else if (!isInviteToParents && playerUser) {
+                if (playerUser.email != player.email && playerUser.firstName == player.firstName && playerUser.lastName == player.lastName) {
+                    if (!emailUser) {
+                        playerUser.email = player.email;
+                        await this.userService.createOrUpdate(playerUser);
+                        await this.updateFirebaseData(playerUser, playerUser.password);
+                        existingUser = true;
+                    }
+                } else if (playerUser.email == player.email) {
+                    existingUser = true;
+                }
+            }
+        }
+
+        this.teamService.sendInviteMail(user, player, isInviteToParents, existingUser);
+        player.inviteStatus = "INVITED";
+        this.playerService.createOrUpdate(player);
     }
 
     @Authorized()
@@ -212,7 +259,7 @@ export class TeamController extends BaseController {
             let foundUser = await this.userService.findByEmail(teamData.email.toLowerCase());
             if (foundUser) {
                 if (foundUser.firstName == teamData.firstName && foundUser.lastName == teamData.lastName && foundUser.mobileNumber == teamData.mobileNumber) {
-                    managerIds[0] = user.id;
+                    managerIds[0] = foundUser.id;
                 } else {
                     return response
                     .status(400).send({
@@ -499,7 +546,7 @@ export class TeamController extends BaseController {
                     }
                 }
             }
-            
+
             return response.status(200).send('Updated Successfully.');
 
         } catch (error) {
@@ -523,7 +570,7 @@ export class TeamController extends BaseController {
             let competitionId = getCompetition.id;
 
             const ladderAdjustments = await this.teamLadderService.getTeamLadderAdjustments(competitionId, divisionId);
-            
+
             return response.status(200).send(ladderAdjustments);
 
         } catch (error) {

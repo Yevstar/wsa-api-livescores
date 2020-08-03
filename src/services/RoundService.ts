@@ -36,6 +36,7 @@ export default class RoundService extends BaseService<Round> {
                 }
             }))
         }
+        query.orderBy('match.startTime');
         return query.getMany()
     }
 

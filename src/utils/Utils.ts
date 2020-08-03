@@ -51,7 +51,6 @@ export function isVideo(mimetype: string): boolean {
         case 'video/webm':
         case 'video/ogg':
         case 'video/x-ms-wmv':
-        case 'video/x-msvideo':
         case 'video/3gpp':
         case 'video/3gpp2':
         case 'video/avi':

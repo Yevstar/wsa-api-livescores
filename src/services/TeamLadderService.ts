@@ -21,17 +21,23 @@ export default class TeamLadderService extends BaseService<TeamLadder> {
                 resultStatus = match.resultStatus.toString().toLowerCase();
             }
            
-            if(resultStatus != "dispute" && resultStatus!= "unconfirmed"){
+           // if(resultStatus != "dispute" && resultStatus!= "unconfirmed"){
                 if(match.team1Id!= 1)
-                    team1Arr = this.teamLadderRow(match, 1, competitionLadderSettings);
+                    team1Arr = this.teamLadderRow(match, 1, competitionLadderSettings, resultStatus);
             
                 if(match.team2Id!= 1)
-                    team2Arr = this.teamLadderRow(match, 2, competitionLadderSettings);
+                    team2Arr = this.teamLadderRow(match, 2, competitionLadderSettings, resultStatus);
 
                 teamLadderArr = [...team1Arr, ...team2Arr];
+           // }
+
+            if(resultStatus == "dispute" || resultStatus == "unconfirmed"){
+                await this.deleteExistingPoints(match, userId);
+            }
+            else{
+                await this.deleteExistingData(match, userId);
             }
            
-            await this.deleteExistingData(match, userId);
         } catch (error) {
             throw error;
         }
@@ -39,7 +45,7 @@ export default class TeamLadderService extends BaseService<TeamLadder> {
         return teamLadderArr;
     }
 
-    private teamLadderRow(match: Match, team1Or2, competitionLadderSettings){
+    private teamLadderRow(match: Match, team1Or2, competitionLadderSettings, resultStatus){
         let arr = [];
         try {
             let pointsVal = 0;
@@ -84,7 +90,9 @@ export default class TeamLadderService extends BaseService<TeamLadder> {
                 gamesPlayedMinusFW = 0
             }
 
-            arr.push(this.teamLadderObject(match, teamId, typeRefId,pointsVal));
+            if(resultStatus != "dispute" && resultStatus!= "unconfirmed"){
+                arr.push(this.teamLadderObject(match, teamId, typeRefId,pointsVal));
+            }
             if(!isOpponentBye){
                 arr.push(this.teamLadderObject(match, teamId, 21, goalsFor));
                 arr.push(this.teamLadderObject(match, teamId, 22, goalsAgainst));
@@ -120,6 +128,24 @@ export default class TeamLadderService extends BaseService<TeamLadder> {
                 .set({deleted_at: new Date(), updatedBy: userId, updated_at: new Date()})
                 .andWhere("teamLadder.matchId = :matchId",{matchId: match.id})
                 .execute()
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    private async deleteExistingPoints(match: Match, userId){
+        try {
+            await this.entityManager.createQueryBuilder(TeamLadder, 'teamLadder')
+                .update(TeamLadder)
+                .set({teamLadderTypeValue: 0, updatedBy: userId, updated_at: new Date()})
+                .andWhere("teamLadder.matchId = :matchId and teamLadder.teamLadderTypeRefId <= 9",{matchId: match.id})
+                .execute();
+
+            await this.entityManager.createQueryBuilder(TeamLadder, 'teamLadder')
+            .update(TeamLadder)
+            .set({deleted_at: new Date(), updatedBy: userId, updated_at: new Date()})
+            .andWhere("teamLadder.matchId = :matchId and teamLadder.teamLadderTypeRefId >= 21 ",{matchId: match.id})
+            .execute()
         } catch (error) {
             throw error;
         }

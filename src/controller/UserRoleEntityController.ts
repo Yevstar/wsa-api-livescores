@@ -51,15 +51,14 @@ export class UserRoleEntityController extends BaseController {
     async linkChildPlayer (
         @HeaderParam("authorization") user: User,
         @QueryParam("id", {required: true}) id: number,
-        @Res() response: Response) {
-
-        const promises = [];
-
+        @Res() response: Response
+    ) {
         let player = await this.playerService.findById(id);
         let parentRole = await this.userService.getRole("parent");
         let playerRole = await this.userService.getRole("player");
         let userEntityType = await this.userService.getEntityType("USER");
         let teamEntityType = await this.userService.getEntityType("TEAM");
+        const childUserPassword = md5('password');
 
         var childUser;
         if (player.userId != null || player.userId != undefined) {
@@ -70,8 +69,6 @@ export class UserRoleEntityController extends BaseController {
           let email = `player${player.id}@wsa.com`;
           childUser = await this.userService.findByEmail(email.toLowerCase());
           if (childUser == null || childUser == undefined) {
-              const childUserPassword = md5('password');
-
               childUser = new User();
               childUser.email = email.toLowerCase();
               childUser.password = childUserPassword;
@@ -84,16 +81,14 @@ export class UserRoleEntityController extends BaseController {
               await this.updateFirebaseData(childUser, childUserPassword);
           } else {
               childUser.statusRefId = 0;
-              promises.push(
-                this.userService.createOrUpdate(childUser)
-              );
+              childUser = await this.userService.createOrUpdate(childUser);
           }
           player.userId = childUser.id;
         } else {
           childUser.statusRefId = 0;
-          promises.push(
-            this.userService.createOrUpdate(childUser)
-          );
+          childUser.password = childUserPassword;
+          childUser = await this.userService.createOrUpdate(childUser);
+          await this.updateFirebaseData(childUser, childUserPassword);
         }
 
         let ure = new UserRoleEntity();
@@ -111,6 +106,8 @@ export class UserRoleEntityController extends BaseController {
         newUserURE.roleId = playerRole; // Player
         newUserURE.userId = childUser.id;
         newUserURE.createdBy = user.id;
+
+        const promises = [];
 
         promises.push(
           this.ureService.createOrUpdate(newUserURE)

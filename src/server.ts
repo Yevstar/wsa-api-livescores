@@ -16,6 +16,8 @@ import {RoleFunction} from "./models/security/RoleFunction";
 import {Function} from "./models/security/Function";
 import * as admin from "firebase-admin";
 import {firebaseCertAdminConfig, firebaseConfig} from "./integration/firebase.config";
+import {firebaseDevCertAdminConfig, firebaseDevConfig} from "./integration/firebase.dev.config";
+import {firebaseStgCertAdminConfig, firebaseStgConfig} from "./integration/firebase.stg.config";
 import {validationMetadatasToSchemas} from "class-validator-jsonschema";
 import {getFromContainer, MetadataStorage} from "class-validator";
 import {routingControllersToSpec} from "routing-controllers-openapi";
@@ -23,7 +25,7 @@ import {RequestLogger} from "./middleware/RequestLogger";
 import FirebaseService from "./services/FirebaseService";
 // import {TEN_MIN, fromCacheAsync, toCacheWithTtl} from "./cache";
 import cors from "cors";
-import { decrypt } from "./utils/Utils";
+import { decrypt, isNullOrEmpty } from "./utils/Utils";
 import { Role } from "./models/security/Role";
 
 require("dotenv").config();
@@ -32,12 +34,12 @@ wrapConsole();
 
 //TODO: Need to Confirm whether to have this function in Livescores module
 async function checkFirebaseUser(user, password: string) {
-    if (!user.firebaseUID) {
+    if (isNullOrEmpty(user.firebaseUID)) {
         let fbUser = await FirebaseService.Instance().loadUserByEmail(user.email.toLowerCase());
         if (!fbUser || !fbUser.uid) {
             fbUser = await FirebaseService.Instance().createUser(user.email.toLowerCase(), password);
         }
-        if (fbUser.uid) {
+        if (fbUser && fbUser.uid) {
             user.firebaseUID = fbUser.uid;
             await User.save(user);
         }
@@ -46,27 +48,29 @@ async function checkFirebaseUser(user, password: string) {
 }
 
 async function checkFirestoreDatabase(user) {
-  let db = admin.firestore();
-  let usersCollectionRef = await db.collection('users');
-  let queryRef = usersCollectionRef.where('uid', '==', user.firebaseUID);
-  let querySnapshot = await queryRef.get();
-  if (querySnapshot.empty) {
-    usersCollectionRef.doc(user.firebaseUID).set({
-        'email': user.email.toLowerCase(),
-        'firstName': user.firstName,
-        'lastName': user.lastName,
-        'uid': user.firebaseUID,
-        'avatar': (user.photoUrl != null && user.photoUrl != undefined) ?
-            user.photoUrl :
-            null,
-        'created_at': admin.firestore.FieldValue.serverTimestamp(),
-        'searchKeywords': [
-            `${user.firstName} ${user.lastName}`,
-            user.firstName,
-            user.lastName,
-            user.email.toLowerCase()
-        ]
-    });
+  if (!isNullOrEmpty(user.firebaseUID)) {
+      let db = admin.firestore();
+      let usersCollectionRef = await db.collection('users');
+      let queryRef = usersCollectionRef.where('uid', '==', user.firebaseUID);
+      let querySnapshot = await queryRef.get();
+      if (querySnapshot.empty) {
+        usersCollectionRef.doc(user.firebaseUID).set({
+            'email': user.email.toLowerCase(),
+            'firstName': user.firstName,
+            'lastName': user.lastName,
+            'uid': user.firebaseUID,
+            'avatar': (user.photoUrl != null && user.photoUrl != undefined) ?
+                user.photoUrl :
+                null,
+            'created_at': admin.firestore.FieldValue.serverTimestamp(),
+            'searchKeywords': [
+                `${user.firstName} ${user.lastName}`,
+                user.firstName,
+                user.lastName,
+                user.email.toLowerCase()
+            ]
+        });
+      }
   }
 }
 
@@ -117,7 +121,7 @@ async function start() {
                         else{
                             query = User.createQueryBuilder('user').andWhere(
                                 'LOWER(user.email) = :email and user.password = :password and user.isDeleted = 0',
-                                {email: data[0].toLowerCase(), password: data[1]});        
+                                {email: data[0].toLowerCase(), password: data[1]});
                         }
 
                         if (action.request.url == '/users/profile' && action.request.method == 'PATCH')
@@ -163,9 +167,23 @@ async function start() {
         , middlewares: [RequestLogger, ErrorHandlerMiddleware]
     });
 
+    const firebaseEnv = process.env.FIREBASE_ENV;
+    var projId;
+    var cred;
+    if (firebaseEnv == "wsa-prod") {
+        cred = admin.credential.cert(firebaseCertAdminConfig);
+        projId = firebaseConfig.projectId;
+    } else if (firebaseEnv == "wsa-stg") {
+        cred = admin.credential.cert(firebaseStgCertAdminConfig)
+        projId = firebaseStgConfig.projectId;
+    } else {
+        cred = admin.credential.cert(firebaseDevCertAdminConfig);
+        projId = firebaseDevConfig.projectId;
+    }
+
     admin.initializeApp({
-        credential: admin.credential.cert(firebaseCertAdminConfig),
-        databaseURL: `https://${firebaseConfig.projectId}.firebaseio.com`
+        credential: cred,
+        databaseURL: `https://${projId}.firebaseio.com`
     });
 
     app.set('view engine', 'ejs');

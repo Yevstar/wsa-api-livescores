@@ -176,13 +176,16 @@ export default class UserService extends BaseService<User> {
         return query.getRawMany();
     }
 
-    public async sentMail(userData: User, teamData, competitionData: Competition, toRoleId: number, receiverData: User, password: string) {
-
-        let url = `https://netballivescores://wsa.app/link`;
-        logger.info(`UserService - sendMail : url ${url}`);
+    public async sentMail(
+        userData: User,
+        teamData,
+        competitionData: Competition,
+        toRoleId: number,
+        receiverData: User,
+        password: string
+    ) {
         let html = ``;
         let subject = 'Invite Mail';
-        let appName = process.env.APP_NAME;
 
         if (toRoleId == Role.MANAGER) {
             if (teamData.length == 1) {
@@ -193,7 +196,14 @@ export default class UserService extends BaseService<User> {
                             </head>
                             <body >
                                 <p>Hi ${receiverData.firstName} ${receiverData.lastName},
-                                <p> ${userData.firstName} ${userData.lastName} has advised us that you are the manager of team ${teamData[0].name}. As ${competitionData.name} are using Live Scoring for this competition we require you to click <a href="${url}">here</a > to download the ${appName} App and start assigning who  will score your team’s matches. Please note, you can choose to give this responsibility to someone else or score the games yourself.
+                                <p> ${userData.firstName} ${userData.lastName} has
+                                advised us that you are the manager of team ${teamData[0].name}.
+                                As ${competitionData.name} are using Live Scoring
+                                for this competition we require you to download the Netball LiveScores App from the
+                                <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
+                                <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a>
+                                and start assigning who  will score your team’s matches. Please note,
+                                you can choose to give this responsibility to someone else or score the games yourself.
                                 <p> Your password is <b>${password}</b> - you can change it when you log in if you would like.
                                 <p> We hope you enjoy using Netball Live Scores.
                                 <p> The Netball Live Scores Team
@@ -209,14 +219,21 @@ export default class UserService extends BaseService<User> {
                             </head>
                             <body >
                                 <p>Hi ${receiverData.firstName} ${receiverData.lastName},
-                                <p> ${userData.firstName} ${userData.lastName} has advised us that you are the manager of the following teams: ${teamNames}. As ${competitionData.name} are using Live Scoring for this competition we require you to click <a href="${url}">here</a > to download the ${appName} App and start assigning who  will score your team’s matches. Please note, you can choose to give this responsibility to someone else or score the games yourself.
+                                <p> ${userData.firstName} ${userData.lastName} has advised
+                                us that you are the manager of the following teams:
+                                ${teamNames}. As ${competitionData.name} are using Live
+                                Scoring for this competition we require you to
+                                download the Netball LiveScores App from the <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
+                                <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a>
+                                and start assigning who  will score your team’s matches. Please note,
+                                you can choose to give this responsibility to someone else or score the games yourself.
                                 <p> Your password is <b>${password}</b> - you can change it when you log in if you would like.
                                 <p> We hope you enjoy using Netball Live Scores.
                                 <p> The Netball Live Scores Team
                             </body>
                         </html>`
-            } 
-        } if (toRoleId ==  Role.COACH) {
+            }
+        } else if (toRoleId ==  Role.COACH) {
             if (teamData.length == 1) {
                 html = `<!DOCTYPE html >
                         <html>
@@ -225,7 +242,13 @@ export default class UserService extends BaseService<User> {
                             </head>
                             <body >
                                 <p>Hi ${receiverData.firstName} ${receiverData.lastName},
-                                <p> ${userData.firstName} ${userData.lastName} has advised us that you are the coach of team ${teamData[0].name}. As ${competitionData.name} are using Live Scoring for this competition we require you to click <a href="${url}">here</a > to download the ${appName} App and start assigning who will score your team’s matches. Please note, you can choose to give this responsibility to someone else or score the games yourself.
+                                <p> ${userData.firstName} ${userData.lastName} has advised us
+                                that you are the coach of team ${teamData[0].name}. As
+                                ${competitionData.name} are using Live Scoring for this competition
+                                we require you to download the Netball LiveScores App from the <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
+                                <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a>
+                                and start assigning who will score your team’s matches.
+                                Please note, you can choose to give this responsibility to someone else or score the games yourself.
                                 <p> Your password is <b>${password}</b> - you can change it when you log in if you would like.
                                 <p> We hope you enjoy using Netball Live Scores.
                                 <p> The Netball Live Scores Team
@@ -241,47 +264,35 @@ export default class UserService extends BaseService<User> {
                             </head>
                             <body >
                                 <p>Hi ${receiverData.firstName} ${receiverData.lastName},
-                                <p> ${userData.firstName} ${userData.lastName} has advised us that you are the coach of the following teams: ${teamNames}. As ${competitionData.name} are using Live Scoring for this competition we require you to click <a href="${url}">here</a > to download the ${appName} App and start assigning who will score your team’s matches. Please note, you can choose to give this responsibility to someone else or score the games yourself.
+                                <p> ${userData.firstName} ${userData.lastName} has advised
+                                us that you are the coach of the following teams: ${teamNames}.
+                                As ${competitionData.name} are using Live Scoring for this
+                                competition we require you to download the Netball LiveScores App from the <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
+                                <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a>
+                                and start assigning who will score your team’s matches.
+                                Please note, you can choose to give this responsibility to someone else or score the games yourself.
                                 <p> Your password is <b>${password}</b> - you can change it when you log in if you would like.
                                 <p> We hope you enjoy using Netball Live Scores.
                                 <p> The Netball Live Scores Team
                             </body>
                         </html>`
             }
-        } if (toRoleId == Role.UMPIRE) {
-            if (teamData.length == 1) {
-                html = `<!DOCTYPE html >
-                        <html>
-                            <head>
-                                <title>Registration Mail</title>
-                            </head>
-                            <body >
-                                <p>Hi ${receiverData.firstName} ${receiverData.lastName},
-                                <p> ${userData.firstName} ${userData.lastName} has advised us that you are an umpire for ${teamData[0].name}. As ${competitionData.name} are using Live Scoring for this competition we require you to click <a href="${url}">here</a > to download the ${appName} App
-                                to see your match umpiring duties and confirm your allocations.
-                                <p> Your password is <b>${password}</b> - you can change it when you log in if you would like.
-                                <p> We hope you enjoy using Netball Live Scores.
-                                <p> The Netball Live Scores Team
-                            </body>
-                        </html>`
-
-            } else if (teamData.length > 1) {
-                var teamNames = teamData.map(o => o.name).join(', ');
-                html = `<!DOCTYPE html >
-                        <html>
-                            <head>
-                                <title>Registration Mail</title>
-                            </head>
-                            <body >
-                                <p>Hi ${receiverData.firstName} ${receiverData.lastName},
-                                <p> ${userData.firstName} ${userData.lastName} has advised us that you are an umpire for: ${teamNames}. As ${competitionData.name} are using Live Scoring for this competition we require you to click <a href="${url}">here</a > to download the ${appName} App
-                                to see your match umpiring duties and confirm your allocations.
-                                <p> Your password is <b>${password}</b> - you can change it when you log in if you would like.
-                                <p> We hope you enjoy using Netball Live Scores.
-                                <p> The Netball Live Scores Team
-                            </body>
-                        </html>`
-            }
+        } else if (toRoleId == Role.UMPIRE) {
+            html = `<!DOCTYPE html >
+                    <html>
+                        <head>
+                            <title>Registration Mail</title>
+                        </head>
+                        <body >
+                            <p>Hi ${receiverData.firstName} ${receiverData.lastName},
+                            <p>${userData.firstName} ${userData.lastName}, ${competitionData.organisation.name} has invited you
+                            to umpire for the ${competitionData.name}. Download the Netball LiveScores App from the <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
+                            <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a> and start umpiring.
+                            <p> Your password is <b>${password}</b> - you can change it when you log in if you would like.
+                            <p> We hope you enjoy using Netball Live Scores.
+                            <p> The Netball Live Scores Team
+                        </body>
+                    </html>`
         } else if (toRoleId == Role.MEMBER) {
             html = `<!DOCTYPE html>
                     <html>
@@ -290,7 +301,10 @@ export default class UserService extends BaseService<User> {
                         </head>
                         <body>
                             <p>Hi ${receiverData.firstName} ${receiverData.lastName},
-                            <p>${userData.firstName} ${userData.lastName} has invited you to score for the ${competitionData.name} competition. Click <a href="${url}">here</a> to download the ${appName} App and start scoring.
+                            <p>${userData.firstName} ${userData.lastName} has invited you
+                            to score for the ${competitionData.name} competition.
+                            Download the Netball LiveScores App from the <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
+                            <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a> and start scoring.
                             <p>Your password is <b>${password}</b> - you can change it when you log in if you would like.
                             <p>We hope you enjoy using Netball Live Scores.
                             <p>The Netball Live Scores Team
@@ -406,4 +420,9 @@ export default class UserService extends BaseService<User> {
         return query.getMany();
     }
 
+    public async findUserFullDetailsById(id: number): Promise<User> {
+        return await this.entityManager.query(
+            'select * from wsa_users.user user where user.id = ?;'
+            , [id]);
+    }
 }

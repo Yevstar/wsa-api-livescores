@@ -32,10 +32,22 @@ export class Banner extends BaseEntity {
     @Column()
     showOnLadder: boolean;
 
+    @IsBoolean()
+    @Column()
+    showOnNews: boolean;
+
+    @IsBoolean()
+    @Column()
+    showOnChat: boolean;
+
+    @IsString()
+    @Column()
+    format: string;
+
     @IsNumber()
     @Column()
     competitionId: number;
-    
+
     @IsNumber()
     @Column()
     sequence: number;

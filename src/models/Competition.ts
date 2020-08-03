@@ -1,6 +1,7 @@
 import {BaseEntity, Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn, OneToMany, DeleteDateColumn} from "typeorm-plus";
 import {Location} from "./Location";
 import {CompetitionVenue} from "./CompetitionVenue";
+import {Organisation} from "./Organisation";
 import {IsBoolean, IsNumber, IsString, ValidateNested} from "class-validator";
 
 @Entity()
@@ -35,6 +36,11 @@ export class Competition extends BaseEntity {
     @IsNumber()
     @Column()
     organisationId: number;
+
+    @ValidateNested()
+    @OneToOne(type => Organisation)
+    @JoinColumn({name: 'organisationId', referencedColumnName: 'organisationId'})
+    organisation: Organisation;
 
     @IsNumber()
     @Column()

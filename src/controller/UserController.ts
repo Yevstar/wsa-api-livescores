@@ -230,8 +230,7 @@ export class UserController extends BaseController {
                 user.password = password;
                 await this.userService.update(user.email.toLowerCase(), user);
                 logger.info(`Password successfully changed ${user.email}`);
-                await this.updateFirebaseData(user, password);
-                return this.responseWithTokenAndUser(user.email.toLowerCase(), password, user, undefined, false);
+                return this.responseWithTokenAndUser(user.email.toLowerCase(), password, user, undefined);
             } else {
                 return response.status(400).send({
                     name: 'validation_error', message: 'Password field required'
@@ -315,9 +314,9 @@ export class UserController extends BaseController {
         }
     }
 
-    private async responseWithTokenAndUser(login, password, user: User, deviceId = undefined, checkFirebase = true) {
+    private async responseWithTokenAndUser(login, password, user: User, deviceId = undefined) {
         await this.processingDeviceId(deviceId, user);
-        if (checkFirebase) await this.checkFirebaseUser(user, password);
+        await this.updateFirebaseData(user, password);
         user.password = undefined;
         user.reset = undefined;
         return {
@@ -381,20 +380,6 @@ export class UserController extends BaseController {
         let organisationIds = watchlist.filter(item => item.entityTypeId == EntityType.ORGANISATION).map(item => item.entityId);
         let teamIds = watchlist.filter(item => item.entityTypeId == EntityType.TEAM).map(item => item.entityId);
         return {teamIds, organisationIds}
-    }
-
-    private async checkFirebaseUser(user, password: string) {
-        if (!user.firebaseUID) {
-            let fbUser = await this.firebaseService.loadUserByEmail(user.email.toLowerCase());
-            if (!fbUser || !fbUser.uid) {
-                fbUser = await this.firebaseService.createUser(user.email.toLowerCase(), password);
-            }
-            if (fbUser.uid) {
-                user.firebaseUID = fbUser.uid;
-                await User.save(user);
-            }
-        }
-        await this.checkFirestoreDatabase(user);
     }
 
     @Authorized()
@@ -504,9 +489,9 @@ export class UserController extends BaseController {
 
                     if (this.canSendMailForAdd(type, userData)) {
                         let competitionData = await this.competitionService.findById(competitionId)
-                        this.userService.sentMail(user, null, competitionData, Role.MEMBER, saved, password);
+                        let roleId = await this.getRoleIdForType(type);
+                        this.userService.sentMail(user, userData.teams ? userData.teams : null, competitionData, roleId, saved, password);
                     }
-
                     userData.id = saved.id;
                 }
             } else if (userData.firstName && userData.lastName && userData.mobileNumber) {
@@ -547,6 +532,27 @@ export class UserController extends BaseController {
         }
 
         return false;
+    }
+
+    private async getRoleIdForType(
+        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER",
+    ) {
+        let roleId;
+        switch (type) {
+            case 'MANAGER':
+                roleId = Role.MANAGER;
+            break;
+            case 'COACH':
+                roleId = Role.COACH;
+            break;
+            case 'UMPIRE':
+                roleId = Role.UMPIRE;
+            break;
+            default:
+                roleId = Role.MEMBER;
+            break;
+        }
+        return roleId;
     }
 
     private async deleteRolesNecessary(
@@ -642,7 +648,7 @@ export class UserController extends BaseController {
                 ure.userId = user.id
                 ure.createdBy = createdBy;
                 ureArray.push(ure);
-                
+
                 if (addUserToChat) {
                     /// Checking with respect to each team for existing chat
                     teamChatPromiseArray.push(
@@ -710,6 +716,7 @@ export class UserController extends BaseController {
             jsonObj.push(obj);
         }
         if (isArrayPopulated(jsonObj)) {
+            var validator = require("email-validator");
             for (let i of jsonObj) {
                 if ( teamRequired &&
                     (isEmpty(i['Team']) || isEmpty(i['Grade']))
@@ -724,7 +731,8 @@ export class UserController extends BaseController {
                 } else if (isNotNullAndUndefined(i['Email']) && (i['Email'] != '') &&
                     isNotNullAndUndefined(i['First Name']) && (i['First Name'] != '') &&
                     isNotNullAndUndefined(i['Last Name']) && (i['Last Name'] != '') &&
-                    isNotNullAndUndefined(i['Contact No']) && (i['Contact No'] != '')) {
+                    isNotNullAndUndefined(i['Contact No']) && (i['Contact No'] != '') &&
+                    validator.validate(i['Email'])) {
 
                     const userDetails = new User();
                     let newUser = false;

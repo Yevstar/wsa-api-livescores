@@ -111,7 +111,7 @@ export default class GameTimeAttendanceService extends BaseService<GameTimeAtten
                 .getCount();
     }
 
-    public async loadPositionTrackingStats(aggregate: ("MATCH" | "TOTAL"), reporting: ("PERIOD" | "MINUTE"), competitionId: number, teamId: number, search: string, requestFilter: RequestFilter): Promise<any> {
+    public async loadPositionTrackingStats(aggregate: ("MATCH" | "TOTAL"), reporting: ("PERIOD" | "MINUTE"), competitionId: number, teamId: number, matchId: number, search: string, requestFilter: RequestFilter): Promise<any> {
         let queryFields = `SELECT
             json_object('id', pc.teamId, 'name', t.name) as team,
             json_object('id', pc.playerId, 'firstName', p.firstName, 'lastName', p.lastName, 'photoUrl', ifnull(u.photoUrl, p.photoUrl), 'userId', p.userId) as player,
@@ -144,6 +144,9 @@ export default class GameTimeAttendanceService extends BaseService<GameTimeAtten
         query = query + 'where t.competitionId =' + competitionId;
         if (teamId) {
             query = query + ' and pc.teamId =' + teamId;
+        }
+        if (matchId) {
+            query = query + ' and pc.matchid =' + matchId;
         }
         let countResult;
         if (search) {

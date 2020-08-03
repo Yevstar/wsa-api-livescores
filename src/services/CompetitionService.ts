@@ -14,6 +14,7 @@ export default class CompetitionService extends BaseService<Competition> {
 
     public async findById(id: number): Promise<Competition> {
         let query = this.entityManager.createQueryBuilder(Competition, 'competition')
+            .leftJoinAndSelect('competition.organisation', 'organisation')
             .leftJoinAndSelect('competition.competitionVenues', 'competitionVenue')
             .leftJoinAndSelect('competitionVenue.venue', 'venue');
 
@@ -24,15 +25,21 @@ export default class CompetitionService extends BaseService<Competition> {
 
     public async findByName(name?: string, locationId?: number): Promise<Competition[]> {
         let query = this.entityManager.createQueryBuilder(Competition, 'competition')
+            .leftJoinAndSelect('competition.organisation', 'organisation')
+            .leftJoinAndSelect('competition.competitionVenues', 'competitionVenue')
+            .leftJoinAndSelect('competitionVenue.venue', 'venue')
             .leftJoinAndSelect('competition.location', 'location');
         if (locationId) {
             query.andWhere('competition.locationId = :locationId', {locationId});
         }
 
-        if (name) {
+        if (name) {          
             query.andWhere(new Brackets(qb => {
-                qb.where('LOWER(competition.name) like :name', {name: `${name.toLowerCase()}%`});
-                qb.orWhere('LOWER(competition.longName) like :name', {name: `${name.toLowerCase()}%`});
+                qb.orWhere('LOWER(competition.name) like :name', {name: `%${name.toLowerCase()}%`});
+                qb.orWhere('LOWER(competition.longName) like :name', {name: `%${name.toLowerCase()}%`});
+                qb.orWhere('LOWER(organisation.name) like :name', {name: `%${name.toLowerCase()}%`});
+                qb.orWhere('LOWER(venue.name) like :name', {name: `%${name.toLowerCase()}%`});
+                qb.orWhere('LOWER(venue.shortName) like :name', {name: `%${name.toLowerCase()}%`});
             }));
 
         }
@@ -94,8 +101,8 @@ export default class CompetitionService extends BaseService<Competition> {
                 and a.affiliatedToOrgId = ? and a.isDeleted = 0`, [organisationId]);
             } else if (invitorId === 4) {
                 // in case of Clubs
-                return await this.entityManager.query(` select a.affiliateOrgId as organisationId from wsa_users.affiliate a where a.isDeleted = 0 and 
-                a.organisationTypeRefId = 4 and a.affiliatedToOrgId in (select a2.affiliateOrgId from wsa_users.affiliate a2 where 
+                return await this.entityManager.query(` select a.affiliateOrgId as organisationId from wsa_users.affiliate a where a.isDeleted = 0 and
+                a.organisationTypeRefId = 4 and a.affiliatedToOrgId in (select a2.affiliateOrgId from wsa_users.affiliate a2 where
                 a2.organisationTypeRefId = 3 and a2.affiliatedToOrgId = ? and a2.isDeleted = 0)`, [organisationId]);
             } else return [];
         } else if (organisationTypeRefId === 3) {

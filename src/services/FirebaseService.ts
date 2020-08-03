@@ -1,5 +1,7 @@
 import {Service} from "typedi";
 import {firebaseConfig} from "../integration/firebase.config";
+import {firebaseDevConfig} from "../integration/firebase.dev.config";
+import {firebaseStgConfig} from "../integration/firebase.stg.config";
 import * as admin from "firebase-admin";
 import {logger} from "../logger";
 import {chunk} from "../utils/Utils";
@@ -19,7 +21,7 @@ export default class FirebaseService {
     }
 
     public async upload(filePath: string, file: Express.Multer.File, isPublic: boolean = false): Promise<any> {
-        const bucket = admin.storage().bucket(firebaseConfig.storageBucket);
+        const bucket = await this.getFirebaseStorageBucket();
 
         const uploadToStorage = async (fileContent: any, filePath: string, mimetype: string): Promise<any> =>
             new Promise<any>((resolve, reject): void => {
@@ -212,20 +214,33 @@ export default class FirebaseService {
     }
 
     public async removeMedia(filePath: string): Promise<any> {
-      const bucket = admin.storage().bucket(firebaseConfig.storageBucket);
+        const bucket = await this.getFirebaseStorageBucket();
 
-      const deleteFile = async (): Promise<any> =>
-          new Promise<any>((resolve, reject): void => {
-              bucket.file(filePath).exists()
-                  .then((info) => {
-                      bucket.file(filePath).delete();
-                      resolve({ success: true });
-                  })
-                  .catch((error) => {
-                      reject(error);
-                  });
-          });
+        const deleteFile = async (): Promise<any> =>
+            new Promise<any>((resolve, reject): void => {
+                bucket.file(filePath).exists()
+                    .then((info) => {
+                        bucket.file(filePath).delete();
+                        resolve({ success: true });
+                    })
+                    .catch((error) => {
+                        reject(error);
+                    });
+            });
 
-      return deleteFile();
+        return deleteFile();
+    }
+
+    private async getFirebaseStorageBucket() {
+        const firebaseEnv = process.env.FIREBASE_ENV;
+        var fbStorageBuck;
+        if (firebaseEnv == "wsa-prod") {
+            fbStorageBuck = firebaseConfig.storageBucket;
+        } else if (firebaseEnv == "wsa-stg") {
+            fbStorageBuck = firebaseStgConfig.storageBucket;
+        } else {
+            fbStorageBuck = firebaseDevConfig.storageBucket;
+        }
+        return admin.storage().bucket(fbStorageBuck);
     }
 }

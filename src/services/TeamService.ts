@@ -101,12 +101,15 @@ export default class TeamService extends BaseService<Team> {
             if(competitionIds){
                 vCompetitionIds = competitionIds;
             }
- 
+
             let result = await this.entityManager.query("call wsa.usp_get_ladder(?,?,?,?,?)",
             [null, null, vCompetitionIds,vTeamIds,  vDivisionIds]);
             let response = []
             if(result!= null){
                 if(isArrayPopulated(result[0])){
+                    result[0].map((x) => {
+                        x.adjustments = x.adjustments!= null ? JSON.parse(x.adjustments) : []
+                    })
                     response = result[0];
                 }
             }
@@ -117,21 +120,37 @@ export default class TeamService extends BaseService<Team> {
     }
 
 
-    public async getLadderList(divisionId: number, competitionId: number) {
+    public async getLadderList(requestBody: any, competitionId: number, competitionIds) {
         try {
+            let vTeamIds = null;
+            let vDivisionIds = null;
+            let vDivisionId = null;
+            if(requestBody.teamIds){
+                vTeamIds = requestBody.teamIds;
+            }
+            if(requestBody.divisionIds){
+                vDivisionIds = requestBody.divisionIds;
+            }
+            if(requestBody.divisionId){
+                vDivisionId = requestBody.divisionId;
+            }
+
             let result = await this.entityManager.query("call wsa.usp_get_ladder(?,?,?,?,?)",
-            [competitionId, divisionId, null,null,null]);
-            let response = []
+            [competitionId, vDivisionId, competitionIds,vTeamIds,  vDivisionIds]);
+            let ladders = []
             if(result!= null){
                 if(isArrayPopulated(result[0])){
-                    response = result[0];
+                    result[0].map((x) => {
+                        x.adjustments = x.adjustments!= null ? JSON.parse(x.adjustments) : []
+                    })
+                    ladders = result[0];
                 }
             }
-            return response;
+            return ladders
         } catch (error) {
             throw error;
         }
-        
+
     }
 
     public async teamIdsByOrganisationIds(organisationIds: number[]): Promise<any[]> {
@@ -149,49 +168,62 @@ export default class TeamService extends BaseService<Team> {
 
     public async playerListByTeamId(ids: number[]): Promise<Player[]> {
         let query = this.entityManager.createQueryBuilder(Player, 'player');
+        query.innerJoinAndSelect('player.team', 'team');
         if (ids) query.andWhere("player.teamId in (:ids)", { ids });
         query.andWhere("(player.email <> '' AND player.email IS NOT NULL)")
-        return query.select(['player.id', 'player.firstName', 'player.lastName', 'player.email']).getMany();
+        return query.getMany();
     }
 
     public async getPlayerDataByPlayerIds(ids: number[]): Promise<Player[]> {
         let query = this.entityManager.createQueryBuilder(Player, 'player');
+        query.innerJoinAndSelect('player.team', 'team')
         if (ids) query.andWhere("player.id in (:ids)", { ids });
         query.andWhere("(player.email <> '' AND player.email IS NOT NULL)")
-        return query.select(['player.id', 'player.firstName', 'player.lastName', 'player.email']).getMany();
+        return query.getMany();
     }
 
-    public async summaryScoringStat(competitionId: number, teamId: number) {
+    public async summaryScoringStat(competitionId: number, teamId: number, divisionId: number, noOfTeams: number) {
         return this.entityManager.query(
             'select\n' +
             'SUM(IF(teamId = ?, goal, 0))         as own_goal,\n' +
             'SUM(IF(teamId = ?, miss, 0))         as own_miss,\n' +
             'SUM(IF(teamId = ?, penalty_miss, 0)) as own_penalty_miss,\n' +
-            'SUM(goal)                            as avg_goal,\n' +
-            'SUM(miss)                            as avg_miss,\n' +
-            'SUM(penalty_miss)                    as avg_penalty_miss\n' +
+            '((SUM(goal)/?) * 100)                as avg_goal,\n' +
+            '((SUM(miss)/?) * 100)                as avg_miss,\n' +
+            '((SUM(penalty_miss)/?) * 100)        as avg_penalty_miss\n' +
             'from shootingStats\n' +
-            'where competitionId = ? ;', [teamId, teamId, teamId, competitionId]
+            'where competitionId = ? AND divisionId = ?;',
+            [teamId, teamId, teamId, noOfTeams, noOfTeams, noOfTeams, competitionId, divisionId]
         );
     }
 
-    public async scoringStatsByMatch(competitionId: number, teamId: number, matchId: number) {
+    public async scoringStatsByMatch(competitionId: number, teamId: number, matchId: number, divisionId: number, noOfMatches: number) {
         return this.entityManager.query(
             'select\n' +
             'SUM(IF(teamId = ? and matchId = ?, goal, 0))         as own_goal,\n' +
             'SUM(IF(teamId = ? and matchId = ?, miss, 0))         as own_miss,\n' +
             'SUM(IF(teamId = ? and matchId = ?, penalty_miss, 0)) as own_penalty_miss,\n' +
-            'SUM(goal)                                            as avg_goal,\n' +
-            'SUM(miss)                                            as avg_miss,\n' +
-            'SUM(penalty_miss)                                    as avg_penalty_miss\n' +
+            '((SUM(goal)/?) * 100)                                as avg_goal,\n' +
+            '((SUM(miss)/?) * 100)                                as avg_miss,\n' +
+            '((SUM(penalty_miss)/?) * 100)                        as avg_penalty_miss\n' +
             'from shootingStats\n' +
-            'where competitionId = ? ;', [teamId, matchId, teamId, matchId, teamId, matchId, competitionId]
+            'where competitionId = ? AND  divisionId = ?;',
+            [teamId, matchId, teamId, matchId, teamId, matchId, noOfMatches, noOfMatches, noOfMatches, competitionId, divisionId]
         );
     }
 
-    public async scoringStatsByPlayer(competitionId: number, playerId: number, aggregate: ("ALL" | "MATCH"), offset: number, limit: number, search: string): Promise<any> {
-        let result = await this.entityManager.query("call wsa.usp_get_scoring_stats_by_player(?,?,?,?,?,?)",
-            [competitionId, playerId, aggregate, limit, offset, search]);
+    public async scoringStatsByPlayer(
+        competitionId: number,
+        playerId: number,
+        aggregate: ("ALL" | "MATCH"),
+        offset: number,
+        limit: number,
+        search: string,
+        divisionId: number,
+        noOfTeams: number
+    ): Promise<any> {
+        let result = await this.entityManager.query("call wsa.usp_get_scoring_stats_by_player(?,?,?,?,?,?,?,?)",
+            [competitionId, playerId, aggregate, limit, offset, search, divisionId, noOfTeams]);
 
         if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
             return { count: result[1], finalData: result[0] }
@@ -210,7 +242,7 @@ export default class TeamService extends BaseService<Team> {
         );
     }
 
-    public async sendInviteMail(user: User, player: Player, isInviteToParents: boolean) {
+    public async sendInviteMail(user: User, player: Player, isInviteToParents: boolean, isExistingUser: boolean) {
         var deepLinkPlayer = new DeepLinkPlayer();
         deepLinkPlayer.id = player.id;
         deepLinkPlayer.firstName = player.firstName;
@@ -235,19 +267,32 @@ export default class TeamService extends BaseService<Team> {
         let redirectURL = `https://www.worldsportaction.com/netballinvite/`;
         let signUpURL = `${redirectURL}${uriEncodedSignUpDetails}`;
         let loggedInURL = `${redirectURL}${uriEncodedLogInDetails}`;
+        let yourLogin = 'your login';
+        if (isInviteToParents) {
+            yourLogin = 'your login to ' + player.firstName;
+        }
+        let teamName = '';
+        if (player.team && player.team.name) {
+            teamName = '- ' + player.team.name;
+        }
         logger.info(`TeamService - sendInviteMail : signUpURL ${signUpURL},
             loggedInURL ${loggedInURL}`);
         let mailHtml = `${user.firstName} ${user.lastName} would like to invite
         you to use the Netball LiveScores App so that you can view team news,
         messages and events. Of course, this is in addition to viewing live
         scores, draws and ladders!
-        <br><br> 1. If you don't have the App yet, download it from
-        <a href=https://www.worldsportaction.com>worldsportaction.com</a>,
-        go to Account and Sign up with your email.
-        <br><br> 2. If you have the App and haven't signed up yet,
-        <a href=${signUpURL}>click here</a>.
-        <br><br> 3. If you have the App and have already signed up,
-        <a href="${loggedInURL}">click here</a> to link your login.
+        <br><br> 1. If you don't have the App yet, download it from the <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
+        <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a>.
+        <br><br> `;
+        if (isExistingUser) {
+            mailHtml = mailHtml + `<br><br> 2. If you have already logged into to the app, continue to Step 3, otherwise log in to the app with your email address and password: <b>8kul0zoi</b>. You can change this once you log in if you like.`
+        } else {
+            mailHtml = mailHtml + `2. If you have the App and haven't signed up yet,
+            <a href=${signUpURL}>click here</a>.`
+        }
+     
+        mailHtml = mailHtml + `<br><br> 3. If you have the App and have already signed up,
+        <a href="${loggedInURL}">click here</a> to link ${yourLogin}.
         <br><br>It's that easy!`;
 
         /// Using nodemailer to send the mail via smtp gmail host
@@ -272,7 +317,7 @@ export default class TeamService extends BaseService<Team> {
             },
             to: player.email,
             replyTo: "donotreply@worldsportaction.com",
-            subject: 'Invite Mail',
+            subject: `Invite Mail ${teamName}`,
             html: mailHtml
         };
 
@@ -332,5 +377,14 @@ export default class TeamService extends BaseService<Team> {
       } else {
         return [];
       }
+    }
+
+    public async findNumberOfTeams(divisionId: number): Promise<number> {
+        return this.entityManager.createQueryBuilder(Team, 'team')
+            .innerJoin('team.division', 'division')
+            .where('team.divisionId = :divisionId', {divisionId: divisionId})
+            .andWhere('team.deleted_at is null')
+            .andWhere('division.deleted_at is null')
+            .getCount();
     }
 }
