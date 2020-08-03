@@ -130,9 +130,11 @@ const getMatchSheetTemplate = (
              }
              .cell:first-child {
                 font-size: 5px;
+                padding-top: 3px;
              }
              .cell {
                 width: 7.92%;
+                padding-top: 2px;
                 text-align: center;
              }
              .largeCell {
