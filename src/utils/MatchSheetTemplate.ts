@@ -121,12 +121,15 @@ const getMatchSheetTemplate = (
                 display: flex;
                 flex-wrap: wrap;
                 flex-direction: row;
-                font-size: 7px;
+                font-size: 6px;
                 border-bottom: 1px solid black;
                 border-right: 1px solid black;
              }
              .cell:not(:last-child) {
                 border-right: 1px solid black;
+             }
+             .cell:first-child {
+                font-size: 5px;
              }
              .cell {
                 width: 7.92%;
