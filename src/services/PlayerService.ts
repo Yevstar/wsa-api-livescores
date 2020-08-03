@@ -33,7 +33,9 @@ export default class PlayerService extends BaseService<Player> {
             .innerJoinAndSelect("team.division", "division")
             .innerJoinAndSelect("player.competition", "competition")
             .leftJoinAndSelect("player.user", "user")
-            .leftJoin("team.organisation", "organisation");
+            .leftJoin("team.organisation", "organisation")
+            .andWhere('player.deleted_at is null')
+            .andWhere('team.deleted_at is null');
 
         if (name) {
             query.andWhere('(LOWER(concat_ws(" ", player.firstName, player.lastName)) like :name)',
@@ -167,11 +169,36 @@ export default class PlayerService extends BaseService<Player> {
             'group by pmt.playerId, player', [matchId, teamId]);
     }
 
-    public async loadGameTime(competitionId: number, aggregate: ("GAME" | "MATCH" | "PERIOD"), requestFilter: RequestFilter): Promise<any> {
-        let result = await this.entityManager.query("call wsa.usp_get_gametime(?,?,?,?,?)",
-            [competitionId, aggregate, requestFilter.paging.limit, requestFilter.paging.offset,requestFilter.search]);
+    public async loadGameTime(
+        competitionId: number,
+        aggregate: ("MINUTE" | "PERIOD" | "MATCH"),
+        teamId: number,
+        matchId: number,
+        requestFilter: RequestFilter
+    ): Promise<any> {
+        let limit;
+        let offset;
+        let search;
+        if (isNotNullAndUndefined(requestFilter)) {
+          if (isNotNullAndUndefined(requestFilter.paging)) {
+              limit = requestFilter.paging.limit;
+              offset = requestFilter.paging.offset;
+          }
+          if (isNotNullAndUndefined(requestFilter.search)) {
+              search = requestFilter.search;
+          }
+        }
+        let result = await this.entityManager.query("call wsa.usp_get_gametime(?,?,?,?,?,?,?)",
+          [competitionId,
+            aggregate,
+            teamId,
+            matchId,
+            limit,
+            offset,
+            search
+          ]);
 
-            if (isNotNullAndUndefined(requestFilter.paging.limit) && isNotNullAndUndefined(requestFilter.paging.offset)) {
+        if (limit && offset) {
             if (result != null) {
                 let totalCount = (result[1] && result[1].find(x => x)) ? result[1].find(x => x).totalCount : 0;
                 let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);

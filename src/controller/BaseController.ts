@@ -255,10 +255,20 @@ export class BaseController {
     protected async notifyRosterChange(user: User, roster: Roster, category: "Scoring" | "Playing" | "Event" | "Umpiring") {
         switch (category) {
             case "Scoring":
-              let scoringDeviceTokens = (await this.deviceService.findManagerDevice(roster.teamId)).map(device => device.deviceId);
-              if (scoringDeviceTokens && scoringDeviceTokens.length > 0) {
+              let tokens = [];
+              let managerDeviceTokens = (await this.deviceService.findManagerDevice(roster.teamId)).map(device => device.deviceId);
+              if (managerDeviceTokens && managerDeviceTokens.length > 0) {
+                  Array.prototype.push.apply(tokens, managerDeviceTokens);
+              }
+              let scorerDeviceTokens = (await this.deviceService.findScorerDeviceFromRoster(roster.matchId, roster.id)).map(device => device.deviceId);
+              if (scorerDeviceTokens && scorerDeviceTokens.length > 0) {
+                  Array.prototype.push.apply(tokens, scorerDeviceTokens);
+              }
+
+              if (tokens && tokens.length > 0) {
+                  let uniqTokens = new Set(tokens);
                   this.firebaseService.sendMessage({
-                    tokens: scoringDeviceTokens,
+                    tokens: Array.from(uniqTokens),
                     data: {type: 'add_scorer_match', rosterId: roster.id.toString(),
                       matchId: roster.matchId.toString()}
                   });

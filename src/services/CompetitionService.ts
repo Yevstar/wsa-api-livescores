@@ -25,15 +25,21 @@ export default class CompetitionService extends BaseService<Competition> {
 
     public async findByName(name?: string, locationId?: number): Promise<Competition[]> {
         let query = this.entityManager.createQueryBuilder(Competition, 'competition')
+            .leftJoinAndSelect('competition.organisation', 'organisation')
+            .leftJoinAndSelect('competition.competitionVenues', 'competitionVenue')
+            .leftJoinAndSelect('competitionVenue.venue', 'venue')
             .leftJoinAndSelect('competition.location', 'location');
         if (locationId) {
             query.andWhere('competition.locationId = :locationId', {locationId});
         }
 
-        if (name) {
+        if (name) {          
             query.andWhere(new Brackets(qb => {
-                qb.where('LOWER(competition.name) like :name', {name: `${name.toLowerCase()}%`});
-                qb.orWhere('LOWER(competition.longName) like :name', {name: `${name.toLowerCase()}%`});
+                qb.orWhere('LOWER(competition.name) like :name', {name: `%${name.toLowerCase()}%`});
+                qb.orWhere('LOWER(competition.longName) like :name', {name: `%${name.toLowerCase()}%`});
+                qb.orWhere('LOWER(organisation.name) like :name', {name: `%${name.toLowerCase()}%`});
+                qb.orWhere('LOWER(venue.name) like :name', {name: `%${name.toLowerCase()}%`});
+                qb.orWhere('LOWER(venue.shortName) like :name', {name: `%${name.toLowerCase()}%`});
             }));
 
         }

@@ -35,11 +35,13 @@ export class StatController extends BaseController {
     @Post('/gametime')
     async gametime(
         @QueryParam('competitionId', {required: true}) competitionId: number = undefined,
-        @QueryParam('aggregate', {required: true}) aggregate: ("GAME" | "MATCH" | "PERIOD"),
+        @QueryParam('aggregate', {required: true}) aggregate: ("MINUTE" | "PERIOD" | "MATCH"),
+        @QueryParam('teamId') teamId: number = undefined,
+        @QueryParam('matchId') matchId: number = undefined,
         @Body() requestFilter: RequestFilter,
         @Res() response: Response) {
         if (competitionId && aggregate && requestFilter) {
-                return this.playerService.loadGameTime(competitionId, aggregate, requestFilter);
+                return this.playerService.loadGameTime(competitionId, aggregate, teamId, matchId, requestFilter);
         } else {
             return response.status(200).send(
                 {name: 'search_error', message: `Required fields are missing`});
@@ -156,10 +158,10 @@ export class StatController extends BaseController {
     @Get('/export/gametime')
     async exportTeamAttendance(
         @QueryParam('competitionId', { required: true }) competitionId: number = undefined,
-        @QueryParam('aggregate', { required: true }) aggregate: ("GAME" | "MATCH" | "PERIOD"),
+        @QueryParam('aggregate', { required: true }) aggregate: ("MINUTE" | "PERIOD" | "MATCH"),
         @Res() response: Response) {
 
-        let gameTimeData = await this.playerService.loadGameTime(competitionId, aggregate, { paging: { offset: null, limit: null }, search: '' });
+        let gameTimeData = await this.playerService.loadGameTime(competitionId, aggregate, null, null, { paging: { offset: null, limit: null }, search: '' });
 
         if (isArrayPopulated(gameTimeData)) {
             gameTimeData.map(e => {

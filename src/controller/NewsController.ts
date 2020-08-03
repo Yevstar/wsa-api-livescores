@@ -54,7 +54,7 @@ export class NewsController extends BaseController {
             n.recipientRefId = body.recipientRefId;
             n.toUserRoleIds = body.toUserRoleIds;
             n.id = stringTONumber(body.id);
-            let imageFilePopuldated = false;
+            let imageFilePopulated = false;
             let videoFilePopulated = false;    
             let news;
             if (n.id) {
@@ -73,8 +73,8 @@ export class NewsController extends BaseController {
                             return response.status(400).send({ errorCode: 4, name: 'validation_error', message: 'File mime type not supported' });
                         }
                         if (isPhoto(i.mimetype)) {
-                            imageFilePopuldated = true;
-                            let filename = `/media/news/${n.entityId}_${n.entityId}/${n.title}_${timestamp()}.${fileExt(i.originalname)}`;
+                            imageFilePopulated = true;
+                            let filename = `/media/news/${n.entityTypeId}_${n.entityId}/${n.title}_${timestamp()}.${fileExt(i.originalname)}`;
                             let fileUploaded = await this.firebaseService.upload(filename, i);
                             if (fileUploaded) {
                                 n.newsImage = fileUploaded.url;
@@ -104,7 +104,7 @@ export class NewsController extends BaseController {
                     }
                 }
                 //removing image file
-                if (n.id && !body.newsImage && !imageFilePopuldated) {
+                if (n.id && !body.newsImage && !imageFilePopulated) {
                     if (news.newsImage) {
                         const fileName = await this.firebaseService.getFileNameFromUrl(JSON.stringify(news.newsImage))
                         await this.firebaseService.removeMedia(fileName);

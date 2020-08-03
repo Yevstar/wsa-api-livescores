@@ -331,7 +331,7 @@ export class PlayerController extends BaseController {
             teamAttendanceData.map(e => {
                 e['Match Id'] = e.matchId;
                 e['Start Time'] = e.startTime;
-                e['Team'] = e.team1name + ':' + e.team2name
+                e['Team'] = e.name
                 e['Player Id'] = e.playerId
                 e['First Name'] = e.firstName
                 e['Last Name'] = e.lastName;
