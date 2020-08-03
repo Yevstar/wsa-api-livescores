@@ -128,10 +128,6 @@ const getMatchSheetTemplate = (
              .cell:not(:last-child) {
                 border-right: 1px solid black;
              }
-             .cell:first-child {
-                font-size: 5px;
-                padding-top: 3px;
-             }
              .cell {
                 width: 7.92%;
                 padding-top: 2px;
@@ -139,6 +135,7 @@ const getMatchSheetTemplate = (
              }
              .largeCell {
                 width: 28.7%;
+                padding-top: 2px;
                 border-right: 1px solid black;
                 text-align: center;
              }
