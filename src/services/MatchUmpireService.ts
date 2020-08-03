@@ -58,8 +58,10 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
             limit = requestFilter.paging.limit;
             offset = requestFilter.paging.offset;
         }
+        
+        let roundString = roundIds ? roundIds.join(',') : '-1';
         let result = await this.entityManager.query("call wsa.usp_get_umpires(?,?,?,?,?,?,?,?)",
-            [organisationId, competitionId, matchId, divisionId, venueId, roundIds, limit, offset]);
+            [organisationId, competitionId, matchId, divisionId, venueId, roundString, limit, offset]);
 
         if (result != null) {
             let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
