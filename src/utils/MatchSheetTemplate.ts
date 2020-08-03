@@ -146,7 +146,7 @@ const getMatchSheetTemplate = (
                 border-right: 1px solid black;
              }
              .passCell {
-                width: 2.306%;
+                width: 2.308%;
                 text-align: center;
              }
              .passTable {
