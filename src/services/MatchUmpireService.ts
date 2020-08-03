@@ -40,7 +40,6 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
         const matchCount = await query.getCount();
         const result = await query.skip(requestFilter.paging.offset).take(requestFilter.paging.limit).getMany();
         return {matchCount,result}
-
     }
 
     public async deleteByMatchId(matchId: number): Promise<DeleteResult> {
@@ -48,7 +47,7 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
             .andWhere("matchId = :matchId", {matchId}).execute();
     }
 
-    public async findByRosterAndCompetition(organisationId: number, competitionId: number, matchId: number, divisionId: number, venueId: number, requestFilter: RequestFilter): Promise<any> {
+    public async findByRosterAndCompetition(organisationId: number, competitionId: number, matchId: number, divisionId: number, venueId: number, roundIds: number[], requestFilter: RequestFilter): Promise<any> {
 
         let limit = 50000;
         let offset = 0;
@@ -59,8 +58,10 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
             limit = requestFilter.paging.limit;
             offset = requestFilter.paging.offset;
         }
-        let result = await this.entityManager.query("call wsa.usp_get_umpires(?,?,?,?,?,?,?)",
-            [organisationId, competitionId, matchId, divisionId, venueId, limit, offset]);
+        
+        let roundString = roundIds ? roundIds.join(',') : '-1';
+        let result = await this.entityManager.query("call wsa.usp_get_umpires(?,?,?,?,?,?,?,?)",
+            [organisationId, competitionId, matchId, divisionId, venueId, roundString, limit, offset]);
 
         if (result != null) {
             let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
