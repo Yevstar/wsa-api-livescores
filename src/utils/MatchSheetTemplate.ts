@@ -121,11 +121,11 @@ const getMatchSheetTemplate = (
                 display: flex;
                 flex-wrap: wrap;
                 flex-direction: row;
-                font-size: 8px;
+                font-size: 7px;
                 border-bottom: 1px solid black;
              }
              .cell {
-                width: 8.1%;
+                width: 8%;
                 border-right: 1px solid black;
                 text-align: center;
              }
@@ -140,7 +140,7 @@ const getMatchSheetTemplate = (
                 box-sizing: border-box;
              }
              .passCell {
-                width: 2.3%;
+                width: 2.31%;
                 border-right: 1px solid black;
                 text-align: center;
              }
@@ -189,7 +189,7 @@ const getMatchSheetTemplate = (
                 display: flex;
                 flex-wrap: wrap;
                 flex-direction: row;
-                font-size: 9px;
+                font-size: 7px;
              }
              .tableTitle {
                 font-size: 9px;
