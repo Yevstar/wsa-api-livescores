@@ -126,8 +126,10 @@ const getMatchSheetTemplate = (
                 border-right: 1px solid black;
              }
              .cell:not(:last-child) {
-                width: 7.92%;
                 border-right: 1px solid black;
+             }
+             .cell {
+                width: 7.92%;
                 text-align: center;
              }
              .largeCell {
@@ -141,8 +143,10 @@ const getMatchSheetTemplate = (
                 box-sizing: border-box;
              }
              .passCell:not(:last-child) {
-                width: 2.306%;
                 border-right: 1px solid black;
+             }
+             .passCell {
+                width: 2.306%;
                 text-align: center;
              }
              .passTable {
