@@ -125,7 +125,7 @@ const getMatchSheetTemplate = (
                 border-bottom: 1px solid black;
              }
              .cell {
-                width: 7.9%;
+                width: 7.92%;
                 border-right: 1px solid black;
                 text-align: center;
              }
@@ -140,7 +140,7 @@ const getMatchSheetTemplate = (
                 box-sizing: border-box;
              }
              .passCell {
-                width: 2.305%;
+                width: 2.306%;
                 border-right: 1px solid black;
                 text-align: center;
              }
