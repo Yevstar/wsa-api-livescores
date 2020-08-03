@@ -33,7 +33,9 @@ export default class PlayerService extends BaseService<Player> {
             .innerJoinAndSelect("team.division", "division")
             .innerJoinAndSelect("player.competition", "competition")
             .leftJoinAndSelect("player.user", "user")
-            .leftJoin("team.organisation", "organisation");
+            .leftJoin("team.organisation", "organisation")
+            .andWhere('player.deleted_at is null')
+            .andWhere('team.deleted_at is null');
 
         if (name) {
             query.andWhere('(LOWER(concat_ws(" ", player.firstName, player.lastName)) like :name)',
