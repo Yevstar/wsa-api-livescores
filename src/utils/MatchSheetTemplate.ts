@@ -123,8 +123,9 @@ const getMatchSheetTemplate = (
                 flex-direction: row;
                 font-size: 7px;
                 border-bottom: 1px solid black;
+                border-right: 1px solid black;
              }
-             .cell {
+             .cell:not(:last-child) {
                 width: 7.92%;
                 border-right: 1px solid black;
                 text-align: center;
@@ -139,7 +140,7 @@ const getMatchSheetTemplate = (
                 font-size: 9px;
                 box-sizing: border-box;
              }
-             .passCell {
+             .passCell:not(:last-child) {
                 width: 2.306%;
                 border-right: 1px solid black;
                 text-align: center;
@@ -147,7 +148,7 @@ const getMatchSheetTemplate = (
              .passTable {
                 width: 100%;
                 padding-left: 16px;
-                padding-right: 16px;
+                padding-right: 24px;
                 box-sizing: border-box;
              }
              .passTable .table {
@@ -197,7 +198,7 @@ const getMatchSheetTemplate = (
              }
              .summaryTable {
                 width: 100%;
-                padding: 4px 16px 4px 16px;
+                padding: 4px 24px 4px 16px;
                 box-sizing: border-box;
              }
              .summaryRow {
@@ -245,7 +246,7 @@ const getMatchSheetTemplate = (
              }
              .goalTable {
                 width: 100%;
-                padding: 8px 16px 8px 16px;
+                padding: 8px 24px 8px 16px;
                 box-sizing: border-box;
              }
              .goalTable .table {
