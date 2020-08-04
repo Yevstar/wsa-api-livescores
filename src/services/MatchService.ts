@@ -506,11 +506,10 @@ export default class MatchService extends BaseService<Match> {
             }));
 
             for (let i = 0; i < filteredMatchByTeam.length; i++) {
-                console.log(i, filteredMatchByTeam.length);
                 const matchDetail = await this.findAdminMatchById(filteredMatchByTeam[i].id, 2);
                 const { team1players, team2players, umpires } = matchDetail;
                 const htmlTmpl = getMatchSheetTemplate(
-                    'Fixtures',
+                    templateType,
                     organisation,
                     team1players,
                     team2players,
