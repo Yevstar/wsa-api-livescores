@@ -143,3 +143,9 @@ export function objectIsNotEmpty(obj) {
     }
     return false;
 }
+
+export const fileUploadOptions =  {
+    limits: {
+        fileSize: process.env.FILE_UPLOAD_SIZE
+    }
+};

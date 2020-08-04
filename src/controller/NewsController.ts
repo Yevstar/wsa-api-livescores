@@ -15,7 +15,7 @@ import {BaseController} from "./BaseController";
 import {User} from "../models/User";
 import {News} from "../models/News";
 import {Response} from "express";
-import {authToken, fileExt, isNullOrEmpty, isPhoto, isVideo, timestamp, isArrayPopulated, stringTONumber} from "../utils/Utils";
+import {authToken, fileExt, isNullOrEmpty, isPhoto, isVideo, timestamp, isArrayPopulated, stringTONumber, fileUploadOptions} from "../utils/Utils";
 
 @JsonController("/news")
 export class NewsController extends BaseController {
@@ -38,7 +38,7 @@ export class NewsController extends BaseController {
     @Post('/')
     async uploadNews(
         @Body() body: News,
-        @UploadedFiles("newsMedia") newsMedia: any[],
+        @UploadedFiles("newsMedia", {options: fileUploadOptions}) newsMedia: any[],
         @Res() response: Response) {
         try {
             // as there is an issue while updating the news, I have changed the type of body
