@@ -448,7 +448,7 @@ export class TeamController extends BaseController {
         @QueryParam('divisionId') divisionId: number,
         @Res() response: Response): Promise<any> {
 
-        const getTeamsData = await this.listCompetitionTeams(competitionId, divisionId, null, null, null);
+        const getTeamsData = await this.listCompetitionTeams(competitionId, divisionId, null, null, null, null);
         if (isArrayPopulated(getTeamsData)) {
             getTeamsData.map(e => {
                 e['Logo'] = e['logoUrl']
