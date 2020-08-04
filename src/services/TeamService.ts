@@ -61,10 +61,12 @@ export default class TeamService extends BaseService<Team> {
     public async findTeamsWithUsers(
         competitionId: number,
         divisionId: number,
+        includeBye: boolean,
         search: string,
         offset: number,
         limit: number): Promise<any> {
-        let result = await this.entityManager.query("call wsa.usp_get_teams(?,?,?,?,?)", [competitionId, search, limit, offset, divisionId]);
+        let result = await this.entityManager.query("call wsa.usp_get_teams(?,?,?,?,?,?)", [competitionId, search, limit, offset, divisionId,
+           includeBye === true ? 1 : 0]);
         if (isArrayPopulated(result)) {
             return { teamCount: result[1][0]['totalCount'], teams: result[0] }
         } else {

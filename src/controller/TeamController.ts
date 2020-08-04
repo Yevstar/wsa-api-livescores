@@ -64,6 +64,7 @@ export class TeamController extends BaseController {
     async listCompetitionTeams(
         @QueryParam('competitionId') competitionId: number,
         @QueryParam('divisionId') divisionId: number,
+        @QueryParam('includeBye') includeBye: boolean,
         @QueryParam('search') search: string,
         @QueryParam('offset') offset: number,
         @QueryParam('limit') limit: number): Promise<any> {
@@ -74,7 +75,7 @@ export class TeamController extends BaseController {
             offset = 0;
         }
 
-        const teamData = await this.teamService.findTeamsWithUsers(competitionId, divisionId, search, offset, limit);
+        const teamData = await this.teamService.findTeamsWithUsers(competitionId, divisionId, includeBye, search, offset, limit);
 
         if (offset === 0 && limit ===0) {
             return teamData.teams;
