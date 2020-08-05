@@ -1,4 +1,5 @@
 import {Service} from "typedi";
+
 import BaseService from "./BaseService";
 import {Division} from "../models/Division";
 import {Team} from "../models/Team";
@@ -10,7 +11,16 @@ export default class DivisionService extends BaseService<Division> {
         return Division.name;
     }
 
-    public async findByParams(competitionId: number, organisationIds: number[], teamIds: number[], offset: number, limit: number, search: string): Promise<any> {
+    public async findByParams(
+        competitionId: number,
+        organisationIds: number[],
+        teamIds: number[],
+        offset: number,
+        limit: number,
+        search: string,
+        sortBy?: string,
+        sortOrder?: "ASC" | "DESC"
+    ): Promise<any> {
         let query = this.entityManager.createQueryBuilder(Division, 'd')
             .innerJoinAndSelect('d.competition', 'competition')
             .leftJoin(Team, 'team', 'team.divisionId = d.id');
@@ -27,6 +37,10 @@ export default class DivisionService extends BaseService<Division> {
 
         if (search!==null && search!==undefined && search !== '') {
             query.andWhere('(LOWER(d.name) like :search)', { search: `%${search.toLowerCase()}%` });
+        }
+
+        if (sortBy) {
+            query.orderBy(`d.${sortBy}`, sortOrder);
         }
 
         if (limit) {

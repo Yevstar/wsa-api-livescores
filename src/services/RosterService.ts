@@ -1,13 +1,12 @@
 import {Service} from "typedi";
+import {DeleteResult} from "typeorm-plus";
+
+import {paginationData, stringTONumber, isNotNullAndUndefined} from "../utils/Utils";
 import BaseService from "./BaseService";
 import {Roster} from "../models/security/Roster";
-import {Role} from "../models/security/Role";
 import {User} from "../models/User";
 import {Match} from "../models/Match";
-import {Organisation} from "../models/Organisation";
-import {paginationData, stringTONumber, isNotNullAndUndefined} from "../utils/Utils";
 import {RequestFilter} from "../models/RequestFilter";
-import {DeleteResult} from "typeorm-plus";
 
 @Service()
 export default class RosterService extends BaseService<Roster> {
@@ -79,7 +78,6 @@ export default class RosterService extends BaseService<Roster> {
 
     // keeping the query as light as possible but more fields can be added if needed - used for umpire roster list
     public async findUserRostersByCompetition(competitionId: number, roleId: number, status: string, requestFilter: RequestFilter): Promise<any> {
-
         let query = this.entityManager.createQueryBuilder(Roster, 'roster')
             .innerJoinAndSelect('roster.match', 'match')
             .innerJoinAndSelect('roster.user', 'user')
@@ -165,9 +163,16 @@ export default class RosterService extends BaseService<Roster> {
         return query.getRawMany();
     }
 
-    public async findByCompetitionId(competitionid: number, roleId: number, requestFilter: RequestFilter): Promise<any> {
-        let result = await this.entityManager.query("call wsa.usp_get_team_rosters(?,?,?,?,?)",
-            [competitionid, roleId, requestFilter.paging.limit, requestFilter.paging.offset, requestFilter.search]);
+    public async findByCompetitionId(
+        competitionId: number,
+        roleId: number,
+        requestFilter: RequestFilter,
+        sortBy?: string,
+        sortOrder?: "ASC" | "DESC"
+    ): Promise<any> {
+        let result = await this.entityManager.query("call wsa.usp_get_team_rosters(?,?,?,?,?,?,?)",
+            [competitionId, roleId, requestFilter.paging.limit, requestFilter.paging.offset, requestFilter.search, sortBy, sortOrder]
+        );
         if (result != null) {
             let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
             let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);

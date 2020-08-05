@@ -30,9 +30,10 @@ export class DivisionController extends BaseController {
         @QueryParam('limit') limit: number,
         @QueryParam('competitionKey') competitionUniqueKey: string,
         @QueryParam('search') search: string,
+        @QueryParam('sortBy') sortBy?: string,
+        @QueryParam('sortOrder') sortOrder?: "ASC" | "DESC"
     ): Promise<any> {
-
-        if(search===null || search === undefined) search = '';
+        if (search === null || search === undefined) search = '';
         if (isNotNullAndUndefined(competitionUniqueKey)) {
             const getCompetitions = await this.competitionService.getCompetitionByUniquekey(competitionUniqueKey);
             competitionId = getCompetitions.id;
@@ -41,7 +42,7 @@ export class DivisionController extends BaseController {
         if (organisationIds && !Array.isArray(organisationIds)) organisationIds = [organisationIds];
         if (teamIds && !Array.isArray(teamIds)) teamIds = [teamIds];
         if (competitionId || teamIds && teamIds.length > 0 || organisationIds && organisationIds.length > 0) {
-            const resultsFound = await this.divisionService.findByParams(competitionId, organisationIds, teamIds, offset, limit, search);
+            const resultsFound = await this.divisionService.findByParams(competitionId, organisationIds, teamIds, offset, limit, search, sortBy, sortOrder);
             if (resultsFound && isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
                 let responseObject = paginationData(stringTONumber(resultsFound.countObj), limit, offset)
                 responseObject["divisions"] = resultsFound.result;
@@ -52,8 +53,6 @@ export class DivisionController extends BaseController {
         } else {
             return []
         }
-
-
     }
 
     @Authorized()

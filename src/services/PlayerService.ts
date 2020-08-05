@@ -1,11 +1,10 @@
 import {Service} from "typedi";
+
+import {paginationData, stringTONumber, isNotNullAndUndefined } from "../utils/Utils";
 import BaseService from "./BaseService";
 import {Player} from "../models/Player";
 import {PlayerMinuteTracking} from "../models/PlayerMinuteTracking";
-import {GameTimeAttendance} from "../models/GameTimeAttendance";
-import {Lineup} from "../models/Lineup";
 import {RequestFilter} from "../models/RequestFilter";
-import {paginationData, stringTONumber, isNotNullAndUndefined } from "../utils/Utils";
 import {Competition} from '../models/Competition';
 import {Organisation} from '../models/Organisation';
 
@@ -26,7 +25,9 @@ export default class PlayerService extends BaseService<Player> {
         offset: number,
         limit: number,
         search: string,
-        includeLinkedCompetition: boolean
+        includeLinkedCompetition: boolean,
+        sortBy?: string,
+        sortOrder?: "ASC" | "DESC"
     ): Promise<any> {
         let query = this.entityManager.createQueryBuilder(Player, 'player')
             .innerJoinAndSelect("player.team", "team")
@@ -75,9 +76,17 @@ export default class PlayerService extends BaseService<Player> {
             let conditions = [];
             conditions.push(`(division.age < :age)`);
             conditions.push(`(division.age = :age and division.grade >= :grade)`);
-            query.andWhere(`(${conditions.join(' or ')})`,
-                { age: playUpFromAge, grade: playUpFromGrade });
+            query.andWhere(`(${conditions.join(' or ')})`, { age: playUpFromAge, grade: playUpFromGrade });
         }
+
+        if (sortBy === 'division') {
+            query.orderBy('division.name', sortOrder);
+        } else if (sortBy === 'team') {
+            query.orderBy('team.name', sortOrder);
+        } else if (sortBy) {
+            query.orderBy(`player.${sortBy}`, sortOrder);
+        }
+
         if (offset !== null && offset !== undefined && limit !== null && limit !== undefined) {
             // return query.paginate(offset,limit).getMany();
             // switched to skip and limit function as with paginate(offset,limit) with offset 0, typeorm-plus gives the value
@@ -229,7 +238,6 @@ export default class PlayerService extends BaseService<Player> {
     }
 
     public async listTeamPlayerActivity(competitionId: number, requestFilter: RequestFilter, status: string): Promise<any> {
-
         let result = await this.entityManager.query("call wsa.usp_get_team_player_activity(?,?,?,?,?)",
         [competitionId, status, requestFilter.paging.offset, requestFilter.paging.limit, requestFilter.search]);
 

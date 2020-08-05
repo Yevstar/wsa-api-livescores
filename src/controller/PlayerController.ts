@@ -1,4 +1,28 @@
-import {Authorized, Post, HeaderParam, Body, Res, Get, JsonController, QueryParam, UploadedFile} from 'routing-controllers';
+import {Response} from 'express';
+import {
+    Authorized,
+    Post,
+    HeaderParam,
+    Body,
+    Res,
+    Get,
+    JsonController,
+    QueryParam,
+    UploadedFile
+} from 'routing-controllers';
+import * as fastcsv from 'fast-csv';
+
+import {
+    isPhoto,
+    fileExt,
+    timestamp,
+    stringTONumber,
+    paginationData,
+    isArrayPopulated,
+    isNotNullAndUndefined,
+    md5
+} from '../utils/Utils';
+import {BaseController} from './BaseController';
 import {Player} from '../models/Player';
 import {User} from '../models/User';
 import {Competition} from '../models/Competition';
@@ -6,11 +30,7 @@ import {Organisation} from '../models/Organisation';
 import {Role} from '../models/security/Role';
 import {EntityType} from '../models/security/EntityType';
 import {UserRoleEntity} from '../models/security/UserRoleEntity';
-import {BaseController} from "./BaseController";
-import {Response} from "express";
-import * as  fastcsv from 'fast-csv';
-import { isPhoto, fileExt, timestamp, stringTONumber, paginationData, isArrayPopulated, isNotNullAndUndefined, md5 } from '../utils/Utils';
-import {RequestFilter} from "../models/RequestFilter";
+import {RequestFilter} from '../models/RequestFilter';
 
 @JsonController('/players')
 export class PlayerController extends BaseController {
@@ -58,7 +78,7 @@ export class PlayerController extends BaseController {
         @UploadedFile("photo") file: Express.Multer.File,
         @Res() response: Response
     ) {
-      if (playerInput) {
+        if (playerInput) {
             let existingPlayer;
             // changed the type of player from "Player" to any as id should be integer for edit mode
             // and while using formdata content-type id is of type string
@@ -83,7 +103,7 @@ export class PlayerController extends BaseController {
             p.teamId = playerInput.teamId;
             p.competitionId = playerInput.competitionId;
 
-            if (playerInput.positionId || playerInput.shirt || playerInput.nameFilter ) {
+            if (playerInput.positionId || playerInput.shirt || playerInput.nameFilter) {
                 p.positionId = playerInput.positionId;
                 p.shirt = playerInput.shirt;
                 p.nameFilter = playerInput.nameFilter;
@@ -92,8 +112,8 @@ export class PlayerController extends BaseController {
                 if (existingPlayer &&
                     existingPlayer.email &&
                     existingPlayer.email.toLowerCase() === playerInput.email.toLowerCase()) {
-                        p .email = playerInput.email.toLowerCase();
-                        p.inviteStatus = playerInput.inviteStatus;
+                    p.email = playerInput.email.toLowerCase();
+                    p.inviteStatus = playerInput.inviteStatus;
                 } else {
                     p.email = playerInput.email.toLowerCase();
                     p.inviteStatus = null;
@@ -116,14 +136,16 @@ export class PlayerController extends BaseController {
                     if (result) {
                         p.photoUrl = result['url'];
                     } else {
-                        return response
-                            .status(400).send(
-                                { name: 'save_error', message: 'Image not saved, try again later.' });
+                        return response .status(400).send({
+                            name: 'save_error',
+                            message: 'Image not saved, try again later.'
+                        });
                     }
                 } else {
-                    return response
-                        .status(400).send(
-                            { name: 'validation_error', message: 'File mime type not supported' });
+                    return response.status(400).send({
+                        name: 'validation_error',
+                        message: 'File mime type not supported'
+                    });
                 }
             }
             let saved = await this.playerService.createOrUpdate(p);
@@ -143,8 +165,8 @@ export class PlayerController extends BaseController {
     @Authorized()
     @Post('/update/position')
     async updatePosition(
-        @QueryParam('playerId', {required: true}) playerId: number,
-        @QueryParam('positionId', {required: true}) positionId: number,
+        @QueryParam('playerId', { required: true }) playerId: number,
+        @QueryParam('positionId', { required: true }) positionId: number,
         @Res() response: Response
     ) {
         let player = await this.playerService.findById(playerId);
@@ -152,16 +174,18 @@ export class PlayerController extends BaseController {
             player.positionId = positionId;
             return this.playerService.createOrUpdate(player);
         } else {
-            return response.status(400).send(
-                {name: 'search_error', message: `Player with id ${playerId} not found`});
+            return response.status(400).send({
+                name: 'search_error',
+                message: `Player with id ${playerId} not found`
+            });
         }
     }
 
     @Authorized()
     @Post('/update/shirt')
     async updateShirt(
-        @QueryParam('playerId', {required: true}) playerId: number,
-        @QueryParam('shirt', {required: true}) shirt: string,
+        @QueryParam('playerId', { required: true }) playerId: number,
+        @QueryParam('shirt', { required: true }) shirt: string,
         @Res() response: Response
     ) {
         let player = await this.playerService.findById(playerId);
@@ -169,8 +193,10 @@ export class PlayerController extends BaseController {
             player.shirt = shirt;
             return this.playerService.createOrUpdate(player);
         } else {
-            return response.status(400).send(
-                {name: 'search_error', message: `Player with id ${playerId} not found`});
+            return response.status(400).send({
+                name: 'search_error',
+                message: `Player with id ${playerId} not found`
+            });
         }
     }
 
@@ -213,7 +239,6 @@ export class PlayerController extends BaseController {
         @QueryParam('competitionId', { required: true }) competitionId: number,
         @UploadedFile("file") file: Express.Multer.File,
     ) {
-
         var queryParameter = () => new Promise(resolve => {
             var buf = Buffer.from(file.buffer);
             let str = buf.toString();
@@ -227,7 +252,6 @@ export class PlayerController extends BaseController {
                 .on('data', row => {
                     arr.push(row)
                 })
-
                 .on('end', async () => {
                     for (let i of arr) {
                         let teamId = await this.teamService.findByNameAndCompetition(i.team, competitionId, i.grade);
@@ -243,8 +267,7 @@ export class PlayerController extends BaseController {
                             playerObj.dateOfBirth = i.DOB;
                             playerObj.phoneNumber = i['contact no'];
                             playerObj.competitionId = competitionId;
-                            playerArr.push(playerObj);
-
+                            playerArr.push(playerObj)
                         } else {
                             outputArr.push(`No matching team found for ${i['first name']} ${i['last name']}`)
                         }
@@ -257,10 +280,8 @@ export class PlayerController extends BaseController {
                         await this.playerService.createOrUpdate(p);
                     }
                     outputArr = [...data, ...outputArr];
-                    resolve(outputArr)
-
+                    resolve(outputArr);
                 });
-
         })
 
         let playerData = await queryParameter();
@@ -289,7 +310,9 @@ export class PlayerController extends BaseController {
         @QueryParam('playUpFromGrade') playUpFromGrade: string,
         @QueryParam('offset') offset: number,
         @QueryParam('limit') limit: number,
-        @QueryParam('search') search: string
+        @QueryParam('search') search: string,
+        @QueryParam('sortBy') sortBy?: string,
+        @QueryParam('sortOrder') sortOrder?: "ASC" | "DESC"
     ): Promise<{ page: {}, players: Player[] }> {
         let competition: Competition;
         let organisation: Organisation
@@ -310,7 +333,9 @@ export class PlayerController extends BaseController {
             offset,
             limit,
             search,
-            false
+            false,
+            sortBy,
+            sortOrder
         );
         if (offset !== null && offset !== undefined && limit !== null && limit !== undefined) {
             return { page: paginationData(playerData.matchCount, limit, offset).page, players: playerData.result };
@@ -326,7 +351,13 @@ export class PlayerController extends BaseController {
         @QueryParam('status') status: string,
         @Res() response: Response) {
 
-        let teamAttendanceData = await this.playerService.listTeamPlayerActivity(competitionId, { paging: { offset: null, limit: null }, search: '' }, status);
+        let teamAttendanceData = await this.playerService.listTeamPlayerActivity(competitionId, {
+            paging: {
+                offset: null,
+                limit: null
+            },
+            search: ''
+        }, status);
         if (isArrayPopulated(teamAttendanceData)) {
             teamAttendanceData.map(e => {
                 e['Match Id'] = e.matchId;
@@ -378,7 +409,8 @@ export class PlayerController extends BaseController {
         response.setHeader('Content-disposition', 'attachment; filename=teamattendance.csv');
         response.setHeader('content-type', 'text/csv');
         fastcsv.write(teamAttendanceData, { headers: true })
-            .on("finish", function () { })
+            .on("finish", function () {
+            })
             .pipe(response);
     }
 
@@ -386,11 +418,11 @@ export class PlayerController extends BaseController {
         creator: User,
         player: Player
     ): Promise<any> {
-
-        if (isNotNullAndUndefined(player.firstName) &&
-        isNotNullAndUndefined(player.lastName) &&
-        isNotNullAndUndefined(player.phoneNumber)) {
-
+        if (
+            isNotNullAndUndefined(player.firstName) &&
+            isNotNullAndUndefined(player.lastName) &&
+            isNotNullAndUndefined(player.phoneNumber)
+        ) {
             const userDetails = new User();
             let newUser = false;
             let teamDetailArray: any = [];
@@ -404,7 +436,7 @@ export class PlayerController extends BaseController {
                 if (foundUser.firstName == player.firstName
                     && foundUser.lastName == player.lastName
                     && foundUser.mobileNumber == player.phoneNumber) {
-                        savedUserDetail = foundUser;
+                    savedUserDetail = foundUser;
 
                     await this.userService.deleteRolesByUser(foundUser.id, Role.PLAYER, player.competitionId, EntityType.COMPETITION, EntityType.TEAM);
                     await this.userService.deleteRolesByUser(foundUser.id, Role.MEMBER, player.competitionId, EntityType.COMPETITION, EntityType.COMPETITION);
@@ -450,18 +482,22 @@ export class PlayerController extends BaseController {
 
     @Get('/borrowed')
     async findBorrowedPlayers(
-        @QueryParam('matchId', {required: true}) matchId: number,
-        @QueryParam('teamId', {required: true}) teamId: number,
-        @QueryParam('lineupSelectionEnabled', {required: true}) lineupSelectionEnabled: boolean,
+        @QueryParam('matchId', { required: true }) matchId: number,
+        @QueryParam('teamId', { required: true }) teamId: number,
+        @QueryParam('lineupSelectionEnabled', { required: true }) lineupSelectionEnabled: boolean,
         @QueryParam('competitionId') competitionId: number,
         @Res() response: Response
     ) {
         if (!matchId || !teamId || (lineupSelectionEnabled == null)) {
-          return response.status(400).send(
-            {name: 'service_error', message: 'Please provide all required parameter data'});
+            return response.status(400).send({
+                name: 'service_error',
+                message: 'Please provide all required parameter data'
+            });
         } else if (lineupSelectionEnabled && !competitionId) {
-          return response.status(400).send(
-            {name: 'service_error', message: 'Provide competitionId when lineup selection is enabled'});
+            return response.status(400).send({
+                name: 'service_error',
+                message: 'Provide competitionId when lineup selection is enabled'
+            });
         }
 
         let playerIds: number[] = new Array();
@@ -491,9 +527,9 @@ export class PlayerController extends BaseController {
         }
 
         if (isArrayPopulated(playerIds)) {
-          return this.playerService.getBorrowedPlayersById(playerIds);
+            return this.playerService.getBorrowedPlayersById(playerIds);
         } else {
-          return [];
+            return [];
         }
     }
 }

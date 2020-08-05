@@ -1,3 +1,4 @@
+import {Request, Response} from 'express';
 import {
     Authorized,
     Body,
@@ -12,24 +13,22 @@ import {
     Res,
     UploadedFile
 } from 'routing-controllers';
-import {User} from '../models/User';
-import {Request, Response} from 'express';
-import {logger} from '../logger';
 import axios from 'axios';
-import {decode as atob} from 'base-64'
-import {authToken, fileExt, isNullOrEmpty, isPhoto, timestamp} from "../utils/Utils";
-import {LoginError} from "../exceptions/LoginError";
-import {UserDevice} from "../models/UserDevice";
-import {BaseController} from "./BaseController";
-import {UserRoleEntity} from "../models/security/UserRoleEntity";
-import {Role} from "../models/security/Role";
-import {EntityType} from "../models/security/EntityType";
-import {Team} from "../models/Team";
-import {Organisation} from "../models/Organisation";
-import {OpenAPI} from "routing-controllers-openapi";
-import FirebaseService from "../services/FirebaseService";
-import { md5, isArrayPopulated } from "../utils/Utils";
-import {stringTONumber, paginationData, isNotNullAndUndefined, isEmpty} from "../utils/Utils";
+import {decode as atob} from 'base-64';
+
+import {logger} from '../logger';
+import {authToken, isNullOrEmpty} from '../utils/Utils';
+import {LoginError} from '../exceptions/LoginError';
+import {User} from '../models/User';
+import {UserDevice} from '../models/UserDevice';
+import {UserRoleEntity} from '../models/security/UserRoleEntity';
+import {Role} from '../models/security/Role';
+import {EntityType} from '../models/security/EntityType';
+import {Team} from '../models/Team';
+import {Organisation} from '../models/Organisation';
+import {md5, isArrayPopulated} from '../utils/Utils';
+import {isNotNullAndUndefined, isEmpty} from '../utils/Utils';
+import {BaseController} from './BaseController';
 
 @JsonController('/users')
 export class UserController extends BaseController {

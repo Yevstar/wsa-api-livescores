@@ -1,3 +1,4 @@
+import {Response} from 'express';
 import {
     Authorized,
     Body,
@@ -10,17 +11,17 @@ import {
     QueryParam,
     Res
 } from 'routing-controllers';
-import {Roster} from "../models/security/Roster";
-import {Response} from "express";
-import {BaseController} from "./BaseController";
-import {EntityType} from "../models/security/EntityType";
-import {User} from "../models/User";
-import {Competition} from "../models/Competition";
-import {stringTONumber, paginationData, isArrayPopulated} from "../utils/Utils";
-import {RequestFilter} from "../models/RequestFilter";
 import * as fastcsv from 'fast-csv';
-import {convertMatchStartTimeByTimezone} from "../utils/TimeFormatterUtils";
-import {StateTimezone} from "../models/StateTimezone";
+
+import {convertMatchStartTimeByTimezone} from '../utils/TimeFormatterUtils';
+import {isArrayPopulated} from '../utils/Utils';
+import {BaseController} from './BaseController';
+import {Roster} from '../models/security/Roster';
+import {EntityType} from '../models/security/EntityType';
+import {User} from '../models/User';
+import {Competition} from '../models/Competition';
+import {RequestFilter} from '../models/RequestFilter';
+import {StateTimezone} from '../models/StateTimezone';
 
 @JsonController('/roster')
 export class RosterController extends BaseController {
@@ -45,7 +46,8 @@ export class RosterController extends BaseController {
             return this.rosterService.findUsersByRole(competitionId, roleId);
         } else {
             return response.status(200).send({
-                name: 'search_error', message: `Invalid parameters`
+                name: 'search_error',
+                message: `Invalid parameters`
             });
         }
     }
@@ -63,7 +65,8 @@ export class RosterController extends BaseController {
             return this.rosterService.findUserRostersByCompetition(competitionId, roleId, status, requestFilter);
         } else {
             return response.status(200).send({
-                name: 'search_error', message: `Invalid parameters`
+                name: 'search_error',
+                message: `Invalid parameters`
             });
         }
     }
@@ -74,13 +77,16 @@ export class RosterController extends BaseController {
         @QueryParam("competitionId") competitionId: number,
         @QueryParam("roleId") roleId: number,
         @Body() requestFilter: RequestFilter,
-        @Res() response: Response
+        @Res() response: Response,
+        @QueryParam('sortBy') sortBy?: string,
+        @QueryParam('sortOrder') sortOrder?: "ASC" | "DESC",
     ) {
         if (competitionId && roleId) {
-            return this.rosterService.findByCompetitionId(competitionId, roleId, requestFilter);
+            return this.rosterService.findByCompetitionId(competitionId, roleId, requestFilter, sortBy, sortOrder);
         } else {
             return response.status(200).send({
-                name: 'search_error', message: `Invalid parameters`
+                name: 'search_error',
+                message: `Invalid parameters`
             });
         }
     }
@@ -104,12 +110,12 @@ export class RosterController extends BaseController {
                         }
                     })
                 }
-                return response.status(200).send({delete: true});
+                return response.status(200).send({ delete: true });
             } else {
-                return response.status(200).send({delete: false});
+                return response.status(200).send({ delete: false });
             }
         } else {
-            return response.status(200).send({delete: false});
+            return response.status(200).send({ delete: false });
         }
     }
 
@@ -121,22 +127,30 @@ export class RosterController extends BaseController {
 
     @Authorized()
     @Get('/match')
-    async findByMatchId(@QueryParam('ids') matchIds: number[] = [],
-                        @Res() response: Response) {
+    async findByMatchId(
+        @QueryParam('ids') matchIds: number[] = [],
+        @Res() response: Response
+    ) {
         if (!matchIds || matchIds.length == 0) {
-            return response
-                .status(400).send({name: 'validation_error', message: 'Match id`s required.'});
+            return response.status(400).send({
+                name: 'validation_error',
+                message: 'Match id`s required.'
+            });
         }
         return this.rosterService.findByMatchIds(matchIds);
     }
 
     @Authorized()
     @Get('/all')
-    async findAllRostersByParam(@QueryParam('matchIds') matchIds: number[] = [],
-                        @Res() response: Response) {
+    async findAllRostersByParam(
+        @QueryParam('matchIds') matchIds: number[] = [],
+        @Res() response: Response
+    ) {
         if (!matchIds || matchIds.length == 0) {
-            return response
-                .status(400).send({name: 'validation_error', message: 'Match id`s required.'});
+            return response.status(400).send({
+                name: 'validation_error',
+                message: 'Match id`s required.'
+            });
         }
         return this.rosterService.findAllRostersByParam(matchIds);
     }
@@ -150,23 +164,26 @@ export class RosterController extends BaseController {
     @Authorized()
     @Post('/')
     async addRoster(
-      @HeaderParam("authorization") user: User,
-      @Body() roster: Roster,
-      @QueryParam('category', {required: true}) category: "Scoring" | "Playing" | "Event" | "Umpiring",
-      @Res() response: Response
+        @HeaderParam("authorization") user: User,
+        @Body() roster: Roster,
+        @QueryParam('category', { required: true }) category: "Scoring" | "Playing" | "Event" | "Umpiring",
+        @Res() response: Response
     ) {
         if (!roster) {
-            return response
-                .status(400).send({name: 'validation_error', message: 'Roster in body required.'});
+            return response.status(400).send({
+                name: 'validation_error',
+                message: 'Roster in body required.'
+            });
         }
         let savedRoster = await this.rosterService.createOrUpdate(roster);
         if (savedRoster) {
             await this.notifyRosterChange(user, savedRoster, category);
             return savedRoster;
         } else {
-          return response.status(400).send({
-              name: 'save_error', message: `Sorry, unable to save the roster`
-          });
+            return response.status(400).send({
+                name: 'save_error',
+                message: `Sorry, unable to save the roster`
+            });
         }
     }
 
@@ -174,9 +191,9 @@ export class RosterController extends BaseController {
     @Patch('/')
     async updateStatus(
         @HeaderParam("authorization") user: User,
-        @QueryParam('rosterId', {required: true}) rosterId: number,
-        @QueryParam('status', {required: true}) status: "YES" | "NO" | "LATER" | "MAYBE",
-        @QueryParam('category', {required: true}) category: "Scoring" | "Playing" | "Event" | "Umpiring",
+        @QueryParam('rosterId', { required: true }) rosterId: number,
+        @QueryParam('status', { required: true }) status: "YES" | "NO" | "LATER" | "MAYBE",
+        @QueryParam('category', { required: true }) category: "Scoring" | "Playing" | "Event" | "Umpiring",
         @Res() response: Response
     ) {
         let roster = await this.rosterService.findFullById(rosterId);
@@ -185,54 +202,62 @@ export class RosterController extends BaseController {
             let result = await this.rosterService.createOrUpdate(roster);
 
             switch (category) {
-              case "Scoring":
-                  let scoringDeviceTokens = (await this.deviceService.findManagerDevice(result.teamId)).map(device => device.deviceId);
-                  if (scoringDeviceTokens && scoringDeviceTokens.length > 0) {
-                      if (status == "NO") {
-                          this.firebaseService.sendMessage({
-                              tokens: scoringDeviceTokens,
-                              title: `Scorer declined match: ${roster.match.team1.name} vs ${roster.match.team2.name}`,
-                              body: 'Assign someone else to score',
-                              data: {
-                                  type: 'scorer_decline_match', entityTypeId: EntityType.USER.toString(),
-                                  entityId: user.id.toString(), matchId: roster.matchId.toString()
-                              }
-                          });
-                      } else if (status == "YES") {
-                          this.firebaseService.sendMessage({
-                              tokens: scoringDeviceTokens,
-                              data: {
-                                  type: 'scorer_accept_match', entityTypeId: EntityType.USER.toString(),
-                                  entityId: user.id.toString(), matchId: roster.matchId.toString()
-                              }
-                          });
-                      }
-                  }
-                break;
-              case "Playing":
-                let managerAndCoachDeviceTokens = (await this.deviceService.findManagerAndCoachDevices(roster.teamId)).map(device => device.deviceId);
-                if (managerAndCoachDeviceTokens && managerAndCoachDeviceTokens.length > 0) {
-                    this.firebaseService.sendMessage({
-                        tokens: managerAndCoachDeviceTokens,
-                        data: {
-                          type: 'player_status_update', entityTypeId: EntityType.USER.toString(),
-                          entityId: user.id.toString(), matchId: roster.matchId.toString()
+                case "Scoring":
+                    let scoringDeviceTokens = (await this.deviceService.findManagerDevice(result.teamId)).map(device => device.deviceId);
+                    if (scoringDeviceTokens && scoringDeviceTokens.length > 0) {
+                        if (status == "NO") {
+                            this.firebaseService.sendMessage({
+                                tokens: scoringDeviceTokens,
+                                title: `Scorer declined match: ${roster.match.team1.name} vs ${roster.match.team2.name}`,
+                                body: 'Assign someone else to score',
+                                data: {
+                                    type: 'scorer_decline_match',
+                                    entityTypeId: EntityType.USER.toString(),
+                                    entityId: user.id.toString(),
+                                    matchId: roster.matchId.toString()
+                                }
+                            });
+                        } else if (status == "YES") {
+                            this.firebaseService.sendMessage({
+                                tokens: scoringDeviceTokens,
+                                data: {
+                                    type: 'scorer_accept_match',
+                                    entityTypeId: EntityType.USER.toString(),
+                                    entityId: user.id.toString(),
+                                    matchId: roster.matchId.toString()
+                                }
+                            });
                         }
-                    });
-                }
-                break;
-              case "Event":
-                  let eventDeviceTokens = (await this.deviceService.getUserDevices(roster.eventOccurrence.created_by)).map(device => device.deviceId);
-                  if (eventDeviceTokens && eventDeviceTokens.length > 0) {
-                      this.firebaseService.sendMessage({
-                        tokens: eventDeviceTokens,
-                        data: {
-                          type: 'event_invitee_update', entityTypeId: EntityType.USER.toString(),
-                          entityId: user.id.toString(), eventOccurrenceId: roster.eventOccurrenceId.toString()
-                        }
-                      });
-                  }
-                break;
+                    }
+                    break;
+                case "Playing":
+                    let managerAndCoachDeviceTokens = (await this.deviceService.findManagerAndCoachDevices(roster.teamId)).map(device => device.deviceId);
+                    if (managerAndCoachDeviceTokens && managerAndCoachDeviceTokens.length > 0) {
+                        this.firebaseService.sendMessage({
+                            tokens: managerAndCoachDeviceTokens,
+                            data: {
+                                type: 'player_status_update',
+                                entityTypeId: EntityType.USER.toString(),
+                                entityId: user.id.toString(),
+                                matchId: roster.matchId.toString()
+                            }
+                        });
+                    }
+                    break;
+                case "Event":
+                    let eventDeviceTokens = (await this.deviceService.getUserDevices(roster.eventOccurrence.created_by)).map(device => device.deviceId);
+                    if (eventDeviceTokens && eventDeviceTokens.length > 0) {
+                        this.firebaseService.sendMessage({
+                            tokens: eventDeviceTokens,
+                            data: {
+                                type: 'event_invitee_update',
+                                entityTypeId: EntityType.USER.toString(),
+                                entityId: user.id.toString(),
+                                eventOccurrenceId: roster.eventOccurrenceId.toString()
+                            }
+                        });
+                    }
+                    break;
                 case "Umpiring":
                     let umpireDeviceTokens = (await this.deviceService.findManagerDevice(result.teamId)).map(device => device.deviceId);
                     if (umpireDeviceTokens && umpireDeviceTokens.length > 0) {
@@ -240,34 +265,39 @@ export class RosterController extends BaseController {
                             this.firebaseService.sendMessage({
                                 tokens: umpireDeviceTokens,
                                 data: {
-                                    type: 'umpire_decline_match', entityTypeId: EntityType.USER.toString(),
-                                    entityId: user.id.toString(), matchId: roster.matchId.toString()
+                                    type: 'umpire_decline_match',
+                                    entityTypeId: EntityType.USER.toString(),
+                                    entityId: user.id.toString(),
+                                    matchId: roster.matchId.toString()
                                 }
                             });
                         } else if (status == "YES") {
                             this.firebaseService.sendMessage({
                                 tokens: umpireDeviceTokens,
                                 data: {
-                                    type: 'umpire_accept_match', entityTypeId: EntityType.USER.toString(),
-                                    entityId: user.id.toString(), matchId: roster.matchId.toString()
+                                    type: 'umpire_accept_match',
+                                    entityTypeId: EntityType.USER.toString(),
+                                    entityId: user.id.toString(),
+                                    matchId: roster.matchId.toString()
                                 }
                             });
                         }
                     }
-                  break;
+                    break;
             }
 
             return result;
         } else {
             return response.status(404).send({
-                name: 'search_error', message: `Roster with id [${rosterId}] not found`
+                name: 'search_error',
+                message: `Roster with id [${rosterId}] not found`
             });
         }
     }
 
     @Post("/broadcast")
     async broadcastRoster(
-        @QueryParam("userId", {required: true}) userId: number,
+        @QueryParam("userId", { required: true }) userId: number,
         @Res() response: Response
     ) {
         let tokens = (await this.deviceService.getUserDevices(userId)).map(device => device.deviceId);
@@ -279,7 +309,7 @@ export class RosterController extends BaseController {
                 }
             })
         }
-        return response.status(200).send({success: true});
+        return response.status(200).send({ success: true });
     }
 
     // specific response to allow inline editing for admin
@@ -290,11 +320,15 @@ export class RosterController extends BaseController {
         @Res() response: Response
     ) {
         if (!roster) {
-            return response
-                .status(400).send({name: 'validation_error', message: 'Roster in body required.'});
+            return response.status(400).send({
+                name: 'validation_error',
+                message: 'Roster in body required.'
+            });
         } else if (!roster.userId || !roster.roleId || !roster.matchId) {
-            return response
-                .status(400).send({name: 'validation_error', message: 'Roster data incomplete.'});
+            return response.status(400).send({
+                name: 'validation_error',
+                message: 'Roster data incomplete.'
+            });
         }
 
         var existingRoster = await this.rosterService.getRosterStatus(roster.roleId, roster.teamId, roster.matchId);
@@ -310,7 +344,11 @@ export class RosterController extends BaseController {
             if (tokens && tokens.length > 0) {
                 this.firebaseService.sendMessage({
                     tokens: tokens,
-                    data: {type: 'add_scorer_match', rosterId: roster.id.toString(), matchId: roster.matchId.toString()}
+                    data: {
+                        type: 'add_scorer_match',
+                        rosterId: roster.id.toString(),
+                        matchId: roster.matchId.toString()
+                    }
                 })
             }
         }
@@ -339,17 +377,17 @@ export class RosterController extends BaseController {
                 }
                 return response.status(200).send();
             } else {
-                return response.status(200).send({delete: false});
+                return response.status(200).send({ delete: false });
             }
         } else {
-            return response.status(200).send({delete: false});
+            return response.status(200).send({ delete: false });
         }
     }
 
     @Authorized()
     @Get('/eventRosters')
     async findEventRosters(
-      @QueryParam("eventOccurrenceId") eventOccurrenceId: number
+        @QueryParam("eventOccurrenceId") eventOccurrenceId: number
     ): Promise<Roster[]> {
         return this.rosterService.findByEventOccurrence(eventOccurrenceId);
     }
@@ -397,11 +435,13 @@ export class RosterController extends BaseController {
             response.setHeader('Content-disposition', 'attachment; filename=scorer.csv');
             response.setHeader('content-type', 'text/csv');
             fastcsv.write(getScorersData.users, { headers: true })
-                .on("finish", function () { })
+                .on("finish", function () {
+                })
                 .pipe(response);
         } else {
             return response.status(212).send({
-                name: 'parameter_required', message: `Invalid parameters passed`
+                name: 'parameter_required',
+                message: `Invalid parameters passed`
             });
         }
     }
@@ -468,11 +508,13 @@ export class RosterController extends BaseController {
             response.setHeader('Content-disposition', 'attachment; filename=umpire-roster.csv');
             response.setHeader('content-type', 'text/csv');
             fastcsv.write(dict.results, { headers: true })
-                .on("finish", function () { })
+                .on("finish", function () {
+                })
                 .pipe(response);
         } else {
             return response.status(212).send({
-                name: 'parameter_required', message: `Invalid parameters passed`
+                name: 'parameter_required',
+                message: `Invalid parameters passed`
             });
         }
     }
