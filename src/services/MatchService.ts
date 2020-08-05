@@ -506,11 +506,10 @@ export default class MatchService extends BaseService<Match> {
             }));
 
             for (let i = 0; i < filteredMatchByTeam.length; i++) {
-                console.log(i, filteredMatchByTeam.length);
                 const matchDetail = await this.findAdminMatchById(filteredMatchByTeam[i].id, 2);
                 const { team1players, team2players, umpires } = matchDetail;
                 const htmlTmpl = getMatchSheetTemplate(
-                    'Fixtures',
+                    templateType,
                     organisation,
                     team1players,
                     team2players,
@@ -541,11 +540,10 @@ export default class MatchService extends BaseService<Match> {
                         : replaceStr(filteredMatchByTeam[0].team2.name);
                 }
 
-                const fileName = `${competition.longName
-                    ? replaceStr(competition.longName)
-                    : ''}_${divisionIds === null
-                    ? 'All_Divisions_'
-                    : replaceStr(filteredMatchByTeam[0].division.name)
+                const fileName = `${replaceStr(competition.name)}_${
+                    divisionIds === null
+                        ? 'All_Divisions_'
+                        : replaceStr(filteredMatchByTeam[0].division.name)
                 }_${teamName}_${templateType}_${Date.now()}.pdf`;
 
                 const params = {
