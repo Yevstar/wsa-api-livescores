@@ -244,11 +244,24 @@ export class BaseController {
         let querySnapshot = await queryRef.get();
 
         if (!querySnapshot.empty) {
-            let teamChatDoc = chatsCollectionRef.doc(`team${teamId.toString()}chat`);
-            teamChatDoc.update({
-                'uids': admin.firestore.FieldValue.arrayUnion(user.firebaseUID),
-                'updated_at': admin.firestore.FieldValue.serverTimestamp()
-            });
+            let userQueryRef = queryRef.where('uids', 'array-contains', user.firebaseUID);
+            let userQuerySnapshot = await userQueryRef.get();
+            if (userQuerySnapshot.empty) {
+                let teamChatDoc = chatsCollectionRef.doc(`team${teamId.toString()}chat`);
+                teamChatDoc.update({
+                    'uids': admin.firestore.FieldValue.arrayUnion(user.firebaseUID),
+                    'updated_at': admin.firestore.FieldValue.serverTimestamp()
+                });
+            }
+            let removedUserQueryRef = queryRef.where('removed_uids', 'array-contains', user.firebaseUID);
+            let removedUserQuerySnapshot = await removedUserQueryRef.get();
+            if (!removedUserQuerySnapshot.empty) {
+                let teamChatDoc = chatsCollectionRef.doc(`team${teamId.toString()}chat`);
+                teamChatDoc.update({
+                    'removed_uids': admin.firestore.FieldValue.arrayRemove(user.firebaseUID),
+                    'updated_at': admin.firestore.FieldValue.serverTimestamp()
+                });
+            }
         }
     }
 

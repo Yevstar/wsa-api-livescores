@@ -238,8 +238,10 @@ export class TeamController extends BaseController {
         }
 
         let team = new Team();
+        var existingManagerUREs: UserRoleEntity[] = [];
         if (teamData.id) {
             team.id = stringTONumber(teamData.id);
+            existingManagerUREs = await this.ureService.findTeamUREByParams(team.id, Role.MANAGER);
             await this.ureService.deleteRoleFromTeam(team.id, Role.MANAGER);
         }
         team.name = teamData.name;
@@ -287,7 +289,6 @@ export class TeamController extends BaseController {
 
         for (let managerId of managerIds) {
             if (managerId != 0) {
-
                 if (!savedUser) {
                     await this.userService.deleteRolesByUser(managerId, Role.MEMBER, savedTeam.competitionId, EntityType.COMPETITION, EntityType.COMPETITION);
                 }
@@ -314,6 +315,33 @@ export class TeamController extends BaseController {
                 await this.notifyChangeRole(managerId);
             }
         }
+        const chatRecipientFunction = await this.userService.getFunction('chat_recipient');
+        const teamUsers = await this.userService.getUsersByOptions(
+            EntityType.TEAM,
+            [savedTeam.id],
+            null,
+            {functionId: chatRecipientFunction.id}
+        );
+        /// Remove all managers from chats if they are not manager any more
+        existingManagerUREs.forEach(async ure => {
+            let found = managerIds.find(userId => userId == ure.userId);
+            let managerUser = await this.userService.findById(ure.userId);
+            if (!found) {
+                this.notifyChangeRole(ure.userId);
+                /// Need to check if the user still has chat_recipient function
+                const chatPermissionCount = await this.ureService.getUserTeamChatRoleCount(savedTeam.id, managerUser.id);
+                if (chatPermissionCount == 0) {
+                    this.firebaseService.removeUserFromTeamChat(savedTeam.id, managerUser);
+                    this.firebaseService.removeUserForOneToOne(managerUser, teamUsers);
+                    this.firebaseService.removeUserForGroupChat(managerUser);
+                }
+            }
+        });
+        /// For managers make sure they are in the chat
+        managerIds.forEach(async managerId => {
+            let managerUser = await this.userService.findById(managerId);
+            this.addUserToTeamChat(savedTeam.id, managerUser);
+        });
 
         if (savedUser) {
             let competitionData = await this.competitionService.findById(savedTeam.competitionId)

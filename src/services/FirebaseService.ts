@@ -7,6 +7,7 @@ import {logger} from "../logger";
 import {chunk} from "../utils/Utils";
 import {firestore} from "firebase-admin";
 import UserRecord = admin.auth.UserRecord;
+import {User} from "../models/User";
 
 @Service()
 export default class FirebaseService {
@@ -243,7 +244,7 @@ export default class FirebaseService {
         }
         return admin.storage().bucket(fbStorageBuck);
     }
-    
+
     public async getFileNameFromUrl(url: string): Promise<string> {
         try {
             const bucket = await this.getFirebaseStorageBucket();
@@ -255,6 +256,96 @@ export default class FirebaseService {
         } catch (err) {
             throw err;
         }
-        
+
+    }
+
+    /// --- Team Chat ---
+    public async removeUserFromTeamChat(teamId: number, user: User) {
+        if (teamId && user) {
+            let db = admin.firestore();
+            let chatsCollectionRef = await db.collection('chats');
+            /// --- Team chat ---
+            let queryRef = chatsCollectionRef.where('teamId', '==', teamId);
+            let querySnapshot = await queryRef.get();
+
+            if (!querySnapshot.empty) {
+                let userQueryRef = queryRef.where('uids', 'array-contains', user.firebaseUID);
+                let userQuerySnapshot = await userQueryRef.get();
+                if (!userQuerySnapshot.empty) {
+                    let teamChatDoc = chatsCollectionRef.doc(`team${teamId.toString()}chat`);
+                    teamChatDoc.update({
+                        'uids': admin.firestore.FieldValue.arrayRemove(user.firebaseUID),
+                        'updated_at': admin.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+                let removedUserQueryRef = queryRef.where('removed_uids', 'array-contains', user.firebaseUID);
+                let removedUserQuerySnapshot = await removedUserQueryRef.get();
+                if (removedUserQuerySnapshot.empty) {
+                    let teamChatDoc = chatsCollectionRef.doc(`team${teamId.toString()}chat`);
+                    teamChatDoc.update({
+                        'removed_uids': admin.firestore.FieldValue.arrayUnion(user.firebaseUID),
+                        'updated_at': admin.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+            }
+        }
+    }
+
+    /// --- One to One Chat ---
+    public async removeUserForOneToOne(removingUser: User, targetUsersList:User[]) {
+        if (removingUser && targetUsersList && targetUsersList.length > 0) {
+            let db = admin.firestore();
+            let chatsCollectionRef = await db.collection('chats');
+            let queryRef = chatsCollectionRef.where('type', '==', 'private');
+            let userQueryRef = queryRef.where('uids', 'array-contains', removingUser.firebaseUID);
+            let querySnapshot = await userQueryRef.get();
+
+            if (!querySnapshot.empty) {
+                for (let targetUser of targetUsersList) {
+                    let targetUserQueryRef = queryRef.where('uids', 'array-contains', targetUser.firebaseUID);
+                    let targetUserQuerySnapshot = await targetUserQueryRef.get();
+                    if (!targetUserQuerySnapshot.empty) {
+                        targetUserQuerySnapshot.forEach(qs => {
+                            let targetChatDoc = chatsCollectionRef.doc(qs.id);
+                            targetChatDoc.update({
+                              'deleted_at': admin.firestore.FieldValue.serverTimestamp()
+                            });
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    /// --- Group Chat ---
+    public async removeUserForGroupChat(removingUser: User) {
+        if (removingUser) {
+            let db = admin.firestore();
+            let chatsCollectionRef = await db.collection('chats');
+            let queryRef = chatsCollectionRef.where('type', '==', 'group');
+            let userQueryRef = queryRef.where('uids', 'array-contains', removingUser.firebaseUID);
+            let querySnapshot = await userQueryRef.get();
+
+            if (!querySnapshot.empty) {
+                querySnapshot.forEach(qs => {
+                    const docData = qs.data();
+                    console.log(docData['uids']);
+                    console.log(docData['uids'].length);
+                    let targetChatDoc = chatsCollectionRef.doc(qs.id);
+                    if (docData['uids'].length == 2) {
+                        targetChatDoc.update({
+                            'deleted_at': admin.firestore.FieldValue.serverTimestamp(),
+                            'updated_at': admin.firestore.FieldValue.serverTimestamp()
+                        });
+                    } else {
+                        targetChatDoc.update({
+                            'uids': admin.firestore.FieldValue.arrayRemove(removingUser.firebaseUID),
+                            'removed_uids': admin.firestore.FieldValue.arrayUnion(removingUser.firebaseUID),
+                            'updated_at': admin.firestore.FieldValue.serverTimestamp()
+                        });
+                    }
+                });
+            }
+        }
     }
 }
