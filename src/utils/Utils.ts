@@ -149,3 +149,32 @@ export const fileUploadOptions =  {
         fileSize: process.env.FILE_UPLOAD_SIZE
     }
 };
+
+export function parseDateString(dateStr: string): Date {
+    const dobStr = dateStr.split('/');
+
+    let year = parseInt(dobStr[2]);
+    if (year < 100) {
+        year += 2000;
+    }
+
+    const month = Math.max(1, Math.min(12, parseInt(dobStr[1])));
+
+    let dateMax = 31;
+    if ([4, 6, 9, 11].indexOf(month)) {
+        dateMax = 30;
+    } else if (month === 2) {
+        if ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0) {
+            dateMax = 29;
+        } else {
+            dateMax = 28;
+        }
+    }
+    const date = Math.max(1, Math.min(dateMax, parseInt(dobStr[0])));
+
+    return new Date(year, month - 1, date);
+}
+
+export function formatPhoneNumber(phoneNumber: string): string {
+    return (phoneNumber && phoneNumber.charAt(0) === '4') ? `0${phoneNumber}` : phoneNumber;
+}

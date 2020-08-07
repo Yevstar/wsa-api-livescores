@@ -46,6 +46,8 @@ export class UserController extends BaseController {
             const password = token[1];
             const user = await this.userService.findByCredentials(email, password);
             if (user) {
+                user.lastAppLogin = new Date();
+                await this.userService.update(email, user);
                 return this.responseWithTokenAndUser(email, password, user, deviceId);
             } else {
                 throw new LoginError();

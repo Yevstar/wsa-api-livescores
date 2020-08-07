@@ -20,7 +20,8 @@ import {
     paginationData,
     isArrayPopulated,
     isNotNullAndUndefined,
-    md5
+    md5,
+    parseDateString, formatPhoneNumber
 } from '../utils/Utils';
 import {BaseController} from './BaseController';
 import {Player} from '../models/Player';
@@ -239,15 +240,14 @@ export class PlayerController extends BaseController {
         @QueryParam('competitionId', { required: true }) competitionId: number,
         @UploadedFile("file") file: Express.Multer.File,
     ) {
-        var queryParameter = () => new Promise(resolve => {
-            var buf = Buffer.from(file.buffer);
+        return new Promise(resolve => {
+            const buf = Buffer.from(file.buffer);
             let str = buf.toString();
             let arr = [];
             let playerArr = [];
             let outputArr = [];
 
-            fastcsv
-                .parseString(str, { headers: true })
+            fastcsv.parseString(str, { headers: true })
                 .on('error', error => console.error(error))
                 .on('data', row => {
                     arr.push(row)
@@ -256,18 +256,15 @@ export class PlayerController extends BaseController {
                     for (let i of arr) {
                         let teamId = await this.teamService.findByNameAndCompetition(i.team, competitionId, i.grade);
                         if (teamId) {
-                            //var parts =i.DOB.split('/');
-                            //var dateOfBirth = new Date(parts[0], parts[1] - 1, parts[2]);
-
                             let playerObj = new Player();
                             playerObj.teamId = teamId[0].id;
                             playerObj.firstName = i['first name'];
                             playerObj.lastName = i['last name'];
                             playerObj.mnbPlayerId = i.mnbPlayerId;
-                            playerObj.dateOfBirth = i.DOB;
-                            playerObj.phoneNumber = i['contact no'];
+                            playerObj.dateOfBirth = parseDateString(i.DOB);
+                            playerObj.phoneNumber = formatPhoneNumber(i['contact no']);
                             playerObj.competitionId = competitionId;
-                            playerArr.push(playerObj)
+                            playerArr.push(playerObj);
                         } else {
                             outputArr.push(`No matching team found for ${i['first name']} ${i['last name']}`)
                         }
@@ -282,10 +279,7 @@ export class PlayerController extends BaseController {
                     outputArr = [...data, ...outputArr];
                     resolve(outputArr);
                 });
-        })
-
-        let playerData = await queryParameter();
-        return playerData;
+        });
     }
 
     @Post('/activity')

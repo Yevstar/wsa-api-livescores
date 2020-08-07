@@ -1,8 +1,9 @@
+import {IsBoolean, IsDate, IsNumber, IsString, IsArray} from "class-validator";
+import {BaseEntity, Column, Entity, PrimaryGeneratedColumn, OneToMany} from "typeorm-plus";
+
 import {Team} from './Team';
 import {Organisation} from './Organisation';
 import {UserRoleEntity} from './security/UserRoleEntity';
-import {BaseEntity, Column, Entity, PrimaryGeneratedColumn, OneToMany} from "typeorm-plus";
-import {IsBoolean, IsDate, IsNumber, IsString, IsArray} from "class-validator";
 
 /// For referring the data model of another db we are giving the
 /// name as below wsa_users.<name>.
@@ -31,7 +32,7 @@ export class User extends BaseEntity {
     email: string;
 
     @IsString()
-    @Column({select: false})
+    @Column({ select: false })
     password: string;
 
     @IsDate()
@@ -47,7 +48,7 @@ export class User extends BaseEntity {
     statusRefId: number;
 
     @IsString()
-    @Column({select: false})
+    @Column({ select: false })
     reset: string;
 
     @IsBoolean()
@@ -66,23 +67,27 @@ export class User extends BaseEntity {
     organisations: Organisation[];
     affiliates: Organisation[];
 
-    @IsArray({each: true})
+    @IsArray({ each: true })
     @OneToMany(type => UserRoleEntity, userRoleEntity => userRoleEntity.user)
     userRoleEntities: UserRoleEntity[];
 
     @IsNumber()
     @Column({ default: 0 })
     isDeleted: number;
-    
+
     @IsBoolean()
     @Column()
     tfaEnabled: boolean;
 
     @IsString()
-    @Column({select: false})
+    @Column({ select: false })
     tfaSecret: string;
 
     @IsString()
-    @Column({select: false})
+    @Column({ select: false })
     tfaSecretUrl: string;
+
+    @IsDate()
+    @Column({ nullable: true, default: null })
+    lastAppLogin: Date;
 }
