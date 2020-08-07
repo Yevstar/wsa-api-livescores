@@ -47,7 +47,8 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
             .andWhere("matchId = :matchId", {matchId}).execute();
     }
 
-    public async findByRosterAndCompetition(organisationId: number, competitionId: number, matchId: number, divisionId: number, venueId: number, roundIds: number[], requestFilter: RequestFilter): Promise<any> {
+    public async findByRosterAndCompetition(organisationId: number, competitionId: number, matchId: number, divisionId: number, 
+        venueId: number, roundIds: number[], requestFilter: RequestFilter, sortBy: string = undefined, sortOrder: "ASC" | "DESC" = undefined): Promise<any> {
 
         let limit = 50000;
         let offset = 0;
@@ -60,8 +61,8 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
         }
         
         let roundString = roundIds ? roundIds.join(',') : '-1';
-        let result = await this.entityManager.query("call wsa.usp_get_umpires(?,?,?,?,?,?,?,?)",
-            [organisationId, competitionId, matchId, divisionId, venueId, roundString, limit, offset]);
+        let result = await this.entityManager.query("call wsa.usp_get_umpires__(?,?,?,?,?,?,?,?, ?,?)",
+            [organisationId, competitionId, matchId, divisionId, venueId, roundString, limit, offset, sortBy, sortOrder]);
 
         if (result != null) {
             let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
