@@ -19,7 +19,7 @@ env_variables:
   MYSQL_DATABASE: football
   SERVER_URL: https://football-dot-world-sport-action-socket.appspot.com
   CheckSocket: 0
-  MAIL_USERNAME: admin@worldsportaction.com
+  MAIL_USERNAME: mail@worldsportaction.com
   MAIL_PASSWORD: NLSwebadm1n
 
 beta_settings:
