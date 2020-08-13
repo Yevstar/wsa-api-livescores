@@ -72,9 +72,12 @@ export default class PlayerService extends BaseService<Player> {
         }
 
         if (search) {
-            query.andWhere(`(LOWER(concat_ws(" ", player.firstName, player.lastName)) like :playerName)
-                    or (LOWER(concat_ws("", division.divisionName, division.grade)) like :divisionName)
-                    or (LOWER(team.name) like :teamName)`, {
+            let conditions = [];
+            conditions.push(`(LOWER(concat_ws(" ", player.firstName, player.lastName)) like :playerName)`);
+            conditions.push(`(LOWER(concat_ws("", division.divisionName, division.grade)) like :divisionName)`);
+            conditions.push(`(LOWER(team.name) like :teamName)`);
+
+            query.andWhere(`(${conditions.join(' or ')})`, {
                 playerName: `%${search.toLowerCase()}%`,
                 divisionName: `%${search.toLowerCase()}%`,
                 teamName: `%${search.toLowerCase()}%`
