@@ -1,12 +1,23 @@
-import {Get, Param, Delete, JsonController, QueryParam, Post, Body, Res, Authorized, UploadedFile} from 'routing-controllers';
-import {Division} from "../models/Division";
-import {BaseController} from "./BaseController";
-import {stringTONumber, paginationData, isNotNullAndUndefined} from "../utils/Utils";
 import {Response} from "express";
+import {
+    Get,
+    Param,
+    Delete,
+    JsonController,
+    QueryParam,
+    Post,
+    Body,
+    Res,
+    Authorized,
+    UploadedFile
+} from "routing-controllers";
+
+import {Division} from "../models/Division";
+import {stringTONumber, paginationData, isNotNullAndUndefined, validationForField} from "../utils/Utils";
+import {BaseController} from "./BaseController";
 
 @JsonController('/division')
 export class DivisionController extends BaseController {
-
     @Authorized()
     @Get('/id/:id')
     async get(@Param("id") id: number) {
@@ -15,10 +26,8 @@ export class DivisionController extends BaseController {
 
     @Authorized()
     @Delete('/id/:id')
-    async delete(
-        @Param("id") id: number )
-    {
-            return this.divisionService.deleteById(id);
+    async delete(@Param("id") id: number) {
+        return this.divisionService.deleteById(id);
     }
 
     @Get('/')
@@ -50,16 +59,14 @@ export class DivisionController extends BaseController {
             } else {
                 return resultsFound.result;
             }
-        } else {
-            return []
         }
+
+        return [];
     }
 
     @Authorized()
     @Post('/')
-    async addDivision(
-        @Body() division: Division,
-    ) {
+    async addDivision(@Body() division: Division) {
         let data = await this.divisionService.createOrUpdate(division)
         return data;
     }
@@ -81,21 +88,28 @@ export class DivisionController extends BaseController {
         @QueryParam('competitionId', { required: true }) competitionId: number,
         @Res() response: Response
     ) {
+        const requiredField = [
+            'name'
+        ];
         let bufferString = file.buffer.toString('utf8');
         let arr = bufferString.split('\n');
-        var jsonObj = [];
-        var headers = arr[0].split(',');
-        for (var i = 1; i < arr.length; i++) {
-            var data = arr[i].split(',');
-            var obj = {};
-            for (var j = 0; j < data.length; j++) {
+        const jsonObj = [];
+        const headers = arr[0].split(',');
+        for (let i = 1; i < arr.length; i++) {
+            const data = arr[i].split(',');
+            const obj = {};
+            for (let j = 0; j < data.length; j++) {
                 obj[headers[j].trim()] = data[j].trim();
             }
             jsonObj.push(obj);
         }
-        JSON.stringify(jsonObj);
+
         let queryArr = [];
-        for (let i of jsonObj) {
+        const { result: importArr, message } = validationForField({
+            filedList: requiredField,
+            values: jsonObj
+        });
+        for (let i of importArr) {
             if (i.name != "") {
                 let divisionObj = new Division();
                 divisionObj.name = i.name;
@@ -105,8 +119,15 @@ export class DivisionController extends BaseController {
                 queryArr.push(divisionObj)
             }
         }
+
+        const resMsg = (`${jsonObj.length} data processed. ${queryArr.length} data successfully imported and ${jsonObj.length - queryArr.length} data are failed.`);
+
         await this.divisionService.batchCreateOrUpdate(queryArr);
-        return response.status(200).send({updated: true});
+        return response.status(200).send({
+            data: importArr,
+            error: message,
+            message: resMsg
+        });
     }
 
 }

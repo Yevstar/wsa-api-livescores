@@ -17,7 +17,7 @@ import axios from 'axios';
 import {decode as atob} from 'base-64';
 
 import {logger} from '../logger';
-import {authToken, isNullOrEmpty} from '../utils/Utils';
+import {authToken, isNullOrEmpty, validationForField} from '../utils/Utils';
 import {LoginError} from '../exceptions/LoginError';
 import {User} from '../models/User';
 import {UserDevice} from '../models/UserDevice';
@@ -27,7 +27,7 @@ import {EntityType} from '../models/security/EntityType';
 import {Team} from '../models/Team';
 import {Organisation} from '../models/Organisation';
 import {md5, isArrayPopulated} from '../utils/Utils';
-import {isNotNullAndUndefined, isEmpty} from '../utils/Utils';
+import {isNotNullAndUndefined} from '../utils/Utils';
 import {BaseController} from './BaseController';
 
 @JsonController('/users')
@@ -120,7 +120,8 @@ export class UserController extends BaseController {
         @QueryParam('competitionId') competitionId: number,
         @QueryParam('deviceId') deviceId: string = undefined,
         @Body() user: User,
-        @Res() response: Response) {
+        @Res() response: Response
+    ) {
         if (isNullOrEmpty(user.email) || isNullOrEmpty(user.password)) {
             return response
                 .status(422)
@@ -250,7 +251,8 @@ export class UserController extends BaseController {
     async registerDevice(
         @HeaderParam("authorization") user: User,
         @QueryParam('deviceId') deviceId: string,
-        @Res() response: Response) {
+        @Res() response: Response
+    ) {
         if (deviceId.length == 0) {
             return response
                 .status(428).send({
@@ -267,7 +269,8 @@ export class UserController extends BaseController {
     async deleteDevice(
         @HeaderParam("authorization") user: User,
         @QueryParam('deviceId') deviceId: string,
-        @Res() response: Response) {
+        @Res() response: Response
+    ) {
         let removeDevice = await this.deviceService.removeDevice(deviceId);
         if (removeDevice['raw'].affectedRows > 0) {
             return response
@@ -296,7 +299,8 @@ export class UserController extends BaseController {
         @HeaderParam("authorization") user: User,
         @QueryParam('oldDeviceId', {required: true}) oldDeviceId: string,
         @QueryParam('newDeviceId', {required: true}) newDeviceId: string,
-        @Res() response: Response) {
+        @Res() response: Response
+    ) {
         if (oldDeviceId && newDeviceId) {
             let watchlist = await this.loadUserWatchlist(user ? user.id : undefined, oldDeviceId);
             let topics = await this.loadTopics(watchlist.teamIds, watchlist.organisationIds);
@@ -391,8 +395,8 @@ export class UserController extends BaseController {
         @QueryParam('userName') userName: string,
         @QueryParam('offset') offset: number,
         @QueryParam('limit') limit: number,
-        @Res() response: Response) {
-
+        @Res() response: Response
+    ) {
         let result = await this.userService.getUserIdBySecurity(EntityType.ORGANISATION, [organisationId], userName, {roleId: roleId});
         // for (let u of result) {
         //     u['linkedEntity'] = JSON.parse(u['linkedEntity']);
@@ -406,9 +410,9 @@ export class UserController extends BaseController {
         @HeaderParam("authorization") user: User,
         @QueryParam('competitionId', { required: true }) competitionId: number,
         @Body() userData: User,
-        @Res() response: Response) {
-
-          return await this.add(user, "MANAGER", competitionId, userData, response);
+        @Res() response: Response
+    ) {
+        return await this.add(user, "MANAGER", competitionId, userData, response);
     }
 
     @Authorized()
@@ -417,9 +421,9 @@ export class UserController extends BaseController {
         @HeaderParam("authorization") user: User,
         @QueryParam('competitionId', { required: true }) competitionId: number,
         @Body() userData: User,
-        @Res() response: Response) {
-
-          return await this.add(user, "COACH", competitionId, userData, response);
+        @Res() response: Response
+    ) {
+        return await this.add(user, "COACH", competitionId, userData, response);
     }
 
     @Authorized()
@@ -428,9 +432,9 @@ export class UserController extends BaseController {
         @HeaderParam("authorization") user: User,
         @QueryParam('competitionId', { required: true }) competitionId: number,
         @Body() userData: User,
-        @Res() response: Response) {
-
-          return await this.add(user, "UMPIRE", competitionId, userData, response);
+        @Res() response: Response
+    ) {
+        return await this.add(user, "UMPIRE", competitionId, userData, response);
     }
 
     @Authorized()
@@ -439,8 +443,8 @@ export class UserController extends BaseController {
         @HeaderParam("authorization") user: User,
         @QueryParam('competitionId', { required: true }) competitionId: number,
         @Body() userData: User,
-        @Res() response: Response) {
-
+        @Res() response: Response
+    ) {
         return await this.add(user, "MEMBER", competitionId, userData, response);
     }
 
@@ -453,16 +457,19 @@ export class UserController extends BaseController {
         @Body() userData: User,
         @Res() response: Response
     ) {
-      try {
-          // if existing user wasn't provided, search for the user
-          if (!userData.id) {
-                if (isNullOrEmpty(userData.email)
+        try {
+            // if existing user wasn't provided, search for the user
+            if (!userData.id) {
+                if (
+                    isNullOrEmpty(userData.email)
                     || isNullOrEmpty(userData.firstName)
                     || isNullOrEmpty(userData.lastName)
-                    || isNullOrEmpty(userData.mobileNumber)) {
-                        return response
-                            .status(422)
-                            .send({ name: 'validation_error', message: 'Not all required fields filled' });
+                    || isNullOrEmpty(userData.mobileNumber)
+                ) {
+                    return response.status(422).send({
+                        name: 'validation_error',
+                        message: 'Not all required fields filled'
+                    });
                 }
 
                 const foundUser = await this.userService.findByEmail(userData.email.toLowerCase());
@@ -473,15 +480,14 @@ export class UserController extends BaseController {
                         && foundUser.mobileNumber == userData.mobileNumber) {
                         userData.id = foundUser.id;
                     } else {
-                        return response
-                        .status(400).send({
+                        return response.status(400).send({
                             name: 'validation_error',
                             message: 'A user with this email address already exists however other details do not match'
                         });
                     }
                 } else {
                     // create user
-                    var password = Math.random().toString(36).slice(-8);
+                    const password = Math.random().toString(36).slice(-8);
                     userData.email = userData.email.toLowerCase();
                     userData.password = md5(password);
                     const saved = await this.userService.createOrUpdate(userData);
@@ -511,8 +517,10 @@ export class UserController extends BaseController {
             return userData;
         } catch (error) {
             logger.error(`Failed to add ${type} due to error -`, error);
-            return response.status(400)
-                .send({ name: 'validation_error', message: 'Failed to add user' });
+            return response.status(400).send({
+                name: 'validation_error',
+                message: 'Failed to add user'
+            });
         }
     }
 
@@ -531,8 +539,6 @@ export class UserController extends BaseController {
             default:
                 return false;
         }
-
-        return false;
     }
 
     private async getRoleIdForType(
@@ -542,16 +548,16 @@ export class UserController extends BaseController {
         switch (type) {
             case 'MANAGER':
                 roleId = Role.MANAGER;
-            break;
+                break;
             case 'COACH':
                 roleId = Role.COACH;
-            break;
+                break;
             case 'UMPIRE':
                 roleId = Role.UMPIRE;
-            break;
+                break;
             default:
                 roleId = Role.MEMBER;
-            break;
+                break;
         }
         return roleId;
     }
@@ -653,7 +659,7 @@ export class UserController extends BaseController {
                 if (addUserToChat) {
                     /// Checking with respect to each team for existing chat
                     teamChatPromiseArray.push(
-                      this.addUserToTeamChat(i.id, user)
+                        this.addUserToTeamChat(i.id, user)
                     );
                 }
             }
@@ -662,7 +668,7 @@ export class UserController extends BaseController {
         ure1.roleId = Role.MEMBER;
         ure1.entityId = competitionId;
         ure1.entityTypeId = EntityType.COMPETITION;
-        ure1.userId = user.id
+        ure1.userId = user.id;
         ure1.createdBy = createdBy;
         ureArray.push(ure1);
         await this.ureService.batchCreateOrUpdate(ureArray);
@@ -676,7 +682,8 @@ export class UserController extends BaseController {
         @HeaderParam("authorization") user: User,
         @QueryParam('competitionId', { required: true }) competitionId: number,
         @UploadedFile("file", { required: true }) file: Express.Multer.File,
-        @Res() response: Response) {
+        @Res() response: Response
+    ) {
         await this.importUserWithRoles(user, competitionId, Role.COACH, file, response);
     }
 
@@ -687,18 +694,27 @@ export class UserController extends BaseController {
         @QueryParam('competitionId', { required: true }) competitionId: number,
         @QueryParam('roleId', { required: true }) roleId: number,
         @UploadedFile("file", { required: true }) file: Express.Multer.File,
-        @Res() response: Response) {
+        @Res() response: Response
+    ) {
         await this.importUserWithRoles(user, competitionId, roleId, file, response);
     }
 
-    private async importUserWithRoles (
+    private async importUserWithRoles(
         user: User,
         competitionId: number,
         roleId: number,
         file: Express.Multer.File,
         response: Response
     ) {
-
+        const requiredField = [
+            'First Name',
+            'Last Name',
+            'Email',
+            'Contact No',
+            'Team',
+            'Organisation',
+            'Grade'
+        ];
         let bufferString = file.buffer.toString('utf8');
         let arr = bufferString.split('\n');
         let jsonObj = [];
@@ -712,171 +728,161 @@ export class UserController extends BaseController {
             let data = arr[i].split(',');
             let obj = {};
             for (let j = 0; j < data.length; j++) {
-                if (headers[j] !== undefined) obj[headers[j].trim()] = data[j].trim();
+                if (headers[j] !== undefined) {
+                    obj[headers[j].trim()] = data[j].trim();
+                }
             }
             jsonObj.push(obj);
         }
-        if (isArrayPopulated(jsonObj)) {
-            var validator = require("email-validator");
-            for (let i of jsonObj) {
-                if ( teamRequired &&
-                    (isEmpty(i['Team']) || isEmpty(i['Grade']))
+
+        const { result: importArr, message } = validationForField({
+            filedList: requiredField,
+            values: jsonObj
+        });
+
+        for (let i of importArr) {
+            const userDetails = new User();
+            let newUser = false;
+            let teamDetailArray: any = [];
+            let orgDetailArray: any = [];
+            let savedUserDetail: User;
+            const password = Math.random().toString(36).slice(-8);
+
+            const foundUser = await this.userService.findByEmail(i['Email'].toLowerCase());
+            if (foundUser) {
+                newUser = false;
+                if (
+                    foundUser.firstName == i['First Name'] &&
+                    foundUser.lastName == i['Last Name'] &&
+                    foundUser.mobileNumber == i['Contact No']
                 ) {
-                   // Skip entry
-                   return response.status(212).send(`Team and Grade are required`);
-                } else if ( !teamRequired &&
-                    isEmpty(i['Organisation'])
-                ) {
-                   // Skip entry
-                   return response.status(212).send(`Organisation is required`);
-                } else if (isNotNullAndUndefined(i['Email']) && (i['Email'] != '') &&
-                    isNotNullAndUndefined(i['First Name']) && (i['First Name'] != '') &&
-                    isNotNullAndUndefined(i['Last Name']) && (i['Last Name'] != '') &&
-                    isNotNullAndUndefined(i['Contact No']) && (i['Contact No'] != '') &&
-                    validator.validate(i['Email'])) {
+                    userDetails.id = foundUser.id;
+                    userDetails.email = foundUser.email;
+                    userDetails.firstName = foundUser.firstName;
+                    userDetails.lastName = foundUser.lastName;
+                    userDetails.mobileNumber = foundUser.mobileNumber;
 
-                    const userDetails = new User();
-                    let newUser = false;
-                    let teamDetailArray: any = [];
-                    let orgDetailArray: any = [];
-                    let savedUserDetail: User;
-                    const password = Math.random().toString(36).slice(-8);
+                    savedUserDetail = await this.userService.createOrUpdate(userDetails);
+                    await this.updateFirebaseData(userDetails, userDetails.password);
 
-                    const foundUser = await this.userService.findByEmail(i['Email'].toLowerCase());
-                    if (foundUser) {
-                        newUser = false;
-                        if (foundUser.firstName == i['First Name'] &&
-                            foundUser.lastName == i['Last Name'] &&
-                            foundUser.mobileNumber == i['Contact No']) {
-                            userDetails.id = foundUser.id;
-                            userDetails.email = foundUser.email;
-                            userDetails.firstName = foundUser.firstName;
-                            userDetails.lastName = foundUser.lastName;
-                            userDetails.mobileNumber = foundUser.mobileNumber;
+                    userDetails.id = foundUser.id;
 
-                            savedUserDetail = await this.userService.createOrUpdate(userDetails);
-                            await this.updateFirebaseData(userDetails, userDetails.password);
+                    // await this.userService.deleteRolesByUser(userDetails.id, Role.COACH, competitionId, EntityType.COMPETITION, EntityType.TEAM);
+                    // await this.userService.deleteRolesByUser(userDetails.id, Role.MEMBER, competitionId, EntityType.COMPETITION, EntityType.COMPETITION);
+                } else {
+                    infoMisMatchArray.push(i['Email'].toLowerCase());
+                }
+            } else {
+                newUser = true;
 
-                            userDetails.id = foundUser.id;
+                userDetails.email = i['Email'].toLowerCase();
+                userDetails.password = md5(password);
+                userDetails.firstName = i['First Name'];
+                userDetails.lastName = i['Last Name'];
+                userDetails.mobileNumber = i['Contact No'];
 
-                            // await this.userService.deleteRolesByUser(userDetails.id, Role.COACH, competitionId, EntityType.COMPETITION, EntityType.TEAM);
-                            // await this.userService.deleteRolesByUser(userDetails.id, Role.MEMBER, competitionId, EntityType.COMPETITION, EntityType.COMPETITION);
+                savedUserDetail = await this.userService.createOrUpdate(userDetails);
+                await this.updateFirebaseData(userDetails, userDetails.password);
 
-                        } else {
-                            infoMisMatchArray.push(i['Email'].toLowerCase());
+                userDetails.id = savedUserDetail.id;
+            }
+
+            if (!infoMisMatchArray.includes(i['Email'])) {
+                if (teamRequired) {
+                    if (isNotNullAndUndefined(i['Team'])) {
+                        const teamArray = i['Team'].split(',');
+                        let teamDetail: Team[];
+                        if (isArrayPopulated(teamArray)) {
+                            for (let t of teamArray) {
+                                if (isNotNullAndUndefined(t) && isNotNullAndUndefined(t.name)) {
+                                    teamDetail = await this.teamService.findByNameAndCompetition(t, competitionId, i['Grade']);
+                                    if (isArrayPopulated(teamDetail)) {
+                                        teamDetailArray.push(...teamDetail);
+                                    }
+                                }
+                            }
                         }
-
-                    } else {
-                        newUser = true;
-
-                        userDetails.email = i['Email'].toLowerCase();
-                        userDetails.password = md5(password);
-                        userDetails.firstName = i['First Name'];
-                        userDetails.lastName = i['Last Name'];
-                        userDetails.mobileNumber = i['Contact No'];
-
-                        savedUserDetail = await this.userService.createOrUpdate(userDetails);
-                        await this.updateFirebaseData(userDetails, userDetails.password);
-
-                        userDetails.id = savedUserDetail.id;
                     }
-
-                    if (!infoMisMatchArray.includes(i['Email'])) {
-                        if (teamRequired) {
-                            if (isNotNullAndUndefined(i['Team'])) {
-                                const teamArray = i['Team'].split(',');
-                                let teamDetail: Team[];
-                                if (isArrayPopulated(teamArray)) {
-                                    for(let t of teamArray) {
-                                        if (isNotNullAndUndefined(t) && isNotNullAndUndefined(t.name)) {
-                                            teamDetail = await this.teamService.findByNameAndCompetition(t, competitionId, i['Grade']);
-                                            if(isArrayPopulated(teamDetail)) {
-                                                teamDetailArray.push(...teamDetail);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        } else {
-                            if (isNotNullAndUndefined(i['Organisation'])) {
-                                let orgDetail: Organisation[];
-                                const orgArray = i['Organisation'].split(',');
-                                if (isArrayPopulated(orgArray)) {
-                                    for(let t of orgArray) {
-                                        if (isNotNullAndUndefined(t)) {
-                                            orgDetail = await this.organisationService.findByNameAndCompetitionId(t, competitionId);
-                                            if(isArrayPopulated(orgDetail)) {
-                                                orgDetailArray.push(...orgDetail);
-                                            }
-                                        }
+                } else {
+                    if (isNotNullAndUndefined(i['Organisation'])) {
+                        let orgDetail: Organisation[];
+                        const orgArray = i['Organisation'].split(',');
+                        if (isArrayPopulated(orgArray)) {
+                            for (let t of orgArray) {
+                                if (isNotNullAndUndefined(t)) {
+                                    orgDetail = await this.organisationService.findByNameAndCompetitionId(t, competitionId);
+                                    if (isArrayPopulated(orgDetail)) {
+                                        orgDetailArray.push(...orgDetail);
                                     }
                                 }
                             }
                         }
-
-                        let ureArray = [];
-                        const teamChatPromiseArray = [];
-                        if (isArrayPopulated(teamDetailArray)) {
-                            for (let i of teamDetailArray) {
-                                let ure = new UserRoleEntity();
-                                ure.roleId = roleId;
-                                ure.entityId = i.id;
-                                ure.entityTypeId = EntityType.TEAM;
-                                ure.userId = userDetails.id
-                                ure.createdBy = user.id;
-                                ureArray.push(ure);
-
-                                /// Checking role with respect each team for existing chat
-                                if (teamChatRequired) {
-                                    teamChatPromiseArray.push(
-                                        this.addUserToTeamChat(i.id, userDetails)
-                                    );
-                                }
-                            }
-                        } else if (isArrayPopulated(orgDetailArray)) {
-                            for (let i of orgDetailArray) {
-                                let ure = new UserRoleEntity();
-                                ure.roleId = roleId;
-                                ure.entityId = i.id;
-                                ure.entityTypeId = EntityType.ORGANISATION;
-                                ure.userId = userDetails.id
-                                ure.createdBy = user.id;
-                                ureArray.push(ure);
-                            }
-                        }
-                        let ure1 = new UserRoleEntity();
-                        ure1.roleId = Role.MEMBER;
-                        ure1.entityId = competitionId;
-                        ure1.entityTypeId = EntityType.COMPETITION;
-                        ure1.userId = userDetails.id
-                        ure1.createdBy = user.id;
-                        ureArray.push(ure1);
-                        await this.ureService.batchCreateOrUpdate(ureArray);
-                        await this.notifyChangeRole(userDetails.id);
-
-                        if (savedUserDetail && newUser) {
-                            let competitionData = await this.competitionService.findById(competitionId);
-                            if (isArrayPopulated(teamDetailArray)) {
-                                this.userService.sentMail(user, teamDetailArray, competitionData, roleId, savedUserDetail, password);
-                            } else {
-                                this.userService.sentMail(user, orgDetailArray, competitionData, roleId, savedUserDetail, password);
-                            }
-                        }
-                        if (teamChatRequired) {
-                            Promise.all(teamChatPromiseArray);
-                        }
-                        importSuccess = true;
                     }
                 }
-            }
 
-            if (isArrayPopulated(infoMisMatchArray)) {
-                return response.status(212).send(`${infoMisMatchArray.toString()} could not be added as the user already exists in our system with different details`);
-            } else if (importSuccess) {
-                return response.status(200).send({ success: true });
-            } else {
-                return response.status(212).send(`Required parameters were not filled within the file provided for importing`);
+                let ureArray = [];
+                const teamChatPromiseArray = [];
+                if (isArrayPopulated(teamDetailArray)) {
+                    for (let i of teamDetailArray) {
+                        let ure = new UserRoleEntity();
+                        ure.roleId = roleId;
+                        ure.entityId = i.id;
+                        ure.entityTypeId = EntityType.TEAM;
+                        ure.userId = userDetails.id;
+                        ure.createdBy = user.id;
+                        ureArray.push(ure);
+
+                        // Checking role with respect each team for existing chat
+                        if (teamChatRequired) {
+                            teamChatPromiseArray.push(
+                                this.addUserToTeamChat(i.id, userDetails)
+                            );
+                        }
+                    }
+                } else if (isArrayPopulated(orgDetailArray)) {
+                    for (let i of orgDetailArray) {
+                        let ure = new UserRoleEntity();
+                        ure.roleId = roleId;
+                        ure.entityId = i.id;
+                        ure.entityTypeId = EntityType.ORGANISATION;
+                        ure.userId = userDetails.id;
+                        ure.createdBy = user.id;
+                        ureArray.push(ure);
+                    }
+                }
+
+                let ure1 = new UserRoleEntity();
+                ure1.roleId = Role.MEMBER;
+                ure1.entityId = competitionId;
+                ure1.entityTypeId = EntityType.COMPETITION;
+                ure1.userId = userDetails.id;
+                ure1.createdBy = user.id;
+                ureArray.push(ure1);
+
+                await this.ureService.batchCreateOrUpdate(ureArray);
+                await this.notifyChangeRole(userDetails.id);
+
+                if (savedUserDetail && newUser) {
+                    let competitionData = await this.competitionService.findById(competitionId);
+                    if (isArrayPopulated(teamDetailArray)) {
+                        this.userService.sentMail(user, teamDetailArray, competitionData, roleId, savedUserDetail, password);
+                    } else {
+                        this.userService.sentMail(user, orgDetailArray, competitionData, roleId, savedUserDetail, password);
+                    }
+                }
+                if (teamChatRequired) {
+                    Promise.all(teamChatPromiseArray);
+                }
+                importSuccess = true;
             }
         }
+
+        const resMsg = (`${jsonObj.length} data processed. ${importArr.length} data successfully imported and ${jsonObj.length - importArr.length} data are failed.`);
+        return response.status(200).send({
+            success: true,
+            data: importArr,
+            error: message,
+            message: resMsg
+        });
     }
 }

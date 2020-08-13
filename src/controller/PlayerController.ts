@@ -21,7 +21,9 @@ import {
     isArrayPopulated,
     isNotNullAndUndefined,
     md5,
-    parseDateString, formatPhoneNumber
+    parseDateString,
+    formatPhoneNumber,
+    validationForField,
 } from '../utils/Utils';
 import {BaseController} from './BaseController';
 import {Player} from '../models/Player';
@@ -246,6 +248,13 @@ export class PlayerController extends BaseController {
             let arr = [];
             let playerArr = [];
             let outputArr = [];
+            const requiredField = [
+                'teamId',
+                'firstName',
+                'lastName',
+                'dateOfBirth',
+                'competitionId',
+            ];
 
             fastcsv.parseString(str, { headers: true })
                 .on('error', error => console.error(error))
@@ -255,14 +264,14 @@ export class PlayerController extends BaseController {
                 .on('end', async () => {
                     for (let i of arr) {
                         let teamId = await this.teamService.findByNameAndCompetition(i.team, competitionId, i.grade);
-                        if (teamId) {
+                        if (teamId && teamId[0]) {
                             let playerObj = new Player();
                             playerObj.teamId = teamId[0].id;
                             playerObj.firstName = i['first name'];
                             playerObj.lastName = i['last name'];
                             playerObj.mnbPlayerId = i.mnbPlayerId;
-                            playerObj.dateOfBirth = parseDateString(i.DOB);
-                            playerObj.phoneNumber = formatPhoneNumber(i['contact no']);
+                            playerObj.dateOfBirth = i.DOB ? parseDateString(i.DOB) : undefined;
+                            playerObj.phoneNumber = i['contact no'] ? formatPhoneNumber(i['contact no']) : undefined;
                             playerObj.competitionId = competitionId;
                             playerArr.push(playerObj);
                         } else {
@@ -270,14 +279,21 @@ export class PlayerController extends BaseController {
                         }
                     }
 
-                    let data = await this.playerService.batchCreateOrUpdate(playerArr);
+                    const { templateResult: players, message } = validationForField({
+                        filedList: requiredField,
+                        values: playerArr
+                    });
+
+                    const resMsg = (`${arr.length} data processed. ${players.length} data successfully imported and ${arr.length - players.length} data are failed.`);
+
+                    let data = await this.playerService.batchCreateOrUpdate(players as Player[]);
                     for (let p of data) {
                         let playerUser = await this.loadPlayerUser(user, p);
-                        p.userId = playerUser.id;
+                        p.userId = playerUser ? playerUser.id : '';
                         await this.playerService.createOrUpdate(p);
                     }
-                    outputArr = [...data, ...outputArr];
-                    resolve(outputArr);
+
+                    resolve({ message: resMsg, error: message, data });
                 });
         });
     }
