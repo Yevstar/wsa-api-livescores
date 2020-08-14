@@ -9,6 +9,7 @@ import {logger} from '../logger';
 import { isArrayPopulated, isNotNullAndUndefined, paginationData } from "../utils/Utils"
 import nodeMailer from "nodemailer";
 import {DeleteResult} from "typeorm-plus";
+import AppConstants from "../utils/AppConstants";
 
 "use strict";
 
@@ -322,7 +323,10 @@ export default class TeamService extends BaseService<Team> {
             subject: `Invite Mail ${teamName}`,
             html: mailHtml
         };
-
+        if(process.env.NODE_ENV == AppConstants.development){
+            mailOptions.html = ' To: '+mailOptions.to + '<br><br>'+ mailOptions.html 
+            mailOptions.to = process.env.TEMP_DEV_EMAIL
+        }
         await transporter.sendMail(mailOptions, (err, info) => {
             if (err) {
                 logger.error(`TeamService - sendInviteMail : ${err}`);
