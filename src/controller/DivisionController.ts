@@ -13,7 +13,7 @@ import {
 } from "routing-controllers";
 
 import {Division} from "../models/Division";
-import {stringTONumber, paginationData, isNotNullAndUndefined, validationForField} from "../utils/Utils";
+import {stringTONumber, paginationData, isNotNullAndUndefined, validationForField, trim} from "../utils/Utils";
 import {BaseController} from "./BaseController";
 
 @JsonController('/division')
@@ -109,18 +109,20 @@ export class DivisionController extends BaseController {
             filedList: requiredField,
             values: jsonObj
         });
+
         for (let i of importArr) {
-            if (i.name != "") {
+            const name = trim(i.name);
+            if (name) {
                 let divisionObj = new Division();
-                divisionObj.name = i.name;
-                divisionObj.divisionName = i.division;
-                divisionObj.grade = i.grade;
+                divisionObj.name = name;
+                divisionObj.divisionName = trim(i.division);
+                divisionObj.grade = trim(i.grade);
                 divisionObj.competitionId = competitionId;
-                queryArr.push(divisionObj)
+                queryArr.push(divisionObj);
             }
         }
 
-        const resMsg = (`${jsonObj.length} data processed. ${queryArr.length} data successfully imported and ${jsonObj.length - queryArr.length} data are failed.`);
+        const resMsg = `${jsonObj.length} data processed. ${queryArr.length} data successfully imported and ${jsonObj.length - queryArr.length} data are failed.`;
 
         await this.divisionService.batchCreateOrUpdate(queryArr);
         return response.status(200).send({

@@ -32,7 +32,8 @@ import {
     stringTONumber,
     paginationData,
     isNotNullAndUndefined,
-    validationForField
+    validationForField,
+    trim
 } from "../utils/Utils"
 import {logger} from "../logger";
 
@@ -395,11 +396,6 @@ export class TeamController extends BaseController {
         @UploadedFile("file", { required: true }) file: Express.Multer.File,
         @Res() response: Response
     ) {
-        const requiredField = [
-            'Team_Name',
-            'Grade',
-            'Organisation'
-        ];
         let bufferString = file.buffer.toString('utf8');
         let arr = bufferString.split('\n');
         const jsonObj = [];
@@ -413,32 +409,42 @@ export class TeamController extends BaseController {
             jsonObj.push(obj);
         }
 
+        const requiredField = [
+            'Team_Name',
+            'Grade',
+            'Organisation'
+        ];
+
         let queryArr = [];
         const { result: importArr, message } = validationForField({
             filedList: requiredField,
             values: jsonObj
         });
+
         for (let i of importArr) {
-            if (i.Team_Name !== '') {
-                let teamData = await this.teamService.findByNameAndCompetition(i.Team_Name, competitionId);
+            const teamName = trim(i.Team_Name);
+            if (teamName !== '') {
+                let teamData = await this.teamService.findByNameAndCompetition(teamName, competitionId);
                 if (!isArrayPopulated(teamData)) {
-                    let divisionData = await this.divisionService.findByName(i.Grade, competitionId);
-                    let organisationData = await this.organisationService.findByNameAndCompetitionId(i.Organisation, competitionId);
+                    const grade = trim(i.Grade);
+                    const organization = trim(i.Organisation);
+                    let divisionData = await this.divisionService.findByName(grade, competitionId);
+                    let organisationData = await this.organisationService.findByNameAndCompetitionId(organization, competitionId);
                     if (!isArrayPopulated(divisionData) || !isArrayPopulated(organisationData)) {
                         message[`Line ${i.line}`] = [];
                         if (!isArrayPopulated(divisionData)) {
-                            message[`Line ${i.line}`].push(`Can't find data of grade "${i.Grade}" related current competition No. ${competitionId}.`);
+                            message[`Line ${i.line}`].push(`Can't find data of grade '${grade}' related current competition No. ${competitionId}.`);
                         }
                         if (!isArrayPopulated(organisationData)) {
-                            message[`Line ${i.line}`].push(`Can't find data of organisation "${i.Organisation}" related current competition No. ${competitionId}.`);
+                            message[`Line ${i.line}`].push(`Can't find data of organisation '${organization}' related current competition No. ${competitionId}.`);
                         }
                     } else {
                         let team = new Team();
-                        team.name = i.Team_Name;
-                        team.logoUrl = i.Logo;
+                        team.name = teamName;
+                        team.logoUrl = trim(i.Logo);
                         team.competitionId = competitionId;
                         if (divisionData.length > 0)
-                            team.divisionId = divisionData[0].id; //DivisionData is an array
+                            team.divisionId = divisionData[0].id;
                         if (organisationData.length > 0) {
                             team.organisationId = organisationData[0].id;
                         }
@@ -446,16 +452,17 @@ export class TeamController extends BaseController {
                     }
                 } else {
                     message[`Line ${i.line}`] = [];
-                    message[`Line ${i.line}`].push(`The team "${i.Team_Name}" is already registered.`);
+                    message[`Line ${i.line}`].push(`The team '${teamName}' is already registered.`);
                 }
             }
         }
-        const resMsg = (`${jsonObj.length} data processed. ${queryArr.length} data successfully imported and ${jsonObj.length - queryArr.length} data are failed.`);
+        const resMsg = `${jsonObj.length} data processed. ${queryArr.length} data successfully imported and ${jsonObj.length - queryArr.length} data are failed.`;
 
         await this.teamService.batchCreateOrUpdate(queryArr);
         await Promise.all(queryArr.map((team: Team) => {
             return this.checkTeamFirestoreDatabase(team);
         }));
+
         return response.status(200).send({
             success: true,
             error: message,

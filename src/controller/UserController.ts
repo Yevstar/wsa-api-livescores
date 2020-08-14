@@ -17,7 +17,7 @@ import axios from 'axios';
 import {decode as atob} from 'base-64';
 
 import {logger} from '../logger';
-import {authToken, isNullOrEmpty, validationForField} from '../utils/Utils';
+import {authToken, isNullOrEmpty, validationForField, trim} from '../utils/Utils';
 import {LoginError} from '../exceptions/LoginError';
 import {User} from '../models/User';
 import {UserDevice} from '../models/UserDevice';
@@ -706,15 +706,6 @@ export class UserController extends BaseController {
         file: Express.Multer.File,
         response: Response
     ) {
-        const requiredField = [
-            'First Name',
-            'Last Name',
-            'Email',
-            'Contact No',
-            'Team',
-            'Organisation',
-            'Grade'
-        ];
         let bufferString = file.buffer.toString('utf8');
         let arr = bufferString.split('\n');
         let jsonObj = [];
@@ -735,6 +726,16 @@ export class UserController extends BaseController {
             jsonObj.push(obj);
         }
 
+        const requiredField = [
+            'First Name',
+            'Last Name',
+            'Email',
+            'Contact No',
+            'Team',
+            'Organisation',
+            'Grade'
+        ];
+
         const { result: importArr, message } = validationForField({
             filedList: requiredField,
             values: jsonObj
@@ -748,13 +749,17 @@ export class UserController extends BaseController {
             let savedUserDetail: User;
             const password = Math.random().toString(36).slice(-8);
 
-            const foundUser = await this.userService.findByEmail(i['Email'].toLowerCase());
+            const email = trim(i['Email']).toLowerCase();
+            const firstName = trim(i['First Name']);
+            const lastName = trim(i['Last Name']);
+            const mobileNumber = trim(i['Contact No']);
+            const foundUser = await this.userService.findByEmail(email);
             if (foundUser) {
                 newUser = false;
                 if (
-                    foundUser.firstName == i['First Name'] &&
-                    foundUser.lastName == i['Last Name'] &&
-                    foundUser.mobileNumber == i['Contact No']
+                    foundUser.firstName === firstName &&
+                    foundUser.lastName === lastName &&
+                    foundUser.mobileNumber === mobileNumber
                 ) {
                     userDetails.id = foundUser.id;
                     userDetails.email = foundUser.email;
@@ -770,16 +775,16 @@ export class UserController extends BaseController {
                     // await this.userService.deleteRolesByUser(userDetails.id, Role.COACH, competitionId, EntityType.COMPETITION, EntityType.TEAM);
                     // await this.userService.deleteRolesByUser(userDetails.id, Role.MEMBER, competitionId, EntityType.COMPETITION, EntityType.COMPETITION);
                 } else {
-                    infoMisMatchArray.push(i['Email'].toLowerCase());
+                    infoMisMatchArray.push(email);
                 }
             } else {
                 newUser = true;
 
-                userDetails.email = i['Email'].toLowerCase();
+                userDetails.email = email;
                 userDetails.password = md5(password);
-                userDetails.firstName = i['First Name'];
-                userDetails.lastName = i['Last Name'];
-                userDetails.mobileNumber = i['Contact No'];
+                userDetails.firstName = firstName;
+                userDetails.lastName = lastName;
+                userDetails.mobileNumber = mobileNumber;
 
                 savedUserDetail = await this.userService.createOrUpdate(userDetails);
                 await this.updateFirebaseData(userDetails, userDetails.password);
@@ -787,15 +792,16 @@ export class UserController extends BaseController {
                 userDetails.id = savedUserDetail.id;
             }
 
-            if (!infoMisMatchArray.includes(i['Email'])) {
+            if (!infoMisMatchArray.includes(email)) {
                 if (teamRequired) {
-                    if (isNotNullAndUndefined(i['Team'])) {
-                        const teamArray = i['Team'].split(',');
+                    const team = trim(i['Team']);
+                    if (isNotNullAndUndefined(team)) {
+                        const teamArray = team.split(',');
                         let teamDetail: Team[];
                         if (isArrayPopulated(teamArray)) {
                             for (let t of teamArray) {
                                 if (isNotNullAndUndefined(t) && isNotNullAndUndefined(t.name)) {
-                                    teamDetail = await this.teamService.findByNameAndCompetition(t, competitionId, i['Grade']);
+                                    teamDetail = await this.teamService.findByNameAndCompetition(t, competitionId, trim(i['Grade']));
                                     if (isArrayPopulated(teamDetail)) {
                                         teamDetailArray.push(...teamDetail);
                                     }
@@ -804,9 +810,10 @@ export class UserController extends BaseController {
                         }
                     }
                 } else {
-                    if (isNotNullAndUndefined(i['Organisation'])) {
+                    const organization = trim(i['Organisation']);
+                    if (isNotNullAndUndefined(organization)) {
                         let orgDetail: Organisation[];
-                        const orgArray = i['Organisation'].split(',');
+                        const orgArray = organization.split(',');
                         if (isArrayPopulated(orgArray)) {
                             for (let t of orgArray) {
                                 if (isNotNullAndUndefined(t)) {
@@ -877,7 +884,7 @@ export class UserController extends BaseController {
             }
         }
 
-        const resMsg = (`${jsonObj.length} data processed. ${importArr.length} data successfully imported and ${jsonObj.length - importArr.length} data are failed.`);
+        const resMsg = `${jsonObj.length} data processed. ${importArr.length} data successfully imported and ${jsonObj.length - importArr.length} data are failed.`;
         return response.status(200).send({
             success: true,
             data: importArr,

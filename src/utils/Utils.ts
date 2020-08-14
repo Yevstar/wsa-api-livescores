@@ -154,8 +154,9 @@ export const fileUploadOptions = {
 };
 
 export function parseDateString(dateStr: string): Date {
-    const split = dateStr.split('/');
-    const dobStr = split.length === 3 ? split : dateStr.split('.');
+    let dStr = trim(dateStr);
+    const split = dStr.split('/');
+    const dobStr = split.length === 3 ? split : dStr.split('.');
     if (dobStr.length !== 3) {
         return new Date(-1, 0, 0);
     }
@@ -197,10 +198,11 @@ export function parseDateString(dateStr: string): Date {
 }
 
 export function formatPhoneNumber(phoneNumber: string): string {
-    return (phoneNumber && phoneNumber.charAt(0) === '4') ? `0${phoneNumber}` : phoneNumber;
+    let phone = trim(phoneNumber);
+    return (phone && phone.charAt(0) === '4') ? `0${phone}` : phone;
 }
 
-export function validationForField({ filedList, values }: { filedList: string[], values: any }) {
+export function validationForField({ filedList, values }: { filedList: string[], values: any[] }) {
     const message = {};
     const successRes: any[] = [];
     const templateRes: BaseEntity[] = [];
@@ -212,18 +214,18 @@ export function validationForField({ filedList, values }: { filedList: string[],
         } else {
             filedList.forEach((field) => {
                 if (isNullOrEmpty(val[field])) {
-                    msg.push(`The field \'${field}\' is required.`);
+                    msg.push(`The field '${field}' is required.`);
                 } else {
-                    let date = val[field];
-                    if (field === 'Date') {
-                        date = parseDateString(val[field]);
+                    if (field === 'dateOfBirth') {
+                        const date = parseDateString(val[field]);
+
+                        if (date.getFullYear() < 1000) {
+                            msg.push(`The '${field}' value is invalid date.`);
+                        }
+
                         val[field] = `${date.getDate()}.${date.getMonth()}.${date.getFullYear()}`;
                     } else if (field.toLowerCase() === 'email' && !validator.validate(val[field])) {
-                        msg.push(`"${val[field]}" is invalid email type.`);
-                    }
-
-                    if (Number.isNaN(new Date(date).getFullYear()) || new Date(date).getFullYear() < 1000) {
-                        msg.push(`The value of date is invalid type.`);
+                        msg.push(`The '${field}' value is invalid email.`);
                     }
                 }
             });
@@ -271,4 +273,11 @@ export function parseDateTimeZoneString(date, time, timezone) {
     }
 
     return `${zeroFill(4, dateArray[2])}-${zeroFill(2, dateArray[1])}-${zeroFill(2, dateArray[0])}T${zeroFill(2, hr)}:${zeroFill(2, min)}:00.000+${zeroFill(2, timeZoneString)}:00`;
+}
+
+export function trim(value) {
+    if (value && typeof value === 'string') {
+        return value.trim();
+    }
+    return value;
 }

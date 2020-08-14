@@ -24,6 +24,7 @@ import {
     parseDateString,
     formatPhoneNumber,
     validationForField,
+    trim,
 } from '../utils/Utils';
 import {BaseController} from './BaseController';
 import {Player} from '../models/Player';
@@ -247,7 +248,6 @@ export class PlayerController extends BaseController {
             let str = buf.toString();
             let arr = [];
             let playerArr = [];
-            let outputArr = [];
             const requiredField = [
                 'teamId',
                 'firstName',
@@ -263,19 +263,22 @@ export class PlayerController extends BaseController {
                 })
                 .on('end', async () => {
                     for (let i of arr) {
-                        let teamId = await this.teamService.findByNameAndCompetition(i.team, competitionId, i.grade);
-                        if (teamId && teamId[0]) {
+                        const team = trim(i.team);
+                        let teamId = await this.teamService.findByNameAndCompetition(team, competitionId, undefined, trim(i.grade));
+                        if (isArrayPopulated(teamId)) {
                             let playerObj = new Player();
                             playerObj.teamId = teamId[0].id;
-                            playerObj.firstName = i['first name'];
-                            playerObj.lastName = i['last name'];
-                            playerObj.mnbPlayerId = i.mnbPlayerId;
+                            playerObj.firstName = trim(i['first name']);
+                            playerObj.lastName = trim(i['last name']);
+                            playerObj.mnbPlayerId = trim(i.mnbPlayerId);
                             playerObj.dateOfBirth = i.DOB ? parseDateString(i.DOB) : undefined;
                             playerObj.phoneNumber = i['contact no'] ? formatPhoneNumber(i['contact no']) : undefined;
                             playerObj.competitionId = competitionId;
                             playerArr.push(playerObj);
                         } else {
-                            outputArr.push(`No matching team found for ${i['first name']} ${i['last name']}`)
+                            playerArr.push({
+                                error: `No matching team found for '${team}' related current competition No. ${competitionId}.`,
+                            });
                         }
                     }
 
@@ -284,7 +287,7 @@ export class PlayerController extends BaseController {
                         values: playerArr
                     });
 
-                    const resMsg = (`${arr.length} data processed. ${players.length} data successfully imported and ${arr.length - players.length} data are failed.`);
+                    const resMsg = `${arr.length} data processed. ${players.length} data successfully imported and ${arr.length - players.length} data are failed.`;
 
                     let data = await this.playerService.batchCreateOrUpdate(players as Player[]);
                     for (let p of data) {
