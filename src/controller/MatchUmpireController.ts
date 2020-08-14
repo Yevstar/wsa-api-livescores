@@ -48,12 +48,14 @@ export class MatchUmpireController extends BaseController {
         @QueryParam('divisionId') divisionId: number,
         @QueryParam('venueId') venueId: number,
         @QueryParam('roundIds') roundIds: number[],
+        @QueryParam('sortBy') sortBy: string = undefined,
+        @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined,
         @Body() requestFilter: RequestFilter,
         @Res() response: Response
     ): Promise<any> {
 
         if (organisationId) {
-            return await this.matchUmpireService.findByRosterAndCompetition(organisationId, competitionId, matchId, divisionId, venueId, roundIds, requestFilter);
+            return await this.matchUmpireService.findByRosterAndCompetition(organisationId, competitionId, matchId, divisionId, venueId, roundIds, requestFilter, sortBy, sortOrder);
         } else {
             return response.status(200).send(
                 {name: 'search_error', message: `Required fields are missing`});

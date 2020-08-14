@@ -58,15 +58,16 @@ export class RosterController extends BaseController {
         @QueryParam("competitionId") competitionId: number,
         @QueryParam("roleId") roleId: number,
         @QueryParam("status") status: string,
+        @QueryParam('sortBy') sortBy: string = undefined,
+        @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined,
         @Body() requestFilter: RequestFilter,
         @Res() response: Response
     ) {
         if (competitionId && roleId) {
-            return this.rosterService.findUserRostersByCompetition(competitionId, roleId, status, requestFilter);
+            return this.rosterService.findUserRostersByCompetition(competitionId, roleId, status, requestFilter, sortBy, sortOrder);
         } else {
             return response.status(200).send({
-                name: 'search_error',
-                message: `Invalid parameters`
+                name: 'search_error', message: `Invalid parameters`
             });
         }
     }

@@ -77,7 +77,9 @@ export default class RosterService extends BaseService<Roster> {
     }
 
     // keeping the query as light as possible but more fields can be added if needed - used for umpire roster list
-    public async findUserRostersByCompetition(competitionId: number, roleId: number, status: string, requestFilter: RequestFilter): Promise<any> {
+    public async findUserRostersByCompetition(competitionId: number, roleId: number, status: string, 
+        requestFilter: RequestFilter, sortBy: string = undefined, sortOrder: "ASC" | "DESC" = undefined): Promise<any> {
+
         let query = this.entityManager.createQueryBuilder(Roster, 'roster')
             .innerJoinAndSelect('roster.match', 'match')
             .innerJoinAndSelect('roster.user', 'user')
@@ -95,6 +97,22 @@ export default class RosterService extends BaseService<Roster> {
                     query.andWhere('roster.status is null');
                 } else {
                     query.andWhere('roster.status = :status', { status });
+                }
+            }
+
+            if (sortBy) {
+                if (sortBy === 'organisation') {
+                    query.orderBy('organisation.name', sortOrder);
+                } else if (sortBy === 'firstName') {
+                    query.orderBy('user.firstName', sortOrder);
+                } else if (sortBy === 'lastName') {
+                    query.orderBy('user.lastName', sortOrder);
+                } else if (sortBy === 'matchId') {
+                    query.orderBy('match_id', sortOrder);
+                } else if (sortBy === 'startTime') {
+                    query.orderBy('match_startTime', sortOrder);
+                } else if (sortBy === 'status') {
+                    query.orderBy('roster.status', sortOrder);
                 }
             }
 
