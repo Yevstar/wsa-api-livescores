@@ -341,7 +341,7 @@ export default class UserService extends BaseService<User> {
             html: html
 
         };
-        if(process.env.NODE_ENV == AppConstants.development){
+        if(Number(process.env.SOURCE_MAIL) == 1){
             mailOptions.html = ' To: '+mailOptions.to + '<br><br>'+ mailOptions.html 
             mailOptions.to = process.env.TEMP_DEV_EMAIL
         }
