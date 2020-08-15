@@ -111,7 +111,9 @@ export default class GameTimeAttendanceService extends BaseService<GameTimeAtten
                 .getCount();
     }
 
-    public async loadPositionTrackingStats(aggregate: ("MATCH" | "TOTAL"), reporting: ("PERIOD" | "MINUTE"), competitionId: number, teamId: number, matchId: number, search: string, requestFilter: RequestFilter): Promise<any> {
+    public async loadPositionTrackingStats(aggregate: ("MATCH" | "TOTAL"), reporting: ("PERIOD" | "MINUTE"), 
+    competitionId: number, teamId: number, matchId: number, search: string, requestFilter: RequestFilter,
+    sortBy: string = undefined, sortOrder: "ASC" | "DESC" = undefined): Promise<any> {
         let queryFields = `SELECT
             json_object('id', pc.teamId, 'name', t.name) as team,
             json_object('id', pc.playerId, 'firstName', p.firstName, 'lastName', p.lastName, 'photoUrl', ifnull(u.photoUrl, p.photoUrl), 'userId', p.userId) as player,
@@ -159,6 +161,27 @@ export default class GameTimeAttendanceService extends BaseService<GameTimeAtten
         query = query + ' group by pc.teamId, playerId';
         if (aggregate === 'MATCH') {
             query = query + ', matchId';
+        }
+
+        if (sortBy) {
+            let orderByParam;
+            if (sortBy === 'matchId') orderByParam = 'm.id';
+            else if (sortBy === 'team') orderByParam = 't.name'
+            else if (sortBy === 'lastName') orderByParam = 'p.lastName'
+            else if (sortBy === 'firstName') orderByParam = 'p.firstName'
+            else if (sortBy === 'gs') orderByParam = 'gs'
+            else if (sortBy === 'ga') orderByParam = 'ga'
+            else if (sortBy === 'wa') orderByParam = 'wa'
+            else if (sortBy === 'c') orderByParam = 'c'
+            else if (sortBy === 'wd') orderByParam = 'wd'
+            else if (sortBy === 'gd') orderByParam = 'gd'
+            else if (sortBy === 'gk') orderByParam = 'gk'
+            else if (sortBy === 'played') orderByParam = 'play'
+            else if (sortBy === 'bench') orderByParam = 'bench'
+            else if (sortBy === 'noPlay') orderByParam = 'noplay';
+
+            query = query + ' ORDER by ' + orderByParam + ' ' + sortOrder
+
         }
 
         if (isNotNullAndUndefined(requestFilter)

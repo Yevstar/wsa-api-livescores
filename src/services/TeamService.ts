@@ -65,9 +65,9 @@ export default class TeamService extends BaseService<Team> {
         includeBye: boolean,
         search: string,
         offset: number,
-        limit: number): Promise<any> {
-        let result = await this.entityManager.query("call wsa.usp_get_teams(?,?,?,?,?,?)", [competitionId, search, limit, offset, divisionId,
-           includeBye === true ? 1 : 0]);
+        limit: number, sortBy:string = undefined, sortOrder:"ASC"|"DESC"=undefined): Promise<any> {
+        let result = await this.entityManager.query("call wsa.usp_get_teams(?,?,?,?,?,?,?,?)", [competitionId, search, limit, offset, divisionId,
+           includeBye === true ? 1 : 0, sortBy, sortOrder]);
         if (isArrayPopulated(result)) {
             return { teamCount: result[1][0]['totalCount'], teams: result[0] }
         } else {

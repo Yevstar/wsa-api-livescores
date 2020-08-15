@@ -328,9 +328,11 @@ export class CompetitionController extends BaseController {
         @Body() requestFilter: RequestFilter,
         @QueryParam('organisationId') organisationId: number,
         @QueryParam('recordUmpireType') recordUmpireType: "NONE" | "NAMES" | "USERS",
-        @Res() response: Response
+        @Res() response: Response,
+        @QueryParam('sortBy') sortBy: string = undefined,
+        @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined,
     ): Promise<any> {
-        return this.competitionService.loadAdmin(user.id, requestFilter, organisationId, recordUmpireType);
+        return this.competitionService.loadAdmin(user.id, requestFilter, organisationId, recordUmpireType, sortBy, sortOrder);
     }
 
     @Get('/hierarchy')

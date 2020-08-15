@@ -66,6 +66,8 @@ export class TeamController extends BaseController {
         @QueryParam('divisionId') divisionId: number,
         @QueryParam('includeBye') includeBye: boolean,
         @QueryParam('search') search: string,
+        @QueryParam('sortBy') sortBy: string = undefined,
+        @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined,
         @QueryParam('offset') offset: number,
         @QueryParam('limit') limit: number): Promise<any> {
 
@@ -75,7 +77,7 @@ export class TeamController extends BaseController {
             offset = 0;
         }
 
-        const teamData = await this.teamService.findTeamsWithUsers(competitionId, divisionId, includeBye, search, offset, limit);
+        const teamData = await this.teamService.findTeamsWithUsers(competitionId, divisionId, includeBye, search, offset, limit, sortBy, sortOrder);
 
         if (offset === 0 && limit ===0) {
             return teamData.teams;
@@ -476,7 +478,7 @@ export class TeamController extends BaseController {
         @QueryParam('divisionId') divisionId: number,
         @Res() response: Response): Promise<any> {
 
-        const getTeamsData = await this.listCompetitionTeams(competitionId, divisionId, null, null, null, null);
+        const getTeamsData = await this.listCompetitionTeams(competitionId, divisionId, null, null, null, null,null,null);
         if (isArrayPopulated(getTeamsData)) {
             getTeamsData.map(e => {
                 e['Logo'] = e['logoUrl']
