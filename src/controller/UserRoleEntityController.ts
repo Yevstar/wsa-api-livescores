@@ -241,7 +241,11 @@ export class UserRoleEntityController extends BaseController {
         const ureList = await this.ureService.findUREsOfUser(parentUser.id);
         var childUREList: UserRoleEntity[] = new Array();
         for (let ure of ureList) {
-            if (ure.roleId != Role.PARENT) {
+            if (ure.roleId != Role.PARENT &&
+                ure.roleId != Role.MANAGER &&
+                ure.roleId != Role.SCORER &&
+                ure.roleId != Role.UMPIRE &&
+                ure.roleId != Role.COACH) {
                 ure.userId = childUser.id;
                 childUREList.push(ure);
             }
