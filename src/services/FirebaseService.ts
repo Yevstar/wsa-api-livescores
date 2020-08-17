@@ -4,7 +4,7 @@ import {firebaseDevConfig} from "../integration/firebase.dev.config";
 import {firebaseStgConfig} from "../integration/firebase.stg.config";
 import * as admin from "firebase-admin";
 import {logger} from "../logger";
-import {chunk} from "../utils/Utils";
+import {chunk, isArrayPopulated} from "../utils/Utils";
 import {firestore} from "firebase-admin";
 import UserRecord = admin.auth.UserRecord;
 import {User} from "../models/User";
@@ -329,8 +329,6 @@ export default class FirebaseService {
             if (!querySnapshot.empty) {
                 querySnapshot.forEach(qs => {
                     const docData = qs.data();
-                    console.log(docData['uids']);
-                    console.log(docData['uids'].length);
                     let targetChatDoc = chatsCollectionRef.doc(qs.id);
                     if (docData['uids'].length == 2) {
                         targetChatDoc.update({
@@ -345,6 +343,69 @@ export default class FirebaseService {
                         });
                     }
                 });
+            }
+        }
+    }
+
+    /// --- FirebaseUID update
+    public async updateFirebaseUIDOfExistingChats(from: string, to: string) {
+        if (from && to) {
+            var updatingChatDocumentIds: string[] = [];
+
+            let db = admin.firestore();
+            let chatsCollectionRef = await db.collection('chats');
+
+            /// Updating Chat -> Document -> uids field
+            var userQueryRef = chatsCollectionRef.where('uids', 'array-contains', from);
+            var querySnapshot = await userQueryRef.get();
+            if (!querySnapshot.empty) {
+                querySnapshot.forEach(qs => {
+                    updatingChatDocumentIds.push(qs.id);
+                    let targetChatDoc = chatsCollectionRef.doc(qs.id);
+                    targetChatDoc.update({
+                        'uids': admin.firestore.FieldValue.arrayRemove(from),
+                    });
+                    targetChatDoc.update({
+                        'uids': admin.firestore.FieldValue.arrayUnion(to),
+                        'updated_at': admin.firestore.FieldValue.serverTimestamp()
+                    });
+                });
+            }
+
+            /// Updating Chat -> Document -> removed_uids field
+            userQueryRef = chatsCollectionRef.where('removed_uids', 'array-contains', from);
+            querySnapshot = await userQueryRef.get();
+            if (!querySnapshot.empty) {
+                querySnapshot.forEach(qs => {
+                    updatingChatDocumentIds.push(qs.id);
+                    let targetChatDoc = chatsCollectionRef.doc(qs.id);
+                    targetChatDoc.update({
+                        'removed_uids': admin.firestore.FieldValue.arrayRemove(from),
+                    });
+                    targetChatDoc.update({
+                        'removed_uids': admin.firestore.FieldValue.arrayUnion(to),
+                        'updated_at': admin.firestore.FieldValue.serverTimestamp()
+                    });
+                });
+            }
+
+            let uniqueChatIds = [...new Set(updatingChatDocumentIds)];
+            if(isArrayPopulated(uniqueChatIds)){
+                for (let chatId of uniqueChatIds) {
+                    /// Updating Chat -> Document -> messages Collection
+                    /// -> Document's -> senderId field
+                    let messagesCollectionRef = await db.collection('chats/' + chatId + '/messages');
+                    let messagesQueryRef = messagesCollectionRef.where('senderId', '==', from);
+                    let messagesQuerySnapshot = await messagesQueryRef.get();
+                    if (!messagesQuerySnapshot.empty) {
+                        messagesQuerySnapshot.forEach(mqs => {
+                            let targetMessagesDoc = messagesCollectionRef.doc(mqs.id);
+                            targetMessagesDoc.set({
+                                'senderId': to
+                            });
+                        });
+                    }
+                }
             }
         }
     }

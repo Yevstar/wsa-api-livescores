@@ -47,12 +47,13 @@ export default class CompetitionService extends BaseService<Competition> {
         return query.getMany();
     }
 
-    public async loadAdmin(userId: number, requestFilter: RequestFilter, organisationId: number, recordUmpireType: "NONE" | "NAMES" | "USERS"): Promise<any> {
+    public async loadAdmin(userId: number, requestFilter: RequestFilter, organisationId: number, recordUmpireType: "NONE" | "NAMES" | "USERS",
+    sortBy:string = undefined, sortOrder:"ASC"|"DESC"=undefined): Promise<any> {
         const offset = objectIsNotEmpty(requestFilter) && objectIsNotEmpty(requestFilter.paging) && isNotNullAndUndefined(requestFilter.paging.offset) ? requestFilter.paging.offset : null;
         const limit = objectIsNotEmpty(requestFilter) && objectIsNotEmpty(requestFilter.paging) && isNotNullAndUndefined(requestFilter.paging.limit) ? requestFilter.paging.limit : null;
         const recordUmpireType_ = isNotNullAndUndefined(recordUmpireType) ? recordUmpireType : null;
-        let result = await this.entityManager.query("call wsa.usp_get_competitions(?,?,?,?,?)",
-            [userId, organisationId, limit, offset, recordUmpireType_]);
+        let result = await this.entityManager.query("call wsa.usp_get_competitions(?,?,?,?,?,?,?)",
+            [userId, organisationId, limit, offset, recordUmpireType_, sortBy, sortOrder]);
 
         if (result != null) {
             let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;

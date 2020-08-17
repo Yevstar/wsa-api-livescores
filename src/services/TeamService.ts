@@ -66,11 +66,13 @@ export default class TeamService extends BaseService<Team> {
         includeBye: boolean,
         search: string,
         offset: number,
-        limit: number
+        limit: number,
+        sortBy: string = undefined,
+        sortOrder: "ASC" | "DESC" = undefined,
     ): Promise<any> {
         let result = await this.entityManager.query(
-            "call wsa.usp_get_teams(?,?,?,?,?,?)",
-            [competitionId, search, limit, offset, divisionId, includeBye === true ? 1 : 0]
+            "call wsa.usp_get_teams(?,?,?,?,?,?,?,?)",
+            [competitionId, search, limit, offset, divisionId, includeBye === true ? 1 : 0, sortBy, sortOrder]
         );
         if (isArrayPopulated(result)) {
             return { teamCount: result[1][0]['totalCount'], teams: result[0] };
@@ -178,6 +180,7 @@ export default class TeamService extends BaseService<Team> {
     public async playerListByTeamId(ids: number[]): Promise<Player[]> {
         let query = this.entityManager.createQueryBuilder(Player, 'player');
         query.innerJoinAndSelect('player.team', 'team');
+        query.leftJoinAndSelect('player.user', 'user');
         if (ids) query.andWhere("player.teamId in (:ids)", { ids });
         query.andWhere("(player.email <> '' AND player.email IS NOT NULL)");
         return query.getMany();
@@ -186,6 +189,7 @@ export default class TeamService extends BaseService<Team> {
     public async getPlayerDataByPlayerIds(ids: number[]): Promise<Player[]> {
         let query = this.entityManager.createQueryBuilder(Player, 'player');
         query.innerJoinAndSelect('player.team', 'team');
+        query.leftJoinAndSelect('player.user', 'user');
         if (ids) query.andWhere("player.id in (:ids)", { ids });
         query.andWhere("(player.email <> '' AND player.email IS NOT NULL)");
         return query.getMany();
@@ -256,6 +260,8 @@ export default class TeamService extends BaseService<Team> {
     public async sendInviteMail(user: User, player: Player, isInviteToParents: boolean, isExistingUser: boolean) {
         var deepLinkPlayer = new DeepLinkPlayer();
         deepLinkPlayer.id = player.id;
+        deepLinkPlayer.userId = player.userId;
+        deepLinkPlayer.user = player.user;
         deepLinkPlayer.firstName = player.firstName;
         deepLinkPlayer.lastName = player.lastName;
         deepLinkPlayer.isInviteToParents = isInviteToParents;
@@ -330,7 +336,7 @@ export default class TeamService extends BaseService<Team> {
             subject: `Invite Mail ${teamName}`,
             html: mailHtml
         };
-        if(process.env.NODE_ENV == AppConstants.development){
+        if(Number(process.env.SOURCE_MAIL) == 1){
             mailOptions.html = ' To: '+mailOptions.to + '<br><br>'+ mailOptions.html 
             mailOptions.to = process.env.TEMP_DEV_EMAIL
         }

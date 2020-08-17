@@ -3,6 +3,7 @@ import {Service} from "typedi";
 import {paginationData, stringTONumber, isNotNullAndUndefined } from "../utils/Utils";
 import BaseService from "./BaseService";
 import {Player} from "../models/Player";
+import {User} from "../models/User";
 import {PlayerMinuteTracking} from "../models/PlayerMinuteTracking";
 import {RequestFilter} from "../models/RequestFilter";
 import {Competition} from '../models/Competition';
@@ -186,7 +187,9 @@ export default class PlayerService extends BaseService<Player> {
         aggregate: ("MINUTE" | "PERIOD" | "MATCH"),
         teamId: number,
         matchId: number,
-        requestFilter: RequestFilter
+        requestFilter: RequestFilter,
+        sortBy: string = undefined,
+        sortOrder:"ASC"|"DESC" = undefined
     ): Promise<any> {
         let limit;
         let offset;
@@ -294,5 +297,24 @@ export default class PlayerService extends BaseService<Player> {
           .where('player.id in (:playerIds)', {playerIds});
 
         return query.getMany();
+    }
+
+    public async findPendingInvites(email: string): Promise<Player[]> {
+        let query = this.entityManager.createQueryBuilder(Player, 'player')
+            .innerJoinAndSelect("player.team", "team")
+            .leftJoinAndSelect("player.user", "user")
+            .where('player.email = :email', {email})
+            .andWhere('player.inviteStatus = :inviteStatus', {inviteStatus: 'INVITED'});
+
+        return query.getMany();
+    }
+
+    public async updatePlayerUserDetails(prevUser: User, newUser: User) {
+      return this.entityManager
+          .createQueryBuilder(Player, 'player')
+          .update()
+          .set({userId: newUser.id, email: newUser.email})
+          .where('userId = :userId', { userId: prevUser.id })
+          .execute();
     }
 }

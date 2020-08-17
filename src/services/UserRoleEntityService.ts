@@ -20,6 +20,8 @@ export default class UserRoleEntityService extends BaseService<UserRoleEntity> {
       if (roleId) {
           query.andWhere("roleId = :roleId", {roleId});
       }
+      query.andWhere("isDeleted = 0");
+      
       return query.getMany();
     }
 
@@ -56,8 +58,41 @@ export default class UserRoleEntityService extends BaseService<UserRoleEntity> {
             .innerJoin(RoleFunction, 'fr', '(fr.roleId = ure.roleId and fr.functionId = 25)')
             .andWhere("userId = :userId", {userId})
             .andWhere("entityId = :teamId", {teamId})
-            .andWhere("entityTypeId = :entityTypeId", {entityTypeId: EntityType.TEAM});
+            .andWhere("entityTypeId = :entityTypeId", {entityTypeId: EntityType.TEAM})
+            .andWhere("isDeleted = 0");
 
         return query.getCount();
+    }
+
+    public async findUREsOfUser(userId: number): Promise<UserRoleEntity[]> {
+      let query = this.entityManager.createQueryBuilder(UserRoleEntity, 'ure')
+          .andWhere("userId = :userId", {userId})
+          .andWhere("isDeleted = 0");
+
+      return query.getMany();
+    }
+
+    public async findCountByParams(
+        entityTypeId: number,
+        entityId: number,
+        roleId: number,
+        userId: number
+    ): Promise<number> {
+        let query = this.entityManager.createQueryBuilder(UserRoleEntity, 'ure');
+        if (entityTypeId) {
+            query.andWhere('ure.entityTypeId = :entityTypeId', {entityTypeId});
+        }
+        if (entityId) {
+            query.andWhere('ure.entityId = :entityId', {entityId});
+        }
+        if (roleId) {
+            query.andWhere('ure.roleId = :roleId', {roleId});
+        }
+        if (userId) {
+            query.andWhere('ure.userId = :userId', {userId});
+        }
+        query.andWhere('ure.isDeleted = 0');
+
+        return query.getCount()
     }
 }
