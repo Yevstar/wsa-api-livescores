@@ -527,4 +527,17 @@ export class PlayerController extends BaseController {
             return [];
         }
     }
+
+    @Authorized()
+    @Get('/pendingInvites')
+    async pendingInvites(
+        @HeaderParam("authorization") user: User
+    ) {
+        let playerList = await this.playerService.findPendingInvites(user.email);
+        if (isArrayPopulated(playerList)) {
+            return playerList;
+        } else {
+            return [];
+        }
+    }
 }

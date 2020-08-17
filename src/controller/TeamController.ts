@@ -209,7 +209,23 @@ export class TeamController extends BaseController {
 
         this.teamService.sendInviteMail(user, player, isInviteToParents, existingUser);
         player.inviteStatus = "INVITED";
-        this.playerService.createOrUpdate(player);
+        this.notifyInvite(player.email);
+        await this.playerService.createOrUpdate(player);
+    }
+
+    private async notifyInvite(email: string) {
+        let invitedUser = await this.userService.findByEmail(email);
+        if (invitedUser) {
+            let tokens = (await this.deviceService.getUserDevices(invitedUser.id)).map(device => device.deviceId);
+            if (tokens && tokens.length > 0) {
+                this.firebaseService.sendMessage({
+                    tokens: tokens,
+                    data: {
+                        type: 'player_invite_update'
+                    }
+                });
+            }
+        }
     }
 
     @Authorized()

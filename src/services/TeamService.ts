@@ -172,6 +172,7 @@ export default class TeamService extends BaseService<Team> {
     public async playerListByTeamId(ids: number[]): Promise<Player[]> {
         let query = this.entityManager.createQueryBuilder(Player, 'player');
         query.innerJoinAndSelect('player.team', 'team');
+        query.leftJoinAndSelect('player.user', 'user');
         if (ids) query.andWhere("player.teamId in (:ids)", { ids });
         query.andWhere("(player.email <> '' AND player.email IS NOT NULL)")
         return query.getMany();
@@ -180,6 +181,7 @@ export default class TeamService extends BaseService<Team> {
     public async getPlayerDataByPlayerIds(ids: number[]): Promise<Player[]> {
         let query = this.entityManager.createQueryBuilder(Player, 'player');
         query.innerJoinAndSelect('player.team', 'team')
+        query.leftJoinAndSelect('player.user', 'user')
         if (ids) query.andWhere("player.id in (:ids)", { ids });
         query.andWhere("(player.email <> '' AND player.email IS NOT NULL)")
         return query.getMany();
@@ -248,6 +250,8 @@ export default class TeamService extends BaseService<Team> {
     public async sendInviteMail(user: User, player: Player, isInviteToParents: boolean, isExistingUser: boolean) {
         var deepLinkPlayer = new DeepLinkPlayer();
         deepLinkPlayer.id = player.id;
+        deepLinkPlayer.userId = player.userId;
+        deepLinkPlayer.user = player.user;
         deepLinkPlayer.firstName = player.firstName;
         deepLinkPlayer.lastName = player.lastName;
         deepLinkPlayer.isInviteToParents = isInviteToParents;
@@ -293,7 +297,7 @@ export default class TeamService extends BaseService<Team> {
             mailHtml = mailHtml + `2. If you have the App and haven't signed up yet,
             <a href=${signUpURL}>click here</a>.`
         }
-     
+
         mailHtml = mailHtml + `<br><br> 3. If you have the App and have already signed up,
         <a href="${loggedInURL}">click here</a> to link ${yourLogin}.
         <br><br>It's that easy!`;
