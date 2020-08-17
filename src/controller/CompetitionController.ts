@@ -173,7 +173,7 @@ export class CompetitionController extends BaseController {
                         }
 
                         if (isNotNullAndUndefined(competition.invitedOrganisation) && isArrayPopulated(competition.invitedOrganisation)) { // Any Organisation Invited
-                            if ((INVITED_TO.includes(ANY_ASSOCIATION) || INVITED_TO.includes(ANY_CLUB)) && (!INVITED_TO.includes(AFFILIATED_ASSOCIATION, AFFILIATED_CLUB, DIRECT))) {
+                            if ((INVITED_TO.includes(ANY_ASSOCIATION) || INVITED_TO.includes(ANY_CLUB)) && (!INVITED_TO.includes(DIRECT))) {
                                 GET_ORGANISATIONS = competition.invitedOrganisation;
                             }
                         }

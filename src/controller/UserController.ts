@@ -733,7 +733,7 @@ export class UserController extends BaseController {
             'Contact No',
             'Team',
             'Organisation',
-            'Grade'
+            'DivisionGrade'
         ];
 
         const { result: importArr, message } = validationForField({
@@ -801,7 +801,7 @@ export class UserController extends BaseController {
                         if (isArrayPopulated(teamArray)) {
                             for (let t of teamArray) {
                                 if (isNotNullAndUndefined(t) && isNotNullAndUndefined(t.name)) {
-                                    teamDetail = await this.teamService.findByNameAndCompetition(t, competitionId, trim(i['Grade']));
+                                    teamDetail = await this.teamService.findByNameAndCompetition(t, competitionId, trim(i['DivisionGrade']));
                                     if (isArrayPopulated(teamDetail)) {
                                         teamDetailArray.push(...teamDetail);
                                     }

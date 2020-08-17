@@ -233,11 +233,13 @@ export default class TeamService extends BaseService<Team> {
         limit: number,
         search: string,
         divisionId: number,
-        noOfTeams: number
+        noOfTeams: number,
+        sortBy:string = undefined,
+        sortOrder:"ASC"|"DESC" = undefined
     ): Promise<any> {
         let result = await this.entityManager.query(
-            "call wsa.usp_get_scoring_stats_by_player(?,?,?,?,?,?,?,?)",
-            [competitionId, playerId, aggregate, limit, offset, search, divisionId, noOfTeams]
+            "call wsa.usp_get_scoring_stats_by_player(?,?,?,?,?,?,?,?,?,?)",
+            [competitionId, playerId, aggregate, limit, offset, search, divisionId, noOfTeams, sortBy, sortOrder]
         );
 
         if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {

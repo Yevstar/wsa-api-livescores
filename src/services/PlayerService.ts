@@ -203,14 +203,16 @@ export default class PlayerService extends BaseService<Player> {
               search = requestFilter.search;
           }
         }
-        let result = await this.entityManager.query("call wsa.usp_get_gametime(?,?,?,?,?,?,?)",
+        let result = await this.entityManager.query("call wsa.usp_get_gametime(?,?,?,?,?,?,?,?,?)",
           [competitionId,
             aggregate,
             teamId,
             matchId,
             limit,
             offset,
-            search
+            search,
+            sortBy, 
+            sortOrder
           ]);
 
         if (limit && offset) {

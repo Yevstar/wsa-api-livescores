@@ -120,7 +120,9 @@ export class StatController extends BaseController {
             limit,
             search,
             divisionId,
-            noOfTeams
+            noOfTeams,
+            sortBy,
+            sortOrder
         );
         if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit) && isArrayPopulated(getScoringData.count)) {
             return { ...paginationData(stringTONumber(getScoringData.count[0]['totalCount']), limit, offset), result: getScoringData.finalData }
@@ -237,7 +239,9 @@ export class StatController extends BaseController {
             null,
             search,
             divisionId,
-            noOfTeams
+            noOfTeams,
+            null,
+            null
         );
 
         if (isArrayPopulated(playerScoreData)) {
