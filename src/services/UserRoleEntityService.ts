@@ -25,13 +25,21 @@ export default class UserRoleEntityService extends BaseService<UserRoleEntity> {
       return query.getMany();
     }
 
-    public async deleteRoleFromTeam(teamId: number, roleId: number): Promise<DeleteResult> {
-        let entityTypeId = EntityType.TEAM;
+    public async deleteRoleByParams(
+        entityId: number,
+        entityTypeId: number,
+        roleId: number = undefined,
+        userId: number = undefined
+    ): Promise<DeleteResult> {
         let query = this.entityManager.createQueryBuilder().delete().from(UserRoleEntity)
-            .andWhere("entityId = :teamId", {teamId});
-            query.andWhere("entityTypeId = :entityTypeId", {entityTypeId});
+            .andWhere("entityId = :entityId", {entityId});
+        query.andWhere("entityTypeId = :entityTypeId", {entityTypeId});
+        
         if (roleId) {
             query.andWhere("roleId = :roleId", {roleId});
+        }
+        if (userId) {
+            query.andWhere("userId = :userId", {userId});
         }
         return query.execute();
     }

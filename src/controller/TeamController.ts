@@ -281,7 +281,7 @@ export class TeamController extends BaseController {
         if (teamData.id) {
             team.id = stringTONumber(teamData.id);
             existingManagerUREs = await this.ureService.findTeamUREByParams(team.id, Role.MANAGER);
-            await this.ureService.deleteRoleFromTeam(team.id, Role.MANAGER);
+            await this.ureService.deleteRoleByParams(team.id, EntityType.TEAM, Role.MANAGER);
         }
         team.name = teamData.name;
         team.alias = teamData.alias;
