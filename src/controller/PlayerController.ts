@@ -21,7 +21,10 @@ import {
     isArrayPopulated,
     isNotNullAndUndefined,
     md5,
-    parseDateString, formatPhoneNumber
+    parseDateString,
+    formatPhoneNumber,
+    validationForField,
+    trim,
 } from '../utils/Utils';
 import {BaseController} from './BaseController';
 import {Player} from '../models/Player';
@@ -153,9 +156,10 @@ export class PlayerController extends BaseController {
             if (saved.userId == null) {
                 //return await this.loadPlayerUser(saved);
                 let playerUser = await this.loadPlayerUser(user, saved);
-                saved.userId = playerUser.id;
-                saved = await this.playerService.createOrUpdate(saved);
-
+                if (playerUser) {
+                    saved.userId = playerUser.id;
+                    saved = await this.playerService.createOrUpdate(saved);
+                }
             }
             return this.playerService.findById(saved.id);
         } else {
@@ -245,7 +249,13 @@ export class PlayerController extends BaseController {
             let str = buf.toString();
             let arr = [];
             let playerArr = [];
-            let outputArr = [];
+            const requiredField = [
+                'teamId',
+                'firstName',
+                'lastName',
+                'dateOfBirth',
+                'competitionId',
+            ];
 
             fastcsv.parseString(str, { headers: true })
                 .on('error', error => console.error(error))
@@ -254,30 +264,40 @@ export class PlayerController extends BaseController {
                 })
                 .on('end', async () => {
                     for (let i of arr) {
-                        let teamId = await this.teamService.findByNameAndCompetition(i.team, competitionId, i.grade);
-                        if (teamId) {
+                        const team = trim(i.team);
+                        let teamId = await this.teamService.findByNameAndCompetition(team, competitionId, undefined, trim(i.grade));
+                        if (isArrayPopulated(teamId)) {
                             let playerObj = new Player();
                             playerObj.teamId = teamId[0].id;
-                            playerObj.firstName = i['first name'];
-                            playerObj.lastName = i['last name'];
-                            playerObj.mnbPlayerId = i.mnbPlayerId;
-                            playerObj.dateOfBirth = parseDateString(i.DOB);
-                            playerObj.phoneNumber = formatPhoneNumber(i['contact no']);
+                            playerObj.firstName = trim(i['first name']);
+                            playerObj.lastName = trim(i['last name']);
+                            playerObj.mnbPlayerId = trim(i.mnbPlayerId);
+                            playerObj.dateOfBirth = i.DOB ? parseDateString(i.DOB) : undefined;
+                            playerObj.phoneNumber = i['contact no'] ? formatPhoneNumber(i['contact no']) : undefined;
                             playerObj.competitionId = competitionId;
                             playerArr.push(playerObj);
                         } else {
-                            outputArr.push(`No matching team found for ${i['first name']} ${i['last name']}`)
+                            playerArr.push({
+                                error: `No matching team found for '${team}' related current competition No. ${competitionId}.`,
+                            });
                         }
                     }
 
-                    let data = await this.playerService.batchCreateOrUpdate(playerArr);
+                    const { templateResult: players, message } = validationForField({
+                        filedList: requiredField,
+                        values: playerArr
+                    });
+
+                    const resMsg = `${arr.length} data processed. ${players.length} data successfully imported and ${arr.length - players.length} data are failed.`;
+
+                    let data = await this.playerService.batchCreateOrUpdate(players as Player[]);
                     for (let p of data) {
                         let playerUser = await this.loadPlayerUser(user, p);
-                        p.userId = playerUser.id;
+                        p.userId = playerUser ? playerUser.id : '';
                         await this.playerService.createOrUpdate(p);
                     }
-                    outputArr = [...data, ...outputArr];
-                    resolve(outputArr);
+
+                    resolve({ message: resMsg, error: message, data });
                 });
         });
     }
@@ -522,6 +542,19 @@ export class PlayerController extends BaseController {
 
         if (isArrayPopulated(playerIds)) {
             return this.playerService.getBorrowedPlayersById(playerIds);
+        } else {
+            return [];
+        }
+    }
+
+    @Authorized()
+    @Get('/pendingInvites')
+    async pendingInvites(
+        @HeaderParam("authorization") user: User
+    ) {
+        let playerList = await this.playerService.findPendingInvites(user.email);
+        if (isArrayPopulated(playerList)) {
+            return playerList;
         } else {
             return [];
         }

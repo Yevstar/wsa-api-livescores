@@ -1,22 +1,44 @@
-import { Get, Delete, Param, JsonController, QueryParam, Post, Authorized, HeaderParam, Body, Res, UploadedFile, } from 'routing-controllers';
-import { Request, Response } from 'express';
-import { Team } from '../models/Team';
-import { Player } from '../models/Player'
-//import { TeamLadder } from "../models/views/TeamLadder";
-import { TeamLadder } from "../models/TeamLadder";
-import { BaseController } from "./BaseController";
-import { User } from "../models/User";
-import { UserRoleEntity } from "../models/security/UserRoleEntity";
-import { Role } from "../models/security/Role";
-import { EntityType } from "../models/security/EntityType";
-import { isArrayPopulated, isNullOrEmpty, isPhoto, fileExt, md5, stringTONumber, paginationData, isNotNullAndUndefined } from "../utils/Utils"
-import {logger} from '../logger';
+import {
+    Get,
+    Delete,
+    Param,
+    JsonController,
+    QueryParam,
+    Post,
+    Authorized,
+    HeaderParam,
+    Body,
+    Res,
+    UploadedFile,
+} from "routing-controllers";
+import {Response} from "express";
 import admin from "firebase-admin";
-import * as fastcsv from 'fast-csv';
+import * as fastcsv from "fast-csv";
+
+import {Team} from "../models/Team";
+import {Player} from "../models/Player"
+import {TeamLadder} from "../models/TeamLadder";
+import {BaseController} from "./BaseController";
+import {User} from "../models/User";
+import {UserRoleEntity} from "../models/security/UserRoleEntity";
+import {Role} from "../models/security/Role";
+import {EntityType} from "../models/security/EntityType";
+import {
+    isArrayPopulated,
+    isNullOrEmpty,
+    isPhoto,
+    fileExt,
+    md5,
+    stringTONumber,
+    paginationData,
+    isNotNullAndUndefined,
+    validationForField,
+    trim
+} from "../utils/Utils"
+import {logger} from "../logger";
 
 @JsonController('/teams')
 export class TeamController extends BaseController {
-
     @Get('/id/:id')
     async get(@Param("id") id: number) {
         return this.teamService.findTeamWithUsers(id);
@@ -25,31 +47,31 @@ export class TeamController extends BaseController {
     @Authorized()
     @Get('/details')
     async getFullTeamDetail(
-      @QueryParam("teamId") teamId: number,
-      @QueryParam("organisationId") organisationId: number,
-      @QueryParam("competitionId") competitionId: number,
-      @QueryParam("teamName") teamName: string,
+        @QueryParam("teamId") teamId: number,
+        @QueryParam("organisationId") organisationId: number,
+        @QueryParam("competitionId") competitionId: number,
+        @QueryParam("teamName") teamName: string,
     ): Promise<Team[]> {
-      let teamsList = await this.teamService.findTeams(
-        teamId,
-        organisationId,
-        competitionId,
-        teamName
-      );
+        let teamsList = await this.teamService.findTeams(
+            teamId,
+            organisationId,
+            competitionId,
+            teamName
+        );
 
-      await Promise.all(teamsList.map((team: Team) => {
-          return this.checkTeamFirestoreDatabase(team);
-      }));
+        await Promise.all(teamsList.map((team: Team) => {
+            return this.checkTeamFirestoreDatabase(team);
+        }));
 
-      return teamsList;
+        return teamsList;
     }
 
     @Authorized()
     @Delete('/id/:id')
     async delete(
         @Param("id") id: number,
-        @HeaderParam("authorization") user: User)
-    {
+        @HeaderParam("authorization") user: User
+    ) {
         this.deleteTeamFirestoreDatabase(id);
         const deletdUREs = await this.ureService.deleteTeamUre(id, user.id);
         await Promise.all(deletdUREs.map((ure: UserRoleEntity) => {
@@ -66,6 +88,8 @@ export class TeamController extends BaseController {
         @QueryParam('divisionId') divisionId: number,
         @QueryParam('includeBye') includeBye: boolean,
         @QueryParam('search') search: string,
+        @QueryParam('sortBy') sortBy: string = undefined,
+        @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined,
         @QueryParam('offset') offset: number,
         @QueryParam('limit') limit: number): Promise<any> {
 
@@ -75,7 +99,7 @@ export class TeamController extends BaseController {
             offset = 0;
         }
 
-        const teamData = await this.teamService.findTeamsWithUsers(competitionId, divisionId, includeBye, search, offset, limit);
+        const teamData = await this.teamService.findTeamsWithUsers(competitionId, divisionId, includeBye, search, offset, limit, sortBy, sortOrder);
 
         if (offset === 0 && limit ===0) {
             return teamData.teams;
@@ -100,7 +124,6 @@ export class TeamController extends BaseController {
         @QueryParam('competitionIds') competitionIds: number[],
         @QueryParam('competitionKey') competitionUniqueKey: string,
     ): Promise<any> {
-
         if (isNotNullAndUndefined(competitionUniqueKey)) {
             const getCompetitions = await this.competitionService.getCompetitionByUniquekey(competitionUniqueKey);
             competitionIds = getCompetitions.id;
@@ -118,7 +141,7 @@ export class TeamController extends BaseController {
         @HeaderParam("authorization") currentUser: User,
         @Body() requestBody,
         @Res() response: Response
-    ){
+    ) {
         try {
             let competitionIds = null;
             let competitionId = null;
@@ -132,7 +155,6 @@ export class TeamController extends BaseController {
             }
 
             return await this.teamService.getLadderList(requestBody, competitionId, competitionIds);
-
         } catch (error) {
             logger.error(`Error Occurred in  loadTeamLadder   ${currentUser.id}` + error);
             return response.status(500).send({
@@ -164,7 +186,9 @@ export class TeamController extends BaseController {
                 this.invitePlayer(user, i, isInviteToParents);
             }
             return playerList;
-        } else return [];
+        }
+
+        return [];
     }
 
     public async invitePlayer(user: User, player: Player, isInviteToParents: boolean) {
@@ -207,7 +231,23 @@ export class TeamController extends BaseController {
 
         this.teamService.sendInviteMail(user, player, isInviteToParents, existingUser);
         player.inviteStatus = "INVITED";
-        this.playerService.createOrUpdate(player);
+        this.notifyInvite(player.email);
+        await this.playerService.createOrUpdate(player);
+    }
+
+    private async notifyInvite(email: string) {
+        let invitedUser = await this.userService.findByEmail(email);
+        if (invitedUser) {
+            let tokens = (await this.deviceService.getUserDevices(invitedUser.id)).map(device => device.deviceId);
+            if (tokens && tokens.length > 0) {
+                this.firebaseService.sendMessage({
+                    tokens: tokens,
+                    data: {
+                        type: 'player_invite_update'
+                    }
+                });
+            }
+        }
     }
 
     @Authorized()
@@ -218,21 +258,20 @@ export class TeamController extends BaseController {
         @UploadedFile("logo") file: Express.Multer.File,
         @Res() response: Response
     ) {
-
         if (isNullOrEmpty(teamData.name) || isNullOrEmpty(teamData.competitionId) || isNullOrEmpty(teamData.divisionId)) {
-            return response
-                .status(422)
-                .send({ name: 'validation_error', message: 'Not all required fields filled' });
+            return response.status(422).send({
+                name: 'validation_error',
+                message: 'Not all required fields filled'
+            });
         }
 
         if (!teamData.id) {
             const existing = await this.teamService.findByNameAndCompetition(teamData.name, teamData.competitionId);
             if (existing.length > 0) {
                 logger.info(`Team ${teamData.name} already exists.`);
-                return response
-                    .status(400).send({
-                        name: 'validation_error',
-                        message: 'A team with this name already exists.'
+                return response.status(400).send({
+                    name: 'validation_error',
+                    message: 'A team with this name already exists.'
                 });
             }
         }
@@ -264,8 +303,7 @@ export class TeamController extends BaseController {
                 if (foundUser.firstName == teamData.firstName && foundUser.lastName == teamData.lastName && foundUser.mobileNumber == teamData.mobileNumber) {
                     managerIds[0] = foundUser.id;
                 } else {
-                    return response
-                    .status(400).send({
+                    return response.status(400).send({
                         name: 'validation_error',
                         message: 'A user with this email address already exists however other details do not match'
                     });
@@ -284,7 +322,6 @@ export class TeamController extends BaseController {
                 logger.info(`Manager ${managerInfo.email} signed up.`);
                 managerIds[managerIds.length] = savedUser.id;
             }
-
         }
 
         for (let managerId of managerIds) {
@@ -320,7 +357,7 @@ export class TeamController extends BaseController {
             EntityType.TEAM,
             [savedTeam.id],
             null,
-            {functionId: chatRecipientFunction.id}
+            { functionId: chatRecipientFunction.id }
         );
         /// Remove all managers from chats if they are not manager any more
         existingManagerUREs.forEach(async ure => {
@@ -379,94 +416,129 @@ export class TeamController extends BaseController {
     ) {
         let bufferString = file.buffer.toString('utf8');
         let arr = bufferString.split('\n');
-        var jsonObj = [];
-        var headers = arr[0].split(',');
-        for (var i = 1; i < arr.length; i++) {
-            var data = arr[i].split(',');
-            var obj = {};
-            for (var j = 0; j < data.length; j++) {
+        const jsonObj = [];
+        const headers = arr[0].split(',');
+        for (let i = 1; i < arr.length; i++) {
+            const data = arr[i].split(',');
+            const obj = {};
+            for (let j = 0; j < data.length; j++) {
                 obj[headers[j].trim()] = data[j].trim();
             }
             jsonObj.push(obj);
         }
-        JSON.stringify(jsonObj);
+
+        const requiredField = [
+            'Team_Name',
+            'Grade',
+            'Organisation'
+        ];
+
         let queryArr = [];
-        for (let i of jsonObj) {
-            if (i.Team_Name !== '') {
-                let teamData = await this.teamService.findByNameAndCompetition(i.Team_Name, competitionId);
+        const { result: importArr, message } = validationForField({
+            filedList: requiredField,
+            values: jsonObj
+        });
+
+        for (let i of importArr) {
+            const teamName = trim(i.Team_Name);
+            if (teamName !== '') {
+                let teamData = await this.teamService.findByNameAndCompetition(teamName, competitionId);
                 if (!isArrayPopulated(teamData)) {
-                    let divisionData = await this.divisionService.findByName(i.Grade, competitionId);
-                    let organisationData = await this.organisationService.findByNameAndCompetitionId(i.Organisation, competitionId);
-                    let team = new Team();
-                    team.name = i.Team_Name;
-                    team.logoUrl = i.Logo;
-                    team.competitionId = competitionId;
-                    if (divisionData.length > 0)
-                        team.divisionId = divisionData[0].id; //DivisionData is an array
-                    if (organisationData.length > 0) {
-                        team.organisationId = organisationData[0].id;
+                    const grade = trim(i.Grade);
+                    const organization = trim(i.Organisation);
+                    let divisionData = await this.divisionService.findByName(grade, competitionId);
+                    let organisationData = await this.organisationService.findByNameAndCompetitionId(organization, competitionId);
+                    if (!isArrayPopulated(divisionData) || !isArrayPopulated(organisationData)) {
+                        message[`Line ${i.line}`] = [];
+                        if (!isArrayPopulated(divisionData)) {
+                            message[`Line ${i.line}`].push(`Can't find data of grade '${grade}' related current competition No. ${competitionId}.`);
+                        }
+                        if (!isArrayPopulated(organisationData)) {
+                            message[`Line ${i.line}`].push(`Can't find data of organisation '${organization}' related current competition No. ${competitionId}.`);
+                        }
+                    } else {
+                        let team = new Team();
+                        team.name = teamName;
+                        team.logoUrl = trim(i.Logo);
+                        team.competitionId = competitionId;
+                        if (divisionData.length > 0)
+                            team.divisionId = divisionData[0].id;
+                        if (organisationData.length > 0) {
+                            team.organisationId = organisationData[0].id;
+                        }
+                        queryArr.push(team);
                     }
-                    queryArr.push(team);
+                } else {
+                    message[`Line ${i.line}`] = [];
+                    message[`Line ${i.line}`].push(`The team '${teamName}' is already registered.`);
                 }
             }
         }
+        const resMsg = `${jsonObj.length} data processed. ${queryArr.length} data successfully imported and ${jsonObj.length - queryArr.length} data are failed.`;
+
         await this.teamService.batchCreateOrUpdate(queryArr);
         await Promise.all(queryArr.map((team: Team) => {
             return this.checkTeamFirestoreDatabase(team);
         }));
-        return response.status(200).send({ success: true });
+
+        return response.status(200).send({
+            success: true,
+            error: message,
+            message: resMsg,
+            data: queryArr
+        });
     }
 
     private async checkTeamFirestoreDatabase(team: Team) {
-      let db = admin.firestore();
-      let teamsCollectionRef = await db.collection('teams');
-      let queryRef = teamsCollectionRef.where('id', '==', team.id);
-      let querySnapshot = await queryRef.get();
+        let db = admin.firestore();
+        let teamsCollectionRef = await db.collection('teams');
+        let queryRef = teamsCollectionRef.where('id', '==', team.id);
+        let querySnapshot = await queryRef.get();
 
-      if (querySnapshot.empty) {
-        teamsCollectionRef.doc(team.id.toString()).set({
-            'logoUrl': (team.logoUrl != null && team.logoUrl != undefined) ? team.logoUrl : null,
-            'id': team.id,
-            'name': team.name,
-            'created_at': admin.firestore.FieldValue.serverTimestamp()
-        });
-      } else {
-        teamsCollectionRef.doc(team.id.toString()).update({
-          'logoUrl': (team.logoUrl != null && team.logoUrl != undefined) ? team.logoUrl : null,
-          'id': team.id,
-          'name': team.name,
-          'updated_at': admin.firestore.FieldValue.serverTimestamp()
-        });
-      }
+        if (querySnapshot.empty) {
+            teamsCollectionRef.doc(team.id.toString()).set({
+                'logoUrl': isNotNullAndUndefined(team.logoUrl) ? team.logoUrl : null,
+                'id': team.id,
+                'name': team.name,
+                'created_at': admin.firestore.FieldValue.serverTimestamp()
+            });
+        } else {
+            teamsCollectionRef.doc(team.id.toString()).update({
+                'logoUrl': isNotNullAndUndefined(team.logoUrl) ? team.logoUrl : null,
+                'id': team.id,
+                'name': team.name,
+                'updated_at': admin.firestore.FieldValue.serverTimestamp()
+            });
+        }
     }
 
     private async deleteTeamFirestoreDatabase(teamId: number) {
-      let db = admin.firestore();
+        let db = admin.firestore();
 
-      /// Check for the team in the teams collection
-      let teamsCollectionRef = await db.collection('teams');
-      let queryRef = teamsCollectionRef.where('id', '==', teamId);
-      let querySnapshot = await queryRef.get();
+        /// Check for the team in the teams collection
+        let teamsCollectionRef = await db.collection('teams');
+        let queryRef = teamsCollectionRef.where('id', '==', teamId);
+        let querySnapshot = await queryRef.get();
 
-      if (!querySnapshot.empty) {
-        teamsCollectionRef.doc(teamId.toString()).update({
-          'deleted_at': admin.firestore.FieldValue.serverTimestamp()
-        });
-      }
+        if (!querySnapshot.empty) {
+            teamsCollectionRef.doc(teamId.toString()).update({
+                'deleted_at': admin.firestore.FieldValue.serverTimestamp()
+            });
+        }
 
-      /// Check for the team chat for this particular team
-      let teamChatCollectionRef = await db.collection('chats');
-      // If any one changing the id it needs to be the same in the firestore
-      // and app side as well. Very critical change be sure.
-      const teamChatId: string = `team${teamId}chat`;
-      let chatQueryRef = teamChatCollectionRef.where('id', '==', teamChatId);
-      let chatQuerySnapshot = await chatQueryRef.get();
+        /// Check for the team chat for this particular team
+        let teamChatCollectionRef = await db.collection('chats');
+        // If any one changing the id it needs to be the same in the firestore
+        // and app side as well. Very critical change be sure.
+        const teamChatId: string = `team${teamId}chat`;
+        let chatQueryRef = teamChatCollectionRef.where('id', '==', teamChatId);
+        let chatQuerySnapshot = await chatQueryRef.get();
 
-      if (!chatQuerySnapshot.empty) {
-        teamChatCollectionRef.doc(teamChatId).update({
-          'deleted_at': admin.firestore.FieldValue.serverTimestamp()
-        });
-      }
+        if (!chatQuerySnapshot.empty) {
+            teamChatCollectionRef.doc(teamChatId).update({
+                'deleted_at': admin.firestore.FieldValue.serverTimestamp()
+            });
+        }
     }
 
     @Authorized()
@@ -474,9 +546,9 @@ export class TeamController extends BaseController {
     async exportTeams(
         @QueryParam('competitionId') competitionId: number,
         @QueryParam('divisionId') divisionId: number,
-        @Res() response: Response): Promise<any> {
-
-        const getTeamsData = await this.listCompetitionTeams(competitionId, divisionId, null, null, null, null);
+        @Res() response: Response
+    ): Promise<any> {
+        const getTeamsData = await this.listCompetitionTeams(competitionId, divisionId, null, null, null, null,null,null);
         if (isArrayPopulated(getTeamsData)) {
             getTeamsData.map(e => {
                 e['Logo'] = e['logoUrl']
@@ -525,7 +597,8 @@ export class TeamController extends BaseController {
         response.setHeader('Content-disposition', 'attachment; filename=teams.csv');
         response.setHeader('content-type', 'text/csv');
         fastcsv.write(getTeamsData, { headers: true })
-            .on("finish", function () { })
+            .on("finish", function () {
+            })
             .pipe(response);
     }
 
@@ -535,25 +608,24 @@ export class TeamController extends BaseController {
         @HeaderParam("authorization") currentUser: User,
         @Body() requestBody,
         @Res() response: Response
-    ){
+    ) {
         try {
             const getCompetition = await this.competitionService.getCompetitionByUniquekey(requestBody.competitionUniqueKey);
             let competitionId = getCompetition.id;
 
             const existingTeamLadderAdjustments = await this.teamLadderService.findExistingTeamLadderAdj(competitionId, requestBody.divisionId);
             let teamLadderMap = new Map();
-            if(isArrayPopulated(requestBody.adjustments)){
-                for(let adj of requestBody.adjustments){
+            if (isArrayPopulated(requestBody.adjustments)) {
+                for (let adj of requestBody.adjustments) {
                     let teamLadder = new TeamLadder;
                     teamLadder.id = adj.teamLadderId;
                     teamLadder.teamId = adj.teamId;
                     teamLadder.divisionId = requestBody.divisionId;
                     teamLadder.competitionId = competitionId;
-                    if(adj.teamLadderId == 0){
+                    if (adj.teamLadderId == 0) {
                         teamLadder.teamLadderTypeRefId = 25;
                         teamLadder.createdBy = currentUser.id;
-                    }
-                    else{
+                    } else {
                         teamLadder.updatedBy = currentUser.id;
                         teamLadder.updated_at = new Date();
                     }
@@ -563,9 +635,9 @@ export class TeamController extends BaseController {
                     teamLadderMap.set(teamLadderRes.id, teamLadderRes);
                 }
             }
-            if(isArrayPopulated(existingTeamLadderAdjustments)){
-                for(let tl of existingTeamLadderAdjustments){
-                    if(teamLadderMap.get(tl.id) == undefined){
+            if (isArrayPopulated(existingTeamLadderAdjustments)) {
+                for (let tl of existingTeamLadderAdjustments) {
+                    if (teamLadderMap.get(tl.id) == undefined) {
                         let teamLadderModel = new TeamLadder();
                         teamLadderModel.id = tl.id;
                         teamLadderModel.deleted_at = new Date();
@@ -593,7 +665,7 @@ export class TeamController extends BaseController {
         @QueryParam('divisionId') divisionId: number,
         @HeaderParam("authorization") currentUser: User,
         @Res() response: Response
-    ){
+    ) {
         try {
             const getCompetition = await this.competitionService.getCompetitionByUniquekey(competitionUniqueKey);
             let competitionId = getCompetition.id;
@@ -601,7 +673,6 @@ export class TeamController extends BaseController {
             const ladderAdjustments = await this.teamLadderService.getTeamLadderAdjustments(competitionId, divisionId);
 
             return response.status(200).send(ladderAdjustments);
-
         } catch (error) {
             logger.error(`Error Occurred in  get ladder adjustments   ${currentUser.id}` + error);
             return response.status(500).send({

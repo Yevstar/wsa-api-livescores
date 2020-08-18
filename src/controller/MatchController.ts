@@ -22,7 +22,10 @@ import {
     stringTONumber,
     paginationData,
     isArrayPopulated,
-    isNotNullAndUndefined
+    isNotNullAndUndefined,
+    validationForField,
+    parseDateTimeZoneString,
+    trim,
 } from "../utils/Utils";
 import {BaseController} from "./BaseController";
 import {logger} from "../logger";
@@ -39,7 +42,6 @@ import {GamePosition} from "../models/GamePosition";
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
-
     @Authorized()
     @Get('/id/:id')
     async get(@Param("id") id: number) {
@@ -101,7 +103,7 @@ export class MatchController extends BaseController {
         @QueryParam('offset') offset: number = undefined,
         @QueryParam('limit') limit: number = undefined,
         @QueryParam('sortBy') sortBy: string = undefined,
-        @QueryParam('sortOrder') sortOrder: "ASC" | "DESC"  = undefined
+        @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined
     ): Promise<any> {
         // Add all teams of supplied players.
         if (playerIds) {
@@ -174,7 +176,7 @@ export class MatchController extends BaseController {
             const ended = endTimeRange ? await this.matchService.loadHomeEnded(organisationIds, teamIds, endTimeRange) : [];
             return { live, upcoming, ended };
         } else {
-            return { live: [], upcoming: [], ended: [] }
+            return { live: [], upcoming: [], ended: [] };
         }
     }
 
@@ -193,8 +195,10 @@ export class MatchController extends BaseController {
             }
             return this.matchService.loadAdmin(competitionId, teamId, roleId, requestFilter);
         } else {
-            return response.status(200).send(
-                { name: 'search_error', message: `Required fields are missing` });
+            return response.status(200).send({
+                name: 'search_error',
+                message: `Required fields are missing`
+            });
         }
     }
 
@@ -208,8 +212,10 @@ export class MatchController extends BaseController {
         if (competitionId && requestFilter) {
             return this.matchService.loadDashboard(competitionId, new Date(), requestFilter);
         } else {
-            return response.status(200).send(
-                { name: 'search_error', message: `Required fields are missing` });
+            return response.status(200).send({
+                name: 'search_error',
+                message: `Required fields are missing`
+            });
         }
     }
 
@@ -219,12 +225,18 @@ export class MatchController extends BaseController {
         @QueryParam('id', { required: true }) id: number,
         @QueryParam('start') start: Date,
         @QueryParam('end') end: Date,
-        @Res() response: Response) {
-        if (!start && !end) return response.status(400)
-            .send({ name: 'param_error', message: 'Start or end must be filled' });
+        @Res() response: Response
+    ) {
+        if (!start && !end) {
+            return response.status(400).send({
+                name: 'param_error',
+                message: 'Start or end must be filled'
+            });
+        }
+
         const live = await this.matchService.loadCompetitionAndDate(id, start, end, true);
         const upcoming = await this.matchService.loadCompetitionAndDate(id, start, end, false);
-        return { live: live, upcoming: upcoming }
+        return { live: live, upcoming: upcoming };
     }
 
     @Authorized()
@@ -283,7 +295,7 @@ export class MatchController extends BaseController {
                 for (let newUmpire of newUmpires) {
                     if (newUmpire.umpireName) {
                         newUmpire.matchId = saved.id;
-                        var oldMatchingUmpireList = [];
+                        let oldMatchingUmpireList = [];
                         if (oldUmpires) {
                             oldMatchingUmpireList = oldUmpires.filter(umpire => umpire.sequence == newUmpire.sequence);
                         }
@@ -292,11 +304,7 @@ export class MatchController extends BaseController {
                             if (oldUmpire.organisationId != newUmpire.organisationId ||
                                 oldUmpire.umpireName != newUmpire.umpireName ||
                                 oldUmpire.umpireType != newUmpire.umpireType) {
-                                this.createUmpire(
-                                    newUmpire,
-                                    user.id,
-                                    oldUmpire
-                                );
+                                this.createUmpire(newUmpire, user.id, oldUmpire);
                             }
                         } else {
                             this.createUmpire(newUmpire, user.id);
@@ -309,8 +317,7 @@ export class MatchController extends BaseController {
         /// Getting all old scorer or umpire rosters
         let oldRosters = (await this.rosterService
             .findAllRostersByParam([match.id]))
-            .filter(roster =>
-                (roster.roleId == Role.SCORER || roster.roleId == Role.UMPIRE));
+            .filter(roster => (roster.roleId == Role.SCORER || roster.roleId == Role.UMPIRE));
         if (isArrayPopulated(match.rosters)) {
             let newRosters = match.rosters;
             /// Deleting rosters which doesn't match with new one's provided
@@ -382,9 +389,8 @@ export class MatchController extends BaseController {
             await Promise.all(deleteRosterPromises);
         }
 
-        console.log("isNewMatch::" + isNewMatch);
         // Team Ladder
-        // if(!isNewMatch){
+        // if (!isNewMatch) {
         let arr = [];
         arr.push(match);
 
@@ -486,7 +492,8 @@ export class MatchController extends BaseController {
         @QueryParam('msFromStart') msFromStart: number,
         @QueryParam('startedMsFromStart') startedMsFromStart: number,
         @Body() scores: MatchScores,
-        @Res() response: Response) {
+        @Res() response: Response
+    ) {
         if (scores) {
             const result = await this.matchScorerService.findByMatchIdAndPeriod(scores.matchId, scores.period);
             const match = await this.matchService.findById(matchId);
@@ -507,25 +514,25 @@ export class MatchController extends BaseController {
                     eventTimestamp = new Date(match.startTime.getTime() + startedMsFromStart);
                 } else {
                     const periodDuration = match.matchDuration / (match.type == 'FOUR_QUARTERS' ? 4 : 2);
-                    eventTimestamp = startedMsFromStart ?
-                        new Date(match.startTime.getTime() + startedMsFromStart) :
-                        new Date(Date.now() - periodDuration * 1000);
+                    eventTimestamp = startedMsFromStart
+                        ? new Date(match.startTime.getTime() + startedMsFromStart)
+                        : new Date(Date.now() - periodDuration * 1000);
                 }
-                this.matchService.logMatchEvent(matchId, 'timer', 'periodStart', saved.period,
-                    eventTimestamp, user.id);
+                this.matchService.logMatchEvent(matchId, 'timer', 'periodStart', saved.period, eventTimestamp, user.id);
 
                 eventTimestamp = msFromStart ? new Date(match.startTime.getTime() + msFromStart) : Date.now();
-                this.matchService.logMatchEvent(matchId, 'timer', 'periodEnd', saved.period,
-                    eventTimestamp, user.id);
+                this.matchService.logMatchEvent(matchId, 'timer', 'periodEnd', saved.period, eventTimestamp, user.id);
                 return response.status(200).send({ updated: true });
             } else {
                 return response.status(412).send({
-                    name: 'save_error', message: 'Undefined error'
+                    name: 'save_error',
+                    message: 'Undefined error'
                 });
             }
         } else {
             return response.status(400).send({
-                name: 'bad_request', message: 'Match scores can`t bbe null'
+                name: 'bad_request',
+                message: 'Match scores can`t bbe null'
             });
         }
     }
@@ -555,8 +562,9 @@ export class MatchController extends BaseController {
         await this.matchService.createOrUpdate(match);
         this.sendMatchEvent(match, true, user);
 
-        let eventTimestamp = msFromStart ?
-            new Date(match.startTime.getTime() + msFromStart) : new Date(Date.now());
+        let eventTimestamp = msFromStart
+            ? new Date(match.startTime.getTime() + msFromStart)
+            : new Date(Date.now());
         this.matchService.logMatchEvent(matchId, 'score', 'update', periodNumber,
             eventTimestamp, user.id, 'team1score', team1Score.toString(),
             'team2score', team2Score.toString());
@@ -583,8 +591,9 @@ export class MatchController extends BaseController {
     ) {
         let match = await this.matchService.findById(matchId);
 
-        let eventTimestamp = msFromStart ?
-            new Date(match.startTime.getTime() + msFromStart) : new Date(Date.now());
+        let eventTimestamp = msFromStart
+            ? new Date(match.startTime.getTime() + msFromStart)
+            : new Date(Date.now());
         this.matchService.logMatchEvent(matchId, 'stat', gameStatCode, periodNumber,
             eventTimestamp, user.id, 'team' + teamSequence, positionId.toString(),
             'playerId', playerId ? playerId.toString() : '');
@@ -616,8 +625,10 @@ export class MatchController extends BaseController {
             match.matchStatus = "STARTED";
             await this.matchService.createOrUpdate(match);
         } else {
-            return response.status(400).send(
-                { name: 'search_error', message: `Match with id ${matchId} not found` });
+            return response.status(400).send({
+                name: 'search_error',
+                message: `Match with id ${matchId} not found`
+            });
         }
         this.sendMatchEvent(match, false, user);
         await this.matchService.logLiteMatchEvent(matchId, 'timer', 'start', 1, match.startTime, user.id);
@@ -631,8 +642,8 @@ export class MatchController extends BaseController {
         @QueryParam('matchId', { required: true }) matchId: number,
         @QueryParam('timeInMilliseconds') timeInMilliseconds: number,
         @QueryParam('clearAttendance') clearAttendance: boolean,
-        @Res() response: Response) {
-
+        @Res() response: Response
+    ) {
         let match = await this.matchService.findById(matchId);
         if (match) {
             match.team1Score = 0;
@@ -658,8 +669,10 @@ export class MatchController extends BaseController {
                 await this.matchUmpireService.deleteByMatchId(matchId);
             }
         } else {
-            return response.status(400).send(
-                { name: 'search_error', message: `Match with id ${matchId} not found` });
+            return response.status(400).send({
+                name: 'search_error',
+                message: `Match with id ${matchId} not found`
+            });
         }
         this.sendMatchEvent(match, false, user);
         await this.matchService.logLiteMatchEvent(matchId, 'timer', 'start', 1, match.startTime, user.id);
@@ -683,8 +696,10 @@ export class MatchController extends BaseController {
             match.matchStatus = "PAUSED";
             await this.matchService.createOrUpdate(match);
         } else {
-            return response.status(400).send(
-                { name: 'search_error', message: `Match with id ${matchId} not found` });
+            return response.status(400).send({
+                name: 'search_error',
+                message: `Match with id ${matchId} not found`
+            });
         }
         this.sendMatchEvent(match, false, user);
 
@@ -703,7 +718,8 @@ export class MatchController extends BaseController {
         @QueryParam('pausedMs') pausedMs: number,
         @QueryParam('isBreak') isBreak: boolean,
         @QueryParam('period') period: number,
-        @Res() response: Response) {
+        @Res() response: Response
+    ) {
         let match = await this.matchService.findById(matchId);
         if (match) {
             let totalPausedTime = pausedMs;
@@ -724,8 +740,10 @@ export class MatchController extends BaseController {
                 user.id, 'isBreak', isBreak ? "true" : "false");
             return await this.matchService.findMatchById(matchId);
         } else {
-            return response.status(400).send(
-                { name: 'search_error', message: `Match with id ${matchId} not found` });
+            return response.status(400).send({
+                name: 'search_error',
+                message: `Match with id ${matchId} not found`
+            });
         }
     }
 
@@ -737,19 +755,21 @@ export class MatchController extends BaseController {
         @QueryParam('msFromStart') msFromStart: number,
         @QueryParam('period') period: number,
         @QueryParam('scorerStatus', { required: true }) scorerStatus: "SCORER1" | "SCORER2",
-        @Res() response: Response) {
+        @Res() response: Response
+    ) {
         let match = await this.matchService.findById(matchId);
         if (match) {
             match.scorerStatus = scorerStatus;
             await this.matchService.createOrUpdate(match);
         } else {
-            return response.status(400).send(
-                { name: 'search_error', message: `Match with id ${matchId} not found` });
+            return response.status(400).send({
+                name: 'search_error',
+                message: `Match with id ${matchId} not found`
+            });
         }
         this.sendMatchEvent(match, false, user, "scorer_changed");
         let eventTimestamp = msFromStart ? new Date(match.startTime.getTime() + msFromStart) : new Date(Date.now());
-        this.matchService.logMatchEvent(matchId, 'scorer', 'changed', period, eventTimestamp,
-            user.id, 'scorerStatus', scorerStatus.toString());
+        this.matchService.logMatchEvent(matchId, 'scorer', 'changed', period, eventTimestamp, user.id, 'scorerStatus', scorerStatus.toString());
         return match;
     }
 
@@ -761,7 +781,8 @@ export class MatchController extends BaseController {
         @QueryParam('startedMsFromStart') startedMsFromStart: number,
         @BodyParam("match", { required: true }) match: Match,
         @BodyParam("score", { required: true }) scores: MatchScores,
-        @Res() response: Response) {
+        @Res() response: Response
+    ) {
         if (match) {
             const result = await this.matchScorerService.findByMatchIdAndPeriod(scores.matchId, scores.period);
             scores.id = result ? result.id : null;
@@ -772,8 +793,10 @@ export class MatchController extends BaseController {
             match.matchStatus = "ENDED";
             this.matchService.createOrUpdate(match);
         } else {
-            return response.status(400).send(
-                { name: 'search_error', message: `Match can not be empty` });
+            return response.status(400).send({
+                name: 'search_error',
+                message: `Match can not be empty`
+            });
         }
         this.sendMatchEvent(match, false, user);
 
@@ -784,16 +807,14 @@ export class MatchController extends BaseController {
             eventTimestamp = new Date(time.getTime() + startedMsFromStart);
         } else {
             const periodDuration = match.matchDuration / (match.type == 'FOUR_QUARTERS' ? 4 : 2);
-            eventTimestamp = startedMsFromStart ?
-                new Date(time.getTime() + startedMsFromStart) :
-                Date.now() - periodDuration * 1000;
+            eventTimestamp = startedMsFromStart
+                ? new Date(time.getTime() + startedMsFromStart)
+                : Date.now() - periodDuration * 1000;
         }
-        this.matchService.logMatchEvent(match.id, 'timer', 'periodStart', scores.period,
-            eventTimestamp, user.id);
+        this.matchService.logMatchEvent(match.id, 'timer', 'periodStart', scores.period, eventTimestamp, user.id);
 
         eventTimestamp = msFromStart ? new Date(time.getTime() + msFromStart) : Date.now();
-        this.matchService.logMatchEvent(match.id, 'timer', 'periodEnd', scores.period,
-            eventTimestamp, user.id);
+        this.matchService.logMatchEvent(match.id, 'timer', 'periodEnd', scores.period, eventTimestamp, user.id);
 
         // Team Ladder
         let arr = [];
@@ -806,7 +827,8 @@ export class MatchController extends BaseController {
     @Post('/broadcast')
     async broadcastMatch(
         @QueryParam('matchId', { required: true }) matchId: number,
-        @Res() response: Response) {
+        @Res() response: Response
+    ) {
         let match = await this.matchService.findById(matchId);
         if (match) {
             this.sendMatchEvent(match);
@@ -816,9 +838,8 @@ export class MatchController extends BaseController {
 
     async sendMatchEvent(match: Match, updateScore: boolean = false, user?: User, subtype?: string) {
         try {
-
             if (match) {
-                var dataDict = {};
+                const dataDict = {};
                 dataDict["type"] = "match_updated";
                 dataDict["matchId"] = match.id.toString();
                 if (user) {
@@ -828,7 +849,7 @@ export class MatchController extends BaseController {
                     dataDict["subtype"] = subtype;
                 }
 
-                //send by roster and ure
+                // send by roster and ure
                 if (!updateScore) {
                     let userDevices = await this.deviceService.findDeviceByMatch(match);
                     let tokens = (userDevices).map(device => device.deviceId);
@@ -836,7 +857,7 @@ export class MatchController extends BaseController {
                         this.firebaseService.sendMessageChunked({
                             tokens: tokens,
                             data: dataDict
-                        })
+                        });
                     }
                 }
 
@@ -872,7 +893,8 @@ export class MatchController extends BaseController {
         @QueryParam('matchId', { required: true }) matchId: number,
         @QueryParam('centrePassStatus', { required: true }) centrePassStatus: "TEAM1" | "TEAM2",
         @QueryParam('centrePassWonBy') centrePassWonBy: "TEAM1" | "TEAM2",
-        @Res() response: Response) {
+        @Res() response: Response
+    ) {
         let match = await this.matchService.findById(matchId);
         if (match) {
             match.centrePassStatus = centrePassStatus;
@@ -881,8 +903,10 @@ export class MatchController extends BaseController {
             }
             this.matchService.createOrUpdate(match);
         } else {
-            return response.status(400).send(
-                { name: 'search_error', message: `Match with id ${matchId} not found` });
+            return response.status(400).send({
+                name: 'search_error',
+                message: `Match with id ${matchId} not found`
+            });
         }
         this.sendMatchEvent(match, false, user, "centre_pass_changed");
         return match;
@@ -895,14 +919,17 @@ export class MatchController extends BaseController {
         @QueryParam('matchId') matchId: number = undefined,
         @QueryParam('updateMatchEvents') updateMatchEvents: boolean,
         @BodyParam("lineups", { required: true }) lineups: Lineup[],
-        @Res() response: Response) {
+        @Res() response: Response
+    ) {
         try {
             if (lineups) {
                 if (teamId && matchId) {
                     await this.matchService.deleteLineups(matchId, teamId);
                 } else if ((!teamId && matchId) || (teamId && !matchId)) {
-                    return response.status(400).send(
-                        { name: 'validation_error', message: `Match Id and team Id can not be null` });
+                    return response.status(400).send({
+                        name: 'validation_error',
+                        message: `Match Id and team Id can not be null`
+                    });
                 }
                 if (teamId && matchId) {
                     await this.checkLineupsForExisting(matchId, teamId, lineups);
@@ -914,13 +941,17 @@ export class MatchController extends BaseController {
                 }
                 return response.status(200).send({ success: true });
             } else {
-                return response.status(400).send(
-                    { name: 'validation_error', message: `Lineups can not be null` });
+                return response.status(400).send({
+                    name: 'validation_error',
+                    message: `Lineups can not be null`
+                });
             }
         } catch (e) {
             logger.error(`Failed to create lineup`, e);
-            return response.status(400).send(
-                { name: 'validation_error', message: `Failed to create lineup` });
+            return response.status(400).send({
+                name: 'validation_error',
+                message: `Failed to create lineup`
+            });
         }
     }
 
@@ -932,7 +963,8 @@ export class MatchController extends BaseController {
         @QueryParam('teamId', { required: true }) teamId: number,
         @QueryParam('playerId') playerId: number,
         @QueryParam('positionId') positionId: number,
-        @Res() response: Response) {
+        @Res() response: Response
+    ) {
         return this.matchService.findLineupsByParam(matchId, competitionId, teamId, playerId, positionId);
     }
 
@@ -947,8 +979,10 @@ export class MatchController extends BaseController {
             savedLineup.playing = lineup.playing;
             return this.lineupService.createOrUpdate(savedLineup);
         } else {
-            return response.status(400).send(
-                { name: 'search_error', message: `Lineup with id ${lineup.id} not found` });
+            return response.status(400).send({
+                name: 'search_error',
+                message: `Lineup with id ${lineup.id} not found`
+            });
         }
     }
 
@@ -961,9 +995,7 @@ export class MatchController extends BaseController {
         @Body() lineups: Lineup[],
         @Res() response: Response
     ) {
-        console.time('matchService.findById');
         let match = await this.matchService.findById(matchId);
-        console.timeEnd('matchService.findById');
         if (match.matchStatus != 'ENDED') {
             if (lineups.length > 0) {
                 if (matchId && teamId) {
@@ -1024,7 +1056,6 @@ export class MatchController extends BaseController {
         @Body() lineup: Lineup,
         @Res() response: Response
     ) {
-
         if (lineup) {
             console.time('matchService.findById');
             let match = await this.matchService.findById(lineup.matchId);
@@ -1048,7 +1079,10 @@ export class MatchController extends BaseController {
             }
             return response.status(200).send({ success: true });
         } else {
-            return response.status(400).send({ name: 'delete_lineup_error', message: 'List lineup is empty' });
+            return response.status(400).send({
+                name: 'delete_lineup_error',
+                message: 'List lineup is empty'
+            });
         }
     }
 
@@ -1135,11 +1169,10 @@ export class MatchController extends BaseController {
             }
             return data;
         } else {
-            return response.status(212)
-                .send({
-                    success: false,
-                    message: "None of the match data got updated"
-                });
+            return response.status(212).send({
+                success: false,
+                message: "None of the match data got updated"
+            });
         }
     }
 
@@ -1203,7 +1236,6 @@ export class MatchController extends BaseController {
 
     private async performTeamLadderOperation(matches: Match[], userId) {
         try {
-
             let divisionMap = new Map();
             let arr = [];
             //Team Ladder Operation
@@ -1213,7 +1245,6 @@ export class MatchController extends BaseController {
                     if (ladderSettings == undefined) {
                         ladderSettings = await this.competitionLadderSettingsService.getByCompetitionDivisionId(item.competitionId, item.divisionId);
                         divisionMap.set(item.divisionId, ladderSettings);
-                        // console.log("Ladder Settings" + JSON.stringify(ladderSettings));
                     }
 
                     if (isArrayPopulated(ladderSettings)) {
@@ -1224,7 +1255,7 @@ export class MatchController extends BaseController {
                     }
                 }
             }
-            // console.log("final::" + JSON.stringify(arr));
+
             if (isArrayPopulated(arr)) {
                 await this.teamLadderService.batchCreateOrUpdate(arr);
             }
@@ -1246,7 +1277,6 @@ export class MatchController extends BaseController {
         @QueryParam('newDate') newDate: Date,
         @Res() response: Response
     ) {
-
         let matchesData = await this.matchService.findByDate(new Date(startTimeStart), new Date(startTimeEnd))
         let arr = [];
         if (newDate) {
@@ -1254,9 +1284,7 @@ export class MatchController extends BaseController {
                 match.startTime = new Date(newDate);
                 arr.push(match);
             }
-
         } else {
-
             if (type == 'backward') {
                 for (let match of matchesData) {
                     let myDate = new Date(match.startTime);
@@ -1270,7 +1298,7 @@ export class MatchController extends BaseController {
                         myDate.setSeconds(myDate.getSeconds() + seconds);
                     }
                     match.startTime = new Date(myDate);
-                    arr.push(match)
+                    arr.push(match);
                 }
             } else if (type == 'forward') {
                 for (let match of matchesData) {
@@ -1285,7 +1313,7 @@ export class MatchController extends BaseController {
                         myDate.setSeconds(myDate.getSeconds() - seconds);
                     }
                     match.startTime = new Date(myDate);
-                    arr.push(match)
+                    arr.push(match);
                 }
             }
         }
@@ -1306,19 +1334,17 @@ export class MatchController extends BaseController {
         @QueryParam('round2', { required: true }) round2: string,
         @Res() response: Response
     ) {
-
         let firstRoundArray = await this.roundService.findByName(competitionId, round1);
         let secondRoundArray = await this.roundService.findByName(competitionId, round2);
         if (isArrayPopulated(firstRoundArray) && isArrayPopulated(secondRoundArray)) {
             for (let r1 of firstRoundArray) {
                 for (let r2 of secondRoundArray) {
-                    if (r2.divisionId = r1.divisionId) {
+                    if (r2.divisionId === r1.divisionId) {
                         let firstMatchesArray = await this.matchService.findByRound(r1.id);
                         let secondMatchesArray = await this.matchService.findByRound(r2.id);
                         if (isArrayPopulated(firstMatchesArray) && isArrayPopulated(secondMatchesArray)) {
                             let secondMatchTemplate = secondMatchesArray[0];
                             if (secondMatchTemplate.startTime) {
-
                                 for (let m1 of firstMatchesArray) {
                                     m1.startTime = secondMatchTemplate.startTime;
                                     m1.type = 'TWO_HALVES';
@@ -1341,14 +1367,12 @@ export class MatchController extends BaseController {
                             }
 
                             return response.status(200).send({ success: true });
-
                         } else {
                             return response.status(212).json({
                                 success: false,
                                 message: "cannot find matches with the provided rounds"
                             })
                         }
-
                     }
                 }
             }
@@ -1367,112 +1391,116 @@ export class MatchController extends BaseController {
         @UploadedFile("file", { required: true }) file: Express.Multer.File,
         @Res() response: Response
     ) {
+        const requiredField = [
+            'Date',
+            'Time',
+            'Grade',
+            'Home Team',
+            'Home Team Score',
+            'Away Team',
+            'Away Team Score',
+            'Venue',
+            'type',
+            'matchDuration',
+            'breakDuration',
+            'mnbMatchId',
+            'mainBreakDuration',
+            'Timezone GMT',
+            'Round'
+        ];
 
         let bufferString = file.buffer.toString('utf8');
         let arr = bufferString.split('\n');
-        var jsonObj = [];
-        var headers = arr[0].split(',');
-        for (var i = 1; i < arr.length; i++) {
-            var data = arr[i].split(',');
-            var obj = {};
-            for (var j = 0; j < data.length; j++) {
+        const jsonObj = [];
+        const headers = arr[0].split(',');
+        for (let i = 1; i < arr.length; i++) {
+            const data = arr[i].split(',');
+            const obj = {};
+            for (let j = 0; j < data.length; j++) {
                 obj[headers[j].trim()] = data[j].trim();
             }
             jsonObj.push(obj);
         }
 
-        JSON.stringify(jsonObj);
+        const { result: importArr, message } = validationForField({
+            filedList: requiredField,
+            values: jsonObj
+        });
+
         let queryArr = [];
-        for (let i of jsonObj) {
-            if (i.Date !== "") {
-                var dateArray = i.Date.split(".");
-                var str = i.Time;
-                var timeZoneString = i["Timezone GMT"];
-                if (i["Timezone GMT"].includes(":")) {
-                    timeZoneString = i["Timezone GMT"].split(":")[0];
-                }
-                var hr;
-                var min;
-                //"2011-10-10T14:48:00.000+09:00"
-                if (str.includes("P")) {
-                    var array = str.split("P");
-                    var timeArray = array[0].split(":");
-                    hr = parseInt(timeArray[0]) + 12;
-                    min = parseInt(timeArray[1]);
-                } else {
-                    var array = str.split("A");
-                    var timeArray = array[0].split(":");
-                    hr = parseInt(timeArray[0]);
-                    min = parseInt(timeArray[1]);
-                }
-
-                let stringHr = hr + '';
-                if (hr >= 0 && hr <= 9) {
-                    stringHr = '0' + hr
-                }
-
-                let stringMin = min + '';
-                if (min >= 0 && min <= 9) {
-                    stringMin = '0' + min
-                }
-
-                let timeZone = `${dateArray[2]}-${dateArray[1]}-${dateArray[0]}T${stringHr}:${stringMin}:00.000+${timeZoneString}:00`;
-                let startTimeinUTC = new Date(timeZone);
-                let divisionData = await this.divisionService.findByName(i["Grade"], competitionId);
-                let team1Data = await this.teamService.findByNameAndCompetition(i["Home Team"], competitionId);
-                let team2Data = await this.teamService.findByNameAndCompetition(i["Away Team"], competitionId);
-                let venueData = await this.competitionVenueService.findByCourtName(i["Venue"], competitionId);
+        for (let i of importArr) {
+            const date = trim(i.Date);
+            if (date !== "") {
+                let timeZone = parseDateTimeZoneString(date, trim(i.Time), trim(i["Timezone GMT"]));
+                let startTimeInUTC = new Date(timeZone);
+                let divisionData = await this.divisionService.findByName(trim(i["Grade"]), competitionId);
+                let team1Data = await this.teamService.findByNameAndCompetition(trim(i["Home Team"]), competitionId);
+                let team2Data = await this.teamService.findByNameAndCompetition(trim(i["Away Team"]), competitionId);
+                let venueData = await this.competitionVenueService.findByCourtName(trim(i["Venue"]), competitionId);
                 let roundData;
-                if (divisionData && divisionData[0] != null) {
-                    let rounds = await this.roundService.findByName(competitionId, i["Round"], divisionData[0].id);
+                if (divisionData && !!divisionData[0] && !!team1Data[0] && !!team2Data[0] && !!venueData[0]) {
+                    const roundName = trim(i["Round"]);
+                    let rounds = await this.roundService.findByName(competitionId, roundName, divisionData[0].id);
                     roundData = rounds[0];
-                } else {
-                    return response.status(400).send({
-                        name: 'validation_error',
-                        message: `Issue uploading matches, The divisions entered is not associated with this competition`
-                    });
-                }
 
-                if (!roundData) {
-                    let round = new Round();
-                    let value = stringTONumber(i["Round"].split(" ")[1]);
-                    round.competitionId = competitionId;
-                    if (divisionData && divisionData[0] != null) {
-                        round.divisionId = divisionData[0].id;
+                    if (!roundData) {
+                        let round = new Round();
+                        const roundSplitStr = roundName.split(" ");
+                        let value = stringTONumber(roundSplitStr.length > 1 ? roundSplitStr[1] : roundSplitStr[0]);
+                        round.competitionId = competitionId;
+                        if (divisionData && divisionData[0] != null) {
+                            round.divisionId = divisionData[0].id;
+                        }
+                        round.name = roundName;
+                        round.sequence = value;
+                        roundData = await this.roundService.createOrUpdate(round);
                     }
-                    round.name = i.Round;
-                    round.sequence = value;
-                    roundData = await this.roundService.createOrUpdate(round);
-                }
 
-                let match = new Match();
-                match.startTime = startTimeinUTC;
-                match.competitionId = competitionId;
-                match.type = i.type;
-                match.matchDuration = i.matchDuration;
-                match.breakDuration = i.breakDuration;
-                match.mainBreakDuration = i.mainBreakDuration;
-                match.mnbMatchId = i.mnbMatchId;
-                match.roundId = roundData.id;
-                if (venueData && venueData[0] != null) {
-                    match.venueCourtId = venueData[0].id;
-                }
-                match.team1Score = 0;
-                match.team2Score = 0;
+                    let match = new Match();
+                    match.startTime = startTimeInUTC;
+                    match.competitionId = competitionId;
+                    match.type = trim(i.type);
+                    match.matchDuration = stringTONumber(trim(i.matchDuration));
+                    match.breakDuration = stringTONumber(trim(i.breakDuration));
+                    match.mainBreakDuration = stringTONumber(trim(i.mainBreakDuration));
+                    match.mnbMatchId = trim(i.mnbMatchId);
+                    match.roundId = roundData.id;
+                    if (venueData && venueData[0] != null) {
+                        match.venueCourtId = venueData[0].id;
+                    }
+                    match.team1Score = 0;
+                    match.team2Score = 0;
 
-                if (divisionData.length > 0)
-                    match.divisionId = divisionData[0].id;
-                if (team1Data.length > 0)
-                    match.team1Id = team1Data[0].id; //team1Data is an array
-                if (team2Data.length > 0)
-                    match.team2Id = team2Data[0].id; //team2Data is an array
-                queryArr.push(match);
+                    if (divisionData.length > 0) match.divisionId = divisionData[0].id;
+                    if (team1Data.length > 0) match.team1Id = team1Data[0].id;
+                    if (team2Data.length > 0) match.team2Id = team2Data[0].id;
+                    queryArr.push(match);
+                } else {
+                    message[`Line ${i.line}`] = [];
+                    if (!divisionData[0]) {
+                        message[`Line ${i.line}`].push('The divisions entered is not associated with this competition.');
+                    }
+                    if (!team1Data[0]) {
+                        message[`Line ${i.line}`].push(`Can't find the team named as '${trim(i['Home Team'])}'`);
+                    }
+                    if (!team2Data[0]) {
+                        message[`Line ${i.line}`].push(`Can't find the team named as '${trim(i['Away Team'])}'`);
+                    }
+                    if (!venueData[0]) {
+                        message[`Line ${i.line}`].push(`Can't find the venue named as '${trim(i['Venue'])}'`);
+                    }
+                }
             }
         }
+        const resMsg = `${jsonObj.length} data processed. ${queryArr.length} data successfully imported and ${jsonObj.length - queryArr.length} data are failed.`;
 
         await this.matchService.batchCreateOrUpdate(queryArr);
-        return response.status(200).send({ success: true });
-
+        return response.status(200).send({
+            success: true,
+            message: resMsg,
+            error: message,
+            data: queryArr
+        });
     }
 
     @Authorized()
@@ -1483,7 +1511,8 @@ export class MatchController extends BaseController {
         @QueryParam('endTime', { required: true }) endTime: Date,
         @QueryParam('fromCourtIds', { required: true }) fromCourtIds: number[],
         @QueryParam('toCourtId', { required: true }) toCourtId: number,
-        @Res() response: Response): Promise<any> {
+        @Res() response: Response
+    ): Promise<any> {
         const getMatches = await this.matchService.getMatchDetailsForVenueCourtUpdate(competitionId, startTime, endTime, fromCourtIds);
         if (isArrayPopulated(getMatches)) {
             const mArray = [];
@@ -1519,8 +1548,8 @@ export class MatchController extends BaseController {
         @QueryParam('offset') offset: number = undefined,
         @QueryParam('limit') limit: number = undefined,
         @QueryParam('search') search: string,
-        @Res() response: Response): Promise<any> {
-
+        @Res() response: Response
+    ): Promise<any> {
         const getMatchesData = await this.find(from, to, teamIds, playerIds, competitionId, null, organisationIds, matchEnded, matchStatus, null, null, null);
 
         if (isArrayPopulated(getMatchesData)) {

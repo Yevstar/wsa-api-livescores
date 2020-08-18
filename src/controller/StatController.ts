@@ -39,9 +39,11 @@ export class StatController extends BaseController {
         @QueryParam('teamId') teamId: number = undefined,
         @QueryParam('matchId') matchId: number = undefined,
         @Body() requestFilter: RequestFilter,
+        @QueryParam('sortBy') sortBy: string = undefined,
+        @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined,
         @Res() response: Response) {
         if (competitionId && aggregate && requestFilter) {
-                return this.playerService.loadGameTime(competitionId, aggregate, teamId, matchId, requestFilter);
+                return this.playerService.loadGameTime(competitionId, aggregate, teamId, matchId, requestFilter, sortBy, sortOrder);
         } else {
             return response.status(200).send(
                 {name: 'search_error', message: `Required fields are missing`});
@@ -93,6 +95,8 @@ export class StatController extends BaseController {
         @QueryParam('offset') offset: number,
         @QueryParam('limit') limit: number,
         @QueryParam('search') search: string,
+        @QueryParam('sortBy') sortBy: string = undefined,
+        @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined,
         @Res() response: Response
     ) {
         if (!competitionId) {
@@ -116,7 +120,9 @@ export class StatController extends BaseController {
             limit,
             search,
             divisionId,
-            noOfTeams
+            noOfTeams,
+            sortBy,
+            sortOrder
         );
         if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit) && isArrayPopulated(getScoringData.count)) {
             return { ...paginationData(stringTONumber(getScoringData.count[0]['totalCount']), limit, offset), result: getScoringData.finalData }
@@ -233,7 +239,9 @@ export class StatController extends BaseController {
             null,
             search,
             divisionId,
-            noOfTeams
+            noOfTeams,
+            null,
+            null
         );
 
         if (isArrayPopulated(playerScoreData)) {
@@ -310,9 +318,11 @@ export class StatController extends BaseController {
         @QueryParam('matchId') matchId: number = undefined,
         @QueryParam('search') search: string = undefined,
         @Body() requestFilter: RequestFilter,
+        @QueryParam('sortBy') sortBy: string = undefined,
+        @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined,
         @Res() response: Response) {
         if (competitionId) {
-            return this.gameTimeAttendanceService.loadPositionTrackingStats(aggregate, reporting, competitionId, teamId, matchId, search, requestFilter);
+            return this.gameTimeAttendanceService.loadPositionTrackingStats(aggregate, reporting, competitionId, teamId, matchId, search, requestFilter, sortBy, sortOrder);
         } else {
             return response.status(200).send(
                 {name: 'search_error', message: `Competition id required field`});

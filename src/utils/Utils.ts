@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import * as jwt from "jwt-simple";
-import AWS from 'aws-sdk';
+import AWS from "aws-sdk";
+import { BaseEntity } from "typeorm-plus";
+import validator from "email-validator";
 
 export function md5(password: string): string {
     return crypto.createHash('md5').update(password).digest("hex");
@@ -77,7 +79,7 @@ export function stringTONumber(checkString: string | number): number {
 }
 
 export function stringToBoolean(value: string | number | boolean): boolean {
-    switch(value) {
+    switch (value) {
         case true:
         case "true":
         case 1:
@@ -89,15 +91,15 @@ export function stringToBoolean(value: string | number | boolean): boolean {
 }
 
 export function decrypt(data) {
-    var decipher = crypto.createDecipher('aes-256-cbc', process.env.ENCRYPT_TOKEN)
-    var dec = decipher.update(data, 'hex', 'utf8')
+    const decipher = crypto.createDecipher('aes-256-cbc', process.env.ENCRYPT_TOKEN);
+    let dec = decipher.update(data, 'hex', 'utf8');
     dec += decipher.final('utf8');
     return dec;
 }
 
 export function encrypt(data) {
-    var cipher = crypto.createCipher('aes-256-cbc', process.env.ENCRYPT_TOKEN)
-    var crypted = cipher.update(data, 'utf8', 'hex')
+    const cipher = crypto.createCipher('aes-256-cbc', process.env.ENCRYPT_TOKEN);
+    let crypted = cipher.update(data, 'utf8', 'hex');
     crypted += cipher.final('hex');
     return crypted;
 }
@@ -121,6 +123,7 @@ export function paginationData(totalCount: number, LIMIT: number, OFFSET: number
 export function isNotNullAndUndefined(value: any): Boolean {
     return value !== null && value !== undefined;
 }
+
 export function isEmpty(value: any): Boolean {
     return value == null || value == '';
 }
@@ -144,21 +147,36 @@ export function objectIsNotEmpty(obj) {
     return false;
 }
 
-export const fileUploadOptions =  {
+export const fileUploadOptions = {
     limits: {
         fileSize: process.env.FILE_UPLOAD_SIZE
     }
 };
 
 export function parseDateString(dateStr: string): Date {
-    const dobStr = dateStr.split('/');
-
-    let year = parseInt(dobStr[2]);
-    if (year < 100) {
-        year += 2000;
+    let dStr = trim(dateStr);
+    const split = dStr.split('/');
+    const dobStr = split.length === 3 ? split : dStr.split('.');
+    if (dobStr.length !== 3) {
+        return new Date(-1, 0, 0);
     }
 
-    const month = Math.max(1, Math.min(12, parseInt(dobStr[1])));
+    let year = parseInt(dobStr[2], 10);
+    if (Number.isNaN(year) || year < 0) {
+        return new Date(-1, 0, 0);
+    }
+
+    // TODO: need to confirm from when we will think 21th
+    if (year < 30) {
+        year += 2000;
+    } else if (year < 100) {
+        year += 1900;
+    }
+
+    const month = parseInt(dobStr[1], 10);
+    if (Number.isNaN(month) || month < 1 || month > 12) {
+        return new Date(-1, 0, 0);
+    }
 
     let dateMax = 31;
     if ([4, 6, 9, 11].indexOf(month)) {
@@ -170,11 +188,96 @@ export function parseDateString(dateStr: string): Date {
             dateMax = 28;
         }
     }
-    const date = Math.max(1, Math.min(dateMax, parseInt(dobStr[0])));
+
+    const date = parseInt(dobStr[0], 10);
+    if (Number.isNaN(date) || date < 1 || date > dateMax) {
+        return new Date(-1, 0, 0);
+    }
 
     return new Date(year, month - 1, date);
 }
 
 export function formatPhoneNumber(phoneNumber: string): string {
-    return (phoneNumber && phoneNumber.charAt(0) === '4') ? `0${phoneNumber}` : phoneNumber;
+    let phone = trim(phoneNumber);
+    return (phone && phone.charAt(0) === '4') ? `0${phone}` : phone;
+}
+
+export function validationForField({ filedList, values }: { filedList: string[], values: any[] }) {
+    const message = {};
+    const successRes: any[] = [];
+    const templateRes: BaseEntity[] = [];
+
+    values.forEach((val, index) => {
+        const msg: string[] = [];
+        if (val.error) {
+            msg.push(val.error);
+        } else {
+            filedList.forEach((field) => {
+                if (isNullOrEmpty(val[field])) {
+                    msg.push(`The field '${field}' is required.`);
+                } else {
+                    if (field === 'dateOfBirth') {
+                        const date = parseDateString(val[field]);
+
+                        if (date.getFullYear() < 1000) {
+                            msg.push(`The '${field}' value is invalid date.`);
+                        }
+
+                        val[field] = `${date.getDate()}.${date.getMonth()}.${date.getFullYear()}`;
+                    } else if (field.toLowerCase() === 'email' && !validator.validate(val[field])) {
+                        msg.push(`The '${field}' value is invalid email.`);
+                    }
+                }
+            });
+        }
+
+        if (msg.length === 0) {
+            templateRes.push(val);
+            successRes.push({ ...val, line: index + 2 });
+        } else {
+            message[`Line ${index + 2}`] = msg;
+        }
+    });
+    return { result: successRes, templateResult: templateRes, message };
+}
+
+export function zeroFill(len, number) {
+    const zVal = String(10 ** (len - String(number + '').length));
+    const zeros = zVal.slice(1, zVal.length);
+    return zeros + number;
+}
+
+export function parseDateTimeZoneString(date, time, timezone) {
+    let timeArray;
+    let array;
+
+    const dateArray = date.split('.');
+    let timeZoneString = timezone;
+    if (timezone.includes(':')) {
+        timeZoneString = timezone.split(':')[0];
+    }
+
+    let hr;
+    let min;
+    // 2011-10-10T14:48:00.000+09:00
+    if (time.includes('P')) {
+        array = time.split('P');
+        timeArray = array[0].split(':');
+        hr = parseInt(timeArray[0], 10) + 12;
+        min = parseInt(timeArray[1], 10);
+    } else {
+        array = time.split('A');
+        timeArray = array[0].split(':');
+        hr = parseInt(timeArray[0], 10);
+        min = parseInt(timeArray[1], 10);
+    }
+
+    return `${zeroFill(4, dateArray[2])}-${zeroFill(2, dateArray[1])}-${zeroFill(2, dateArray[0])}T${zeroFill(2, hr)}:${zeroFill(2, min)}:00.000+${zeroFill(2, timeZoneString)}:00`;
+}
+
+export function trim(value) {
+    if (value && typeof value === 'string') {
+        return value.trim();
+    }
+    return value;
 }

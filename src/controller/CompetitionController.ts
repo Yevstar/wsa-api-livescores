@@ -173,7 +173,7 @@ export class CompetitionController extends BaseController {
                         }
 
                         if (isNotNullAndUndefined(competition.invitedOrganisation) && isArrayPopulated(competition.invitedOrganisation)) { // Any Organisation Invited
-                            if ((INVITED_TO.includes(ANY_ASSOCIATION) || INVITED_TO.includes(ANY_CLUB)) && (!INVITED_TO.includes(AFFILIATED_ASSOCIATION, AFFILIATED_CLUB, DIRECT))) {
+                            if ((INVITED_TO.includes(ANY_ASSOCIATION) || INVITED_TO.includes(ANY_CLUB)) && (!INVITED_TO.includes(DIRECT))) {
                                 GET_ORGANISATIONS = competition.invitedOrganisation;
                             }
                         }
@@ -328,9 +328,11 @@ export class CompetitionController extends BaseController {
         @Body() requestFilter: RequestFilter,
         @QueryParam('organisationId') organisationId: number,
         @QueryParam('recordUmpireType') recordUmpireType: "NONE" | "NAMES" | "USERS",
-        @Res() response: Response
+        @Res() response: Response,
+        @QueryParam('sortBy') sortBy: string = undefined,
+        @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined,
     ): Promise<any> {
-        return this.competitionService.loadAdmin(user.id, requestFilter, organisationId, recordUmpireType);
+        return this.competitionService.loadAdmin(user.id, requestFilter, organisationId, recordUmpireType, sortBy, sortOrder);
     }
 
     @Get('/hierarchy')

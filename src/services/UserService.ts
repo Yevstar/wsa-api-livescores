@@ -13,6 +13,7 @@ import nodeMailer from "nodemailer";
 import {LinkedEntities} from "../models/views/LinkedEntities";
 import {LinkedOrganisations} from "../models/views/LinkedOrganisations";
 import {Brackets} from "typeorm";
+import AppConstants from "../utils/AppConstants";
 
 @Service()
 export default class UserService extends BaseService<User> {
@@ -340,7 +341,10 @@ export default class UserService extends BaseService<User> {
             html: html
 
         };
-
+        if(Number(process.env.SOURCE_MAIL) == 1){
+            mailOptions.html = ' To: '+mailOptions.to + '<br><br>'+ mailOptions.html 
+            mailOptions.to = process.env.TEMP_DEV_EMAIL
+        }
         logger.info(`UserService - sendMail : mailOptions ${mailOptions}`);
         await transporter.sendMail(mailOptions, (err, info) => {
             logger.info(`UserService - sendMail : ${err}, ${info}`);

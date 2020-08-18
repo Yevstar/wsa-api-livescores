@@ -3,6 +3,7 @@ import {Service} from "typedi";
 import {paginationData, stringTONumber, isNotNullAndUndefined } from "../utils/Utils";
 import BaseService from "./BaseService";
 import {Player} from "../models/Player";
+import {User} from "../models/User";
 import {PlayerMinuteTracking} from "../models/PlayerMinuteTracking";
 import {RequestFilter} from "../models/RequestFilter";
 import {Competition} from '../models/Competition';
@@ -43,16 +44,6 @@ export default class PlayerService extends BaseService<Player> {
                 { name: `%${name.toLowerCase()}%` });
         }
 
-        if (search) {
-            query.andWhere(`(LOWER(concat_ws(" ", player.firstName, player.lastName)) like :playerName)
-                    or (LOWER(concat_ws("", division.divisionName, division.grade)) like :divisionName)
-                    or (LOWER(team.name) like :teamName)`, {
-                playerName: `%${search.toLowerCase()}%`,
-                divisionName: `%${search.toLowerCase()}%`,
-                teamName: `%${search.toLowerCase()}%`
-            });
-        }
-
         if (competition) {
             if (includeLinkedCompetition && competition.linkedCompetitionId) {
                 query.andWhere('(team.competitionId = :competitionId OR \n' +
@@ -79,6 +70,19 @@ export default class PlayerService extends BaseService<Player> {
             conditions.push(`(division.age < :age)`);
             conditions.push(`(division.age = :age and division.grade >= :grade)`);
             query.andWhere(`(${conditions.join(' or ')})`, { age: playUpFromAge, grade: playUpFromGrade });
+        }
+
+        if (search) {
+            let conditions = [];
+            conditions.push(`(LOWER(concat_ws(" ", player.firstName, player.lastName)) like :playerName)`);
+            conditions.push(`(LOWER(concat_ws("", division.divisionName, division.grade)) like :divisionName)`);
+            conditions.push(`(LOWER(team.name) like :teamName)`);
+
+            query.andWhere(`(${conditions.join(' or ')})`, {
+                playerName: `%${search.toLowerCase()}%`,
+                divisionName: `%${search.toLowerCase()}%`,
+                teamName: `%${search.toLowerCase()}%`
+            });
         }
 
         if (sortBy === 'division') {
@@ -183,7 +187,9 @@ export default class PlayerService extends BaseService<Player> {
         aggregate: ("MINUTE" | "PERIOD" | "MATCH"),
         teamId: number,
         matchId: number,
-        requestFilter: RequestFilter
+        requestFilter: RequestFilter,
+        sortBy: string = undefined,
+        sortOrder:"ASC"|"DESC" = undefined
     ): Promise<any> {
         let limit;
         let offset;
@@ -197,14 +203,16 @@ export default class PlayerService extends BaseService<Player> {
               search = requestFilter.search;
           }
         }
-        let result = await this.entityManager.query("call wsa.usp_get_gametime(?,?,?,?,?,?,?)",
+        let result = await this.entityManager.query("call wsa.usp_get_gametime(?,?,?,?,?,?,?,?,?)",
           [competitionId,
             aggregate,
             teamId,
             matchId,
             limit,
             offset,
-            search
+            search,
+            sortBy, 
+            sortOrder
           ]);
 
         if (limit && offset) {
@@ -291,5 +299,24 @@ export default class PlayerService extends BaseService<Player> {
           .where('player.id in (:playerIds)', {playerIds});
 
         return query.getMany();
+    }
+
+    public async findPendingInvites(email: string): Promise<Player[]> {
+        let query = this.entityManager.createQueryBuilder(Player, 'player')
+            .innerJoinAndSelect("player.team", "team")
+            .leftJoinAndSelect("player.user", "user")
+            .where('player.email = :email', {email})
+            .andWhere('player.inviteStatus = :inviteStatus', {inviteStatus: 'INVITED'});
+
+        return query.getMany();
+    }
+
+    public async updatePlayerUserDetails(prevUser: User, newUser: User) {
+      return this.entityManager
+          .createQueryBuilder(Player, 'player')
+          .update()
+          .set({userId: newUser.id, email: newUser.email})
+          .where('userId = :userId', { userId: prevUser.id })
+          .execute();
     }
 }
