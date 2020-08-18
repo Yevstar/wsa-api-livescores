@@ -491,13 +491,12 @@ export default class MatchService extends BaseService<Match> {
                 null,
                 null
             );
-            const matches = matchFound.result;
-            let filteredMatches = matches;
+            let filteredMatches = matchFound.result;
             if (teamIds !== null) {
-                filteredMatches = matches.filter((match) => match.team1Id === teamIds || match.team2Id === teamIds);
+                filteredMatches = filteredMatches.filter((match) => match.team1Id === teamIds || match.team2Id === teamIds);
             }
             if (roundId !== null) {
-                filteredMatches = matches.filter((match) => match.round.id === roundId);
+                filteredMatches = filteredMatches.filter((match) => match.round.id === roundId);
             }
             let pdfBuf: Buffer;
 

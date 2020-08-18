@@ -2,7 +2,6 @@ import moment from 'moment';
 
 import {Organisation} from '../models/Organisation';
 import {Match} from '../models/Match';
-import {Player} from '../models/Player';
 import {MatchUmpire} from '../models/MatchUmpire';
 
 const getMatchSheetTemplate = (
@@ -13,8 +12,13 @@ const getMatchSheetTemplate = (
   umpires: MatchUmpire[],
   match: Match
 ) => {
-  const team1PlayersRef = [...team1players, ...Array(15 - team1players.length).fill(null)];
-  const team2PlayersRef = [...team2players, ...Array(15 - team2players.length).fill(null)];
+  const team1PlayersRef = team1players.length < 15
+    ? [...team1players, ...Array(15 - team1players.length).fill(null)]
+    : team1players;
+  const team2PlayersRef = team2players.length < 15
+    ? [...team2players, ...Array(15 - team2players.length).fill(null)]
+    : team2players;
+
   return `
     <!doctype html>
     <html>
