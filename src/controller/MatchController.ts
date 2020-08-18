@@ -1653,6 +1653,7 @@ export class MatchController extends BaseController {
         @QueryParam('competitionId') competitionId: number,
         @QueryParam('teamIds') teamIds: number[],
         @QueryParam('templateType') templateType: string,
+        @QueryParam('roundId') roundId: number,
         @Res() response: Response
     ): Promise<any> {
         try {
@@ -1666,6 +1667,7 @@ export class MatchController extends BaseController {
                 competition,
                 divisionIds,
                 teamIds,
+                roundId,
             ).then((matchSheet) => {
                 this.matchSheetService.createOrUpdate(matchSheet);
             });

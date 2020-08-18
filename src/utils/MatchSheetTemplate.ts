@@ -13,6 +13,8 @@ const getMatchSheetTemplate = (
   umpires: MatchUmpire[],
   match: Match
 ) => {
+  const team1PlayersRef = [...team1players, ...Array(15 - team1players.length).fill(null)];
+  const team2PlayersRef = [...team2players, ...Array(15 - team2players.length).fill(null)];
   return `
     <!doctype html>
     <html>
@@ -321,10 +323,10 @@ const getMatchSheetTemplate = (
                                 <div class="cell">3</div>
                                 <div class="cell">4</div>
                             </div>
-                            ${team1players.length > 0 ? team1players.map((player, index) => (
+                            ${team1PlayersRef.length > 0 ? team1PlayersRef.map((player, index) => (
                                 `<div class="row">
-                                    <div class="cell">${player.playerId || ''}</div>
-                                    <div class="largeCell">${player.firstName || ''} ${player.lastName || ''}</div>
+                                    <div class="cell">${player && player.playerId || ''}</div>
+                                    <div class="largeCell">${player && player.firstName || ''} ${player && player.lastName || ''}</div>
                                     <div class="largeCell"></div>
                                     <div class="cell"></div>
                                     <div class="cell"></div>
@@ -345,10 +347,10 @@ const getMatchSheetTemplate = (
                                 <div class="cell">3</div>
                                 <div class="cell">4</div>
                             </div>
-                            ${team2players.length > 0 ? team2players.map((player, index) => (
+                            ${team2PlayersRef.length > 0 ? team2PlayersRef.map((player, index) => (
                                 `<div class="row">
-                                    <div class="cell">${player.playerId || ''}</div>
-                                    <div class="largeCell">${player.firstName || ''} ${player.lastName || ''}</div>
+                                    <div class="cell">${player && player.playerId || ''}</div>
+                                    <div class="largeCell">${player && player.firstName || ''} ${player && player.lastName || ''}</div>
                                     <div class="largeCell"></div>
                                     <div class="cell"></div>
                                     <div class="cell"></div>

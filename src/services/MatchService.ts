@@ -463,6 +463,7 @@ export default class MatchService extends BaseService<Match> {
      * @param {Competition} competition
      * @param {number[]} divisionIds
      * @param {number[]} teamIds
+     * @param {number} roundId
      * @returns {String} - generated PDF download link
      */
     public async printMatchSheetTemplate(
@@ -472,6 +473,7 @@ export default class MatchService extends BaseService<Match> {
         competition: Competition,
         divisionIds: number[],
         teamIds: number[],
+        roundId: number,
     ): Promise<MatchSheet> {
         try {
             const matchFound = await this.findByParam(
@@ -490,9 +492,13 @@ export default class MatchService extends BaseService<Match> {
                 null
             );
             const matches = matchFound.result;
-            const filteredMatchByTeam = teamIds !== null
-                ? matches.filter((match) => match.team1Id === teamIds || match.team2Id === teamIds)
-                : matches;
+            let filteredMatches = matches;
+            if (teamIds !== null) {
+                filteredMatches = matches.filter((match) => match.team1Id === teamIds || match.team2Id === teamIds);
+            }
+            if (roundId !== null) {
+                filteredMatches = matches.filter((match) => match.round.id === roundId);
+            }
             let pdfBuf: Buffer;
 
             const createPDF = (html, options): Promise<Buffer> => new Promise(((resolve, reject) => {
@@ -505,8 +511,8 @@ export default class MatchService extends BaseService<Match> {
                 });
             }));
 
-            for (let i = 0; i < filteredMatchByTeam.length; i++) {
-                const matchDetail = await this.findAdminMatchById(filteredMatchByTeam[i].id, 2);
+            for (let i = 0; i < filteredMatches.length; i++) {
+                const matchDetail = await this.findAdminMatchById(filteredMatches[i].id, 2);
                 const { team1players, team2players, umpires } = matchDetail;
                 const htmlTmpl = getMatchSheetTemplate(
                     templateType,
@@ -514,7 +520,7 @@ export default class MatchService extends BaseService<Match> {
                     team1players,
                     team2players,
                     umpires,
-                    filteredMatchByTeam[i]
+                    filteredMatches[i]
                 );
 
                 const options = { width: '595px', height: '842px', format: 'A4' };
@@ -532,19 +538,23 @@ export default class MatchService extends BaseService<Match> {
 
             const replaceStr = (str) => str ? str.split(' ').join('_') : '';
 
-            if (filteredMatchByTeam.length > 0) {
+            if (filteredMatches.length > 0) {
                 let teamName = 'All_teams';
                 if (teamIds !== null) {
-                    teamName = filteredMatchByTeam[0].team1Id === teamIds
-                        ? replaceStr(filteredMatchByTeam[0].team1.name)
-                        : replaceStr(filteredMatchByTeam[0].team2.name);
+                    teamName = filteredMatches[0].team1Id === teamIds
+                        ? replaceStr(filteredMatches[0].team1.name)
+                        : replaceStr(filteredMatches[0].team2.name);
+                }
+                let roundName = 'All_round';
+                if (roundId !== null) {
+                    roundName = replaceStr(filteredMatches[0].round.name)
                 }
 
                 const fileName = `${replaceStr(competition.name)}_${
                     divisionIds === null
                         ? 'All_Divisions_'
-                        : replaceStr(filteredMatchByTeam[0].division.name)
-                }_${teamName}_${templateType}_${Date.now()}.pdf`;
+                        : replaceStr(filteredMatches[0].division.name)
+                }_${teamName}_${roundName}_${templateType}_${Date.now()}.pdf`;
 
                 const params = {
                     Bucket: process.env.MATCH_SHEET_STORE_BUCKET,
