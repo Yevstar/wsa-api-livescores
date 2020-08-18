@@ -71,11 +71,11 @@ export class MatchController extends BaseController {
             const competitionId = matchDetails.match[0].competitionId;
             const competition = await this.competitionService.findById(competitionId);
             const organisationId = competition.organisationId;
-            const organisation = await this.organisationService.findById(organisationId);
+            const competitionOrganisation = await this.organisationService.findById(organisationId);
 
             return {
                 ...matchDetails,
-                organisation,
+                competitionOrganisation,
             }
         }
     }
@@ -1686,12 +1686,12 @@ export class MatchController extends BaseController {
     ): Promise<any> {
         try {
             const competition = await this.competitionService.findById(competitionId);
-            const organisation = await this.organisationService.findById(competition.organisationId);
+            const competitionOrganisation = await this.organisationService.findById(competition.organisationId);
 
             this.matchService.printMatchSheetTemplate(
                 templateType,
                 user,
-                organisation,
+                competitionOrganisation,
                 competition,
                 divisionIds,
                 teamIds,

@@ -2,7 +2,7 @@ import {IsBoolean, IsDate, IsNumber, IsString, IsArray} from "class-validator";
 import {BaseEntity, Column, Entity, PrimaryGeneratedColumn, OneToMany} from "typeorm-plus";
 
 import {Team} from './Team';
-import {Organisation} from './Organisation';
+import {LinkedCompetitionOrganisation} from './LinkedCompetitionOrganisation';
 import {UserRoleEntity} from './security/UserRoleEntity';
 
 /// For referring the data model of another db we are giving the
@@ -64,8 +64,8 @@ export class User extends BaseEntity {
     firebaseUID: string;
 
     teams: Team[];
-    organisations: Organisation[];
-    affiliates: Organisation[];
+    competitionOrganisations: LinkedCompetitionOrganisation[];
+    affiliates: LinkedCompetitionOrganisation[];
 
     @IsArray({ each: true })
     @OneToMany(type => UserRoleEntity, userRoleEntity => userRoleEntity.user)

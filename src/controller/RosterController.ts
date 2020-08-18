@@ -471,7 +471,7 @@ export class RosterController extends BaseController {
                     const orgArray = [];
                     if (isArrayPopulated(e['user']['userRoleEntities'])) {
                         for (let i of e['user']['userRoleEntities']) {
-                            orgArray.push(i['organisation']['name']);
+                            orgArray.push(i['competitionOrganisation']['name']);
                         }
                     }
                     e['Affiliate'] = orgArray.toString().replace(",", '\n');

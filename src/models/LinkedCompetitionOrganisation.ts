@@ -2,7 +2,7 @@ import {BaseEntity, Column, Entity, PrimaryGeneratedColumn} from 'typeorm-plus';
 import {IsNumber, IsString} from "class-validator";
 
 @Entity()
-export class Organisation extends BaseEntity {
+export class LinkedCompetitionOrganisation extends BaseEntity {
 
     @IsNumber()
     @PrimaryGeneratedColumn()

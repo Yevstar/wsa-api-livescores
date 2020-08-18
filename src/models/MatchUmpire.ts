@@ -2,7 +2,7 @@ import {BaseEntity, Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn
 import {Match} from "./Match";
 import {IsNumber, IsString, ValidateNested, IsDate} from "class-validator";
 import {User} from "./User";
-import {Organisation} from './Organisation';
+import {LinkedCompetitionOrganisation} from './LinkedCompetitionOrganisation';
 
 @Entity('matchUmpire')
 @Unique(['matchId'])
@@ -31,9 +31,9 @@ export class MatchUmpire extends BaseEntity {
     userId: number;
 
     @ValidateNested()
-    @OneToOne(type => Organisation)
+    @OneToOne(type => LinkedCompetitionOrganisation)
     @JoinColumn()
-    organisation: Organisation;
+    competitionOrganisation: LinkedCompetitionOrganisation;
 
     @IsNumber()
     @Column()

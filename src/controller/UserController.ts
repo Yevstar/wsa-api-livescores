@@ -25,7 +25,7 @@ import {UserRoleEntity} from '../models/security/UserRoleEntity';
 import {Role} from '../models/security/Role';
 import {EntityType} from '../models/security/EntityType';
 import {Team} from '../models/Team';
-import {Organisation} from '../models/Organisation';
+import {LinkedCompetitionOrganisation} from '../models/LinkedCompetitionOrganisation';
 import {md5, isArrayPopulated} from '../utils/Utils';
 import {isNotNullAndUndefined} from '../utils/Utils';
 import {BaseController} from './BaseController';
@@ -860,7 +860,7 @@ export class UserController extends BaseController {
                 } else {
                     const organization = trim(i['Organisation']);
                     if (isNotNullAndUndefined(organization)) {
-                        let orgDetail: Organisation[];
+                        let orgDetail: LinkedCompetitionOrganisation[];
                         const orgArray = organization.split(',');
                         if (isArrayPopulated(orgArray)) {
                             for (let t of orgArray) {

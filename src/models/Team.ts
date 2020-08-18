@@ -3,7 +3,7 @@ import {User} from './User';
 import {Division} from './Division';
 import {Competition} from './Competition';
 import {BaseEntity, Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn, DeleteDateColumn} from 'typeorm-plus';
-import {Organisation} from "./Organisation";
+import {LinkedCompetitionOrganisation} from "./LinkedCompetitionOrganisation";
 import {IsArray, IsBoolean, IsNumber, IsString, ValidateNested} from "class-validator";
 
 @Entity()
@@ -55,9 +55,9 @@ export class Team extends BaseEntity {
     competition: Competition;
 
     @ValidateNested()
-    @OneToOne(type => Organisation)
+    @OneToOne(type => LinkedCompetitionOrganisation)
     @JoinColumn()
-    organisation: Organisation;
+    competitionOrganisation: LinkedCompetitionOrganisation;
 
     @ValidateNested()
     @ManyToOne(type => Division, division => division.teams)

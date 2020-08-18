@@ -6,7 +6,7 @@ import {Function} from "../models/security/Function";
 import {EntityType} from "../models/security/EntityType";
 import {UserRoleEntity} from "../models/security/UserRoleEntity";
 import {RoleFunction} from "../models/security/RoleFunction";
-import {Organisation} from "../models/Organisation";
+import {LinkedCompetitionOrganisation} from "../models/LinkedCompetitionOrganisation";
 import {Competition} from "../models/Competition";
 import {logger} from '../logger';
 import nodeMailer from "nodemailer";
@@ -116,7 +116,7 @@ export default class UserService extends BaseService<User> {
         .addSelect('concat(\'[\', group_concat(distinct JSON_OBJECT(\'name\', c.name)),\']\') as competitions')
         .addSelect('concat(\'[\', group_concat(distinct JSON_OBJECT(\'name\', o.linkedOrganisationName)),\']\') as organisations')
         .innerJoin(UserRoleEntity, 'ure', 'u.id = ure.userId')
-        .innerJoin(Organisation, 'co', 'co.id = ure.entityId')
+        .innerJoin(LinkedCompetitionOrganisation, 'co', 'co.id = ure.entityId')
         .innerJoin(Competition, 'c', 'co.competitionid = c.id')
         .innerJoin(LinkedOrganisations, 'o', 'o.linkedOrganisationId = co.organisationId');
 
@@ -286,7 +286,7 @@ export default class UserService extends BaseService<User> {
                         </head>
                         <body >
                             <p>Hi ${receiverData.firstName} ${receiverData.lastName},
-                            <p>${userData.firstName} ${userData.lastName}, ${competitionData.organisation.name} has invited you
+                            <p>${userData.firstName} ${userData.lastName}, ${competitionData.competitionOrganisation.name} has invited you
                             to umpire for the ${competitionData.name}. Download the Netball LiveScores App from the <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
                             <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a> and start umpiring.
                             <p> Your password is <b>${password}</b> - you can change it when you log in if you would like.
@@ -342,7 +342,7 @@ export default class UserService extends BaseService<User> {
 
         };
         if(Number(process.env.SOURCE_MAIL) == 1){
-            mailOptions.html = ' To: '+mailOptions.to + '<br><br>'+ mailOptions.html 
+            mailOptions.html = ' To: '+mailOptions.to + '<br><br>'+ mailOptions.html
             mailOptions.to = process.env.TEMP_DEV_EMAIL
         }
         logger.info(`UserService - sendMail : mailOptions ${mailOptions}`);

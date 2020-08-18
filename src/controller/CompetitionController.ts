@@ -12,7 +12,7 @@ import { CompetitionLadderSettings } from '../models/CompetitionLadderSettings';
 import {Get, JsonController, QueryParam, UploadedFile} from 'routing-controllers';
 import {Response} from "express";
 import {Team} from "../models/Team";
-import {Organisation} from "../models/Organisation";
+import {LinkedCompetitionOrganisation} from "../models/LinkedCompetitionOrganisation";
 import {Player} from "../models/Player";
 import {User} from "../models/User";
 import {BaseController} from "./BaseController";
@@ -339,12 +339,12 @@ export class CompetitionController extends BaseController {
     async loadHierarchy(
         @QueryParam('organisationName') organisationName: string,
         @QueryParam('teamName') teamName: string,
-        @QueryParam('competitionId') competitionId: number): Promise<{ organisations: Organisation[], teams: Team[] }> {
+        @QueryParam('competitionId') competitionId: number): Promise<{ competitionOrganisations: LinkedCompetitionOrganisation[], teams: Team[] }> {
 
-        const organisations = await this.organisationService.findByNameAndCompetitionId(organisationName, competitionId);
+        const competitionOrganisations = await this.organisationService.findByNameAndCompetitionId(organisationName, competitionId);
         const teams = await this.teamService.findByNameAndCompetition(teamName, competitionId);
 
-        return {organisations, teams};
+        return {competitionOrganisations, teams};
     }
 
     /**
@@ -359,14 +359,14 @@ export class CompetitionController extends BaseController {
         @QueryParam('organisationIds') organisationIds: number[],
         @QueryParam('teamIds') teamIds: number[],
         @QueryParam('playerIds') playerIds: number[]
-    ): Promise<{ competitions: Competition[], organisations: Organisation[], teams: Team[], players: Player[] }> {
+    ): Promise<{ competitions: Competition[], competitionOrganisations: LinkedCompetitionOrganisation[], teams: Team[], players: Player[] }> {
 
         const competitions = await this.competitionService.findByIds(competitionIds);
-        const organisations = await this.organisationService.findByIds(organisationIds);
+        const competitionOrganisations = await this.organisationService.findByIds(organisationIds);
         const teams = await this.teamService.findByIds(teamIds);
         const players = await this.playerService.findByIds(playerIds);
 
-        return {competitions, organisations, teams, players};
+        return {competitions, competitionOrganisations, teams, players};
     }
 
     @Get('/entities')
@@ -375,14 +375,14 @@ export class CompetitionController extends BaseController {
         @QueryParam('organisationIds') organisationIds: number[],
         @QueryParam('teamIds') teamIds: number[],
         @QueryParam('playerIds') playerIds: number[]
-    ): Promise<{ competitions: Competition[], organisations: Organisation[], teams: Team[], players: Player[] }> {
+    ): Promise<{ competitions: Competition[], competitionOrganisations: LinkedCompetitionOrganisation[], teams: Team[], players: Player[] }> {
 
         const competitions = await this.competitionService.findByIds(competitionIds);
-        const organisations = await this.organisationService.findByIds(organisationIds);
+        const competitionOrganisations = await this.organisationService.findByIds(organisationIds);
         const teams = await this.teamService.findByTeamIds(teamIds);
         const players = await this.playerService.findByIds(playerIds);
 
-        return {competitions, organisations, teams, players};
+        return {competitions, competitionOrganisations, teams, players};
     }
 
     @Authorized()

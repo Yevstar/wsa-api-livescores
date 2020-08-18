@@ -397,9 +397,9 @@ export class TeamController extends BaseController {
                         { name: 'save_error', message: 'Logo not saved, try again later.' });
             }
         } else if (isNullOrEmpty(teamData.logoUrl) && savedTeam.organisationId) {
-            let organisation = await this.organisationService.findById(stringTONumber(savedTeam.organisationId));
-            if (organisation.logoUrl) {
-                savedTeam.logoUrl = organisation.logoUrl;
+            let competitionOrganisation = await this.organisationService.findById(stringTONumber(savedTeam.organisationId));
+            if (competitionOrganisation.logoUrl) {
+                savedTeam.logoUrl = competitionOrganisation.logoUrl;
                 savedTeam = await this.teamService.createOrUpdate(savedTeam);
             }
         }
