@@ -56,7 +56,7 @@ export class Team extends BaseEntity {
 
     @ValidateNested()
     @OneToOne(type => LinkedCompetitionOrganisation)
-    @JoinColumn()
+    @JoinColumn({name: 'organisationId', referencedColumnName: 'id'})
     competitionOrganisation: LinkedCompetitionOrganisation;
 
     @ValidateNested()

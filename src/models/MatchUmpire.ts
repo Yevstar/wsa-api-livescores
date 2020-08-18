@@ -30,14 +30,14 @@ export class MatchUmpire extends BaseEntity {
     @Column()
     userId: number;
 
-    @ValidateNested()
-    @OneToOne(type => LinkedCompetitionOrganisation)
-    @JoinColumn()
-    competitionOrganisation: LinkedCompetitionOrganisation;
-
     @IsNumber()
     @Column()
     organisationId: number;
+
+    @ValidateNested()
+    @OneToOne(type => LinkedCompetitionOrganisation)
+    @JoinColumn({name: 'organisationId', referencedColumnName: 'id'})
+    competitionOrganisation: LinkedCompetitionOrganisation;
 
     @IsString()
     @Column()
