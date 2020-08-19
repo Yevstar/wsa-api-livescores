@@ -463,7 +463,7 @@ export default class MatchService extends BaseService<Match> {
      * @param {Competition} competition
      * @param {number[]} divisionIds
      * @param {number[]} teamIds
-     * @param {number} roundId
+     * @param {string} roundName
      * @returns {String} - generated PDF download link
      */
     public async printMatchSheetTemplate(
@@ -473,7 +473,7 @@ export default class MatchService extends BaseService<Match> {
         competition: Competition,
         divisionIds: number[],
         teamIds: number[],
-        roundId: number,
+        roundName: string,
     ): Promise<MatchSheet> {
         try {
             const matchFound = await this.findByParam(
@@ -495,8 +495,8 @@ export default class MatchService extends BaseService<Match> {
             if (teamIds !== null) {
                 filteredMatches = filteredMatches.filter((match) => match.team1Id === teamIds || match.team2Id === teamIds);
             }
-            if (roundId !== null) {
-                filteredMatches = filteredMatches.filter((match) => match.round.id === roundId);
+            if (roundName !== null) {
+                filteredMatches = filteredMatches.filter((match) => match.round.name === roundName);
             }
             let pdfBuf: Buffer;
 
@@ -544,16 +544,12 @@ export default class MatchService extends BaseService<Match> {
                         ? replaceStr(filteredMatches[0].team1.name)
                         : replaceStr(filteredMatches[0].team2.name);
                 }
-                let roundName = 'All_round';
-                if (roundId !== null) {
-                    roundName = replaceStr(filteredMatches[0].round.name)
-                }
 
                 const fileName = `${replaceStr(competition.name)}_${
                     divisionIds === null
                         ? 'All_Divisions_'
                         : replaceStr(filteredMatches[0].division.name)
-                }_${teamName}_${roundName}_${templateType}_${Date.now()}.pdf`;
+                }_${teamName}_${roundName || 'All_rounds'}_${templateType}_${Date.now()}.pdf`;
 
                 const params = {
                     Bucket: process.env.MATCH_SHEET_STORE_BUCKET,
