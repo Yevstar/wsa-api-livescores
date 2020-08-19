@@ -1,12 +1,12 @@
 import moment from 'moment';
 
-import {Organisation} from '../models/Organisation';
+import {LinkedCompetitionOrganisation} from '../models/LinkedCompetitionOrganisation';
 import {Match} from '../models/Match';
 import {MatchUmpire} from '../models/MatchUmpire';
 
 const getMatchSheetTemplate = (
   templateType: string = 'Fixtures',
-  organisation: Organisation,
+  competitionOrganisation: LinkedCompetitionOrganisation,
   team1players: any[],
   team2players: any[],
   umpires: MatchUmpire[],
@@ -297,10 +297,10 @@ const getMatchSheetTemplate = (
           <div class="page no-break">
             <div class="header no-break">
                 <div class="title">
-                    <div class="associationName">${organisation.name || 'Association'}</div>
+                    <div class="associationName">${competitionOrganisation.name || 'Association'}</div>
                     <div class="templateType">${templateType} Scoresheet</div>
                 </div>
-                <img class="logo" src="${organisation.logoUrl || "https://img.icons8.com/color/myspace"}"/> 
+                <img class="logo" src="${competitionOrganisation.logoUrl || "https://img.icons8.com/color/myspace"}"/>
             </div>
             <div class="matchInfo no-break">
                 <div class="infoContentLeft">

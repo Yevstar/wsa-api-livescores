@@ -7,7 +7,7 @@ import {User} from "../models/User";
 import {PlayerMinuteTracking} from "../models/PlayerMinuteTracking";
 import {RequestFilter} from "../models/RequestFilter";
 import {Competition} from '../models/Competition';
-import {Organisation} from '../models/Organisation';
+import {LinkedCompetitionOrganisation} from '../models/LinkedCompetitionOrganisation';
 
 @Service()
 export default class PlayerService extends BaseService<Player> {
@@ -19,7 +19,7 @@ export default class PlayerService extends BaseService<Player> {
     public async findByParam(
         name: string,
         competition: Competition,
-        organisation: Organisation,
+        competitionOrganisation: LinkedCompetitionOrganisation,
         teamId: number,
         playUpFromAge: number,
         playUpFromGrade: string,
@@ -35,7 +35,7 @@ export default class PlayerService extends BaseService<Player> {
             .innerJoinAndSelect("team.division", "division")
             .innerJoinAndSelect("player.competition", "competition")
             .leftJoinAndSelect("player.user", "user")
-            .leftJoin("team.organisation", "organisation")
+            .leftJoin("team.competitionOrganisation", "competitionOrganisation")
             .andWhere('player.deleted_at is null')
             .andWhere('team.deleted_at is null');
 
@@ -55,11 +55,11 @@ export default class PlayerService extends BaseService<Player> {
             }
         }
 
-        if (organisation) {
+        if (competitionOrganisation) {
             if (includeLinkedCompetition) {
-                query.andWhere('organisation.organisationId = :organisationId', {organisationId: organisation.organisationId});
+                query.andWhere('competitionOrganisation.organisationId = :organisationId', {organisationId: competitionOrganisation.organisationId});
             } else {
-                query.andWhere('organisation.id = :organisationId', {organisationId: organisation.id});
+                query.andWhere('competitionOrganisation.id = :organisationId', {organisationId: competitionOrganisation.id});
             }
         }
 
@@ -211,7 +211,7 @@ export default class PlayerService extends BaseService<Player> {
             limit,
             offset,
             search,
-            sortBy, 
+            sortBy,
             sortOrder
           ]);
 

@@ -60,7 +60,7 @@ export default class IncidentService extends BaseService<Incident> {
             .leftJoinAndSelect('incident.incidentMediaList', 'incidentMedia')
             .innerJoinAndSelect('incident.match', 'match')
             .innerJoinAndSelect('player.team', 'team')
-            .innerJoinAndSelect('team.organisation', 'organisation')
+            .innerJoinAndSelect('team.competitionOrganisation', 'competitionOrganisation')
             .innerJoinAndSelect('incident.incidentType', 'incidentType');
         if (competitionId) query.andWhere("incident.competitionId = :competitionId", { competitionId });
         if (from) query.andWhere("incident.createdAt >= :from", { from });

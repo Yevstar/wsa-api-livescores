@@ -25,7 +25,7 @@ import {UserRoleEntity} from '../models/security/UserRoleEntity';
 import {Role} from '../models/security/Role';
 import {EntityType} from '../models/security/EntityType';
 import {Team} from '../models/Team';
-import {Organisation} from '../models/Organisation';
+import {LinkedCompetitionOrganisation} from '../models/LinkedCompetitionOrganisation';
 import {md5, isArrayPopulated} from '../utils/Utils';
 import {isNotNullAndUndefined} from '../utils/Utils';
 import {BaseController} from './BaseController';
@@ -191,6 +191,37 @@ export class UserController extends BaseController {
             await this.firebaseService.subscribeTopic(deviceId, topics)
         }
         await this.watchlistService.save(user ? user.id : undefined, deviceId, organisationIds, teamIds);
+        /// On saving of watchlist we will add the user spectator role
+        /// to those team's or organisation's
+        if (user) {
+            let compIds: number[] = [];
+            if (teamIds) {
+                const teamList = await this.teamService.findByIds(teamIds);
+                teamList.forEach((team) => {
+                    compIds.push(team.competitionId);
+                });
+            }
+            if (organisationIds) {
+                const orgList = await this.organisationService.findByIds(organisationIds);
+                orgList.forEach((org) => {
+                    compIds.push(org.competitionId);
+                });
+            }
+            if (compIds.length > 0) {
+                let ureList: UserRoleEntity[] = [];
+                (new Set(compIds)).forEach((compId) => {
+                    let spectatorURE = new UserRoleEntity();
+                    spectatorURE.roleId = Role.SPECTATOR;
+                    spectatorURE.entityId = compId;
+                    spectatorURE.entityTypeId = EntityType.COMPETITION;
+                    spectatorURE.userId = user.id;
+                    spectatorURE.createdBy = user.id;
+                    ureList.push(spectatorURE);
+                });
+                await this.ureService.batchCreateOrUpdate(ureList);
+                this.notifyChangeRole(user.id);
+            }
+        }
         return this.loadWatchlist(user, deviceId, response);
     }
 
@@ -217,6 +248,23 @@ export class UserController extends BaseController {
             }
         }
         await this.watchlistService.deleteByParam(user ? user.id : undefined, deviceId, entityId, entityTypeId);
+        /// On removing of a watchlist item we will remove the user spectator role
+        /// to those team's or organisation's
+        if (user) {
+            let compId;
+            if (entityTypeId == EntityType.ORGANISATION) {
+                let org = await this.organisationService.findById(entityId);
+                compId = org.competitionId;
+            } else if (entityTypeId == EntityType.TEAM) {
+                let team = await this.teamService.findById(entityId);
+                compId = team.competitionId;
+            }
+
+            if (compId) {
+                await this.ureService.deleteRoleByParams(compId, EntityType.COMPETITION, Role.SPECTATOR, user.id);
+                this.notifyChangeRole(user.id);
+            }
+        }
         return this.loadWatchlist(user, deviceId, response);
     }
 
@@ -812,7 +860,7 @@ export class UserController extends BaseController {
                 } else {
                     const organization = trim(i['Organisation']);
                     if (isNotNullAndUndefined(organization)) {
-                        let orgDetail: Organisation[];
+                        let orgDetail: LinkedCompetitionOrganisation[];
                         const orgArray = organization.split(',');
                         if (isArrayPopulated(orgArray)) {
                             for (let t of orgArray) {

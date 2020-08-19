@@ -1,23 +1,23 @@
 import {Service} from "typedi";
 import BaseService from "./BaseService";
-import {Organisation} from "../models/Organisation";
+import {LinkedCompetitionOrganisation} from "../models/LinkedCompetitionOrganisation";
 import { isArrayPopulated } from "../utils/Utils";
 
 @Service()
-export default class OrganisationService extends BaseService<Organisation> {
+export default class OrganisationService extends BaseService<LinkedCompetitionOrganisation> {
 
     modelName(): string {
-        return Organisation.name;
+        return LinkedCompetitionOrganisation.name;
     }
 
-    public async findByNameAndCompetitionId(name: string, competitionId?: number): Promise<Organisation[]> {
-        let query = this.entityManager.createQueryBuilder(Organisation, 'organisation');
+    public async findByNameAndCompetitionId(name: string, competitionId?: number): Promise<LinkedCompetitionOrganisation[]> {
+        let query = this.entityManager.createQueryBuilder(LinkedCompetitionOrganisation, 'competitionOrganisation');
         if (name) {
-            query = query.where('LOWER(organisation.name) like :name', {name: `${name.toLowerCase()}%`});
+            query = query.where('LOWER(competitionOrganisation.name) like :name', {name: `${name.toLowerCase()}%`});
         }
 
         if (competitionId) {
-            query = query.andWhere('organisation.competitionId = :competitionId', {competitionId});
+            query = query.andWhere('competitionOrganisation.competitionId = :competitionId', {competitionId});
         }
         return query.getMany()
     }

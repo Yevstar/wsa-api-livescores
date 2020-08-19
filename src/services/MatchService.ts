@@ -18,7 +18,7 @@ import {MatchPausedTime} from "../models/MatchPausedTime";
 import {Lineup} from "../models/Lineup";
 import {RequestFilter} from "../models/RequestFilter";
 import {StateTimezone} from "../models/StateTimezone";
-import {Organisation} from "../models/Organisation";
+import {LinkedCompetitionOrganisation} from "../models/LinkedCompetitionOrganisation";
 import {Competition} from "../models/Competition";
 import {User} from "../models/User";
 import {MatchSheet} from "../models/MatchSheet";
@@ -459,7 +459,7 @@ export default class MatchService extends BaseService<Match> {
      * Generate PDF
      * @param {String} templateType
      * @param {User} user
-     * @param {Organisation} organisation
+     * @param {LinkedCompetitionOrganisation} competitionOrganisation
      * @param {Competition} competition
      * @param {number[]} divisionIds
      * @param {number[]} teamIds
@@ -469,7 +469,7 @@ export default class MatchService extends BaseService<Match> {
     public async printMatchSheetTemplate(
         templateType: string,
         user: User,
-        organisation: Organisation,
+        competitionOrganisation: LinkedCompetitionOrganisation,
         competition: Competition,
         divisionIds: number[],
         teamIds: number[],
@@ -515,7 +515,7 @@ export default class MatchService extends BaseService<Match> {
                 const { team1players, team2players, umpires } = matchDetail;
                 const htmlTmpl = getMatchSheetTemplate(
                     templateType,
-                    organisation,
+                    competitionOrganisation,
                     team1players,
                     team2players,
                     umpires,

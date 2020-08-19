@@ -2,7 +2,7 @@ import {Service} from "typedi";
 import BaseService from "./BaseService";
 import {Watchlist} from "../models/Watchlist";
 import {Brackets, DeleteResult} from "typeorm-plus";
-import {Organisation} from "../models/Organisation";
+import {LinkedCompetitionOrganisation} from "../models/LinkedCompetitionOrganisation";
 import {Team} from "../models/Team";
 import {EntityType} from "../models/security/EntityType";
 import {UserDevice} from "../models/UserDevice";
@@ -26,9 +26,9 @@ export default class WatchlistService extends BaseService<Watchlist> {
         return query.getMany();
     }
 
-    public async findOrganisationByParam(userId: number = undefined, deviceId: string = undefined): Promise<Organisation[]> {
-        let query = this.entityManager.createQueryBuilder(Organisation, 'organisation');
-        query.andWhere('organisation.id in ' + this.watchlistSubQuery(query, 'ORGANISATION', userId, deviceId));
+    public async findOrganisationByParam(userId: number = undefined, deviceId: string = undefined): Promise<LinkedCompetitionOrganisation[]> {
+        let query = this.entityManager.createQueryBuilder(LinkedCompetitionOrganisation, 'competitionOrganisation');
+        query.andWhere('competitionOrganisation.id in ' + this.watchlistSubQuery(query, 'ORGANISATION', userId, deviceId));
         return query.getMany();
     }
 
@@ -36,7 +36,7 @@ export default class WatchlistService extends BaseService<Watchlist> {
         let query = this.entityManager.createQueryBuilder(Team, 'team')
             .leftJoinAndSelect('team.division', 'division')
             .leftJoinAndSelect('team.competition', 'competition')
-            .leftJoinAndSelect('team.organisation', 'organisation');
+            .leftJoinAndSelect('team.competitionOrganisation', 'competitionOrganisation');
         query.andWhere('team.id in ' + this.watchlistSubQuery(query, 'TEAM', userId, deviceId));
         return query.getMany();
     }
@@ -72,7 +72,7 @@ export default class WatchlistService extends BaseService<Watchlist> {
             'WHERE (et.name = \'TEAM\' AND wl.entityId in (?))\n' +
             '   OR (et.name = \'ORGANISATION\' AND wl.entityId in (SELECT c.id AS c_id\n' +
             '                                               FROM team t\n' +
-            '                                                        INNER JOIN organisation c ON c.id = t.organisationId\n' +
+            '                                                        INNER JOIN linkedCompetitionOrganisation c ON c.id = t.organisationId\n' +
             '                                               WHERE t.id in (?)));'
             , [matchId, teamIds, teamIds, teamIds])
     }

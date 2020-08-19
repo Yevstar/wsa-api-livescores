@@ -30,7 +30,7 @@ import {BaseController} from './BaseController';
 import {Player} from '../models/Player';
 import {User} from '../models/User';
 import {Competition} from '../models/Competition';
-import {Organisation} from '../models/Organisation';
+import {LinkedCompetitionOrganisation} from '../models/LinkedCompetitionOrganisation';
 import {Role} from '../models/security/Role';
 import {EntityType} from '../models/security/EntityType';
 import {UserRoleEntity} from '../models/security/UserRoleEntity';
@@ -52,18 +52,18 @@ export class PlayerController extends BaseController {
         @QueryParam('includeLinkedCompetition') includeLinkedCompetition: boolean = false
     ): Promise<Player[]> {
         let competition: Competition;
-        let organisation: Organisation
+        let competitionOrganisation: LinkedCompetitionOrganisation
         if (competitionId) {
             competition = await this.competitionService.findById(competitionId);
         }
         if (organisationId) {
-            organisation = await this.organisationService.findById(organisationId);
+            competitionOrganisation = await this.organisationService.findById(organisationId);
         }
 
         return this.playerService.findByParam(
             name,
             competition,
-            organisation,
+            competitionOrganisation,
             teamId,
             playUpFromAge,
             playUpFromGrade,
@@ -329,18 +329,18 @@ export class PlayerController extends BaseController {
         @QueryParam('sortOrder') sortOrder?: "ASC" | "DESC"
     ): Promise<{ page: {}, players: Player[] }> {
         let competition: Competition;
-        let organisation: Organisation
+        let competitionOrganisation: LinkedCompetitionOrganisation
         if (competitionId) {
             competition = await this.competitionService.findById(competitionId);
         }
         if (organisationId) {
-            organisation = await this.organisationService.findById(organisationId);
+            competitionOrganisation = await this.organisationService.findById(organisationId);
         }
 
         const playerData = await this.playerService.findByParam(
             name,
             competition,
-            organisation,
+            competitionOrganisation,
             teamId,
             playUpFromAge,
             playUpFromGrade,

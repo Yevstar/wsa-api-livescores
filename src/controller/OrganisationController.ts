@@ -1,5 +1,5 @@
 import {Get, JsonController, QueryParam, Param} from 'routing-controllers';
-import {Organisation} from '../models/Organisation';
+import {LinkedCompetitionOrganisation} from '../models/LinkedCompetitionOrganisation';
 import {BaseController} from "./BaseController";
 
 @JsonController('/organisation')
@@ -14,7 +14,7 @@ export class OrganisationController extends BaseController {
     async find(
         @QueryParam('name') name: string,
         @QueryParam('competitionId') competitionId: number
-    ): Promise<Organisation[]> {
+    ): Promise<LinkedCompetitionOrganisation[]> {
         return this.organisationService.findByNameAndCompetitionId(name, competitionId);
     }
 }

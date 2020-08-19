@@ -4,7 +4,7 @@ import {User} from "../User";
 import {Role} from "./Role";
 import {IsNumber, ValidateNested} from "class-validator";
 import { Competition } from "../Competition";
-import { Organisation } from "../Organisation";
+import { LinkedCompetitionOrganisation } from "../LinkedCompetitionOrganisation";
 import { Team } from "../Team";
 
 /// For referring the data model of another db we are giving the
@@ -74,9 +74,9 @@ export class UserRoleEntity extends BaseEntity {
     user: User;
 
     @ValidateNested()
-    @OneToOne(type => Organisation)
+    @OneToOne(type => LinkedCompetitionOrganisation)
     @JoinColumn({ name: 'entityId' })
-    organisation: Organisation;
+    competitionOrganisation: LinkedCompetitionOrganisation;
 
     @ValidateNested()
     @OneToOne(type => Team)

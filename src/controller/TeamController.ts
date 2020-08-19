@@ -281,7 +281,7 @@ export class TeamController extends BaseController {
         if (teamData.id) {
             team.id = stringTONumber(teamData.id);
             existingManagerUREs = await this.ureService.findTeamUREByParams(team.id, Role.MANAGER);
-            await this.ureService.deleteRoleFromTeam(team.id, Role.MANAGER);
+            await this.ureService.deleteRoleByParams(team.id, EntityType.TEAM, Role.MANAGER);
         }
         team.name = teamData.name;
         team.alias = teamData.alias;
@@ -397,9 +397,9 @@ export class TeamController extends BaseController {
                         { name: 'save_error', message: 'Logo not saved, try again later.' });
             }
         } else if (isNullOrEmpty(teamData.logoUrl) && savedTeam.organisationId) {
-            let organisation = await this.organisationService.findById(stringTONumber(savedTeam.organisationId));
-            if (organisation.logoUrl) {
-                savedTeam.logoUrl = organisation.logoUrl;
+            let competitionOrganisation = await this.organisationService.findById(stringTONumber(savedTeam.organisationId));
+            if (competitionOrganisation.logoUrl) {
+                savedTeam.logoUrl = competitionOrganisation.logoUrl;
                 savedTeam = await this.teamService.createOrUpdate(savedTeam);
             }
         }

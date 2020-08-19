@@ -17,7 +17,7 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
 
     public async findByMatchIds(matchIds: number[]): Promise<MatchUmpire[]> {
         return this.entityManager.createQueryBuilder(MatchUmpire, 'matchUmpire')
-            .leftJoinAndSelect('matchUmpire.organisation', 'organisation')
+            .leftJoinAndSelect('matchUmpire.competitionOrganisation', 'competitionOrganisation')
             .leftJoinAndSelect('matchUmpire.user', 'user')
             .where('matchUmpire.matchId in (:matchIds)', {matchIds})
             .orderBy('matchUmpire.matchId')
@@ -27,7 +27,7 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
 
     public async findByCompetitionId(competitionid: number, requestFilter: RequestFilter): Promise<any> {
         let query = this.entityManager.createQueryBuilder(MatchUmpire, 'matchUmpire');
-        query.leftJoinAndSelect('matchUmpire.organisation', 'organisation')
+        query.leftJoinAndSelect('matchUmpire.competitionOrganisation', 'competitionOrganisation')
             .leftJoinAndSelect('matchUmpire.user', 'user')
             .leftJoinAndSelect('matchUmpire.match', 'match')
             .leftJoinAndSelect('match.team1', 'team1')
@@ -47,7 +47,7 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
             .andWhere("matchId = :matchId", {matchId}).execute();
     }
 
-    public async findByRosterAndCompetition(organisationId: number, competitionId: number, matchId: number, divisionId: number, 
+    public async findByRosterAndCompetition(organisationId: number, competitionId: number, matchId: number, divisionId: number,
         venueId: number, roundIds: number[], requestFilter: RequestFilter, sortBy: string = undefined, sortOrder: "ASC" | "DESC" = undefined): Promise<any> {
 
         let limit = 50000;
@@ -59,7 +59,7 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
             limit = requestFilter.paging.limit;
             offset = requestFilter.paging.offset;
         }
-        
+
         let roundString = roundIds ? roundIds.join(',') : '-1';
         let result = await this.entityManager.query("call wsa.usp_get_umpires(?,?,?,?,?,?,?,?, ?,?)",
             [organisationId, competitionId, matchId, divisionId, venueId, roundString, limit, offset, sortBy, sortOrder]);

@@ -77,7 +77,7 @@ export default class RosterService extends BaseService<Roster> {
     }
 
     // keeping the query as light as possible but more fields can be added if needed - used for umpire roster list
-    public async findUserRostersByCompetition(competitionId: number, roleId: number, status: string, 
+    public async findUserRostersByCompetition(competitionId: number, roleId: number, status: string,
         requestFilter: RequestFilter, sortBy: string = undefined, sortOrder: "ASC" | "DESC" = undefined): Promise<any> {
 
         let query = this.entityManager.createQueryBuilder(Roster, 'roster')
@@ -85,7 +85,7 @@ export default class RosterService extends BaseService<Roster> {
             .innerJoinAndSelect('roster.user', 'user')
             .innerJoinAndSelect('match.competition', 'competition')
             .leftJoinAndSelect('user.userRoleEntities', 'userRoleEntity')
-            .leftJoinAndSelect('userRoleEntity.organisation', 'organisation')
+            .leftJoinAndSelect('userRoleEntity.competitionOrganisation', 'competitionOrganisation')
             .andWhere('match.competitionId = :competitionId', {competitionId})
             .andWhere('roster.roleId = :roleId', {roleId})
             .andWhere('match.deleted_at is null')
@@ -102,7 +102,7 @@ export default class RosterService extends BaseService<Roster> {
 
             if (sortBy) {
                 if (sortBy === 'organisation') {
-                    query.orderBy('organisation.name', sortOrder);
+                    query.orderBy('competitionOrganisation.name', sortOrder);
                 } else if (sortBy === 'firstName') {
                     query.orderBy('user.firstName', sortOrder);
                 } else if (sortBy === 'lastName') {

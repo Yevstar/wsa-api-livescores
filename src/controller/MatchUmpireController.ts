@@ -240,8 +240,8 @@ export class MatchUmpireController extends BaseController {
                     e['Umpire 1'] = e['umpires'][0]['umpireName'];
                     e['Umpire 1 Response'] = e['umpires'][0]['status'];
                     const organisationName = [];
-                    if (isArrayPopulated(e['umpires'][0]['organisations'])) {
-                        for (let r of e['umpires'][0]['organisations']) {
+                    if (isArrayPopulated(e['umpires'][0]['competitionOrganisations'])) {
+                        for (let r of e['umpires'][0]['competitionOrganisations']) {
                             organisationName.push(r['name']);
                         }
                     }
@@ -257,8 +257,8 @@ export class MatchUmpireController extends BaseController {
                     e['Umpire 2'] = e['umpires'][1]['umpireName'];
                     e['Umpire 2 Response'] = e['umpires'][1]['status'];
                     const organisationName = [];
-                    if (isArrayPopulated(e['umpires'][1]['organisations'])) {
-                        for (let r of e['umpires'][1]['organisations']) {
+                    if (isArrayPopulated(e['umpires'][1]['competitionOrganisations'])) {
+                        for (let r of e['umpires'][1]['competitionOrganisations']) {
                             organisationName.push(r['name']);
                         }
                     }
