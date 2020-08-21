@@ -1,12 +1,12 @@
-import {Service} from "typedi";
+import { Service } from "typedi";
 import BaseService from "./BaseService";
-import {UserDevice} from "../models/UserDevice";
-import {Brackets, DeleteResult, EntityManager} from "typeorm-plus";
-import {UserRoleEntity} from "../models/security/UserRoleEntity";
-import {Match} from "../models/Match";
-import {Roster} from "../models/security/Roster";
-import {EntityType} from "../models/security/EntityType";
-import {News} from "../models/News";
+import { UserDevice } from "../models/UserDevice";
+import { Brackets, DeleteResult, EntityManager } from "typeorm-plus";
+import { UserRoleEntity } from "../models/security/UserRoleEntity";
+import { Match } from "../models/Match";
+import { Roster } from "../models/security/Roster";
+import { EntityType } from "../models/security/EntityType";
+import { News } from "../models/News";
 
 @Service()
 export default class UserDeviceService extends BaseService<UserDevice> {
@@ -18,19 +18,19 @@ export default class UserDeviceService extends BaseService<UserDevice> {
     public async getUserDevices(userId: number): Promise<UserDevice[]> {
         return this.entityManager.createQueryBuilder(UserDevice, 'ud')
             .innerJoin('ud.user', 'user')
-            .where('ud.userId = :userId', {userId})
+            .where('ud.userId = :userId', { userId })
             .getMany();
     }
 
     public async getUserTokens(userIds: number[]): Promise<UserDevice[]> {
         return this.entityManager.createQueryBuilder(UserDevice, 'ud')
-            .where('ud.userId in (:userIds)', {userIds})
+            .where('ud.userId in (:userIds)', { userIds })
             .getMany();
     }
 
     public async loadDeviceByToken(deviceId: string): Promise<UserDevice> {
         return this.entityManager.createQueryBuilder(UserDevice, 'ud')
-            .andWhere('ud.deviceId = :deviceId', {deviceId})
+            .andWhere('ud.deviceId = :deviceId', { deviceId })
             .getOne();
     }
 
@@ -47,7 +47,7 @@ export default class UserDeviceService extends BaseService<UserDevice> {
 
     public async removeDevice(deviceId: string): Promise<DeleteResult> {
         let query = this.entityManager.createQueryBuilder().delete().from(UserDevice);
-        query.andWhere("deviceId = :deviceId", {deviceId});
+        query.andWhere("deviceId = :deviceId", { deviceId });
         return query.execute();
     }
 
@@ -59,7 +59,7 @@ export default class UserDeviceService extends BaseService<UserDevice> {
             .innerJoin('ure.entityType', 'et')
             .andWhere("r.name = 'manager'")
             .andWhere("et.name = 'TEAM'")
-            .andWhere('ure.entityId = :teamId', {teamId})
+            .andWhere('ure.entityId = :teamId', { teamId })
             .getMany();
     }
 
@@ -71,7 +71,7 @@ export default class UserDeviceService extends BaseService<UserDevice> {
             .innerJoin('ure.entityType', 'et')
             .andWhere("r.name = 'manager' or r.name = 'coach'")
             .andWhere("et.name = 'TEAM'")
-            .andWhere('ure.entityId = :teamId', {teamId})
+            .andWhere('ure.entityId = :teamId', { teamId })
             .getMany();
     }
 
@@ -86,17 +86,17 @@ export default class UserDeviceService extends BaseService<UserDevice> {
                 qb.orWhere(
                     "(ure.entityId = :team1Id and ure.entityTypeId = :entityTypeId1) or " +
                     "(ure.entityId = :team2Id and ure.entityTypeId = :entityTypeId2)", {
-                        team1Id: match.team1Id,
-                        entityTypeId1: EntityType.TEAM,
-                        team2Id: match.team2Id,
-                        entityTypeId2: EntityType.TEAM,
-                    })
+                    team1Id: match.team1Id,
+                    entityTypeId1: EntityType.TEAM,
+                    team2Id: match.team2Id,
+                    entityTypeId2: EntityType.TEAM,
+                })
             })).getQuery());
         query.orWhere('ud.userId in ' + query.subQuery().select("r.userId")
             .from(Roster, "r")
             .innerJoin('r.role', 'role')
             .andWhere("role.name = 'scorer' or role.name = 'player' or role.name = 'umpire' or role.name = 'coach'")
-            .andWhere("r.matchId = :matchId", {matchId: match.id}).getQuery());
+            .andWhere("r.matchId = :matchId", { matchId: match.id }).getQuery());
         return query.getMany();
     }
 
@@ -106,8 +106,8 @@ export default class UserDeviceService extends BaseService<UserDevice> {
             .innerJoin(Roster, 'rst', 'rst.userId = user.id')
             .innerJoin('rst.role', 'role')
             .andWhere("role.name = 'scorer'");
-        if (rosterId) query.andWhere("rst.id = :rosterId", {rosterId});
-        if (matchId) query.andWhere("rst.matchId = :matchId", {matchId});
+        if (rosterId) query.andWhere("rst.id = :rosterId", { rosterId });
+        if (matchId) query.andWhere("rst.matchId = :matchId", { matchId });
         return query.getMany();
     }
 
@@ -116,14 +116,14 @@ export default class UserDeviceService extends BaseService<UserDevice> {
             .innerJoin('ud.user', 'user')
             .innerJoin(Roster, 'rst', 'rst.userId = user.id')
             .innerJoin('rst.role', 'role')
-        if (roleIds) query.andWhere("rst.roleId in (:roleIds)", {roleIds});
+        if (roleIds) query.andWhere("rst.roleId in (:roleIds)", { roleIds });
         return query.getMany();
     }
 
     public async updateDeviceId(oldDeviceId: string, newDeviceId: string): Promise<any> {
         return await this.entityManager.createQueryBuilder(UserDevice, 'ud').update()
-            .set({deviceId: newDeviceId})
-            .where("deviceId = :oldDeviceId", {oldDeviceId})
+            .set({ deviceId: newDeviceId })
+            .where("deviceId = :oldDeviceId", { oldDeviceId })
             .execute();
     }
 
@@ -239,5 +239,16 @@ export default class UserDeviceService extends BaseService<UserDevice> {
             return array;
         }
         return [];
+    }
+
+    public async countDistinctDevices(competitionId: number): Promise<any[]> {
+        return this.entityManager.query(
+            'SELECT count(distinct wl.deviceId) as deviceCount\n' +
+            '    FROM wsa_users.linked_entities le\n' +
+            '                 inner join watchlist wl on (le.linkedEntityId = wl.entityId  and le.linkedEntityTypeId = wl.entityTypeId)\n' +
+            '                 inner join userDevice ud on ud.deviceId = wl.deviceId\n' +
+
+            'where ud.userId is null and le.inputEntityId = ? and le.inputEntityTypeId = ?;'
+            , [competitionId, EntityType.COMPETITION])
     }
 }
