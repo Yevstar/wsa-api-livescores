@@ -201,9 +201,9 @@ export default class TeamService extends BaseService<Team> {
             'SUM(IF(teamId = ?, goal, 0))         as own_goal,\n' +
             'SUM(IF(teamId = ?, miss, 0))         as own_miss,\n' +
             'SUM(IF(teamId = ?, penalty_miss, 0)) as own_penalty_miss,\n' +
-            '((SUM(goal)/?) * 100)                as avg_goal,\n' +
-            '((SUM(miss)/?) * 100)                as avg_miss,\n' +
-            '((SUM(penalty_miss)/?) * 100)        as avg_penalty_miss\n' +
+            '(SUM(goal)/?)                        as avg_goal,\n' +
+            '(SUM(miss)/?)                        as avg_miss,\n' +
+            '(SUM(penalty_miss)/?)                as avg_penalty_miss\n' +
             'from shootingStats\n' +
             'where competitionId = ? AND divisionId = ?;',
             [teamId, teamId, teamId, noOfTeams, noOfTeams, noOfTeams, competitionId, divisionId]
@@ -216,9 +216,9 @@ export default class TeamService extends BaseService<Team> {
             'SUM(IF(teamId = ? and matchId = ?, goal, 0))         as own_goal,\n' +
             'SUM(IF(teamId = ? and matchId = ?, miss, 0))         as own_miss,\n' +
             'SUM(IF(teamId = ? and matchId = ?, penalty_miss, 0)) as own_penalty_miss,\n' +
-            '((SUM(goal)/?) * 100)                                as avg_goal,\n' +
-            '((SUM(miss)/?) * 100)                                as avg_miss,\n' +
-            '((SUM(penalty_miss)/?) * 100)                        as avg_penalty_miss\n' +
+            '(SUM(goal)/?)                                as avg_goal,\n' +
+            '(SUM(miss)/?)                                as avg_miss,\n' +
+            '(SUM(penalty_miss)/?)                        as avg_penalty_miss\n' +
             'from shootingStats\n' +
             'where competitionId = ? AND  divisionId = ?;',
             [teamId, matchId, teamId, matchId, teamId, matchId, noOfMatches, noOfMatches, noOfMatches, competitionId, divisionId]
@@ -339,7 +339,7 @@ export default class TeamService extends BaseService<Team> {
             html: mailHtml
         };
         if(Number(process.env.SOURCE_MAIL) == 1){
-            mailOptions.html = ' To: '+mailOptions.to + '<br><br>'+ mailOptions.html 
+            mailOptions.html = ' To: '+mailOptions.to + '<br><br>'+ mailOptions.html
             mailOptions.to = process.env.TEMP_DEV_EMAIL
         }
         await transporter.sendMail(mailOptions, (err, info) => {
