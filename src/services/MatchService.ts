@@ -583,7 +583,7 @@ export default class MatchService extends BaseService<Match> {
             .getCount();
     }
 
-    public async updateLivestreamURL(matchId: string): Promise<any> {
+    public async updateLivestreamURL(matchId: number, livestreamURL: string): Promise<any> {
         return this.entityManager.createQueryBuilder(Match, 'm').update()
             .set({livestreamURL: livestreamURL})
             .where("id = :matchId", {matchId})

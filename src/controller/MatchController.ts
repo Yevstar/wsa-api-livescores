@@ -1727,14 +1727,13 @@ export class MatchController extends BaseController {
     @Authorized()
     @Post(`/livestreamURL`)
     async updateLivestreamURL(
-        @QueryParam("matchId", { required: true }) matchId: number,
         @Body() match: Match,
         @Res() response: Response
     ): Promise<any> {
         if (match && match.livestreamURL) {
-            return await this.matchService.updateLivestreamURL(matchId, match.livestreamURL);
+            return await this.matchService.updateLivestreamURL(match.id, match.livestreamURL);
         } else {
-            return response.status(200).send({
+            return response.status(400).send({
                 name: 'missing_parameters',
                 message: `Missing parameters`
             });
