@@ -901,7 +901,4 @@ export class UserController extends BaseController {
         return await this.deviceService.countDistinctDevices(competitionId);
 
     }
-
-
-
 }
