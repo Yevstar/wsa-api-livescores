@@ -894,7 +894,7 @@ export class UserController extends BaseController {
     }
 
     @Authorized()
-    @Get('/countdistinctdevices')
+    @Get('/devices/count')
     async countDistinctDevices(
         @QueryParam('competitionId') competitionId: number = null,
     ): Promise<any> {

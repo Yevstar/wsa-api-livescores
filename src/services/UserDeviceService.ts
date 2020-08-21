@@ -241,7 +241,6 @@ export default class UserDeviceService extends BaseService<UserDevice> {
         return [];
     }
 
-
     public async countDistinctDevices(competitionId: number): Promise<any[]> {
         return this.entityManager.query(
             'SELECT count(distinct wl.deviceId) as deviceCount\n' +
@@ -252,8 +251,4 @@ export default class UserDeviceService extends BaseService<UserDevice> {
             'where ud.userId is null and le.inputEntityId = ? and le.inputEntityTypeId = ?;'
             , [competitionId, EntityType.COMPETITION])
     }
-
-
-
-
 }
