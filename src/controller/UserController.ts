@@ -1,4 +1,4 @@
-import {Request, Response} from 'express';
+import { Request, Response } from 'express';
 import {
     Authorized,
     Body,
@@ -14,21 +14,21 @@ import {
     UploadedFile
 } from 'routing-controllers';
 import axios from 'axios';
-import {decode as atob} from 'base-64';
+import { decode as atob } from 'base-64';
 
-import {logger} from '../logger';
-import {authToken, isNullOrEmpty, validationForField, trim} from '../utils/Utils';
-import {LoginError} from '../exceptions/LoginError';
-import {User} from '../models/User';
-import {UserDevice} from '../models/UserDevice';
-import {UserRoleEntity} from '../models/security/UserRoleEntity';
-import {Role} from '../models/security/Role';
-import {EntityType} from '../models/security/EntityType';
-import {Team} from '../models/Team';
-import {Organisation} from '../models/Organisation';
-import {md5, isArrayPopulated} from '../utils/Utils';
-import {isNotNullAndUndefined} from '../utils/Utils';
-import {BaseController} from './BaseController';
+import { logger } from '../logger';
+import { authToken, isNullOrEmpty, validationForField, trim } from '../utils/Utils';
+import { LoginError } from '../exceptions/LoginError';
+import { User } from '../models/User';
+import { UserDevice } from '../models/UserDevice';
+import { UserRoleEntity } from '../models/security/UserRoleEntity';
+import { Role } from '../models/security/Role';
+import { EntityType } from '../models/security/EntityType';
+import { Team } from '../models/Team';
+import { Organisation } from '../models/Organisation';
+import { md5, isArrayPopulated } from '../utils/Utils';
+import { isNotNullAndUndefined } from '../utils/Utils';
+import { BaseController } from './BaseController';
 
 @JsonController('/users')
 export class UserController extends BaseController {
@@ -88,7 +88,7 @@ export class UserController extends BaseController {
                 return await this.responseWithTokenAndUser(user.email.toLowerCase(), user.password, user, deviceId);
             }
         } finally {
-            response.status(404).send({name: 'validation_error', message: 'Invalid access token'});
+            response.status(404).send({ name: 'validation_error', message: 'Invalid access token' });
         }
     }
 
@@ -104,14 +104,14 @@ export class UserController extends BaseController {
                 const email = tokenResponse.data.email.toLowerCase();
                 const user = await this.userService.findByEmail(email);
                 if (!user) {
-                    response.status(203).send({name: 'new_user', message: 'Need process registration'});
-                    return {user: {email}};
+                    response.status(203).send({ name: 'new_user', message: 'Need process registration' });
+                    return { user: { email } };
                 } else {
                     return await this.responseWithTokenAndUser(user.email.toLowerCase(), user.password, user, deviceId);
                 }
             }
         } catch (e) {
-            return response.status(404).send({name: 'validation_error', message: 'Invalid access token'});
+            return response.status(404).send({ name: 'validation_error', message: 'Invalid access token' });
         }
     }
 
@@ -125,7 +125,7 @@ export class UserController extends BaseController {
         if (isNullOrEmpty(user.email) || isNullOrEmpty(user.password)) {
             return response
                 .status(422)
-                .send({name: 'validation_error', message: 'Not all required field filled'});
+                .send({ name: 'validation_error', message: 'Not all required field filled' });
         }
         const existing = await this.userService.findByEmail(user.email.toLowerCase());
         if (existing) {
@@ -162,7 +162,7 @@ export class UserController extends BaseController {
             await this.watchlistService.copyByUserId(deviceId, user.id);
             await this.deviceService.saveDevice(deviceId, undefined);
         }
-        return response.status(200).send({name: 'logout', message: 'success'});
+        return response.status(200).send({ name: 'logout', message: 'success' });
     }
 
     @Authorized('spectator')
@@ -224,7 +224,7 @@ export class UserController extends BaseController {
     @Patch('/changePassword')
     async changeUserPassword(
         @HeaderParam("authorization") user: User,
-        @QueryParam('password', {required: true}) password: string = undefined,
+        @QueryParam('password', { required: true }) password: string = undefined,
         @Res() response: Response
     ) {
         try {
@@ -239,7 +239,7 @@ export class UserController extends BaseController {
                 });
             }
         } catch (err) {
-            logger.error(`Password not changed ${user.email}`+err);
+            logger.error(`Password not changed ${user.email}` + err);
             return response.status(400).send({
                 name: 'change_error', message: 'Failed to change user password'
             });
@@ -297,8 +297,8 @@ export class UserController extends BaseController {
     @Patch('/device')
     async updateDevice(
         @HeaderParam("authorization") user: User,
-        @QueryParam('oldDeviceId', {required: true}) oldDeviceId: string,
-        @QueryParam('newDeviceId', {required: true}) newDeviceId: string,
+        @QueryParam('oldDeviceId', { required: true }) oldDeviceId: string,
+        @QueryParam('newDeviceId', { required: true }) newDeviceId: string,
         @Res() response: Response
     ) {
         if (oldDeviceId && newDeviceId) {
@@ -313,9 +313,9 @@ export class UserController extends BaseController {
             update = await this.deviceService.updateDeviceId(oldDeviceId, newDeviceId);
             logger.debug('UserDevice device id updated', update);
 
-            return response.status(200).send({name: 'update_device', success: true});
+            return response.status(200).send({ name: 'update_device', success: true });
         } else {
-            return response.status(200).send({name: 'update_device', success: false});
+            return response.status(200).send({ name: 'update_device', success: false });
         }
     }
 
@@ -379,25 +379,25 @@ export class UserController extends BaseController {
         } else if (deviceId) {
             watchlist = await this.watchlistService.findByParam(undefined, deviceId);
         } else {
-            return {organisationIds: [], teamIds: []}
+            return { organisationIds: [], teamIds: [] }
         }
 
         let organisationIds = watchlist.filter(item => item.entityTypeId == EntityType.ORGANISATION).map(item => item.entityId);
         let teamIds = watchlist.filter(item => item.entityTypeId == EntityType.TEAM).map(item => item.entityId);
-        return {teamIds, organisationIds}
+        return { teamIds, organisationIds }
     }
 
     @Authorized()
     @Get('/byOrgRole')
     async loadOrgUserByRole(
-        @QueryParam('roleId', {required: true}) roleId: number,
-        @QueryParam('organisationId', {required: true}) organisationId: number,
+        @QueryParam('roleId', { required: true }) roleId: number,
+        @QueryParam('organisationId', { required: true }) organisationId: number,
         @QueryParam('userName') userName: string,
         @QueryParam('offset') offset: number,
         @QueryParam('limit') limit: number,
         @Res() response: Response
     ) {
-        let result = await this.userService.getUserIdBySecurity(EntityType.ORGANISATION, [organisationId], userName, {roleId: roleId});
+        let result = await this.userService.getUserIdBySecurity(EntityType.ORGANISATION, [organisationId], userName, { roleId: roleId });
         // for (let u of result) {
         //     u['linkedEntity'] = JSON.parse(u['linkedEntity']);
         // }
@@ -892,4 +892,16 @@ export class UserController extends BaseController {
             message: resMsg
         });
     }
+
+    @Authorized()
+    @Get('/countdistinctdevices')
+    async countDistinctDevices(
+        @QueryParam('competitionId') competitionId: number = null,
+    ): Promise<any> {
+        return await this.deviceService.countDistinctDevices(competitionId);
+
+    }
+
+
+
 }
