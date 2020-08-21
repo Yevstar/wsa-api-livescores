@@ -179,6 +179,11 @@ export class Match extends BaseEntity {
 
     @IsString()
     @Column()
+    livestreamURL: string;
+
+
+    @IsString()
+    @Column()
     resultStatus: "Draft" | "Unconfirmed" | "In Dispute" | "Final";
 
     @ValidateNested()

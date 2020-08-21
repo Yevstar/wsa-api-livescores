@@ -582,4 +582,11 @@ export default class MatchService extends BaseService<Match> {
             .andWhere('division.deleted_at is null')
             .getCount();
     }
+
+    public async updateLivestreamURL(matchId: string): Promise<any> {
+        return this.entityManager.createQueryBuilder(Match, 'm').update()
+            .set({livestreamURL: livestreamURL})
+            .where("id = :matchId", {matchId})
+            .execute();
+    }
 }
