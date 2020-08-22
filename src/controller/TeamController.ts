@@ -384,8 +384,13 @@ export class TeamController extends BaseController {
             let competitionData = await this.competitionService.findById(savedTeam.competitionId)
             this.userService.sentMail(user, [savedTeam], competitionData, Role.MANAGER, savedUser, password);
         }
-
+        
         if (file && isPhoto(file.mimetype)) {
+            if (teamData.logoUrl.includes(`/team_${savedTeam.id}`)) {
+                const fileName = await this.firebaseService.getFileNameFromUrl(JSON.stringify(teamData.logoUrl));
+                await this.firebaseService.removeMedia(fileName);
+            }
+
             let filename = `/${savedTeam.name}/team_${savedTeam.id}.${fileExt(file.originalname)}`;
             let result = await this.firebaseService.upload(filename, file);
             if (result) {
