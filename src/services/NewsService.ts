@@ -1,10 +1,8 @@
 import {Service} from "typedi";
 import BaseService from "./BaseService";
 import {News} from "../models/News";
-import {Watchlist} from "../models/Watchlist";
-import {Brackets, DeleteResult} from "typeorm-plus";
-import {contain, fileExt, timestamp, isArrayPopulated} from "../utils/Utils";
-import {Response} from 'express';
+import {DeleteResult} from "typeorm-plus";
+import {isArrayPopulated} from "../utils/Utils";
 
 @Service()
 export default class NewsService extends BaseService<News> {

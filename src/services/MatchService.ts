@@ -366,8 +366,12 @@ export default class MatchService extends BaseService<Match> {
                                         competitionId: number, organisationIds: number[], offset: number = undefined, limit: number = undefined): Promise<any> {
 
         let query = await this.entityManager.createQueryBuilder(Match, 'match');
-        if (from) query.andWhere("match.startTime >= cast(:from as datetime)", { from });
-        if (to) query.andWhere("match.startTime < ( cast(:to as datetime) + INTERVAL 1 DAY )", { to });
+        if (from && to) {
+            query.andWhere(`((match.startTime < cast(:from as datetime) and match.matchStatus != 'ENDED') or
+            (match.startTime > cast(:from as datetime) and match.startTime < ( cast(:to as datetime) + INTERVAL 1 DAY)) or
+            (match.startTime > (cast(:to as datetime) + INTERVAL 1 DAY) and (match.matchStatus = 'STARTED' or match.matchStatus = 'PAUSED'))
+            )`, { from, to });
+        }
 
         this.filterByOrganisationTeam(competitionId, organisationIds, teamIds, query);
         query.orderBy('match.startTime', 'ASC');

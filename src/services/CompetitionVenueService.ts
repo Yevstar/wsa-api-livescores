@@ -3,7 +3,6 @@ import BaseService from "./BaseService";
 import { CompetitionVenue } from "../models/CompetitionVenue";
 import { VenueCourt } from "../models/VenueCourt";
 import { Venue } from "../models/Venue";
-import { Brackets } from "typeorm";
 
 
 @Service()

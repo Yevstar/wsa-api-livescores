@@ -1,7 +1,6 @@
 import { Service } from "typedi";
 import BaseService from "./BaseService";
 import { CompetitionLadderSettings } from "../models/CompetitionLadderSettings";
-import { Brackets } from "typeorm";
 import { isArrayPopulated } from "../utils/Utils";
 
 
