@@ -369,7 +369,7 @@ export default class MatchService extends BaseService<Match> {
         if (from && to) {
             query.andWhere(`((match.startTime < cast(:from as datetime) and match.matchStatus != 'ENDED') or
             (match.startTime > cast(:from as datetime) and match.startTime < ( cast(:to as datetime) + INTERVAL 1 DAY)) or
-            (match.startTime > (cast(:to as datetime) + INTERVAL 1 DAY) and (match.matchStatus = 'STARTED' or match.matchStatus = 'PAUSED'))
+            (match.startTime > (cast(:to as datetime) + INTERVAL 1 DAY) and (match.matchStatus is not null))
             )`, { from, to });
         }
 
