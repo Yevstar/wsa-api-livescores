@@ -169,16 +169,16 @@ export default class GameTimeAttendanceService extends BaseService<GameTimeAtten
             else if (sortBy === 'team') orderByParam = 't.name'
             else if (sortBy === 'lastName') orderByParam = 'p.lastName'
             else if (sortBy === 'firstName') orderByParam = 'p.firstName'
-            else if (sortBy === 'gs') orderByParam = `(round(( COALESCE(gs,0) / COALESCE(play,0))*100))`
-            else if (sortBy === 'ga') orderByParam = `(round(( COALESCE(ga,0) / COALESCE(play,0))*100))`
-            else if (sortBy === 'wa') orderByParam = `(round(( COALESCE(wa,0) / COALESCE(play,0))*100))`
-            else if (sortBy === 'c') orderByParam = `(round(( COALESCE(c,0) / COALESCE(play,0))*100))`
-            else if (sortBy === 'wd') orderByParam = `(round(( COALESCE(wd,0) / COALESCE(play,0))*100))`
-            else if (sortBy === 'gd') orderByParam = `(round(( COALESCE(gd,0) / COALESCE(play,0))*100))`
-            else if (sortBy === 'gk') orderByParam = `(round(( COALESCE(gk,0) / COALESCE(play,0))*100))`
-            else if (sortBy === 'played') orderByParam = `(round(( COALESCE(play,0) / COALESCE(playDuration,0))*100))`
-            else if (sortBy === 'bench') orderByParam = `(round(( COALESCE(bench,0) / COALESCE(playDuration,0))*100))`
-            else if (sortBy === 'noPlay') orderByParam = `(round(( COALESCE(bench,0) / COALESCE(playDuration,0))*100))`;
+            else if (sortBy === 'gs') orderByParam = `gs`;
+            else if (sortBy === 'ga') orderByParam = `ga`;
+            else if (sortBy === 'wa') orderByParam = `wa`;
+            else if (sortBy === 'c') orderByParam = `c`;
+            else if (sortBy === 'wd') orderByParam = `wd`;
+            else if (sortBy === 'gd') orderByParam = `gd`;
+            else if (sortBy === 'gk') orderByParam = `gk`;
+            else if (sortBy === 'played') orderByParam = `play`;
+            else if (sortBy === 'bench') orderByParam = `bench`;
+            else if (sortBy === 'noPlay') orderByParam = `noplay`;
 
             query = query + ' ORDER by ' + orderByParam + ' ' + sortOrder
 
