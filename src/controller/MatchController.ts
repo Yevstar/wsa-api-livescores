@@ -1731,7 +1731,7 @@ export class MatchController extends BaseController {
         @Res() response: Response
     ): Promise<any> {
         if (match && match.livestreamURL) {
-            return await this.matchService.updateLivestreamURL(match.id, match.livestreamURL);
+           return await this.matchService.findById(match.id);
         } else {
             return response.status(400).send({
                 name: 'missing_parameters',
