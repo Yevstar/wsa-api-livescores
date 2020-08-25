@@ -151,6 +151,29 @@ export default class TeamLadderService extends BaseService<TeamLadder> {
         }
     }
 
+    public async clearLadderPoints(competitionId, divisionId, userId){
+        try {
+            if(divisionId!= null){
+                await this.entityManager.createQueryBuilder(TeamLadder, 'teamLadder')
+                .update(TeamLadder)
+                .set({teamLadderTypeValue: 0, updatedBy: userId, updated_at: new Date()})
+                .andWhere("teamLadder.competitionId = :competitionId and  teamLadder.divisionId = :divisionId and teamLadder.teamLadderTypeRefId <= 9",
+                            {competitionId: competitionId, divisionId: divisionId})
+                .execute();
+            }
+            else{
+                await this.entityManager.createQueryBuilder(TeamLadder, 'teamLadder')
+                .update(TeamLadder)
+                .set({teamLadderTypeValue: 0, updatedBy: userId, updated_at: new Date()})
+                .andWhere("teamLadder.competitionId = :competitionId and teamLadder.teamLadderTypeRefId <= 9",
+                            {competitionId: competitionId})
+                .execute();
+            }
+        } catch (error) {
+            throw error;
+        }
+    }
+
     public async findExistingTeamLadderAdj(competitionId: number, divisionId: number): Promise<TeamLadder[]>{
         try{
             let result = await this.entityManager.createQueryBuilder(TeamLadder, 'tl')

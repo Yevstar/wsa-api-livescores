@@ -687,4 +687,28 @@ export class TeamController extends BaseController {
             });
         }
     }
+
+    @Authorized()
+    @Post('/ladder/reset')
+    async ladderReset(
+        @HeaderParam("authorization") currentUser: User,
+        @Body() requestBody,
+        @Res() response: Response
+    ){
+        try {
+            const getCompetition = await this.competitionService.getCompetitionByUniquekey(requestBody.competitionUniqueKey);
+            let competitionId = getCompetition.id;
+            let divisionId = requestBody.resetOptionId == 1 ? requestBody.divisionId : null;
+
+            await this.teamLadderService.clearLadderPoints(competitionId, divisionId, currentUser.id);
+           
+            return response.status(200).send('Updated Successfully.');
+
+        } catch (error) {
+            logger.error(`Error Occurred in  save ladder Reset   ${currentUser.id}` + error);
+            return response.status(500).send({
+                message: 'Something went wrong. Please contact administrator'
+            });
+        }
+    }
 }
