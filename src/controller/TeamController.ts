@@ -384,7 +384,7 @@ export class TeamController extends BaseController {
             let competitionData = await this.competitionService.findById(savedTeam.competitionId)
             this.userService.sentMail(user, [savedTeam], competitionData, Role.MANAGER, savedUser, password);
         }
-        
+
         if (file && isPhoto(file.mimetype)) {
             if (teamData.logoUrl.includes(`/team_${savedTeam.id}`)) {
                 const fileName = await this.firebaseService.getFileNameFromUrl(JSON.stringify(teamData.logoUrl));
@@ -419,52 +419,49 @@ export class TeamController extends BaseController {
         @UploadedFile("file", { required: true }) file: Express.Multer.File,
         @Res() response: Response
     ) {
-        let bufferString = file.buffer.toString('utf8');
-        let arr = bufferString.split('\n');
-        const jsonObj = [];
-        const headers = arr[0].split(',');
-        for (let i = 1; i < arr.length; i++) {
-            const data = arr[i].split(',');
-            const obj = {};
-            for (let j = 0; j < data.length; j++) {
-                obj[headers[j].trim()] = data[j].trim();
-            }
-            jsonObj.push(obj);
-        }
-
         const requiredField = [
             'Team_Name',
             'Grade',
             'Organisation'
         ];
 
+        let bufferString = file.buffer.toString('utf8');
+        let arr = bufferString.split('\n');
+        const data = [];
+        const headers = arr[0].split(',');
+        for (let i = 1; i < arr.length; i++) {
+            const csvData = arr[i].split(',');
+            const obj = {};
+            for (let j = 0; j < csvData.length; j++) {
+                obj[headers[j].trim()] = csvData[j].trim();
+            }
+            data.push(obj);
+        }
+
         let queryArr = [];
         const { result: importArr, message } = validationForField({
             filedList: requiredField,
-            values: jsonObj
+            values: data,
         });
 
         for (let i of importArr) {
-            const teamName = trim(i.Team_Name);
-            if (teamName !== '') {
-                let teamData = await this.teamService.findByNameAndCompetition(teamName, competitionId);
+            if (i.Team_Name !== '') {
+                let teamData = await this.teamService.findByNameAndCompetition(i.Team_Name, competitionId);
                 if (!isArrayPopulated(teamData)) {
-                    const grade = trim(i.Grade);
-                    const organization = trim(i.Organisation);
-                    let divisionData = await this.divisionService.findByName(grade, competitionId);
-                    let organisationData = await this.organisationService.findByNameAndCompetitionId(organization, competitionId);
+                    let divisionData = await this.divisionService.findByName(i.Grade, competitionId);
+                    let organisationData = await this.organisationService.findByNameAndCompetitionId(i.Organisation, competitionId);
                     if (!isArrayPopulated(divisionData) || !isArrayPopulated(organisationData)) {
                         message[`Line ${i.line}`] = [];
                         if (!isArrayPopulated(divisionData)) {
-                            message[`Line ${i.line}`].push(`Can't find data of grade '${grade}' related current competition No. ${competitionId}.`);
+                            message[`Line ${i.line}`].push(`Can't find data of grade "${i.Grade}" related current competition No. ${competitionId}.`);
                         }
                         if (!isArrayPopulated(organisationData)) {
-                            message[`Line ${i.line}`].push(`Can't find data of organisation '${organization}' related current competition No. ${competitionId}.`);
+                            message[`Line ${i.line}`].push(`Can't find data of organisation "${i.Organisation}" related current competition No. ${competitionId}.`);
                         }
                     } else {
                         let team = new Team();
-                        team.name = teamName;
-                        team.logoUrl = trim(i.Logo);
+                        team.name = i.Team_Name;
+                        team.logoUrl = i.Logo;
                         team.competitionId = competitionId;
                         if (divisionData.length > 0)
                             team.divisionId = divisionData[0].id;
@@ -475,11 +472,15 @@ export class TeamController extends BaseController {
                     }
                 } else {
                     message[`Line ${i.line}`] = [];
-                    message[`Line ${i.line}`].push(`The team '${teamName}' is already registered.`);
+                    message[`Line ${i.line}`].push(`The team "${i.Team_Name}" is already registered.`);
                 }
             }
         }
-        const resMsg = `${jsonObj.length} data processed. ${queryArr.length} data successfully imported and ${jsonObj.length - queryArr.length} data are failed.`;
+
+        const totalCount = data.length;
+        const successCount = queryArr.length;
+        const failedCount = data.length - queryArr.length;
+        const resMsg = `${totalCount} data are processed. ${successCount} data are successfully imported and ${failedCount} data are failed.`;
 
         await this.teamService.batchCreateOrUpdate(queryArr);
         await Promise.all(queryArr.map((team: Team) => {
@@ -490,7 +491,8 @@ export class TeamController extends BaseController {
             success: true,
             error: message,
             message: resMsg,
-            data: queryArr
+            data: queryArr,
+            rawData: data,
         });
     }
 

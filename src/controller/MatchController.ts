@@ -1411,47 +1411,45 @@ export class MatchController extends BaseController {
 
         let bufferString = file.buffer.toString('utf8');
         let arr = bufferString.split('\n');
-        const jsonObj = [];
+        const data = [];
         const headers = arr[0].split(',');
         for (let i = 1; i < arr.length; i++) {
-            const data = arr[i].split(',');
+            const csvData = arr[i].split(',');
             const obj = {};
-            for (let j = 0; j < data.length; j++) {
-                obj[headers[j].trim()] = data[j].trim();
+            for (let j = 0; j < csvData.length; j++) {
+                obj[headers[j].trim()] = csvData[j].trim();
             }
-            jsonObj.push(obj);
+            data.push(obj);
         }
 
         const { result: importArr, message } = validationForField({
             filedList: requiredField,
-            values: jsonObj
+            values: data,
         });
 
         let queryArr = [];
         for (let i of importArr) {
-            const date = trim(i.Date);
-            if (date !== "") {
-                let timeZone = parseDateTimeZoneString(date, trim(i.Time), trim(i["Timezone GMT"]));
+            if (i.Date !== "") {
+                let timeZone = parseDateTimeZoneString(i.Date, i.Time, i["Timezone GMT"]);
                 let startTimeInUTC = new Date(timeZone);
-                let divisionData = await this.divisionService.findByName(trim(i["Grade"]), competitionId);
-                let team1Data = await this.teamService.findByNameAndCompetition(trim(i["Home Team"]), competitionId);
-                let team2Data = await this.teamService.findByNameAndCompetition(trim(i["Away Team"]), competitionId);
-                let venueData = await this.competitionVenueService.findByCourtName(trim(i["Venue"]), competitionId);
+                let divisionData = await this.divisionService.findByName(i["Grade"], competitionId);
+                let team1Data = await this.teamService.findByNameAndCompetition(i["Home Team"], competitionId);
+                let team2Data = await this.teamService.findByNameAndCompetition(i["Away Team"], competitionId);
+                let venueData = await this.competitionVenueService.findByCourtName(i["Venue"], competitionId);
                 let roundData;
                 if (divisionData && !!divisionData[0] && !!team1Data[0] && !!team2Data[0] && !!venueData[0]) {
-                    const roundName = trim(i["Round"]);
-                    let rounds = await this.roundService.findByName(competitionId, roundName, divisionData[0].id);
+                    let rounds = await this.roundService.findByName(competitionId, i["Round"], divisionData[0].id);
                     roundData = rounds[0];
 
                     if (!roundData) {
                         let round = new Round();
-                        const roundSplitStr = roundName.split(" ");
+                        const roundSplitStr = i["Round"].split(" ");
                         let value = stringTONumber(roundSplitStr.length > 1 ? roundSplitStr[1] : roundSplitStr[0]);
                         round.competitionId = competitionId;
                         if (divisionData && divisionData[0] != null) {
                             round.divisionId = divisionData[0].id;
                         }
-                        round.name = roundName;
+                        round.name = i["Round"];
                         round.sequence = value;
                         roundData = await this.roundService.createOrUpdate(round);
                     }
@@ -1459,11 +1457,11 @@ export class MatchController extends BaseController {
                     let match = new Match();
                     match.startTime = startTimeInUTC;
                     match.competitionId = competitionId;
-                    match.type = trim(i.type);
-                    match.matchDuration = stringTONumber(trim(i.matchDuration));
-                    match.breakDuration = stringTONumber(trim(i.breakDuration));
-                    match.mainBreakDuration = stringTONumber(trim(i.mainBreakDuration));
-                    match.mnbMatchId = trim(i.mnbMatchId);
+                    match.type = i.type;
+                    match.matchDuration = stringTONumber(i.matchDuration);
+                    match.breakDuration = stringTONumber(i.breakDuration);
+                    match.mainBreakDuration = stringTONumber(i.mainBreakDuration);
+                    match.mnbMatchId = i.mnbMatchId;
                     match.roundId = roundData.id;
                     if (venueData && venueData[0] != null) {
                         match.venueCourtId = venueData[0].id;
@@ -1477,29 +1475,27 @@ export class MatchController extends BaseController {
                     queryArr.push(match);
                 } else {
                     message[`Line ${i.line}`] = [];
-                    if (!divisionData[0]) {
-                        message[`Line ${i.line}`].push('The divisions entered is not associated with this competition.');
-                    }
-                    if (!team1Data[0]) {
-                        message[`Line ${i.line}`].push(`Can't find the team named as '${trim(i['Home Team'])}'`);
-                    }
-                    if (!team2Data[0]) {
-                        message[`Line ${i.line}`].push(`Can't find the team named as '${trim(i['Away Team'])}'`);
-                    }
-                    if (!venueData[0]) {
-                        message[`Line ${i.line}`].push(`Can't find the venue named as '${trim(i['Venue'])}'`);
-                    }
+                    if (!divisionData[0]) message[`Line ${i.line}`].push('The divisions entered is not associated with this competition.');
+                    if (!team1Data[0]) message[`Line ${i.line}`].push(`Can't find the team named as "${i['Home Team']}"`);
+                    if (!team2Data[0]) message[`Line ${i.line}`].push(`Can't find the team named as "${i['Away Team']}"`);
+                    if (!venueData[0]) message[`Line ${i.line}`].push(`Can't find the venue named as "${i['Venue']}"`);
                 }
             }
         }
-        const resMsg = `${jsonObj.length} data processed. ${queryArr.length} data successfully imported and ${jsonObj.length - queryArr.length} data are failed.`;
+
+        const totalCount = data.length;
+        const successCount = queryArr.length;
+        const failedCount = data.length - queryArr.length;
+        const resMsg = `${totalCount} data are processed. ${successCount} data are successfully imported and ${failedCount} data are failed.`;
 
         await this.matchService.batchCreateOrUpdate(queryArr);
+
         return response.status(200).send({
             success: true,
             message: resMsg,
             error: message,
-            data: queryArr
+            data: queryArr,
+            rawData: data,
         });
     }
 
@@ -1723,7 +1719,7 @@ export class MatchController extends BaseController {
             return response.status(212).send({ success: false });
         }
     }
-
+    
     @Authorized()
     @Post(`/livestreamURL`)
     async updateLivestreamURL(

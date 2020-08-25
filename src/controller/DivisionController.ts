@@ -67,8 +67,7 @@ export class DivisionController extends BaseController {
     @Authorized()
     @Post('/')
     async addDivision(@Body() division: Division) {
-        let data = await this.divisionService.createOrUpdate(division)
-        return data;
+        return await this.divisionService.createOrUpdate(division)
     }
 
     @Authorized()
@@ -77,8 +76,7 @@ export class DivisionController extends BaseController {
         @QueryParam('competitionId') competitionId: number,
         @QueryParam('name') name: string
     ): Promise<any> {
-        let data = await this.divisionService.findByName(name, competitionId)
-        return data;
+        return await this.divisionService.findByName(name, competitionId)
     }
 
     @Authorized()
@@ -91,45 +89,47 @@ export class DivisionController extends BaseController {
         const requiredField = [
             'name'
         ];
+
         let bufferString = file.buffer.toString('utf8');
         let arr = bufferString.split('\n');
-        const jsonObj = [];
+        const data = [];
         const headers = arr[0].split(',');
         for (let i = 1; i < arr.length; i++) {
-            const data = arr[i].split(',');
+            const csvData = arr[i].split(',');
             const obj = {};
-            for (let j = 0; j < data.length; j++) {
-                obj[headers[j].trim()] = data[j].trim();
+            for (let j = 0; j < csvData.length; j++) {
+                obj[headers[j].trim()] = csvData[j].trim();
             }
-            jsonObj.push(obj);
+            data.push(obj);
         }
 
         let queryArr = [];
         const { result: importArr, message } = validationForField({
             filedList: requiredField,
-            values: jsonObj
+            values: data,
         });
-
         for (let i of importArr) {
-            const name = trim(i.name);
-            if (name) {
+            if (i.name != "") {
                 let divisionObj = new Division();
-                divisionObj.name = name;
-                divisionObj.divisionName = trim(i.division);
-                divisionObj.grade = trim(i.grade);
+                divisionObj.name = i.name;
+                divisionObj.divisionName = i.division;
+                divisionObj.grade = i.grade;
                 divisionObj.competitionId = competitionId;
                 queryArr.push(divisionObj);
             }
         }
 
-        const resMsg = `${jsonObj.length} data processed. ${queryArr.length} data successfully imported and ${jsonObj.length - queryArr.length} data are failed.`;
+        const totalCount = data.length;
+        const successCount = queryArr.length;
+        const failedCount = data.length - queryArr.length;
+        const resMsg = `${totalCount} data are processed. ${successCount} data are successfully imported and ${failedCount} data are failed.`;
 
         await this.divisionService.batchCreateOrUpdate(queryArr);
         return response.status(200).send({
             data: importArr,
             error: message,
-            message: resMsg
+            message: resMsg,
+            rawData: data,
         });
     }
-
 }

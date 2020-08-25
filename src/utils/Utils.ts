@@ -209,35 +209,32 @@ export function validationForField({ filedList, values }: { filedList: string[],
 
     values.forEach((val, index) => {
         const msg: string[] = [];
-        if (val.error) {
-            msg.push(val.error);
-        } else {
-            filedList.forEach((field) => {
-                if (isNullOrEmpty(val[field])) {
-                    msg.push(`The field '${field}' is required.`);
-                } else {
-                    if (field === 'dateOfBirth') {
-                        const date = parseDateString(val[field]);
-
-                        if (date.getFullYear() < 1000) {
-                            msg.push(`The '${field}' value is invalid date.`);
-                        }
-
-                        val[field] = `${date.getDate()}.${date.getMonth()}.${date.getFullYear()}`;
-                    } else if (field.toLowerCase() === 'email' && !validator.validate(val[field])) {
-                        msg.push(`The '${field}' value is invalid email.`);
+        filedList.forEach((field) => {
+            if (isNullOrEmpty(val[field])) {
+                msg.push(`The field '${field}' is required.`);
+            } else {
+                if (field === 'dateOfBirth') {
+                    const date = parseDateString(val[field]);
+                    if (date.getFullYear() < 1000) {
+                        msg.push(`The '${field}' value is invalid date.`);
                     }
+                    val[field] = `${date.getDate()}.${date.getMonth()}.${date.getFullYear()}`;
+                } else if (field.toLowerCase() === 'email' && !validator.validate(val[field])) {
+                    msg.push(`The '${field}' value is invalid email.`);
+                } else if (field.toLowerCase() === 'teamid' && val[field] < 0) {
+                    msg.push(`No matching team found for ${val['firstName']} ${val['lastName']}`);
                 }
-            });
-        }
+            }
+        });
 
         if (msg.length === 0) {
             templateRes.push(val);
             successRes.push({ ...val, line: index + 2 });
         } else {
-            message[`Line ${index + 2}`] = msg;
+            message[`Line ${index + 2}`] = {  ...val, message: msg };
         }
     });
+
     return { result: successRes, templateResult: templateRes, message };
 }
 

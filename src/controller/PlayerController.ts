@@ -265,39 +265,41 @@ export class PlayerController extends BaseController {
                 .on('end', async () => {
                     for (let i of arr) {
                         const team = trim(i.team);
-                        let teamId = await this.teamService.findByNameAndCompetition(team, competitionId, undefined, trim(i.grade));
-                        if (isArrayPopulated(teamId)) {
-                            let playerObj = new Player();
-                            playerObj.teamId = teamId[0].id;
-                            playerObj.firstName = trim(i['first name']);
-                            playerObj.lastName = trim(i['last name']);
-                            playerObj.mnbPlayerId = trim(i.mnbPlayerId);
-                            playerObj.dateOfBirth = i.DOB ? parseDateString(i.DOB) : undefined;
-                            playerObj.phoneNumber = i['contact no'] ? formatPhoneNumber(i['contact no']) : undefined;
-                            playerObj.competitionId = competitionId;
-                            playerArr.push(playerObj);
-                        } else {
-                            playerArr.push({
-                                error: `No matching team found for '${team}' related current competition No. ${competitionId}.`,
-                            });
-                        }
+                        const teamId = await this.teamService.findByNameAndCompetition(team, competitionId, undefined, trim(i.grade));
+                        const playerObj = new Player();
+                        playerObj.teamId = teamId[0].id;
+                        playerObj.firstName = trim(i['first name']);
+                        playerObj.lastName = trim(i['last name']);
+                        playerObj.mnbPlayerId = trim(i.mnbPlayerId);
+                        playerObj.dateOfBirth = i.DOB ? parseDateString(i.DOB) : undefined;
+                        playerObj.phoneNumber = i['contact no'] ? formatPhoneNumber(i['contact no']) : undefined;
+                        playerObj.competitionId = competitionId;
+                        playerArr.push(playerObj);
                     }
 
                     const { templateResult: players, message } = validationForField({
                         filedList: requiredField,
-                        values: playerArr
+                        values: playerArr,
                     });
 
-                    const resMsg = `${arr.length} data processed. ${players.length} data successfully imported and ${arr.length - players.length} data are failed.`;
+                    const totalCount = arr.length;
+                    const successCount = players.length;
+                    const failedCount = arr.length - players.length;
+                    const resMsg = `${totalCount} data are processed. ${successCount} data are successfully imported and ${failedCount} data are failed.`;
 
                     let data = await this.playerService.batchCreateOrUpdate(players as Player[]);
                     for (let p of data) {
-                        let playerUser = await this.loadPlayerUser(user, p);
-                        p.userId = playerUser ? playerUser.id : '';
+                        const playerUser = await this.loadPlayerUser(user, p);
+                        p.userId = playerUser ? playerUser.id : -1;
                         await this.playerService.createOrUpdate(p);
                     }
 
-                    resolve({ message: resMsg, error: message, data });
+                    resolve({
+                        message: resMsg,
+                        error: message,
+                        data,
+                        rawData: arr,
+                    });
                 });
         });
     }

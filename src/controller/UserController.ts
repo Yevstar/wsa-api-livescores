@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import {Request, Response} from 'express';
 import {
     Authorized,
     Body,
@@ -754,26 +754,6 @@ export class UserController extends BaseController {
         file: Express.Multer.File,
         response: Response
     ) {
-        let bufferString = file.buffer.toString('utf8');
-        let arr = bufferString.split('\n');
-        let jsonObj = [];
-        let headers = arr[0].split(',');
-        const infoMisMatchArray: any = [];
-        let importSuccess: boolean = false;
-        let teamRequired = roleId == Role.COACH || roleId == Role.MANAGER;
-        let teamChatRequired = roleId == Role.COACH || roleId == Role.MANAGER;
-
-        for (let i = 1; i < arr.length; i++) {
-            let data = arr[i].split(',');
-            let obj = {};
-            for (let j = 0; j < data.length; j++) {
-                if (headers[j] !== undefined) {
-                    obj[headers[j].trim()] = data[j].trim();
-                }
-            }
-            jsonObj.push(obj);
-        }
-
         const requiredField = [
             'First Name',
             'Last Name',
@@ -781,12 +761,32 @@ export class UserController extends BaseController {
             'Contact No',
             'Team',
             'Organisation',
-            'DivisionGrade'
+            'Grade'
         ];
+
+        let bufferString = file.buffer.toString('utf8');
+        let arr = bufferString.split('\n');
+        let data = [];
+        let headers = arr[0].split(',');
+        const infoMisMatchArray: any = [];
+        let importSuccess: boolean = false;
+        let teamRequired = roleId == Role.COACH || roleId == Role.MANAGER;
+        let teamChatRequired = roleId == Role.COACH || roleId == Role.MANAGER;
+
+        for (let i = 1; i < arr.length; i++) {
+            let csvData = arr[i].split(',');
+            let obj = {};
+            for (let j = 0; j < csvData.length; j++) {
+                if (headers[j] !== undefined) {
+                    obj[headers[j].trim()] = csvData[j].trim();
+                }
+            }
+            data.push(obj);
+        }
 
         const { result: importArr, message } = validationForField({
             filedList: requiredField,
-            values: jsonObj
+            values: data,
         });
 
         for (let i of importArr) {
@@ -797,17 +797,13 @@ export class UserController extends BaseController {
             let savedUserDetail: User;
             const password = Math.random().toString(36).slice(-8);
 
-            const email = trim(i['Email']).toLowerCase();
-            const firstName = trim(i['First Name']);
-            const lastName = trim(i['Last Name']);
-            const mobileNumber = trim(i['Contact No']);
-            const foundUser = await this.userService.findByEmail(email);
+            const foundUser = await this.userService.findByEmail(i['Email'].toLowerCase());
             if (foundUser) {
                 newUser = false;
                 if (
-                    foundUser.firstName === firstName &&
-                    foundUser.lastName === lastName &&
-                    foundUser.mobileNumber === mobileNumber
+                    foundUser.firstName == i['First Name'] &&
+                    foundUser.lastName == i['Last Name'] &&
+                    foundUser.mobileNumber == i['Contact No']
                 ) {
                     userDetails.id = foundUser.id;
                     userDetails.email = foundUser.email;
@@ -823,16 +819,16 @@ export class UserController extends BaseController {
                     // await this.userService.deleteRolesByUser(userDetails.id, Role.COACH, competitionId, EntityType.COMPETITION, EntityType.TEAM);
                     // await this.userService.deleteRolesByUser(userDetails.id, Role.MEMBER, competitionId, EntityType.COMPETITION, EntityType.COMPETITION);
                 } else {
-                    infoMisMatchArray.push(email);
+                    infoMisMatchArray.push(i['Email'].toLowerCase());
                 }
             } else {
                 newUser = true;
 
-                userDetails.email = email;
+                userDetails.email = i['Email'].toLowerCase();
                 userDetails.password = md5(password);
-                userDetails.firstName = firstName;
-                userDetails.lastName = lastName;
-                userDetails.mobileNumber = mobileNumber;
+                userDetails.firstName = i['First Name'];
+                userDetails.lastName = i['Last Name'];
+                userDetails.mobileNumber = i['Contact No'];
 
                 savedUserDetail = await this.userService.createOrUpdate(userDetails);
                 await this.updateFirebaseData(userDetails, userDetails.password);
@@ -840,16 +836,15 @@ export class UserController extends BaseController {
                 userDetails.id = savedUserDetail.id;
             }
 
-            if (!infoMisMatchArray.includes(email)) {
+            if (!infoMisMatchArray.includes(i['Email'].toLowerCase())) {
                 if (teamRequired) {
-                    const team = trim(i['Team']);
-                    if (isNotNullAndUndefined(team)) {
-                        const teamArray = team.split(',');
+                    if (isNotNullAndUndefined(i['Team'])) {
+                        const teamArray = i['Team'].split(',');
                         let teamDetail: Team[];
                         if (isArrayPopulated(teamArray)) {
                             for (let t of teamArray) {
                                 if (isNotNullAndUndefined(t) && isNotNullAndUndefined(t.name)) {
-                                    teamDetail = await this.teamService.findByNameAndCompetition(t, competitionId, trim(i['DivisionGrade']));
+                                    teamDetail = await this.teamService.findByNameAndCompetition(t, competitionId, i['Grade']);
                                     if (isArrayPopulated(teamDetail)) {
                                         teamDetailArray.push(...teamDetail);
                                     }
@@ -858,10 +853,9 @@ export class UserController extends BaseController {
                         }
                     }
                 } else {
-                    const organization = trim(i['Organisation']);
-                    if (isNotNullAndUndefined(organization)) {
+                    if (isNotNullAndUndefined(i['Organisation'])) {
                         let orgDetail: LinkedCompetitionOrganisation[];
-                        const orgArray = organization.split(',');
+                        const orgArray = i['Organisation'].split(',');
                         if (isArrayPopulated(orgArray)) {
                             for (let t of orgArray) {
                                 if (isNotNullAndUndefined(t)) {
@@ -932,12 +926,17 @@ export class UserController extends BaseController {
             }
         }
 
-        const resMsg = `${jsonObj.length} data processed. ${importArr.length} data successfully imported and ${jsonObj.length - importArr.length} data are failed.`;
+        const totalCount = data.length;
+        const successCount = importArr.length;
+        const failedCount = data.length - importArr.length;
+        const resMsg = `${totalCount} data are processed. ${successCount} data are successfully imported and ${failedCount} data are failed.`;
+
         return response.status(200).send({
             success: true,
             data: importArr,
             error: message,
-            message: resMsg
+            message: resMsg,
+            rawData: data,
         });
     }
 
@@ -947,6 +946,5 @@ export class UserController extends BaseController {
         @QueryParam('competitionId') competitionId: number = null,
     ): Promise<any> {
         return await this.deviceService.countDistinctDevices(competitionId);
-
     }
 }
