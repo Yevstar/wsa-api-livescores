@@ -155,6 +155,11 @@ export const fileUploadOptions = {
 
 export function parseDateString(dateStr: string): Date {
     let dStr = trim(dateStr);
+    if (!dStr) {
+        return new Date(-1, 0, 0);
+    }
+
+    console.log(dStr);
     const split = dStr.split('/');
     const dobStr = split.length === 3 ? split : dStr.split('.');
     if (dobStr.length !== 3) {
@@ -209,27 +214,39 @@ export function validationForField({ filedList, values }: { filedList: string[],
 
     values.forEach((val, index) => {
         const msg: string[] = [];
+        let tempValue = { ...val };
         filedList.forEach((field) => {
             if (isNullOrEmpty(val[field])) {
                 msg.push(`The field '${field}' is required.`);
             } else {
-                if (field === 'dateOfBirth') {
-                    const date = parseDateString(val[field]);
+                if (field === 'dateOfBirth' ||  field === 'Date') {
+                    const date = typeof tempValue[field] === 'string' ? parseDateString(tempValue[field]) : tempValue[field];
                     if (date.getFullYear() < 1000) {
                         msg.push(`The '${field}' value is invalid date.`);
                     }
-                    val[field] = `${date.getDate()}.${date.getMonth()}.${date.getFullYear()}`;
+                    tempValue[field] = `${date.getDate()}.${date.getMonth()}.${date.getFullYear()}`;
                 } else if (field.toLowerCase() === 'email' && !validator.validate(val[field])) {
                     msg.push(`The '${field}' value is invalid email.`);
                 } else if (field.toLowerCase() === 'teamid' && val[field] < 0) {
                     msg.push(`No matching team found for ${val['firstName']} ${val['lastName']}`);
+                } else if (field.toLowerCase() === 'round') {
+                    let value;
+                    if (val[field].toLowerCase().indexOf("round") > -1) {
+                        const roundSplitStr = val[field].split(" ");
+                        value = stringTONumber(roundSplitStr.length > 1 ? roundSplitStr[1] : roundSplitStr[0]);
+                    } else {
+                        value = stringTONumber(val[field]);
+                    }
+                    if (Number.isNaN(value)) {
+                        msg.push(`Round value "${tempValue[field]}" is invalid input.`);
+                    }
                 }
             }
         });
 
         if (msg.length === 0) {
-            templateRes.push(val);
-            successRes.push({ ...val, line: index + 2 });
+            templateRes.push(tempValue);
+            successRes.push({ ...tempValue, line: index + 2 });
         } else {
             message[`Line ${index + 2}`] = {  ...val, message: msg };
         }
@@ -277,4 +294,26 @@ export function trim(value) {
         return value.trim();
     }
     return value;
+}
+
+export function arrangeCSVToJson(buffer) {
+    const arr = buffer.split('\n');
+    const data = [];
+    let headers = arr[0].split(',');
+
+    for (let i = 1; i < arr.length; i++) {
+        const csvStr = arr[i].split(',');
+        const obj = {};
+        for (let j = 0; j < csvStr.length; j++) {
+            if (headers[j] !== undefined) {
+                obj[headers[j].trim()] = csvStr[j].trim();
+            }
+        }
+
+        if (csvStr.length > 1) {
+            data.push(obj);
+        }
+    }
+
+    return data;
 }

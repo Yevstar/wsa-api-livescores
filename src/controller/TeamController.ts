@@ -33,7 +33,7 @@ import {
     paginationData,
     isNotNullAndUndefined,
     validationForField,
-    trim
+    arrangeCSVToJson
 } from "../utils/Utils"
 import {logger} from "../logger";
 
@@ -425,18 +425,8 @@ export class TeamController extends BaseController {
             'Organisation'
         ];
 
-        let bufferString = file.buffer.toString('utf8');
-        let arr = bufferString.split('\n');
-        const data = [];
-        const headers = arr[0].split(',');
-        for (let i = 1; i < arr.length; i++) {
-            const csvData = arr[i].split(',');
-            const obj = {};
-            for (let j = 0; j < csvData.length; j++) {
-                obj[headers[j].trim()] = csvData[j].trim();
-            }
-            data.push(obj);
-        }
+        const bufferString = file.buffer.toString('utf8');
+        const data = arrangeCSVToJson(bufferString);
 
         let queryArr = [];
         const { result: importArr, message } = validationForField({
@@ -451,28 +441,41 @@ export class TeamController extends BaseController {
                     let divisionData = await this.divisionService.findByName(i.Grade, competitionId);
                     let organisationData = await this.organisationService.findByNameAndCompetitionId(i.Organisation, competitionId);
                     if (!isArrayPopulated(divisionData) || !isArrayPopulated(organisationData)) {
-                        message[`Line ${i.line}`] = [];
+                        if (message[`Line ${i.line}`]) {
+                            if (!message[`Line ${i.line}`].message) {
+                                message[`Line ${i.line}`].message = [];
+                            }
+                        } else {
+                            message[`Line ${i.line}`] = {
+                                message: [],
+                            };
+                        }
                         if (!isArrayPopulated(divisionData)) {
-                            message[`Line ${i.line}`].push(`Can't find data of grade "${i.Grade}" related current competition No. ${competitionId}.`);
+                            message[`Line ${i.line}`].message.push(`Can't find data of grade "${i.Grade}" related current competition No. ${competitionId}.`);
                         }
                         if (!isArrayPopulated(organisationData)) {
-                            message[`Line ${i.line}`].push(`Can't find data of organisation "${i.Organisation}" related current competition No. ${competitionId}.`);
+                            message[`Line ${i.line}`].message.push(`Can't find data of organisation "${i.Organisation}" related current competition No. ${competitionId}.`);
                         }
                     } else {
                         let team = new Team();
                         team.name = i.Team_Name;
                         team.logoUrl = i.Logo;
                         team.competitionId = competitionId;
-                        if (divisionData.length > 0)
-                            team.divisionId = divisionData[0].id;
-                        if (organisationData.length > 0) {
-                            team.organisationId = organisationData[0].id;
-                        }
+                        if (divisionData.length > 0) team.divisionId = divisionData[0].id;
+                        if (organisationData.length > 0)  team.organisationId = organisationData[0].id;
                         queryArr.push(team);
                     }
                 } else {
-                    message[`Line ${i.line}`] = [];
-                    message[`Line ${i.line}`].push(`The team "${i.Team_Name}" is already registered.`);
+                    if (message[`Line ${i.line}`]) {
+                        if (!message[`Line ${i.line}`].message) {
+                            message[`Line ${i.line}`].message = [];
+                        }
+                    } else {
+                        message[`Line ${i.line}`] = {
+                            message: [],
+                        };
+                    }
+                    message[`Line ${i.line}`].message.push(`The team "${i.Team_Name}" is already registered.`);
                 }
             }
         }

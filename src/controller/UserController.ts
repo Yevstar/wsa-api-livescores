@@ -17,7 +17,7 @@ import axios from 'axios';
 import { decode as atob } from 'base-64';
 
 import { logger } from '../logger';
-import { authToken, isNullOrEmpty, validationForField, trim } from '../utils/Utils';
+import { authToken, isNullOrEmpty, validationForField, arrangeCSVToJson } from '../utils/Utils';
 import { LoginError } from '../exceptions/LoginError';
 import { User } from '../models/User';
 import { UserDevice } from '../models/UserDevice';
@@ -761,28 +761,16 @@ export class UserController extends BaseController {
             'Contact No',
             'Team',
             'Organisation',
-            'Grade'
+            'Grade',
         ];
 
-        let bufferString = file.buffer.toString('utf8');
-        let arr = bufferString.split('\n');
-        let data = [];
-        let headers = arr[0].split(',');
+        const bufferString = file.buffer.toString('utf8');
+        const data = arrangeCSVToJson(bufferString);
+
         const infoMisMatchArray: any = [];
         let importSuccess: boolean = false;
         let teamRequired = roleId == Role.COACH || roleId == Role.MANAGER;
         let teamChatRequired = roleId == Role.COACH || roleId == Role.MANAGER;
-
-        for (let i = 1; i < arr.length; i++) {
-            let csvData = arr[i].split(',');
-            let obj = {};
-            for (let j = 0; j < csvData.length; j++) {
-                if (headers[j] !== undefined) {
-                    obj[headers[j].trim()] = csvData[j].trim();
-                }
-            }
-            data.push(obj);
-        }
 
         const { result: importArr, message } = validationForField({
             filedList: requiredField,
@@ -920,7 +908,7 @@ export class UserController extends BaseController {
                     }
                 }
                 if (teamChatRequired) {
-                    Promise.all(teamChatPromiseArray);
+                    await Promise.all(teamChatPromiseArray);
                 }
                 importSuccess = true;
             }

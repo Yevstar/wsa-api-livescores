@@ -13,7 +13,7 @@ import {
 } from "routing-controllers";
 
 import {Division} from "../models/Division";
-import {stringTONumber, paginationData, isNotNullAndUndefined, validationForField, trim} from "../utils/Utils";
+import {stringTONumber, paginationData, isNotNullAndUndefined, validationForField, arrangeCSVToJson} from "../utils/Utils";
 import {BaseController} from "./BaseController";
 
 @JsonController('/division')
@@ -90,24 +90,15 @@ export class DivisionController extends BaseController {
             'name'
         ];
 
-        let bufferString = file.buffer.toString('utf8');
-        let arr = bufferString.split('\n');
-        const data = [];
-        const headers = arr[0].split(',');
-        for (let i = 1; i < arr.length; i++) {
-            const csvData = arr[i].split(',');
-            const obj = {};
-            for (let j = 0; j < csvData.length; j++) {
-                obj[headers[j].trim()] = csvData[j].trim();
-            }
-            data.push(obj);
-        }
+        const bufferString = file.buffer.toString('utf8');
+        const data = arrangeCSVToJson(bufferString);
 
         let queryArr = [];
         const { result: importArr, message } = validationForField({
             filedList: requiredField,
             values: data,
         });
+
         for (let i of importArr) {
             if (i.name != "") {
                 let divisionObj = new Division();

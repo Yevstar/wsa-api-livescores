@@ -25,7 +25,7 @@ import {
     isNotNullAndUndefined,
     validationForField,
     parseDateTimeZoneString,
-    trim,
+    arrangeCSVToJson,
 } from "../utils/Utils";
 import {BaseController} from "./BaseController";
 import {logger} from "../logger";
@@ -1396,31 +1396,18 @@ export class MatchController extends BaseController {
             'Time',
             'Grade',
             'Home Team',
-            'Home Team Score',
             'Away Team',
-            'Away Team Score',
             'Venue',
             'type',
             'matchDuration',
             'breakDuration',
-            'mnbMatchId',
             'mainBreakDuration',
             'Timezone GMT',
             'Round'
         ];
 
-        let bufferString = file.buffer.toString('utf8');
-        let arr = bufferString.split('\n');
-        const data = [];
-        const headers = arr[0].split(',');
-        for (let i = 1; i < arr.length; i++) {
-            const csvData = arr[i].split(',');
-            const obj = {};
-            for (let j = 0; j < csvData.length; j++) {
-                obj[headers[j].trim()] = csvData[j].trim();
-            }
-            data.push(obj);
-        }
+        const bufferString = file.buffer.toString('utf8');
+        const data = arrangeCSVToJson(bufferString);
 
         const { result: importArr, message } = validationForField({
             filedList: requiredField,
@@ -1443,8 +1430,13 @@ export class MatchController extends BaseController {
 
                     if (!roundData) {
                         let round = new Round();
-                        const roundSplitStr = i["Round"].split(" ");
-                        let value = stringTONumber(roundSplitStr.length > 1 ? roundSplitStr[1] : roundSplitStr[0]);
+                        let value;
+                        if (i["Round"].toLowerCase().indexOf("round") > -1) {
+                            const roundSplitStr = i["Round"].split(" ");
+                            value = stringTONumber(roundSplitStr.length > 1 ? roundSplitStr[1] : roundSplitStr[0]);
+                        } else {
+                            value = stringTONumber(i["Round"]);
+                        }
                         round.competitionId = competitionId;
                         if (divisionData && divisionData[0] != null) {
                             round.divisionId = divisionData[0].id;
@@ -1474,11 +1466,19 @@ export class MatchController extends BaseController {
                     if (team2Data.length > 0) match.team2Id = team2Data[0].id;
                     queryArr.push(match);
                 } else {
-                    message[`Line ${i.line}`] = [];
-                    if (!divisionData[0]) message[`Line ${i.line}`].push('The divisions entered is not associated with this competition.');
-                    if (!team1Data[0]) message[`Line ${i.line}`].push(`Can't find the team named as "${i['Home Team']}"`);
-                    if (!team2Data[0]) message[`Line ${i.line}`].push(`Can't find the team named as "${i['Away Team']}"`);
-                    if (!venueData[0]) message[`Line ${i.line}`].push(`Can't find the venue named as "${i['Venue']}"`);
+                    if (message[`Line ${i.line}`]) {
+                        if (!message[`Line ${i.line}`].message) {
+                            message[`Line ${i.line}`].message = [];
+                        }
+                    } else {
+                        message[`Line ${i.line}`] = {
+                            message: [],
+                        };
+                    }
+                    if (!divisionData[0]) message[`Line ${i.line}`].message.push('The divisions entered is not associated with this competition.');
+                    if (!team1Data[0]) message[`Line ${i.line}`].message.push(`Can't find the team named as "${i['Home Team']}"`);
+                    if (!team2Data[0]) message[`Line ${i.line}`].message.push(`Can't find the team named as "${i['Away Team']}"`);
+                    if (!venueData[0]) message[`Line ${i.line}`].message.push(`Can't find the venue named as "${i['Venue']}"`);
                 }
             }
         }

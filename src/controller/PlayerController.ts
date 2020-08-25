@@ -267,7 +267,7 @@ export class PlayerController extends BaseController {
                         const team = trim(i.team);
                         const teamId = await this.teamService.findByNameAndCompetition(team, competitionId, undefined, trim(i.grade));
                         const playerObj = new Player();
-                        playerObj.teamId = teamId[0].id;
+                        playerObj.teamId = isArrayPopulated(teamId) ? teamId[0].id : -1;
                         playerObj.firstName = trim(i['first name']);
                         playerObj.lastName = trim(i['last name']);
                         playerObj.mnbPlayerId = trim(i.mnbPlayerId);
