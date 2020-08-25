@@ -1723,15 +1723,22 @@ export class MatchController extends BaseController {
             return response.status(212).send({ success: false });
         }
     }
-    
+
     @Authorized()
     @Post(`/livestreamURL`)
     async updateLivestreamURL(
         @Body() match: Match,
         @Res() response: Response
     ): Promise<any> {
-        if (match && match.livestreamURL) {
-           return await this.matchService.findById(match.id);
+        if (match &&
+            isNotNullAndUndefined(match.id) &&
+            isNotNullAndUndefined(match.livestreamURL)) {
+                await this.matchService.updateLivestreamURL(match.id, match.livestreamURL);
+                const updatedMatch = await this.matchService.findById(match.id);
+                /// Need to send notification of match update event
+                this.sendMatchEvent(updatedMatch);
+
+                return updatedMatch;
         } else {
             return response.status(400).send({
                 name: 'missing_parameters',
