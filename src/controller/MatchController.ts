@@ -847,6 +847,9 @@ export class MatchController extends BaseController {
                 }
                 if (subtype) {
                     dataDict["subtype"] = subtype;
+                    if (subtype == 'match_livestreamURL_updated') {
+                      dataDict["livestreamURL"] = match.livestreamURL;
+                    }
                 }
 
                 // send by roster and ure
@@ -1719,7 +1722,7 @@ export class MatchController extends BaseController {
             return response.status(212).send({ success: false });
         }
     }
-    
+
     @Authorized()
     @Post(`/livestreamURL`)
     async updateLivestreamURL(
@@ -1732,7 +1735,7 @@ export class MatchController extends BaseController {
                 await this.matchService.updateLivestreamURL(match.id, match.livestreamURL);
                 const updatedMatch = await this.matchService.findById(match.id);
                 /// Need to send notification of match update event
-                this.sendMatchEvent(updatedMatch);
+                this.sendMatchEvent(updatedMatch, false, null, 'match_livestreamURL_updated');
 
                 return updatedMatch;
         } else {
