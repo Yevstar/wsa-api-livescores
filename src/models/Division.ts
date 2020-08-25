@@ -1,7 +1,7 @@
 import {Team} from './Team';
 import {BaseEntity, Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn} from 'typeorm-plus';
 import {Competition} from "./Competition";
-import {IsNumber, IsString, ValidateNested} from "class-validator";
+import {IsNumber, IsString, IsBoolean, ValidateNested} from "class-validator";
 
 @Entity()
 export class Division extends BaseEntity {
@@ -25,6 +25,14 @@ export class Division extends BaseEntity {
     @IsString()
     @Column()
     grade: string;
+
+    @IsBoolean()
+    @Column()
+    positionTracking: boolean;
+
+    @IsBoolean()
+    @Column()
+    recordGoalAttempts: boolean;
 
     @IsNumber()
     @Column()
