@@ -157,7 +157,7 @@ export default class TeamLadderService extends BaseService<TeamLadder> {
                 await this.entityManager.createQueryBuilder(TeamLadder, 'teamLadder')
                 .update(TeamLadder)
                 .set({teamLadderTypeValue: 0, updatedBy: userId, updated_at: new Date()})
-                .andWhere("teamLadder.competitionId = :competitionId and  teamLadder.divisionId = :divisionId and teamLadder.teamLadderTypeRefId <= 9",
+                .andWhere("teamLadder.competitionId = :competitionId and  teamLadder.divisionId = :divisionId",
                             {competitionId: competitionId, divisionId: divisionId})
                 .execute();
             }
@@ -165,7 +165,7 @@ export default class TeamLadderService extends BaseService<TeamLadder> {
                 await this.entityManager.createQueryBuilder(TeamLadder, 'teamLadder')
                 .update(TeamLadder)
                 .set({teamLadderTypeValue: 0, updatedBy: userId, updated_at: new Date()})
-                .andWhere("teamLadder.competitionId = :competitionId and teamLadder.teamLadderTypeRefId <= 9",
+                .andWhere("teamLadder.competitionId = :competitionId",
                             {competitionId: competitionId})
                 .execute();
             }
