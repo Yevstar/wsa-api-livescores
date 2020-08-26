@@ -52,7 +52,7 @@ export class Match extends BaseEntity {
 
     @IsString()
     @Column()
-    type: "FOUR_QUARTERS" | "TWO_HALVES" | "FINAL_SCORE";
+    type: "FOUR_QUARTERS" | "TWO_HALVES" | "SINGLE_PERIOD";
 
     @IsNumber()
     @Column()
@@ -65,10 +65,6 @@ export class Match extends BaseEntity {
     @IsNumber()
     @Column()
     mainBreakDuration: number;
-
-    @IsNumber()
-    @Column()
-    extraTimeDuration: number;
 
     @IsString()
     @Column()
@@ -181,7 +177,6 @@ export class Match extends BaseEntity {
     @Column()
     livestreamURL: string;
 
-
     @IsString()
     @Column()
     resultStatus: "Draft" | "Unconfirmed" | "In Dispute" | "Final";
@@ -190,6 +185,30 @@ export class Match extends BaseEntity {
     @OneToMany(type => MatchPausedTime, matchPausedTime => matchPausedTime.match)
     @JoinColumn()
     matchPausedTimes: MatchPausedTime[];
+
+    @IsNumber()
+    @Column()
+    extraTimeDuration: number;
+
+    @IsNumber()
+    @Column()
+    extraTimeBreak: number;
+
+    @IsNumber()
+    @Column()
+    extraTimeMainBreak: number;
+
+    @IsString()
+    @Column()
+    extraTimeType: "FOUR_QUARTERS" | "TWO_HALVES" | "SINGLE_PERIOD";
+
+    @IsBoolean()
+    @Column()
+    isFinals: boolean;
+
+    @IsNumber()
+    @Column()
+    extraTimeWinByGoals: number;
 
     rosters: Roster[];
     matchUmpires: MatchUmpire[];
