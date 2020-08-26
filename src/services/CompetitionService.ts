@@ -3,7 +3,7 @@ import BaseService from "./BaseService";
 import {Competition} from "../models/Competition";
 import {Brackets, DeleteResult} from "typeorm-plus";
 import {RequestFilter} from "../models/RequestFilter";
-import {paginationData, stringTONumber, objectIsNotEmpty, isNotNullAndUndefined } from "../utils/Utils";
+import {paginationData, stringTONumber, objectIsNotEmpty, isNotNullAndUndefined, isArrayPopulated } from "../utils/Utils";
 
 @Service()
 export default class CompetitionService extends BaseService<Competition> {
@@ -121,4 +121,56 @@ export default class CompetitionService extends BaseService<Competition> {
         query.where('competition.uniqueKey= :competitionUniquekey and competition.deleted_at is null', {competitionUniquekey})
         return (await query.getOne()).id;
     }
+
+    public async loadDashboardOwnedAndParticipatingCompetitions(userId: number, requestFilter: RequestFilterCompetitionDashboard, organisationId: number, sortBy: string = undefined, sortOrder: "ASC" | "DESC" = undefined): Promise<any> {
+
+        const offsetOwned = objectIsNotEmpty(requestFilter) && objectIsNotEmpty(requestFilter.paging) && isNotNullAndUndefined(requestFilter.paging.offsetOwned) ? requestFilter.paging.offsetOwned : null;
+        const offsetParticipating = objectIsNotEmpty(requestFilter) && objectIsNotEmpty(requestFilter.paging) && isNotNullAndUndefined(requestFilter.paging.offsetParticipating) ? requestFilter.paging.offsetParticipating : null;
+        const limitOwned = objectIsNotEmpty(requestFilter) && objectIsNotEmpty(requestFilter.paging) && isNotNullAndUndefined(requestFilter.paging.limitOwned) ? requestFilter.paging.limitOwned : null;
+        const limitParticipating = objectIsNotEmpty(requestFilter) && objectIsNotEmpty(requestFilter.paging) && isNotNullAndUndefined(requestFilter.paging.limitParticipating) ? requestFilter.paging.limitParticipating : null;
+
+        let result = await this.entityManager.query("call wsa.usp_get_owned_and_participating_competitions(?,?,?,?,?,?,?,?)",
+            [userId, organisationId, sortBy, sortOrder, offsetOwned, limitOwned, offsetParticipating, limitParticipating]);
+        if (isArrayPopulated(result)) {
+            let ownedCompetitions = Object.assign({});
+            let participatingInCompetitions = Object.assign({});
+
+            const ownedCompetitionsData = result[0];
+            const participatingCompetitionsData = result[2];
+
+            let responseObject: any = Object.assign({}, { ownedCompetitions: {}, participatingInCompetitions: {} });
+
+            if (offsetOwned !== null && limitOwned !== null && offsetParticipating !== null && limitParticipating !== null) {
+                const totalCountOwned = (result[1] && result[1].find(x => x)) ? result[1].find(x => x).totalCount : 0;
+                const totalCountParticipating = (result[3] && result[3].find(x => x)) ? result[3].find(x => x).totalCount : 0;
+
+                ownedCompetitions = paginationData(stringTONumber(totalCountOwned), limitOwned, offsetOwned);
+                ownedCompetitions['competitions'] = ownedCompetitionsData;
+
+                participatingInCompetitions = paginationData(stringTONumber(totalCountParticipating), limitParticipating, offsetParticipating);
+                participatingInCompetitions['competitions'] = participatingCompetitionsData;
+
+                responseObject.ownedCompetitions = ownedCompetitions;
+                responseObject.participatingInCompetitions = participatingInCompetitions;
+            } else {
+                responseObject.ownedCompetitions = ownedCompetitionsData;
+                responseObject.participatingInCompetitions = participatingCompetitionsData;
+            }
+
+            return responseObject;
+
+        } else {
+            return [];
+        }
+    }
+}
+
+export interface RequestFilterCompetitionDashboard {
+    paging: {
+        offsetOwned: number;
+        offsetParticipating: number;
+        limitOwned: number;
+        limitParticipating: number;
+    };
+    search: string;
 }

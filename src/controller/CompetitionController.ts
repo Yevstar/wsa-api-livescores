@@ -23,6 +23,7 @@ import { CompetitionOrganisation } from "../models/CompetitionOrganisation";
 import { logger } from "../logger";
 import { LadderFormat } from "../models/LadderFormat";
 import { LadderFormatDivision } from "../models/LadderFormatDivision";
+import { RequestFilterCompetitionDashboard } from "../services/CompetitionService";
 
 @JsonController('/competitions')
 export class CompetitionController extends BaseController {
@@ -576,5 +577,17 @@ export class CompetitionController extends BaseController {
             organisationId = await this.organisationService.findByUniqueKey(organisationUniqueKey);
         }
         return await this.competitionService.getCompetitionsPublic(organisationId);
+    }
+
+    @Authorized()
+    @Post('/adminDashboard')
+    async loadAdminDashboard(
+        @HeaderParam("authorization") user: User,
+        @Body() requestFilter: RequestFilterCompetitionDashboard,
+        @QueryParam('organisationId') organisationId: number,
+        @QueryParam('sortBy') sortBy: string = undefined,
+        @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined,
+    ): Promise<any> {
+        return this.competitionService.loadDashboardOwnedAndParticipatingCompetitions(user.id, requestFilter, organisationId, sortBy, sortOrder);
     }
 }

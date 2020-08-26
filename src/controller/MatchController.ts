@@ -934,9 +934,7 @@ export class MatchController extends BaseController {
                         message: `Match Id and team Id can not be null`
                     });
                 }
-                if (teamId && matchId) {
-                    await this.checkLineupsForExisting(matchId, teamId, lineups);
-                }
+                
                 await this.matchService.batchSaveLineups(lineups);
                 if (updateMatchEvents) {
                     let match = await this.matchService.findById(matchId);
