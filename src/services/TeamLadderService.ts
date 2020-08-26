@@ -156,7 +156,7 @@ export default class TeamLadderService extends BaseService<TeamLadder> {
             if(divisionId!= null){
                 await this.entityManager.createQueryBuilder(TeamLadder, 'teamLadder')
                 .update(TeamLadder)
-                .set({teamLadderTypeValue: 0, updatedBy: userId, updated_at: new Date()})
+                .set({deleted_at: new Date(), updatedBy: userId, updated_at: new Date()})
                 .andWhere("teamLadder.competitionId = :competitionId and  teamLadder.divisionId = :divisionId",
                             {competitionId: competitionId, divisionId: divisionId})
                 .execute();
@@ -164,7 +164,7 @@ export default class TeamLadderService extends BaseService<TeamLadder> {
             else{
                 await this.entityManager.createQueryBuilder(TeamLadder, 'teamLadder')
                 .update(TeamLadder)
-                .set({teamLadderTypeValue: 0, updatedBy: userId, updated_at: new Date()})
+                .set({deleted_at: new Date(), updatedBy: userId, updated_at: new Date()})
                 .andWhere("teamLadder.competitionId = :competitionId",
                             {competitionId: competitionId})
                 .execute();
