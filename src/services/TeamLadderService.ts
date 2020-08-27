@@ -96,8 +96,10 @@ export default class TeamLadderService extends BaseService<TeamLadder> {
             if(!isOpponentBye){
                 arr.push(this.teamLadderObject(match, teamId, 21, goalsFor));
                 arr.push(this.teamLadderObject(match, teamId, 22, goalsAgainst));
-                arr.push(this.teamLadderObject(match, teamId, 23, gamesPlayed)); 
-                arr.push(this.teamLadderObject(match, teamId, 24, gamesPlayedMinusFW));
+                if(typeRefId != 8 && typeRefId!= 9){
+                    arr.push(this.teamLadderObject(match, teamId, 23, gamesPlayed)); 
+                    arr.push(this.teamLadderObject(match, teamId, 24, gamesPlayedMinusFW));
+                }
             }
 
            
