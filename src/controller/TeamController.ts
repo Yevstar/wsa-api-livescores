@@ -386,7 +386,8 @@ export class TeamController extends BaseController {
         }
 
         if (file && isPhoto(file.mimetype)) {
-            if (teamData.logoUrl.includes(`/team_${savedTeam.id}`)) {
+            if (isNotNullAndUndefined(teamData.logoUrl) && teamData.logoUrl.includes(`%2Fteam%2F${savedTeam.id}`)) {
+
                 const fileName = await this.firebaseService.getFileNameFromUrl(JSON.stringify(teamData.logoUrl), 'team%F');
                 await this.firebaseService.removeMedia(fileName);
             }
