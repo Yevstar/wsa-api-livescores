@@ -23,6 +23,8 @@ export default class IncidentService extends BaseService<Incident> {
             .leftJoinAndSelect('incidentPlayer.player', 'player')
             .leftJoinAndSelect('incident.incidentMediaList', 'incidentMedia')
             .innerJoinAndSelect('incident.match', 'match')
+            .leftJoinAndSelect('match.team1', 'team1')
+            .leftJoinAndSelect('match.team2', 'team2')
             .innerJoinAndSelect('incident.incidentType', 'incidentType');
 
         if (incidentId) query.andWhere("incident.id = :incidentId", {incidentId});
