@@ -1,4 +1,4 @@
-import {Response} from "express";
+import { Response, response } from "express";
 import {
     Get,
     JsonController,
@@ -12,9 +12,9 @@ import {
     Res
 } from "routing-controllers";
 
-import {BaseController} from "./BaseController";
-import {Banner} from "../models/Banner";
-import {isPhoto, fileExt, timestamp} from "../utils/Utils";
+import { BaseController } from "./BaseController";
+import { Banner } from "../models/Banner";
+import { isPhoto, fileExt, timestamp, isNotNullAndUndefined } from "../utils/Utils";
 
 @JsonController("/banners")
 export class BannerController extends BaseController {
@@ -85,8 +85,23 @@ export class BannerController extends BaseController {
 
     @Authorized()
     @Delete('/id/:id')
-    async deleteById(@Param("id") id: number) {
-        return this.bannerService.deleteById(id);
-    }
+    async deleteById(
+        @Param("id") id: number,
+        @Res() response: Response) {
+        const banner = await this.bannerService.findById(id);
 
+        if (isNotNullAndUndefined(banner)) {
+
+            const fileName = await this.firebaseService.getFileNameFromUrl(JSON.stringify(banner.bannerUrl), 'banner%2F');
+            await this.firebaseService.removeMedia(fileName)
+            return this.bannerService.deleteById(id);
+
+        } else {
+
+            return response.status(400).send({
+                name: 'delete_error',
+                message: `Banner was already deleted`
+            });
+        }
+    }
 }

@@ -11,18 +11,18 @@ import {
     Res,
     UploadedFile,
 } from "routing-controllers";
-import {Response} from "express";
+import { Response } from "express";
 import admin from "firebase-admin";
 import * as fastcsv from "fast-csv";
 
-import {Team} from "../models/Team";
-import {Player} from "../models/Player"
-import {TeamLadder} from "../models/TeamLadder";
-import {BaseController} from "./BaseController";
-import {User} from "../models/User";
-import {UserRoleEntity} from "../models/security/UserRoleEntity";
-import {Role} from "../models/security/Role";
-import {EntityType} from "../models/security/EntityType";
+import { Team } from "../models/Team";
+import { Player } from "../models/Player"
+import { TeamLadder } from "../models/TeamLadder";
+import { BaseController } from "./BaseController";
+import { User } from "../models/User";
+import { UserRoleEntity } from "../models/security/UserRoleEntity";
+import { Role } from "../models/security/Role";
+import { EntityType } from "../models/security/EntityType";
 import {
     isArrayPopulated,
     isNullOrEmpty,
@@ -35,7 +35,7 @@ import {
     validationForField,
     arrangeCSVToJson
 } from "../utils/Utils"
-import {logger} from "../logger";
+import { logger } from "../logger";
 
 @JsonController('/teams')
 export class TeamController extends BaseController {
@@ -101,7 +101,7 @@ export class TeamController extends BaseController {
 
         const teamData = await this.teamService.findTeamsWithUsers(competitionId, divisionId, includeBye, search, offset, limit, sortBy, sortOrder);
 
-        if (offset === 0 && limit ===0) {
+        if (offset === 0 && limit === 0) {
             return teamData.teams;
         } else {
             return { page: paginationData(parseInt(teamData.teamCount), limit, offset), teams: teamData.teams };
@@ -387,11 +387,11 @@ export class TeamController extends BaseController {
 
         if (file && isPhoto(file.mimetype)) {
             if (teamData.logoUrl.includes(`/team_${savedTeam.id}`)) {
-                const fileName = await this.firebaseService.getFileNameFromUrl(JSON.stringify(teamData.logoUrl));
+                const fileName = await this.firebaseService.getFileNameFromUrl(JSON.stringify(teamData.logoUrl), 'team%F');
                 await this.firebaseService.removeMedia(fileName);
             }
 
-            let filename = `/${savedTeam.name}/team_${savedTeam.id}.${fileExt(file.originalname)}`;
+            let filename = `/team/${savedTeam.id}_S{savedTeam.name}.${fileExt(file.originalname)}`;;
             let result = await this.firebaseService.upload(filename, file);
             if (result) {
                 savedTeam.logoUrl = result['url'];
@@ -462,7 +462,7 @@ export class TeamController extends BaseController {
                         team.logoUrl = i.Logo;
                         team.competitionId = competitionId;
                         if (divisionData.length > 0) team.divisionId = divisionData[0].id;
-                        if (organisationData.length > 0)  team.organisationId = organisationData[0].id;
+                        if (organisationData.length > 0) team.organisationId = organisationData[0].id;
                         queryArr.push(team);
                     }
                 } else {
@@ -558,7 +558,7 @@ export class TeamController extends BaseController {
         @QueryParam('divisionId') divisionId: number,
         @Res() response: Response
     ): Promise<any> {
-        const getTeamsData = await this.listCompetitionTeams(competitionId, divisionId, null, null, null, null,null,null);
+        const getTeamsData = await this.listCompetitionTeams(competitionId, divisionId, null, null, null, null, null, null);
         if (isArrayPopulated(getTeamsData)) {
             getTeamsData.map(e => {
                 e['Logo'] = e['logoUrl']
@@ -697,14 +697,14 @@ export class TeamController extends BaseController {
         @HeaderParam("authorization") currentUser: User,
         @Body() requestBody,
         @Res() response: Response
-    ){
+    ) {
         try {
             const getCompetition = await this.competitionService.getCompetitionByUniquekey(requestBody.competitionUniqueKey);
             let competitionId = getCompetition.id;
             let divisionId = requestBody.resetOptionId == 1 ? requestBody.divisionId : null;
 
             await this.teamLadderService.clearLadderPoints(competitionId, divisionId, currentUser.id);
-           
+
             return response.status(200).send('Updated Successfully.');
 
         } catch (error) {

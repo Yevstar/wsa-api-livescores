@@ -1,13 +1,13 @@
-import {Service} from "typedi";
-import {firebaseConfig} from "../integration/firebase.config";
-import {firebaseDevConfig} from "../integration/firebase.dev.config";
-import {firebaseStgConfig} from "../integration/firebase.stg.config";
+import { Service } from "typedi";
+import { firebaseConfig } from "../integration/firebase.config";
+import { firebaseDevConfig } from "../integration/firebase.dev.config";
+import { firebaseStgConfig } from "../integration/firebase.stg.config";
 import * as admin from "firebase-admin";
-import {logger} from "../logger";
-import {chunk, isArrayPopulated} from "../utils/Utils";
-import {firestore} from "firebase-admin";
+import { logger } from "../logger";
+import { chunk, isArrayPopulated } from "../utils/Utils";
+import { firestore } from "firebase-admin";
 import UserRecord = admin.auth.UserRecord;
-import {User} from "../models/User";
+import { User } from "../models/User";
 
 @Service()
 export default class FirebaseService {
@@ -63,7 +63,7 @@ export default class FirebaseService {
                                     resolve({ filePath, url });
                                 })
                                 .catch((error) => {
-                                    logger.error(`Failed upload file`+error);
+                                    logger.error(`Failed upload file` + error);
                                     reject(error);
                                 });
                         }
@@ -76,31 +76,31 @@ export default class FirebaseService {
         return uploadFileAndGetURL()
     }
 
-    public async sendMessageChunked({tokens, title = undefined, body = undefined, data = undefined}) {
+    public async sendMessageChunked({ tokens, title = undefined, body = undefined, data = undefined }) {
         let chunked = chunk(tokens, 99);
         logger.debug('Chunked token list', chunked);
         for (const part of chunked) {
-            this.sendMessage({tokens: part, title: title, body: body, data: data});
+            this.sendMessage({ tokens: part, title: title, body: body, data: data });
         }
     }
 
-    public async sendMessage({tokens, title = undefined, body = undefined, data = undefined}) {
+    public async sendMessage({ tokens, title = undefined, body = undefined, data = undefined }) {
         let message = {
             tokens: tokens
         };
-        message['android'] = {priority: 'high'};
-        if (title || body) message['notification'] = {title: title, body: body};
+        message['android'] = { priority: 'high' };
+        if (title || body) message['notification'] = { title: title, body: body };
         logger.debug('Sending data', data);
         if (data) message['data'] = data.hasOwnProperty('data') ? data['data'] : data;
         logger.debug('Send multicast message', message);
         admin.messaging().sendMulticast(message)
             .then((response) => {
                 logger.debug('Sent result', JSON.stringify(response));
-                return {success: true, response: response};
+                return { success: true, response: response };
             })
             .catch((error) => {
                 logger.error('Failed result', JSON.stringify(error));
-                return {success: false, response: error};
+                return { success: false, response: error };
             });
     }
 
@@ -126,11 +126,11 @@ export default class FirebaseService {
     public async sendToAll(message) {
         admin.messaging().sendAll(message)
             .then((response) => {
-                return {success: true, response: response};
+                return { success: true, response: response };
             })
             .catch((error) => {
                 logger.error('Error send message to all:', error);
-                return {success: false, response: error};
+                return { success: false, response: error };
             });
     }
 
@@ -164,11 +164,11 @@ export default class FirebaseService {
             emailVerified: true,
             password: password
         })
-            .then(function(userRecord) {
+            .then(function (userRecord) {
                 logger.debug('Successfully created new user:', userRecord.toJSON());
                 return userRecord;
             })
-            .catch(function(error) {
+            .catch(function (error) {
                 logger.error('Error creating new user:', error);
                 return undefined;
             });
@@ -176,39 +176,39 @@ export default class FirebaseService {
 
     public async loadUserByUID(uid: string): Promise<UserRecord> {
         return admin.auth().getUser(uid)
-            .then(function(userRecord) {
+            .then(function (userRecord) {
                 logger.debug(`Successfully load user by uid ${uid}:`, userRecord.toJSON());
                 return userRecord;
             })
-            .catch(function(error) {
-                logger.error(`Error load user by uid ${uid}:`+error);
+            .catch(function (error) {
+                logger.error(`Error load user by uid ${uid}:` + error);
                 return undefined;
             });
     }
 
     public async loadUserByEmail(email: string): Promise<UserRecord> {
         return admin.auth().getUserByEmail(email.toLowerCase())
-            .then(function(userRecord) {
+            .then(function (userRecord) {
                 logger.debug(`Successfully load user by email ${email}:`, userRecord.toJSON());
                 return userRecord;
             })
-            .catch(function(error) {
+            .catch(function (error) {
                 logger.error('Error load user by email ${email}:', error);
                 return undefined;
             });
     }
 
     public async updateUserByUID(uid: string, email: string, password: string): Promise<UserRecord> {
-        return admin.auth().updateUser(uid,{
+        return admin.auth().updateUser(uid, {
             email: email.toLowerCase(),
             emailVerified: true,
             password: password
         })
-            .then(function(userRecord) {
+            .then(function (userRecord) {
                 logger.debug('Successfully update user:', userRecord.toJSON());
                 return userRecord;
             })
-            .catch(function(error) {
+            .catch(function (error) {
                 logger.error('Error user user:', error);
                 return undefined;
             });
@@ -245,18 +245,20 @@ export default class FirebaseService {
         return admin.storage().bucket(fbStorageBuck);
     }
 
-    public async getFileNameFromUrl(url: string): Promise<string> {
+    public async getFileNameFromUrl(url: string, prefix: string): Promise<string> {
         try {
             const bucket = await this.getFirebaseStorageBucket();
-            let fileName = url.split(`https://www.googleapis.com/download/storage/v1/b/${bucket.name}/o/media%2Fnews%2F1_1%2F`)[1];
+
+            let fileName = url.split(`https://www.googleapis.com/download/storage/v1/b/${bucket.name}/o/media%2F${prefix}`)[1];
             fileName = fileName.split(fileName.substring(fileName.lastIndexOf('?generation')))[0];
-            const directory = "media/news/1_1/";
+            console.log(`https://www.googleapis.com/download/storage/v1/b/${bucket.name}/o/${prefix}`)
+            fileName = fileName.split(fileName.substring(fileName.lastIndexOf('?generation')))[0];
+            const directory = `media/${prefix}`;
             fileName = directory.concat(fileName);
-        return fileName;
+            return fileName;
         } catch (err) {
             throw err;
         }
-
     }
 
     /// --- Team Chat ---
@@ -292,7 +294,7 @@ export default class FirebaseService {
     }
 
     /// --- One to One Chat ---
-    public async removeUserForOneToOne(removingUser: User, targetUsersList:User[]) {
+    public async removeUserForOneToOne(removingUser: User, targetUsersList: User[]) {
         if (removingUser && targetUsersList && targetUsersList.length > 0) {
             let db = admin.firestore();
             let chatsCollectionRef = await db.collection('chats');
@@ -308,7 +310,7 @@ export default class FirebaseService {
                         targetUserQuerySnapshot.forEach(qs => {
                             let targetChatDoc = chatsCollectionRef.doc(qs.id);
                             targetChatDoc.update({
-                              'deleted_at': admin.firestore.FieldValue.serverTimestamp()
+                                'deleted_at': admin.firestore.FieldValue.serverTimestamp()
                             });
                         });
                     }
@@ -390,7 +392,7 @@ export default class FirebaseService {
             }
 
             let uniqueChatIds = [...new Set(updatingChatDocumentIds)];
-            if(isArrayPopulated(uniqueChatIds)){
+            if (isArrayPopulated(uniqueChatIds)) {
                 for (let chatId of uniqueChatIds) {
                     /// Updating Chat -> Document -> messages Collection
                     /// -> Document's -> senderId field
