@@ -256,28 +256,28 @@ export class CompetitionController extends BaseController {
             let cls = new CompetitionLadderSettings();
             cls.competitionId = competition.id;
             cls.resultTypeId = 1
-            cls.points = 3;
+            cls.points = 0;
             cls.ladderFormatId = ladderFormatSave.id;
             cls.createdBy = userId;
             ladderSettingsArray.push(cls);
             let cls2 = new CompetitionLadderSettings();
             cls2.competitionId = competition.id;
             cls2.resultTypeId = 2
-            cls2.points = 2;
+            cls2.points = 0;
             cls2.ladderFormatId = ladderFormatSave.id;
             cls2.createdBy = userId;
             ladderSettingsArray.push(cls2);
             let cls3 = new CompetitionLadderSettings();
             cls3.competitionId = competition.id;
             cls3.resultTypeId = 3
-            cls3.points = 1;
+            cls3.points = 0;
             cls3.ladderFormatId = ladderFormatSave.id;
             cls3.createdBy = userId;
             ladderSettingsArray.push(cls3);
             let cls4 = new CompetitionLadderSettings();
             cls4.competitionId = competition.id;
             cls4.resultTypeId = 4
-            cls4.points = 2;
+            cls4.points = 0;
             cls4.ladderFormatId = ladderFormatSave.id;
             cls4.createdBy = userId;
             ladderSettingsArray.push(cls4);
@@ -291,28 +291,28 @@ export class CompetitionController extends BaseController {
             let cls6 = new CompetitionLadderSettings();
             cls6.competitionId = competition.id;
             cls6.resultTypeId = 6
-            cls6.points = 2;
+            cls6.points = 0;
             cls6.ladderFormatId = ladderFormatSave.id;
             cls6.createdBy = userId;
             ladderSettingsArray.push(cls6);
             let cls7 = new CompetitionLadderSettings();
             cls7.competitionId = competition.id;
             cls7.resultTypeId = 7
-            cls7.points = 3;
+            cls7.points = 0;
             cls7.ladderFormatId = ladderFormatSave.id;
             cls7.createdBy = userId;
             ladderSettingsArray.push(cls7);
             let cls8 = new CompetitionLadderSettings();
             cls8.competitionId = competition.id;
             cls8.resultTypeId = 8
-            cls8.points = 2;
+            cls8.points = 0;
             cls8.ladderFormatId = ladderFormatSave.id;
             cls8.createdBy = userId;
             ladderSettingsArray.push(cls8);
             let cls9 = new CompetitionLadderSettings();
             cls9.competitionId = competition.id;
             cls9.resultTypeId = 9
-            cls9.points = 2
+            cls9.points = 0;
             cls9.ladderFormatId = ladderFormatSave.id;
             cls9.createdBy = userId;
             ladderSettingsArray.push(cls9);
