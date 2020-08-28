@@ -759,16 +759,13 @@ export class UserController extends BaseController {
             'Last Name',
             'Email',
             'Contact No',
-            'Team',
-            'Organisation',
-            'Grade',
+            // 'DivisionGrade',
         ];
 
         const bufferString = file.buffer.toString('utf8');
         const data = arrangeCSVToJson(bufferString);
 
         const infoMisMatchArray: any = [];
-        let importSuccess: boolean = false;
         let teamRequired = roleId == Role.COACH || roleId == Role.MANAGER;
         let teamChatRequired = roleId == Role.COACH || roleId == Role.MANAGER;
 
@@ -777,6 +774,7 @@ export class UserController extends BaseController {
             values: data,
         });
 
+        let successCount: number = 0;
         for (let i of importArr) {
             const userDetails = new User();
             let newUser = false;
@@ -827,33 +825,59 @@ export class UserController extends BaseController {
             if (!infoMisMatchArray.includes(i['Email'].toLowerCase())) {
                 if (teamRequired) {
                     if (isNotNullAndUndefined(i['Team'])) {
-                        const teamArray = i['Team'].split(',');
-                        let teamDetail: Team[];
-                        if (isArrayPopulated(teamArray)) {
+                        if (isNotNullAndUndefined(i['DivisionGrade'])) {
+                            const teamArray = i['Team'].split(',');
                             for (let t of teamArray) {
-                                if (isNotNullAndUndefined(t) && isNotNullAndUndefined(t.name)) {
-                                    teamDetail = await this.teamService.findByNameAndCompetition(t, competitionId, i['Grade']);
-                                    if (isArrayPopulated(teamDetail)) {
-                                        teamDetailArray.push(...teamDetail);
-                                    }
+                                const teamDetail: Team[] = await this.teamService.findByNameAndCompetition(t, competitionId, i['DivisionGrade']);
+                                if (isArrayPopulated(teamDetail)) {
+                                    teamDetailArray.push(...teamDetail);
                                 }
                             }
+
+                            if (teamDetailArray.length === 0) {
+                                message[`Line ${i.line}`] = {
+                                    ...i,
+                                    message: `No matching team found for ${i['Team']}`,
+                                };
+                                continue;
+                            }
+                        } else {
+                            message[`Line ${i.line}`] = {
+                                ...i,
+                                message: `The field 'DivisionGrade' is required.`,
+                            };
+                            continue;
                         }
+                    } else {
+                        message[`Line ${i.line}`] = {
+                            ...i,
+                            message: `The field 'Team' is required.`,
+                        };
+                        continue;
                     }
                 } else {
                     if (isNotNullAndUndefined(i['Organisation'])) {
-                        let orgDetail: LinkedCompetitionOrganisation[];
                         const orgArray = i['Organisation'].split(',');
-                        if (isArrayPopulated(orgArray)) {
-                            for (let t of orgArray) {
-                                if (isNotNullAndUndefined(t)) {
-                                    orgDetail = await this.organisationService.findByNameAndCompetitionId(t, competitionId);
-                                    if (isArrayPopulated(orgDetail)) {
-                                        orgDetailArray.push(...orgDetail);
-                                    }
-                                }
+                        for (let org of orgArray) {
+                            const orgDetail: LinkedCompetitionOrganisation[] = await this.organisationService.findByNameAndCompetitionId(org, competitionId);
+                            if (isArrayPopulated(orgDetail)) {
+                                orgDetailArray.push(...orgDetail);
                             }
                         }
+
+                        if (orgDetailArray.length === 0) {
+                            message[`Line ${i.line}`] = {
+                                ...i,
+                                message: `No matching organization found for ${i['Organisation']}`,
+                            };
+                            continue;
+                        }
+                    } else {
+                        message[`Line ${i.line}`] = {
+                            ...i,
+                            message: `The field 'Organisation' is required.`,
+                        };
+                        continue;
                     }
                 }
 
@@ -903,20 +927,20 @@ export class UserController extends BaseController {
                     let competitionData = await this.competitionService.findById(competitionId);
                     if (isArrayPopulated(teamDetailArray)) {
                         this.userService.sentMail(user, teamDetailArray, competitionData, roleId, savedUserDetail, password);
-                    } else {
+                    } else if (isArrayPopulated(orgDetailArray)) {
                         this.userService.sentMail(user, orgDetailArray, competitionData, roleId, savedUserDetail, password);
                     }
                 }
                 if (teamChatRequired) {
                     await Promise.all(teamChatPromiseArray);
                 }
-                importSuccess = true;
+
+                successCount += 1;
             }
         }
 
         const totalCount = data.length;
-        const successCount = importArr.length;
-        const failedCount = data.length - importArr.length;
+        const failedCount = data.length - successCount;
         const resMsg = `${totalCount} data are processed. ${successCount} data are successfully imported and ${failedCount} data are failed.`;
 
         return response.status(200).send({

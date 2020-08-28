@@ -1395,14 +1395,14 @@ export class MatchController extends BaseController {
         const requiredField = [
             'Date',
             'Time',
-            'Grade',
+            'Division Grade',
             'Home Team',
             'Away Team',
             'Venue',
-            'type',
-            'matchDuration',
-            'breakDuration',
-            'mainBreakDuration',
+            'Type',
+            'Match Duration',
+            'Break Duration',
+            'Main Break Duration',
             'Timezone GMT',
             'Round'
         ];
@@ -1420,7 +1420,7 @@ export class MatchController extends BaseController {
             if (i.Date !== "") {
                 let timeZone = parseDateTimeZoneString(i.Date, i.Time, i["Timezone GMT"]);
                 let startTimeInUTC = new Date(timeZone);
-                let divisionData = await this.divisionService.findByName(i["Grade"], competitionId);
+                let divisionData = await this.divisionService.findByName(i["Division Grade"], competitionId);
                 let team1Data = await this.teamService.findByNameAndCompetition(i["Home Team"], competitionId);
                 let team2Data = await this.teamService.findByNameAndCompetition(i["Away Team"], competitionId);
                 let venueData = await this.competitionVenueService.findByCourtName(i["Venue"], competitionId);
@@ -1450,10 +1450,10 @@ export class MatchController extends BaseController {
                     let match = new Match();
                     match.startTime = startTimeInUTC;
                     match.competitionId = competitionId;
-                    match.type = i.type;
-                    match.matchDuration = stringTONumber(i.matchDuration);
-                    match.breakDuration = stringTONumber(i.breakDuration);
-                    match.mainBreakDuration = stringTONumber(i.mainBreakDuration);
+                    match.type = i.Type;
+                    match.matchDuration = stringTONumber(i["Match Duration"]);
+                    match.breakDuration = stringTONumber(i["Break Duration"]);
+                    match.mainBreakDuration = stringTONumber(i["Main Break Duration"]);
                     match.mnbMatchId = i.mnbMatchId;
                     match.roundId = roundData.id;
                     if (venueData && venueData[0] != null) {
@@ -1465,6 +1465,7 @@ export class MatchController extends BaseController {
                     if (divisionData.length > 0) match.divisionId = divisionData[0].id;
                     if (team1Data.length > 0) match.team1Id = team1Data[0].id;
                     if (team2Data.length > 0) match.team2Id = team2Data[0].id;
+
                     queryArr.push(match);
                 } else {
                     if (message[`Line ${i.line}`]) {
@@ -1476,6 +1477,7 @@ export class MatchController extends BaseController {
                             message: [],
                         };
                     }
+
                     if (!divisionData[0]) message[`Line ${i.line}`].message.push('The divisions entered is not associated with this competition.');
                     if (!team1Data[0]) message[`Line ${i.line}`].message.push(`Can't find the team named as "${i['Home Team']}"`);
                     if (!team2Data[0]) message[`Line ${i.line}`].message.push(`Can't find the team named as "${i['Away Team']}"`);
