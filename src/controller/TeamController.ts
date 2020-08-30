@@ -437,9 +437,9 @@ export class TeamController extends BaseController {
 
         for (let i of importArr) {
             if (i.Team_Name !== '') {
-                let teamData = await this.teamService.findByNameAndCompetition(i.Team_Name, competitionId);
+                let teamData = await this.teamService.findByNameAndCompetition(i["Team Name"], competitionId);
                 if (!isArrayPopulated(teamData)) {
-                    let divisionData = await this.divisionService.findByName(i.Grade, competitionId);
+                    let divisionData = await this.divisionService.findByName(i["Division Grade"], competitionId);
                     let organisationData = await this.organisationService.findByNameAndCompetitionId(i.Organisation, competitionId);
                     if (!isArrayPopulated(divisionData) || !isArrayPopulated(organisationData)) {
                         if (message[`Line ${i.line}`]) {
