@@ -102,9 +102,9 @@ export class DivisionController extends BaseController {
         for (let i of importArr) {
             if (i.name != "") {
                 let divisionObj = new Division();
-                divisionObj.name = i.name;
-                divisionObj.divisionName = i.division;
-                divisionObj.grade = i.grade;
+                divisionObj.name = i.Name;
+                divisionObj.divisionName = i.Division;
+                divisionObj.grade = i.Grade;
                 divisionObj.competitionId = competitionId;
                 queryArr.push(divisionObj);
             }
@@ -113,7 +113,7 @@ export class DivisionController extends BaseController {
         const totalCount = data.length;
         const successCount = queryArr.length;
         const failedCount = data.length - queryArr.length;
-        const resMsg = `${totalCount} data are processed. ${successCount} data are successfully imported and ${failedCount} data are failed.`;
+        const resMsg = `${totalCount} lines processed. ${successCount} lines successfully imported and ${failedCount} lines failed.`;
 
         await this.divisionService.batchCreateOrUpdate(queryArr);
         return response.status(200).send({

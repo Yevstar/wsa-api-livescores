@@ -17,7 +17,7 @@ import axios from 'axios';
 import { decode as atob } from 'base-64';
 
 import { logger } from '../logger';
-import { authToken, isNullOrEmpty, validationForField, arrangeCSVToJson } from '../utils/Utils';
+import { authToken, isNullOrEmpty, validationForField, arrangeCSVToJson, trim} from '../utils/Utils';
 import { LoginError } from '../exceptions/LoginError';
 import { User } from '../models/User';
 import { UserDevice } from '../models/UserDevice';
@@ -787,9 +787,9 @@ export class UserController extends BaseController {
             if (foundUser) {
                 newUser = false;
                 if (
-                    foundUser.firstName == i['First Name'] &&
-                    foundUser.lastName == i['Last Name'] &&
-                    foundUser.mobileNumber == i['Contact No']
+                    foundUser.firstName == trim(i['First Name']) &&
+                    foundUser.lastName == trim(i['Last Name']) &&
+                    foundUser.mobileNumber == trim(i['Contact No'])
                 ) {
                     userDetails.id = foundUser.id;
                     userDetails.email = foundUser.email;
@@ -828,7 +828,7 @@ export class UserController extends BaseController {
                         if (isNotNullAndUndefined(i['DivisionGrade'])) {
                             const teamArray = i['Team'].split(',');
                             for (let t of teamArray) {
-                                const teamDetail: Team[] = await this.teamService.findByNameAndCompetition(t, competitionId, i['DivisionGrade']);
+                                const teamDetail: Team[] = await this.teamService.findByNameAndCompetition(t, competitionId, i['Division Grade']);
                                 if (isArrayPopulated(teamDetail)) {
                                     teamDetailArray.push(...teamDetail);
                                 }
@@ -941,7 +941,7 @@ export class UserController extends BaseController {
 
         const totalCount = data.length;
         const failedCount = data.length - successCount;
-        const resMsg = `${totalCount} data are processed. ${successCount} data are successfully imported and ${failedCount} data are failed.`;
+        const resMsg = `${totalCount} lines processed. ${successCount} lines successfully imported and ${failedCount} lines failed.`;
 
         return response.status(200).send({
             success: true,

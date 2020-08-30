@@ -265,14 +265,14 @@ export class PlayerController extends BaseController {
                 .on('end', async () => {
                     for (let i of arr) {
                         const team = trim(i.team);
-                        const teamId = await this.teamService.findByNameAndCompetition(team, competitionId, undefined, trim(i.grade));
+                        const teamId = await this.teamService.findByNameAndCompetition(team, competitionId, trim(i['Division Grade']));
                         const playerObj = new Player();
                         playerObj.teamId = isArrayPopulated(teamId) ? teamId[0].id : -1;
-                        playerObj.firstName = trim(i['first name']);
-                        playerObj.lastName = trim(i['last name']);
+                        playerObj.firstName = trim(i['First Name']);
+                        playerObj.lastName = trim(i['Last Name']);
                         playerObj.mnbPlayerId = trim(i.mnbPlayerId);
                         playerObj.dateOfBirth = i.DOB ? parseDateString(i.DOB) : undefined;
-                        playerObj.phoneNumber = i['contact no'] ? formatPhoneNumber(i['contact no']) : undefined;
+                        playerObj.phoneNumber = i['Contact No'] ? formatPhoneNumber(i['Contact No']) : null;
                         playerObj.competitionId = competitionId;
                         playerArr.push(playerObj);
                     }
@@ -285,7 +285,7 @@ export class PlayerController extends BaseController {
                     const totalCount = arr.length;
                     const successCount = players.length;
                     const failedCount = arr.length - players.length;
-                    const resMsg = `${totalCount} data are processed. ${successCount} data are successfully imported and ${failedCount} data are failed.`;
+                    const resMsg = `${totalCount} lines processed. ${successCount} lines successfully imported and ${failedCount} lines failed.`;
 
                     let data = await this.playerService.batchCreateOrUpdate(players as Player[]);
                     for (let p of data) {

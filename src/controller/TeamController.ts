@@ -33,7 +33,8 @@ import {
     paginationData,
     isNotNullAndUndefined,
     validationForField,
-    arrangeCSVToJson
+    arrangeCSVToJson,
+    trim
 } from "../utils/Utils"
 import { logger } from "../logger";
 
@@ -439,10 +440,10 @@ export class TeamController extends BaseController {
         if (isNotNullAndUndefined(competition)) {
             for (let i of importArr) {
                 if (i["Team Name"]!== '') {
-                    let teamData = await this.teamService.findByNameAndCompetition(i["Team Name"], competitionId);
+                    let teamData = await this.teamService.findByNameAndCompetition(trim(i["Team Name"]), competitionId, trim(i["Division Grade"]));
                     if (!isArrayPopulated(teamData)) {
-                        let divisionData = await this.divisionService.findByName(i["Division Grade"], competitionId);
-                        let organisationData = await this.organisationService.findByNameAndCompetitionId(i.Organisation, competitionId);
+                        let divisionData = await this.divisionService.findByName(trim(i["Division Grade"]), competitionId);
+                        let organisationData = await this.organisationService.findByNameAndCompetitionId(trim(i.Organisation), competitionId);
                         if (!isArrayPopulated(divisionData) || !isArrayPopulated(organisationData)) {
                             if (message[`Line ${i.line}`]) {
                                 if (!message[`Line ${i.line}`].message) {
