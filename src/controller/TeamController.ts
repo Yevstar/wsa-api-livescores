@@ -86,7 +86,7 @@ export class TeamController extends BaseController {
     async listCompetitionTeams(
         @QueryParam('competitionId') competitionId: number,
         @QueryParam('divisionId') divisionId: number,
-        @QueryParam('includeBye') includeBye: boolean,
+        @QueryParam('includeBye') includeBye: number = 0,
         @QueryParam('search') search: string,
         @QueryParam('sortBy') sortBy: string = undefined,
         @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined,
