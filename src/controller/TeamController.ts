@@ -421,13 +421,14 @@ export class TeamController extends BaseController {
         @Res() response: Response
     ) {
         const requiredField = [
-            'Team_Name',
-            'Grade',
+            'Team Name',
+            'Division Grade',
             'Organisation'
         ];
 
         const bufferString = file.buffer.toString('utf8');
         const data = arrangeCSVToJson(bufferString);
+        const competition = await this.competitionService.findById(competitionId);
 
         let queryArr = [];
         const { result: importArr, message } = validationForField({
@@ -435,13 +436,39 @@ export class TeamController extends BaseController {
             values: data,
         });
 
-        for (let i of importArr) {
-            if (i.Team_Name !== '') {
-                let teamData = await this.teamService.findByNameAndCompetition(i["Team Name"], competitionId);
-                if (!isArrayPopulated(teamData)) {
-                    let divisionData = await this.divisionService.findByName(i["Division Grade"], competitionId);
-                    let organisationData = await this.organisationService.findByNameAndCompetitionId(i.Organisation, competitionId);
-                    if (!isArrayPopulated(divisionData) || !isArrayPopulated(organisationData)) {
+        if (isNotNullAndUndefined(competition)) {
+            for (let i of importArr) {
+                if (i["Team Name"]!== '') {
+                    let teamData = await this.teamService.findByNameAndCompetition(i["Team Name"], competitionId);
+                    if (!isArrayPopulated(teamData)) {
+                        let divisionData = await this.divisionService.findByName(i["Division Grade"], competitionId);
+                        let organisationData = await this.organisationService.findByNameAndCompetitionId(i.Organisation, competitionId);
+                        if (!isArrayPopulated(divisionData) || !isArrayPopulated(organisationData)) {
+                            if (message[`Line ${i.line}`]) {
+                                if (!message[`Line ${i.line}`].message) {
+                                    message[`Line ${i.line}`].message = [];
+                                }
+                            } else {
+                                message[`Line ${i.line}`] = {
+                                    message: [],
+                                };
+                            }
+                            if (!isArrayPopulated(divisionData)) {
+                                message[`Line ${i.line}`].message.push(`Can't find a matching Division Grade "${i['Division Grade']}" related to current competition: ${competition.longName}.`);
+                            }
+                            if (!isArrayPopulated(organisationData)) {
+                                message[`Line ${i.line}`].message.push(`Can't find a matching organisation "${i.Organisation}" related to current competition: ${competition.longName}.`);
+                            }
+                        } else {
+                            let team = new Team();
+                            team.name = i.Team_Name;
+                            team.logoUrl = i.Logo;
+                            team.competitionId = competitionId;
+                            if (divisionData.length > 0) team.divisionId = divisionData[0].id;
+                            if (organisationData.length > 0) team.organisationId = organisationData[0].id;
+                            queryArr.push(team);
+                        }
+                    } else {
                         if (message[`Line ${i.line}`]) {
                             if (!message[`Line ${i.line}`].message) {
                                 message[`Line ${i.line}`].message = [];
@@ -451,40 +478,19 @@ export class TeamController extends BaseController {
                                 message: [],
                             };
                         }
-                        if (!isArrayPopulated(divisionData)) {
-                            message[`Line ${i.line}`].message.push(`Can't find data of grade "${i.Grade}" related current competition No. ${competitionId}.`);
-                        }
-                        if (!isArrayPopulated(organisationData)) {
-                            message[`Line ${i.line}`].message.push(`Can't find data of organisation "${i.Organisation}" related current competition No. ${competitionId}.`);
-                        }
-                    } else {
-                        let team = new Team();
-                        team.name = i.Team_Name;
-                        team.logoUrl = i.Logo;
-                        team.competitionId = competitionId;
-                        if (divisionData.length > 0) team.divisionId = divisionData[0].id;
-                        if (organisationData.length > 0) team.organisationId = organisationData[0].id;
-                        queryArr.push(team);
+                        message[`Line ${i.line}`].message.push(`The team "${i.Team_Name}" is already registered.`);
                     }
-                } else {
-                    if (message[`Line ${i.line}`]) {
-                        if (!message[`Line ${i.line}`].message) {
-                            message[`Line ${i.line}`].message = [];
-                        }
-                    } else {
-                        message[`Line ${i.line}`] = {
-                            message: [],
-                        };
-                    }
-                    message[`Line ${i.line}`].message.push(`The team "${i.Team_Name}" is already registered.`);
                 }
             }
+        } else {
+            message[``].message.push(`Could not find a matching competition`);
+
         }
 
         const totalCount = data.length;
         const successCount = queryArr.length;
         const failedCount = data.length - queryArr.length;
-        const resMsg = `${totalCount} data are processed. ${successCount} data are successfully imported and ${failedCount} data are failed.`;
+        const resMsg = `${totalCount} lines processed. ${successCount} lines successfully imported and ${failedCount} lines failed.`;
 
         await this.teamService.batchCreateOrUpdate(queryArr);
         await Promise.all(queryArr.map((team: Team) => {
