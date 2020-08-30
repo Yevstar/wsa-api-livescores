@@ -461,8 +461,7 @@ export class TeamController extends BaseController {
                             }
                         } else {
                             let team = new Team();
-                            team.name = i.Team_Name;
-                            team.logoUrl = i.Logo;
+                            team.name = i["Team Name"];
                             team.competitionId = competitionId;
                             if (divisionData.length > 0) team.divisionId = divisionData[0].id;
                             if (organisationData.length > 0) team.organisationId = organisationData[0].id;
@@ -478,7 +477,7 @@ export class TeamController extends BaseController {
                                 message: [],
                             };
                         }
-                        message[`Line ${i.line}`].message.push(`The team "${i.Team_Name}" is already registered.`);
+                        message[`Line ${i.line}`].message.push(`The team "${i["Team Name"]}" is already registered.`);
                     }
                 }
             }
