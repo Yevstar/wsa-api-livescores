@@ -7,6 +7,8 @@ import { Match } from "../models/Match";
 import { Roster } from "../models/security/Roster";
 import { EntityType } from "../models/security/EntityType";
 import { News } from "../models/News";
+import { isNullOrUndefined } from "util";
+import { testForBuffer } from "class-transformer/TransformOperationExecutor";
 
 @Service()
 export default class UserDeviceService extends BaseService<UserDevice> {
@@ -241,14 +243,29 @@ export default class UserDeviceService extends BaseService<UserDevice> {
         return [];
     }
 
-    public async countDistinctDevices(competitionId: number): Promise<any[]> {
-        return this.entityManager.query(
-            'SELECT count(distinct wl.deviceId) as deviceCount\n' +
-            '    FROM wsa_users.linked_entities le\n' +
-            '                 inner join watchlist wl on (le.linkedEntityId = wl.entityId  and le.linkedEntityTypeId = wl.entityTypeId)\n' +
-            '                 inner join userDevice ud on ud.deviceId = wl.deviceId\n' +
+    public async countDistinctDevices(organisationId: number, competitionId: number): Promise<any[]> {
+        let rawSQL = 'SELECT count(distinct wl.deviceId) as deviceCount \n' +
+        'FROM wsa_users.linked_entities le \n' +
+        'inner join wsa.watchlist wl on (le.linkedEntityId = wl.entityId and le.linkedEntityTypeId = wl.entityTypeId) \n' +
+        'inner join wsa.userDevice ud on ud.deviceId = wl.deviceId \n' +
+        'inner join wsa.competition c on c.id = le.inputEntityId and inputEntityTypeId = ? \n' +
+        'inner join wsa_users.organisation o on c.organisationId = o.id \n' +
+        'where ud.userId is null \n' +
+        'and c.deleted_at is null \n' +
+        'and o.id = ? \n';
 
-            'where ud.userId is null and le.inputEntityId = ? and le.inputEntityTypeId = ?;'
-            , [competitionId, EntityType.COMPETITION])
+        if (competitionId == 0) {
+            return this.entityManager.query(
+                rawSQL + 
+                ';'
+                ,[EntityType.COMPETITION, organisationId])
+
+        } else {
+            return this.entityManager.query(
+                rawSQL + 
+                'and c.id = ? '+
+                ';'
+                ,[EntityType.COMPETITION, organisationId, competitionId])
+        }
     }
 }

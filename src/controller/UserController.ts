@@ -955,8 +955,17 @@ export class UserController extends BaseController {
     @Authorized()
     @Get('/devices/count')
     async countDistinctDevices(
-        @QueryParam('competitionId') competitionId: number = null,
+        @QueryParam('organisationId') organisationId: number,
+        @QueryParam('competitionId') competitionId: number = 0,
+        @Res() response: Response
     ): Promise<any> {
-        return await this.deviceService.countDistinctDevices(competitionId);
+        if (!organisationId) {
+            return response
+                .status(400).send({
+                    name: 'search_error',
+                    message: `Missing mandatory parameters`
+                });
+        }
+        return await this.deviceService.countDistinctDevices(organisationId, competitionId);
     }
 }
