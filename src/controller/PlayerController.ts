@@ -1,4 +1,4 @@
-import {Response} from 'express';
+import { Response } from 'express';
 import {
     Authorized,
     Post,
@@ -6,6 +6,8 @@ import {
     Body,
     Res,
     Get,
+    Delete,
+    Param,
     JsonController,
     QueryParam,
     UploadedFile
@@ -26,15 +28,15 @@ import {
     validationForField,
     trim,
 } from '../utils/Utils';
-import {BaseController} from './BaseController';
-import {Player} from '../models/Player';
-import {User} from '../models/User';
-import {Competition} from '../models/Competition';
-import {LinkedCompetitionOrganisation} from '../models/LinkedCompetitionOrganisation';
-import {Role} from '../models/security/Role';
-import {EntityType} from '../models/security/EntityType';
-import {UserRoleEntity} from '../models/security/UserRoleEntity';
-import {RequestFilter} from '../models/RequestFilter';
+import { BaseController } from './BaseController';
+import { Player } from '../models/Player';
+import { User } from '../models/User';
+import { Competition } from '../models/Competition';
+import { LinkedCompetitionOrganisation } from '../models/LinkedCompetitionOrganisation';
+import { Role } from '../models/security/Role';
+import { EntityType } from '../models/security/EntityType';
+import { UserRoleEntity } from '../models/security/UserRoleEntity';
+import { RequestFilter } from '../models/RequestFilter';
 
 @JsonController('/players')
 export class PlayerController extends BaseController {
@@ -140,7 +142,7 @@ export class PlayerController extends BaseController {
                     if (result) {
                         p.photoUrl = result['url'];
                     } else {
-                        return response .status(400).send({
+                        return response.status(400).send({
                             name: 'save_error',
                             message: 'Image not saved, try again later.'
                         });
@@ -560,5 +562,14 @@ export class PlayerController extends BaseController {
         } else {
             return [];
         }
+    }
+
+
+    @Authorized()
+    @Delete('/id/:id')
+    async delete(
+        @Param("id") id: number,
+        @HeaderParam("authorization") user: User) {
+        return this.playerService.deleteById(id);
     }
 }
