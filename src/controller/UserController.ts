@@ -759,7 +759,7 @@ export class UserController extends BaseController {
             'Last Name',
             'Email',
             'Contact No',
-            // 'DivisionGrade',
+            // 'Division Grade',
         ];
 
         const bufferString = file.buffer.toString('utf8');
@@ -823,9 +823,10 @@ export class UserController extends BaseController {
             }
 
             if (!infoMisMatchArray.includes(i['Email'].toLowerCase())) {
+                let error;
                 if (teamRequired) {
-                    if (isNotNullAndUndefined(i['Team'])) {
-                        if (isNotNullAndUndefined(i['DivisionGrade'])) {
+                    if (!i['Team']) {
+                        if (!i['Division Grade']) {
                             const teamArray = i['Team'].split(',');
                             for (let t of teamArray) {
                                 const teamDetail: Team[] = await this.teamService.findByNameAndCompetition(t, competitionId, i['Division Grade']);
@@ -835,28 +836,16 @@ export class UserController extends BaseController {
                             }
 
                             if (teamDetailArray.length === 0) {
-                                message[`Line ${i.line}`] = {
-                                    ...i,
-                                    message: `No matching team found for ${i['Team']}`,
-                                };
-                                continue;
+                                error = `No matching team found for ${i['Team']}`;
                             }
                         } else {
-                            message[`Line ${i.line}`] = {
-                                ...i,
-                                message: `The field 'DivisionGrade' is required.`,
-                            };
-                            continue;
+                            error = `The field 'Division Grade' is required.`;
                         }
                     } else {
-                        message[`Line ${i.line}`] = {
-                            ...i,
-                            message: `The field 'Team' is required.`,
-                        };
-                        continue;
+                        error = `The field 'Team' is required.`;
                     }
                 } else {
-                    if (isNotNullAndUndefined(i['Organisation'])) {
+                    if (!i['Organisation']) {
                         const orgArray = i['Organisation'].split(',');
                         for (let org of orgArray) {
                             const orgDetail: LinkedCompetitionOrganisation[] = await this.organisationService.findByNameAndCompetitionId(org, competitionId);
@@ -866,19 +855,27 @@ export class UserController extends BaseController {
                         }
 
                         if (orgDetailArray.length === 0) {
-                            message[`Line ${i.line}`] = {
-                                ...i,
-                                message: `No matching organization found for ${i['Organisation']}`,
-                            };
-                            continue;
+                            error = `No matching organization found for ${i['Organisation']}`;
+                        }
+                    } else {
+                        error = `The field 'Organisation' is required.`;
+                    }
+                }
+
+                if (error) {
+                    if (message[`Line ${i.line}`]) {
+                        if (!message[`Line ${i.line}`].message) {
+                            message[`Line ${i.line}`].message = [];
                         }
                     } else {
                         message[`Line ${i.line}`] = {
                             ...i,
-                            message: `The field 'Organisation' is required.`,
+                            message: [],
                         };
-                        continue;
                     }
+
+                    message[`Line ${i.line}`].message.push(error);
+                    continue;
                 }
 
                 let ureArray = [];
