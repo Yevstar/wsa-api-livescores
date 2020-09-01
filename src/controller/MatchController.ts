@@ -1418,7 +1418,7 @@ export class MatchController extends BaseController {
 
         let queryArr = [];
         for (let i of importArr) {
-            if (i.Date !== "") {
+            if (!i.Date) {
                 let timeZone = parseDateTimeZoneString(trim(i.Date), trim(i.Time), trim(i["Timezone GMT"]));
                 let startTimeInUTC = new Date(timeZone);
                 let divisionData = await this.divisionService.findByName(trim(i["Division Grade"]), competitionId);
@@ -1475,6 +1475,7 @@ export class MatchController extends BaseController {
                         }
                     } else {
                         message[`Line ${i.line}`] = {
+                            ...i,
                             message: [],
                         };
                     }

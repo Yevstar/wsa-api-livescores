@@ -159,7 +159,6 @@ export function parseDateString(dateStr: string): Date {
         return new Date(-1, 0, 0);
     }
 
-    console.log(dStr);
     const split = dStr.split('/');
     const dobStr = split.length === 3 ? split : dStr.split('.');
     if (dobStr.length !== 3) {

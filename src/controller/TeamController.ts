@@ -439,7 +439,7 @@ export class TeamController extends BaseController {
 
         if (isNotNullAndUndefined(competition)) {
             for (let i of importArr) {
-                if (i["Team Name"]!== '') {
+                if (!i["Team Name"]) {
                     let teamData = await this.teamService.findByNameAndCompetition(trim(i["Team Name"]), competitionId, trim(i["Division Grade"]));
                     if (!isArrayPopulated(teamData)) {
                         let divisionData = await this.divisionService.findByName(trim(i["Division Grade"]), competitionId);
@@ -451,6 +451,7 @@ export class TeamController extends BaseController {
                                 }
                             } else {
                                 message[`Line ${i.line}`] = {
+                                    ...i,
                                     message: [],
                                 };
                             }
@@ -475,6 +476,7 @@ export class TeamController extends BaseController {
                             }
                         } else {
                             message[`Line ${i.line}`] = {
+                                ...i,
                                 message: [],
                             };
                         }
@@ -483,8 +485,7 @@ export class TeamController extends BaseController {
                 }
             }
         } else {
-            message[``].message.push(`Could not find a matching competition`);
-
+            message[''].message.push(`Could not find a matching competition`);
         }
 
         const totalCount = data.length;
