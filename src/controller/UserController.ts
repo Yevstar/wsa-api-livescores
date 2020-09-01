@@ -825,8 +825,8 @@ export class UserController extends BaseController {
             if (!infoMisMatchArray.includes(i['Email'].toLowerCase())) {
                 let error;
                 if (teamRequired) {
-                    if (!i['Team']) {
-                        if (!i['Division Grade']) {
+                    if (i['Team']) {
+                        if (i['Division Grade']) {
                             const teamArray = i['Team'].split(',');
                             for (let t of teamArray) {
                                 const teamDetail: Team[] = await this.teamService.findByNameAndCompetition(t, competitionId, i['Division Grade']);
@@ -836,7 +836,7 @@ export class UserController extends BaseController {
                             }
 
                             if (teamDetailArray.length === 0) {
-                                error = `No matching team found for ${i['Team']}`;
+                                error = `No matching team found for ${i['Team']}.`;
                             }
                         } else {
                             error = `The field 'Division Grade' is required.`;
@@ -845,7 +845,7 @@ export class UserController extends BaseController {
                         error = `The field 'Team' is required.`;
                     }
                 } else {
-                    if (!i['Organisation']) {
+                    if (i['Organisation']) {
                         const orgArray = i['Organisation'].split(',');
                         for (let org of orgArray) {
                             const orgDetail: LinkedCompetitionOrganisation[] = await this.organisationService.findByNameAndCompetitionId(org, competitionId);
@@ -855,7 +855,7 @@ export class UserController extends BaseController {
                         }
 
                         if (orgDetailArray.length === 0) {
-                            error = `No matching organization found for ${i['Organisation']}`;
+                            error = `No matching organization found for ${i['Organisation']}.`;
                         }
                     } else {
                         error = `The field 'Organisation' is required.`;

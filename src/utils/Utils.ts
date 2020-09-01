@@ -298,7 +298,7 @@ export function trim(value) {
 export function arrangeCSVToJson(buffer) {
     const arr = buffer.split('\n');
     const data = [];
-    let headers = arr[0].split(',');
+    const headers = arr[0].split(',');
 
     for (let i = 1; i < arr.length; i++) {
         const csvStr = arr[i].split(',');

@@ -12,7 +12,13 @@ import {
 } from 'routing-controllers';
 import * as fastcsv from 'fast-csv';
 
-import {stringTONumber, paginationData, isNotNullAndUndefined, isArrayPopulated} from '../utils/Utils';
+import {
+    stringTONumber,
+    paginationData,
+    isNotNullAndUndefined,
+    isArrayPopulated,
+    arrangeCSVToJson, validationForField
+} from '../utils/Utils';
 import {convertMatchStartTimeByTimezone} from '../utils/TimeFormatterUtils';
 import {BaseController} from './BaseController';
 import {MatchUmpire} from '../models/MatchUmpire';
@@ -332,95 +338,94 @@ export class MatchUmpireController extends BaseController {
         @UploadedFile('file', { required: true }) file: Express.Multer.File,
         @Res() response: Response
     ) {
-        let bufferString = file.buffer.toString('utf8');
-        let arr = bufferString.split('\n');
-        let jsonObj = [];
-        let headers = arr[0].split(',');
-        let importSuccess: boolean = false;
+        const requiredField = [
+            'Match Id',
+        ];
+
+        const bufferString = file.buffer.toString('utf8');
+        const data = arrangeCSVToJson(bufferString);
+        const competition = await this.competitionService.findById(competitionId);
 
         // File columns:
         // Match ID	Start Time	Home	Away	Round
         // Umpire 1 Id	Umpire 1 First Name	Umpire 1 Surname	Umpire 1 Organisation
         // Umpire 2 Id	Umpire 2 First Name	Umpire 2 Surname	Umpire 2 Organisation
 
-        for (let i = 1; i < arr.length; i++) {
-            let data = arr[i].split(',');
-            let obj = {};
-            for (let j = 0; j < data.length; j++) {
-                if (headers[j] !== undefined) {
-                    obj[headers[j].trim()] = data[j].trim();
-                }
-            }
-            jsonObj.push(obj);
-        }
+        const { result: importArr, message } = validationForField({
+            filedList: requiredField,
+            values: data,
+        });
 
-        if (isArrayPopulated(jsonObj)) {
-            for (let i of jsonObj) {
-                if (isNotNullAndUndefined(i['Match ID']) && (i['Match ID'] != '')) {
-                    if (isNotNullAndUndefined(i['Umpire 1 Id']) && (i['Umpire 1 Id'] != '')) {
-                        const matchUmpire = new MatchUmpire();
-                        matchUmpire.matchId = i['Match ID'];
-                        matchUmpire.userId = i['Umpire 1 Id'];
-                        await this.umpireAddRoster(matchUmpire, false);
-                        importSuccess = true;
-                    } else if (
-                        isNotNullAndUndefined(i['Umpire 1 First Name']) && (i['Umpire 1 First Name'] != '') &&
-                        isNotNullAndUndefined(i['Umpire 1 Surname']) && (i['Umpire 1 Surname'] != '')
-                    ) {
-                        if (isNotNullAndUndefined(i['Umpire 1 Organisation'])) {
-                            let org = await this.organisationService.findByNameAndCompetitionId(i['Umpire 1 Organisation'], competitionId);
-                            if (isArrayPopulated(org)) {
-                                let firstName = i['Umpire 1 First Name'];
-                                let surname = i['Umpire 1 Surname'];
-                                let fullName = `${firstName} ${surname}`;
+        const queryArr = [];
+        if (isNotNullAndUndefined(competition)) {
+            for (let i of importArr) {
+                if (i['Umpire 1 Id']) {
+                    const matchUmpire = new MatchUmpire();
+                    matchUmpire.matchId = i['Match ID'];
+                    matchUmpire.userId = i['Umpire 1 Id'];
+                    await this.umpireAddRoster(matchUmpire, false);
+                    queryArr.push(matchUmpire);
+                } else if (i['Umpire 1 First Name'] && i['Umpire 1 Surname']) {
+                    if (i['Umpire 1 Organisation']) {
+                        let org = await this.organisationService.findByNameAndCompetitionId(i['Umpire 1 Organisation'], competitionId);
+                        if (isArrayPopulated(org)) {
+                            let firstName = i['Umpire 1 First Name'];
+                            let surname = i['Umpire 1 Surname'];
+                            let fullName = `${firstName} ${surname}`;
 
-                                let userResults = await this.userService.getUserIdBySecurity(EntityType.ORGANISATION, [org[0].id], fullName, { roleId: Role.UMPIRE });
-                                if (isArrayPopulated(userResults)) {
-                                    const matchUmpire = new MatchUmpire();
-                                    matchUmpire.matchId = i['Match ID'];
-                                    matchUmpire.userId = userResults[0].id;
-                                    await this.umpireAddRoster(matchUmpire, false);
-                                }
+                            let userResults = await this.userService.getUserIdBySecurity(EntityType.ORGANISATION, [org[0].id], fullName, { roleId: Role.UMPIRE });
+                            if (isArrayPopulated(userResults)) {
+                                const matchUmpire = new MatchUmpire();
+                                matchUmpire.matchId = i['Match ID'];
+                                matchUmpire.userId = userResults[0].id;
+                                await this.umpireAddRoster(matchUmpire, false);
+                                queryArr.push(matchUmpire);
                             }
                         }
                     }
+                }
 
-                    if (isNotNullAndUndefined(i['Umpire 2 Id']) && (i['Umpire 2 Id'] != '')) {
-                        const matchUmpire = new MatchUmpire();
-                        matchUmpire.matchId = i['Match ID'];
-                        matchUmpire.userId = i['Umpire 2 Id'];
-                        await this.umpireAddRoster(matchUmpire, false);
-                        importSuccess = true;
-                    } else if (
-                        isNotNullAndUndefined(i['Umpire 2 First Name']) && (i['Umpire 2 First Name'] != '') &&
-                        isNotNullAndUndefined(i['Umpire 2 Surname']) && (i['Umpire 2 Surname'] != '')
-                    ) {
-                        if (isNotNullAndUndefined(i['Umpire 2 Organisation'])) {
-                            let org = await this.organisationService.findByNameAndCompetitionId(i['Umpire 2 Organisation'], competitionId);
-                            if (isArrayPopulated(org)) {
-                                let firstName = i['Umpire 2 First Name'];
-                                let surname = i['Umpire 2 Surname'];
-                                let fullName = `${firstName} ${surname}`;
+                if (i['Umpire 2 Id']) {
+                    const matchUmpire = new MatchUmpire();
+                    matchUmpire.matchId = i['Match ID'];
+                    matchUmpire.userId = i['Umpire 2 Id'];
+                    await this.umpireAddRoster(matchUmpire, false);
+                    queryArr.push(matchUmpire);
+                } else if (i['Umpire 2 First Name'] && i['Umpire 2 Surname']) {
+                    if (i['Umpire 2 Organisation']) {
+                        let org = await this.organisationService.findByNameAndCompetitionId(i['Umpire 2 Organisation'], competitionId);
+                        if (isArrayPopulated(org)) {
+                            let firstName = i['Umpire 2 First Name'];
+                            let surname = i['Umpire 2 Surname'];
+                            let fullName = `${firstName} ${surname}`;
 
-                                let userResults = await this.userService.getUserIdBySecurity(EntityType.ORGANISATION, [org[0].id], fullName, { roleId: Role.UMPIRE });
-                                if (isArrayPopulated(userResults)) {
-                                    const matchUmpire = new MatchUmpire();
-                                    matchUmpire.matchId = i['Match ID'];
-                                    matchUmpire.userId = userResults[0].id;
-                                    await this.umpireAddRoster(matchUmpire, false);
-                                }
+                            let userResults = await this.userService.getUserIdBySecurity(EntityType.ORGANISATION, [org[0].id], fullName, { roleId: Role.UMPIRE });
+                            if (isArrayPopulated(userResults)) {
+                                const matchUmpire = new MatchUmpire();
+                                matchUmpire.matchId = i['Match ID'];
+                                matchUmpire.userId = userResults[0].id;
+                                await this.umpireAddRoster(matchUmpire, false);
+                                queryArr.push(matchUmpire);
                             }
                         }
                     }
                 }
             }
-
-            if (importSuccess) {
-                return response.status(200).send({ success: true });
-            } else {
-                return response.status(212).send('Required parameters were not filled within the file provided for importing');
-            }
+        } else {
+            message[''].message.push('Could not find a matching competition.');
         }
+
+        const totalCount = data.length;
+        const successCount = queryArr.length;
+        const failedCount = data.length - successCount;
+        const resMsg = `${totalCount} lines processed. ${successCount} lines successfully imported and ${failedCount} lines failed.`;
+
+        return response.status(200).send({
+            success: true,
+            error: message,
+            message: resMsg,
+            data: queryArr,
+            rawData: data,
+        });
     }
-
 }

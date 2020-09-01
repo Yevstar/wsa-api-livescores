@@ -87,7 +87,7 @@ export class DivisionController extends BaseController {
         @Res() response: Response
     ) {
         const requiredField = [
-            'name'
+            'Name'
         ];
 
         const bufferString = file.buffer.toString('utf8');
@@ -100,7 +100,7 @@ export class DivisionController extends BaseController {
         });
 
         for (let i of importArr) {
-            if (i.name != "") {
+            if (i.Name) {
                 let divisionObj = new Division();
                 divisionObj.name = i.Name;
                 divisionObj.divisionName = i.Division;
@@ -116,6 +116,7 @@ export class DivisionController extends BaseController {
         const resMsg = `${totalCount} lines processed. ${successCount} lines successfully imported and ${failedCount} lines failed.`;
 
         await this.divisionService.batchCreateOrUpdate(queryArr);
+
         return response.status(200).send({
             data: importArr,
             error: message,

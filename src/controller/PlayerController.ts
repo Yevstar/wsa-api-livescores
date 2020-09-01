@@ -251,12 +251,12 @@ export class PlayerController extends BaseController {
             let str = buf.toString();
             let arr = [];
             let playerArr = [];
+
             const requiredField = [
-                'teamId',
-                'firstName',
-                'lastName',
-                'dateOfBirth',
-                'competitionId',
+                'First Name',
+                'Last Name',
+                'DOB',
+                'Team',
             ];
 
             fastcsv.parseString(str, { headers: true })
@@ -266,7 +266,7 @@ export class PlayerController extends BaseController {
                 })
                 .on('end', async () => {
                     for (let i of arr) {
-                        const team = trim(i.team);
+                        const team = trim(i.Team);
                         const teamId = await this.teamService.findByNameAndCompetition(team, competitionId, trim(i['Division Grade']));
                         const playerObj = new Player();
                         playerObj.teamId = isArrayPopulated(teamId) ? teamId[0].id : -1;
