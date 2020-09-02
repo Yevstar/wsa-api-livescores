@@ -310,12 +310,14 @@ export class PlayerController extends BaseController {
     async listTeamPlayerActivity(
         @QueryParam('competitionId') competitionId: number,
         @QueryParam('status') status: string,
+        @QueryParam('sortBy') sortBy: string = undefined,
+        @QueryParam('sortOrder') sortOrder: "ASC"|"DESC" = undefined,
         @Body() requestFilter: RequestFilter
     ): Promise<any[]> {
         if (status === undefined || status === '') status = null;
         if (requestFilter.search === undefined || requestFilter.search === '') requestFilter.search = null;
 
-        return this.playerService.listTeamPlayerActivity(competitionId, requestFilter, status);
+        return this.playerService.listTeamPlayerActivity(competitionId, requestFilter, status, sortBy, sortOrder);
     }
 
     @Get('/admin')
@@ -375,7 +377,7 @@ export class PlayerController extends BaseController {
                 limit: null
             },
             search: ''
-        }, status);
+        }, status, null, null);
         if (isArrayPopulated(teamAttendanceData)) {
             teamAttendanceData.map(e => {
                 e['Match Id'] = e.matchId;

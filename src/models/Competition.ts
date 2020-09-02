@@ -167,4 +167,7 @@ export class Competition extends BaseEntity {
     @DeleteDateColumn({ nullable:true, default:null, name: 'deleted_at' })
     public deleted_at: Date;
 
+    @IsNumber()
+    @Column()
+    yearRefId: number;
 }

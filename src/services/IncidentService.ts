@@ -15,7 +15,7 @@ export default class IncidentService extends BaseService<Incident> {
     public async findByParams(
         incidentId: number,
         competitionId: number,
-        offset: number, limit: number, search: string
+        offset: number, limit: number, search: string, sortBy:string = undefined, sortOrder:"ASC"|"DESC" = undefined
     ): Promise<{ count: number, result: Incident[] }> {
         let query = this.entityManager
             .createQueryBuilder(Incident, "incident")
@@ -33,6 +33,20 @@ export default class IncidentService extends BaseService<Incident> {
         if (isNotNullAndUndefined(search) && search !== '') {
             query.andWhere('(LOWER(concat_ws(" ", player.firstName, player.lastName)) like :search)',
             { search: `%${search.toLowerCase()}%` });
+        }
+
+        if (sortBy) {
+            if (sortBy === 'date') {
+                query.orderBy('incident.createdAt', sortOrder);
+            } else if (sortBy === 'matchId') {
+                query.orderBy('incident.matchId', sortOrder);
+            } else if (sortBy === 'firstName') {
+                query.orderBy('player.firstName', sortOrder);
+            } else if (sortBy === 'lastName') {
+                query.orderBy('player.lastName', sortOrder);
+            } else if (sortBy === 'type') {
+                query.orderBy('incidentType.name', sortOrder);
+            }
         }
 
         if (isNotNullAndUndefined(limit) && isNotNullAndUndefined(offset)) {

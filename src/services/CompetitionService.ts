@@ -47,13 +47,13 @@ export default class CompetitionService extends BaseService<Competition> {
         return query.getMany();
     }
 
-    public async loadAdmin(userId: number, requestFilter: RequestFilter, organisationId: number, recordUmpireType: "NONE" | "NAMES" | "USERS",
+    public async loadAdmin(userId: number, requestFilter: RequestFilter, organisationId: number, recordUmpireType: "NONE" | "NAMES" | "USERS",yearRefId:number,
     sortBy:string = undefined, sortOrder:"ASC"|"DESC"=undefined): Promise<any> {
         const offset = objectIsNotEmpty(requestFilter) && objectIsNotEmpty(requestFilter.paging) && isNotNullAndUndefined(requestFilter.paging.offset) ? requestFilter.paging.offset : null;
         const limit = objectIsNotEmpty(requestFilter) && objectIsNotEmpty(requestFilter.paging) && isNotNullAndUndefined(requestFilter.paging.limit) ? requestFilter.paging.limit : null;
         const recordUmpireType_ = isNotNullAndUndefined(recordUmpireType) ? recordUmpireType : null;
-        let result = await this.entityManager.query("call wsa.usp_get_competitions(?,?,?,?,?,?,?)",
-            [userId, organisationId, limit, offset, recordUmpireType_, sortBy, sortOrder]);
+        let result = await this.entityManager.query("call wsa.usp_get_competitions(?,?,?,?,?,?,?,?)",
+            [userId, organisationId, limit, offset, recordUmpireType_, yearRefId, sortBy, sortOrder]);
 
         if (result != null) {
             let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
@@ -122,15 +122,15 @@ export default class CompetitionService extends BaseService<Competition> {
         return (await query.getOne()).id;
     }
 
-    public async loadDashboardOwnedAndParticipatingCompetitions(userId: number, requestFilter: RequestFilterCompetitionDashboard, organisationId: number, sortBy: string = undefined, sortOrder: "ASC" | "DESC" = undefined): Promise<any> {
+    public async loadDashboardOwnedAndParticipatingCompetitions(userId: number, requestFilter: RequestFilterCompetitionDashboard, organisationId: number, yearRefId:number, sortBy: string = undefined, sortOrder: "ASC" | "DESC" = undefined): Promise<any> {
 
         const offsetOwned = objectIsNotEmpty(requestFilter) && objectIsNotEmpty(requestFilter.paging) && isNotNullAndUndefined(requestFilter.paging.offsetOwned) ? requestFilter.paging.offsetOwned : null;
         const offsetParticipating = objectIsNotEmpty(requestFilter) && objectIsNotEmpty(requestFilter.paging) && isNotNullAndUndefined(requestFilter.paging.offsetParticipating) ? requestFilter.paging.offsetParticipating : null;
         const limitOwned = objectIsNotEmpty(requestFilter) && objectIsNotEmpty(requestFilter.paging) && isNotNullAndUndefined(requestFilter.paging.limitOwned) ? requestFilter.paging.limitOwned : null;
         const limitParticipating = objectIsNotEmpty(requestFilter) && objectIsNotEmpty(requestFilter.paging) && isNotNullAndUndefined(requestFilter.paging.limitParticipating) ? requestFilter.paging.limitParticipating : null;
 
-        let result = await this.entityManager.query("call wsa.usp_get_owned_and_participating_competitions(?,?,?,?,?,?,?,?)",
-            [userId, organisationId, sortBy, sortOrder, offsetOwned, limitOwned, offsetParticipating, limitParticipating]);
+        let result = await this.entityManager.query("call wsa.usp_get_owned_and_participating_competitions(?,?,?,?,?,?,?,?,?)",
+            [userId, organisationId, sortBy, sortOrder, yearRefId, offsetOwned, limitOwned, offsetParticipating, limitParticipating]);
         if (isArrayPopulated(result)) {
             let ownedCompetitions = Object.assign({});
             let participatingInCompetitions = Object.assign({});

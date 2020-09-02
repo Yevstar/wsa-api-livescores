@@ -80,6 +80,7 @@ export class CompetitionController extends BaseController {
                 c.name = competition.name;
                 c.longName = competition.longName;
                 c.name = competition.name;
+                c.yearRefId = competition.yearRefId;
                 c.recordUmpire = competition.recordUmpire;
                 c.recordUmpireType = competition.recordUmpireType;
                 c.gameTimeTracking = stringToBoolean(competition.gameTimeTracking);
@@ -330,10 +331,11 @@ export class CompetitionController extends BaseController {
         @QueryParam('organisationId') organisationId: number,
         @QueryParam('recordUmpireType') recordUmpireType: "NONE" | "NAMES" | "USERS",
         @Res() response: Response,
+        @QueryParam('yearRefId') yearRefId?: number,
         @QueryParam('sortBy') sortBy: string = undefined,
         @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined,
     ): Promise<any> {
-        return this.competitionService.loadAdmin(user.id, requestFilter, organisationId, recordUmpireType, sortBy, sortOrder);
+        return this.competitionService.loadAdmin(user.id, requestFilter, organisationId, recordUmpireType, yearRefId, sortBy, sortOrder);
     }
 
     @Get('/hierarchy')
@@ -585,9 +587,10 @@ export class CompetitionController extends BaseController {
         @HeaderParam("authorization") user: User,
         @Body() requestFilter: RequestFilterCompetitionDashboard,
         @QueryParam('organisationId') organisationId: number,
+        @QueryParam('yearRefId') yearRefId?: number,
         @QueryParam('sortBy') sortBy: string = undefined,
         @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined,
     ): Promise<any> {
-        return this.competitionService.loadDashboardOwnedAndParticipatingCompetitions(user.id, requestFilter, organisationId, sortBy, sortOrder);
+        return this.competitionService.loadDashboardOwnedAndParticipatingCompetitions(user.id, requestFilter, organisationId, yearRefId, sortBy, sortOrder);
     }
 }

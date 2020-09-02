@@ -35,11 +35,13 @@ export class IncidentController extends BaseController {
         @QueryParam("competitionId") competitionId: number,
         @QueryParam("offset") offset: number,
         @QueryParam("limit") limit: number,
+        @QueryParam("sortBy") sortBy: string = undefined,
+        @QueryParam("sortOrder") sortOrder: "ASC"|"DESC" = undefined,
         @QueryParam("search") search: string,
         @Res() response: Response
     ) {
         if (incidentId || competitionId) {
-            const incidentData = await this.incidentService.findByParams(incidentId, competitionId, offset, limit, search);
+            const incidentData = await this.incidentService.findByParams(incidentId, competitionId, offset, limit, search, sortBy, sortOrder);
             if (incidentData && isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
                 let responseObject = paginationData(stringTONumber(incidentData.count), limit, offset)
                 responseObject["incidents"] = incidentData.result;
@@ -220,7 +222,7 @@ export class IncidentController extends BaseController {
 
         try {
             var removedIncidentMediaArray: IncidentMedia[];
-            if (incidentMediaIds && incidentMediaIds.length > 0) {
+            if (incidentMediaIds && incidentMediaIds.length >= 0) {
                 /// If there are some incident media ids then we need to keep
                 /// those media and remove others existing for that incident id
                 removedIncidentMediaArray = (await this.incidentService.fetchIncidentMedia(incidentId, guid))
