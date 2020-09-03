@@ -402,7 +402,8 @@ export default class MatchService extends BaseService<Match> {
         matchId: number,
         period: number,
         isBreak: boolean,
-        totalPausedMs: number) {
+        totalPausedMs: number
+    ) {
         let matchPausedTime = new MatchPausedTime();
         matchPausedTime.matchId = matchId;
         matchPausedTime.period = period;

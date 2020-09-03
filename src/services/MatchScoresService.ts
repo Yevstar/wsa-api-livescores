@@ -10,7 +10,10 @@ export default class MatchScoresService extends BaseService<MatchScores> {
         return MatchScores.name;
     }
 
-    public async findByMatchIdAndPeriod(matchId: number, period: number): Promise<MatchScores> {
+    public async findByMatchIdAndPeriod(
+        matchId: number,
+        period: number
+    ): Promise<MatchScores> {
         let query = this.entityManager.createQueryBuilder(MatchScores, 'scores');
         query.andWhere('scores.matchId = :matchId', {matchId})
         if (period) {
@@ -18,6 +21,7 @@ export default class MatchScoresService extends BaseService<MatchScores> {
         } else {
             query.andWhere('scores.period is null')
         }
+
         return query.getOne();
     }
 
@@ -31,4 +35,3 @@ export default class MatchScoresService extends BaseService<MatchScores> {
             .andWhere("matchId = :matchId", {matchId}).execute();
     }
 }
-

@@ -496,7 +496,10 @@ export class MatchController extends BaseController {
         @Res() response: Response
     ) {
         if (scores) {
-            const result = await this.matchScorerService.findByMatchIdAndPeriod(scores.matchId, scores.period);
+            const result = await this.matchScorerService.findByMatchIdAndPeriod(
+                scores.matchId,
+                scores.period
+            );
             const match = await this.matchService.findById(matchId);
             let saved: MatchScores;
             if (result) {
@@ -731,15 +734,20 @@ export class MatchController extends BaseController {
             }
             match.totalPausedMs = match.totalPausedMs + totalPausedTime;
             match.matchStatus = "STARTED";
-            await this.matchService.createOrUpdate(match);
+            let savedMatch = await this.matchService.createOrUpdate(match);
 
-            await this.matchService.logMatchPauseTime(matchId, period, isBreak, totalPausedTime);
+            await this.matchService.logMatchPauseTime(
+                matchId,
+                period,
+                isBreak,
+                totalPausedTime
+            );
 
             this.sendMatchEvent(match, false, user);
             let eventTimestamp = msFromStart ? new Date(match.startTime.getTime() + msFromStart) : new Date(Date.now());
             this.matchService.logMatchEvent(matchId, 'timer', 'resume', period, eventTimestamp,
                 user.id, 'isBreak', isBreak ? "true" : "false");
-            return await this.matchService.findMatchById(matchId);
+            return savedMatch;
         } else {
             return response.status(400).send({
                 name: 'search_error',
@@ -780,12 +788,16 @@ export class MatchController extends BaseController {
         @HeaderParam("authorization") user: User,
         @QueryParam('msFromStart') msFromStart: number,
         @QueryParam('startedMsFromStart') startedMsFromStart: number,
+        @QueryParam('isExtraTime') isExtraTime: boolean,
         @BodyParam("match", { required: true }) match: Match,
         @BodyParam("score", { required: true }) scores: MatchScores,
         @Res() response: Response
     ) {
         if (match) {
-            const result = await this.matchScorerService.findByMatchIdAndPeriod(scores.matchId, scores.period);
+            const result = await this.matchScorerService.findByMatchIdAndPeriod(
+                scores.matchId,
+                scores.period
+            );
             scores.id = result ? result.id : null;
             this.matchScorerService.createOrUpdate(scores);
 
@@ -935,7 +947,7 @@ export class MatchController extends BaseController {
                         message: `Match Id and team Id can not be null`
                     });
                 }
-                
+
                 await this.matchService.batchSaveLineups(lineups);
                 if (updateMatchEvents) {
                     let match = await this.matchService.findById(matchId);
@@ -1746,5 +1758,42 @@ export class MatchController extends BaseController {
                 message: `Missing parameters`
             });
         }
+    }
+
+    @Authorized()
+    @Post('/startExtraTime')
+    async startExtraTimeMatch(
+        @HeaderParam("authorization") user: User,
+        @QueryParam('matchId', { required: true }) matchId: number,
+        @QueryParam('msFromStart', { required: true }) msFromStart: number,
+        @QueryParam('period', { required: true }) period: number,
+        @QueryParam('isExtraExtra') isExtraExtra: boolean = false,
+        @Res() response: Response
+    ) {
+        let match = await this.matchService.findById(matchId);
+        if (match) {
+            let startExtraTime = msFromStart ? (match.startTime.getTime() + msFromStart) : Date.now();
+            if (isExtraExtra) {
+                match.extraExtraStartTime = new Date(startExtraTime);
+            } else {
+                match.extraStartTime = new Date(startExtraTime);
+            }
+            await this.matchService.createOrUpdate(match);
+        } else {
+            return response.status(400).send({
+                name: 'search_error',
+                message: `Match with id ${matchId} not found`
+            });
+        }
+        this.sendMatchEvent(match, false, user);
+        this.matchService.logLiteMatchEvent(
+            matchId,
+            'timer',
+            isExtraExtra ? 'extraStart' : 'extraExtraStart',
+            period,
+            isExtraExtra? match.extraExtraStartTime : match.extraStartTime,
+            user.id
+        );
+        return match;
     }
 }

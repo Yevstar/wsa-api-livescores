@@ -186,6 +186,14 @@ export class Match extends BaseEntity {
     @JoinColumn()
     matchPausedTimes: MatchPausedTime[];
 
+    @IsDate()
+    @Column()
+    extraStartTime: Date;
+
+    @IsDate()
+    @Column()
+    extraExtraStartTime: Date;
+
     @IsNumber()
     @Column()
     extraTimeDuration: number;

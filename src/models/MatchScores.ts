@@ -1,5 +1,5 @@
 import {BaseEntity, Column, Entity, PrimaryGeneratedColumn} from 'typeorm-plus';
-import {IsNumber} from "class-validator";
+import {IsNumber, IsBoolean} from "class-validator";
 
 @Entity('matchScores')
 export class MatchScores extends BaseEntity {
@@ -31,6 +31,3 @@ export class MatchScores extends BaseEntity {
     @Column({name: 'created_at'})
     createdAt: Date;
 }
-
-
-
