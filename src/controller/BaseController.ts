@@ -40,7 +40,7 @@ import TeamLadderService from '../services/TeamLadderService';
 import MatchSheetService from "../services/MatchSheetService";
 
 import {logger} from "../logger";
-import CommunicationTrackService from "src/services/CommunicationTrackService";
+import CommunicationTrackService from "../services/CommunicationTrackService";
 
 export class BaseController {
 
