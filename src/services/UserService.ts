@@ -14,6 +14,7 @@ import {LinkedEntities} from "../models/views/LinkedEntities";
 import {LinkedOrganisations} from "../models/views/LinkedOrganisations";
 import {Brackets} from "typeorm";
 import AppConstants from "../utils/AppConstants";
+import { CommunicationTrack } from "../models/CommunicationTrack";
 
 @Service()
 export default class UserService extends BaseService<User> {
@@ -184,6 +185,7 @@ export default class UserService extends BaseService<User> {
         toRoleId: number,
         receiverData: User,
         password: string
+
     ) {
         let html = ``;
         let subject = 'Invite Mail';
@@ -346,10 +348,41 @@ export default class UserService extends BaseService<User> {
             mailOptions.to = process.env.TEMP_DEV_EMAIL
         }
         logger.info(`UserService - sendMail : mailOptions ${mailOptions}`);
+        let cTrack = new CommunicationTrack();
+        try{
+            cTrack.id= 0;
+
+            cTrack.communicationType = 1;
+            cTrack.contactNumber = receiverData.mobileNumber
+            cTrack.entityId = receiverData.id;
+            cTrack.deliveryChannelRefId = 1;
+            cTrack.emailId = receiverData.email;
+            cTrack.userId = receiverData.id;
+            cTrack.subject = mailOptions.subject;
+            //cTrack.content = mailOptions.html;
+            cTrack.createdBy = userData.id;
         await transporter.sendMail(mailOptions, (err, info) => {
-            logger.info(`UserService - sendMail : ${err}, ${info}`);
+            if (err) {
+                logger.error(`UserService - sendMail : ${err}`);
+                cTrack.statusRefId = 2;
+                html = html.replace(password,"******")
+                cTrack.content = html;
+                this.insertIntoCommunicationTrack(cTrack);
+                // Here i commented the below code as the caller is not handling the promise reject
+                // return Promise.reject(err);
+            } else {
+                logger.info('UserService - sendMail : Mail sent successfully');
+                html = html.replace(password,"******")
+                cTrack.content = html;
+                this.insertIntoCommunicationTrack(cTrack);
+            }
+            transporter.close();
             return Promise.resolve();
         });
+        
+    }catch(error){
+        cTrack.statusRefId = 2;
+    }
     }
 
     public async getUsersByOptions(entityTypeId: number, entityIdList: number[], userName: string,
@@ -428,5 +461,10 @@ export default class UserService extends BaseService<User> {
         return await this.entityManager.query(
             'select * from wsa_users.user user where user.id = ?;'
             , [id]);
+    }
+
+    public async insertIntoCommunicationTrack(ctrack : CommunicationTrack ) {
+        await this.entityManager.query(`insert into wsa_common.communicationTrack(id, emailId,content,subject,contactNumber,userId,entityId,communicationType,statusRefId,deliveryChannelRefId,createdBy) values(?,?,?,?,?,?,?,?,?,?,?))`,
+        [ctrack.id,ctrack.emailId,ctrack.content,ctrack.subject,ctrack.contactNumber,ctrack.userId,ctrack.entityId,ctrack.communicationType,ctrack.statusRefId,ctrack.deliveryChannelRefId,ctrack.createdBy]);
     }
 }

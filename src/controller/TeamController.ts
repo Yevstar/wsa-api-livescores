@@ -37,6 +37,8 @@ import {
     trim
 } from "../utils/Utils"
 import { logger } from "../logger";
+import { CommunicationTrack } from '../models/CommunicationTrack';
+
 
 @JsonController('/teams')
 export class TeamController extends BaseController {
@@ -229,7 +231,7 @@ export class TeamController extends BaseController {
                 }
             }
         }
-
+        
         this.teamService.sendInviteMail(user, player, isInviteToParents, existingUser);
         player.inviteStatus = "INVITED";
         this.notifyInvite(player.email);
@@ -383,6 +385,7 @@ export class TeamController extends BaseController {
 
         if (savedUser) {
             let competitionData = await this.competitionService.findById(savedTeam.competitionId)
+            
             this.userService.sentMail(user, [savedTeam], competitionData, Role.MANAGER, savedUser, password);
         }
 

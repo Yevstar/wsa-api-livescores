@@ -40,6 +40,7 @@ import TeamLadderService from '../services/TeamLadderService';
 import MatchSheetService from "../services/MatchSheetService";
 
 import {logger} from "../logger";
+import CommunicationTrackService from "src/services/CommunicationTrackService";
 
 export class BaseController {
 
@@ -135,6 +136,9 @@ export class BaseController {
 
     @Inject()
     protected teamLadderService: TeamLadderService;
+
+    @Inject()
+    protected communicationTrackService: CommunicationTrackService;
 
     protected async updateFirebaseData(user: User, password: string) {
         user.password = password;

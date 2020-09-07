@@ -29,6 +29,7 @@ import { LinkedCompetitionOrganisation } from '../models/LinkedCompetitionOrgani
 import { md5, isArrayPopulated } from '../utils/Utils';
 import { isNotNullAndUndefined } from '../utils/Utils';
 import { BaseController } from './BaseController';
+import { CommunicationTrack } from '../models/CommunicationTrack';
 
 @JsonController('/users')
 export class UserController extends BaseController {
@@ -925,7 +926,7 @@ export class UserController extends BaseController {
                     if (isArrayPopulated(teamDetailArray)) {
                         this.userService.sentMail(user, teamDetailArray, competitionData, roleId, savedUserDetail, password);
                     } else if (isArrayPopulated(orgDetailArray)) {
-                        this.userService.sentMail(user, orgDetailArray, competitionData, roleId, savedUserDetail, password);
+                        this.userService.sentMail(user, orgDetailArray, competitionData, roleId, savedUserDetail, password);                       
                     }
                 }
                 if (teamChatRequired) {
