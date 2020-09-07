@@ -37,6 +37,8 @@ import {
     trim
 } from "../utils/Utils"
 import { logger } from "../logger";
+import { CommunicationTrack } from '../models/CommunicationTrack';
+
 
 @JsonController('/teams')
 export class TeamController extends BaseController {
@@ -229,8 +231,8 @@ export class TeamController extends BaseController {
                 }
             }
         }
-
-        this.teamService.sendInviteMail(user, player, isInviteToParents, existingUser);
+        let cTrack = new CommunicationTrack();
+        this.teamService.sendInviteMail(user, player, isInviteToParents, existingUser,cTrack);
         player.inviteStatus = "INVITED";
         this.notifyInvite(player.email);
         await this.playerService.createOrUpdate(player);
@@ -383,7 +385,9 @@ export class TeamController extends BaseController {
 
         if (savedUser) {
             let competitionData = await this.competitionService.findById(savedTeam.competitionId)
-            this.userService.sentMail(user, [savedTeam], competitionData, Role.MANAGER, savedUser, password);
+            let cTrack = new CommunicationTrack();
+            this.userService.sentMail(user, [savedTeam], competitionData, Role.MANAGER, savedUser, password,cTrack);
+            await this.communicationTrackService.createOrUpdate(cTrack);
         }
 
         if (file && isPhoto(file.mimetype)) {

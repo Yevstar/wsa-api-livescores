@@ -29,6 +29,7 @@ import { LinkedCompetitionOrganisation } from '../models/LinkedCompetitionOrgani
 import { md5, isArrayPopulated } from '../utils/Utils';
 import { isNotNullAndUndefined } from '../utils/Utils';
 import { BaseController } from './BaseController';
+import { CommunicationTrack } from '../models/CommunicationTrack';
 
 @JsonController('/users')
 export class UserController extends BaseController {
@@ -544,8 +545,10 @@ export class UserController extends BaseController {
 
                     if (this.canSendMailForAdd(type, userData)) {
                         let competitionData = await this.competitionService.findById(competitionId)
+                        let cTrack = new CommunicationTrack();
                         let roleId = await this.getRoleIdForType(type);
-                        this.userService.sentMail(user, userData.teams ? userData.teams : null, competitionData, roleId, saved, password);
+                        this.userService.sentMail(user, userData.teams ? userData.teams : null, competitionData, roleId, saved, password,cTrack);
+                        await this.communicationTrackService.createOrUpdate(cTrack);
                     }
                     userData.id = saved.id;
                 }
@@ -923,9 +926,13 @@ export class UserController extends BaseController {
                 if (savedUserDetail && newUser) {
                     let competitionData = await this.competitionService.findById(competitionId);
                     if (isArrayPopulated(teamDetailArray)) {
-                        this.userService.sentMail(user, teamDetailArray, competitionData, roleId, savedUserDetail, password);
+                        let cTrack = new CommunicationTrack();
+                        this.userService.sentMail(user, teamDetailArray, competitionData, roleId, savedUserDetail, password,cTrack);
+                        await this.communicationTrackService.createOrUpdate(cTrack);
                     } else if (isArrayPopulated(orgDetailArray)) {
-                        this.userService.sentMail(user, orgDetailArray, competitionData, roleId, savedUserDetail, password);
+                        let cTrack = new CommunicationTrack();
+                        this.userService.sentMail(user, orgDetailArray, competitionData, roleId, savedUserDetail, password,cTrack);
+                        await this.communicationTrackService.createOrUpdate(cTrack);
                     }
                 }
                 if (teamChatRequired) {

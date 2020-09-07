@@ -258,7 +258,7 @@ export default class TeamService extends BaseService<Team> {
         );
     }
 
-    public async sendInviteMail(user: User, player: Player, isInviteToParents: boolean, isExistingUser: boolean) {
+    public async sendInviteMail(user: User, player: Player, isInviteToParents: boolean, isExistingUser: boolean,cTrack) {
         var deepLinkPlayer = new DeepLinkPlayer();
         deepLinkPlayer.id = player.id;
         deepLinkPlayer.userId = player.userId;
@@ -341,6 +341,19 @@ export default class TeamService extends BaseService<Team> {
             mailOptions.html = ' To: '+mailOptions.to + '<br><br>'+ mailOptions.html
             mailOptions.to = process.env.TEMP_DEV_EMAIL
         }
+        try{
+            cTrack.id= 0;
+
+            cTrack.communicationType = 1;
+            cTrack.contactNumber = player.phoneNumber
+            cTrack.entityId = player.id;
+            cTrack.deliveryChannelRefId = 1;
+            cTrack.emailId = player.email;
+            cTrack.userId = player.userId;
+            cTrack.subject = mailOptions.subject;
+            
+            cTrack.createdBy = user.id;
+
         await transporter.sendMail(mailOptions, (err, info) => {
             if (err) {
                 logger.error(`TeamService - sendInviteMail : ${err}`);
@@ -352,6 +365,11 @@ export default class TeamService extends BaseService<Team> {
             transporter.close();
             return Promise.resolve();
         });
+        cTrack.content = mailOptions.html;
+
+        }catch(error){
+            cTrack.statusRefId = 2;
+         }
     }
 
     public async softDelete(id: number, userId: number): Promise<DeleteResult> {
