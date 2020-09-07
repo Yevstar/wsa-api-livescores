@@ -545,10 +545,8 @@ export class UserController extends BaseController {
 
                     if (this.canSendMailForAdd(type, userData)) {
                         let competitionData = await this.competitionService.findById(competitionId)
-                        let cTrack = new CommunicationTrack();
                         let roleId = await this.getRoleIdForType(type);
-                        this.userService.sentMail(user, userData.teams ? userData.teams : null, competitionData, roleId, saved, password,cTrack);
-                        await this.communicationTrackService.createOrUpdate(cTrack);
+                        this.userService.sentMail(user, userData.teams ? userData.teams : null, competitionData, roleId, saved, password);
                     }
                     userData.id = saved.id;
                 }
@@ -926,13 +924,9 @@ export class UserController extends BaseController {
                 if (savedUserDetail && newUser) {
                     let competitionData = await this.competitionService.findById(competitionId);
                     if (isArrayPopulated(teamDetailArray)) {
-                        let cTrack = new CommunicationTrack();
-                        this.userService.sentMail(user, teamDetailArray, competitionData, roleId, savedUserDetail, password,cTrack);
-                        await this.communicationTrackService.createOrUpdate(cTrack);
+                        this.userService.sentMail(user, teamDetailArray, competitionData, roleId, savedUserDetail, password);
                     } else if (isArrayPopulated(orgDetailArray)) {
-                        let cTrack = new CommunicationTrack();
-                        this.userService.sentMail(user, orgDetailArray, competitionData, roleId, savedUserDetail, password,cTrack);
-                        await this.communicationTrackService.createOrUpdate(cTrack);
+                        this.userService.sentMail(user, orgDetailArray, competitionData, roleId, savedUserDetail, password);                       
                     }
                 }
                 if (teamChatRequired) {

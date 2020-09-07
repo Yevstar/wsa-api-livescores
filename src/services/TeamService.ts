@@ -10,6 +10,7 @@ import {isArrayPopulated, isNotNullAndUndefined, paginationData} from "../utils/
 import nodeMailer from "nodemailer";
 import {DeleteResult} from "typeorm-plus";
 import AppConstants from "../utils/AppConstants";
+import { CommunicationTrack } from "../models/CommunicationTrack";
 
 "use strict";
 
@@ -258,7 +259,7 @@ export default class TeamService extends BaseService<Team> {
         );
     }
 
-    public async sendInviteMail(user: User, player: Player, isInviteToParents: boolean, isExistingUser: boolean,cTrack) {
+    public async sendInviteMail(user: User, player: Player, isInviteToParents: boolean, isExistingUser: boolean) {
         var deepLinkPlayer = new DeepLinkPlayer();
         deepLinkPlayer.id = player.id;
         deepLinkPlayer.userId = player.userId;
@@ -341,6 +342,7 @@ export default class TeamService extends BaseService<Team> {
             mailOptions.html = ' To: '+mailOptions.to + '<br><br>'+ mailOptions.html
             mailOptions.to = process.env.TEMP_DEV_EMAIL
         }
+        let cTrack = new CommunicationTrack();
         try{
             cTrack.id= 0;
 
@@ -351,24 +353,27 @@ export default class TeamService extends BaseService<Team> {
             cTrack.emailId = player.email;
             cTrack.userId = player.userId;
             cTrack.subject = mailOptions.subject;
-            
+            cTrack.content = mailOptions.html;
             cTrack.createdBy = user.id;
 
         await transporter.sendMail(mailOptions, (err, info) => {
             if (err) {
                 logger.error(`TeamService - sendInviteMail : ${err}`);
+                cTrack.statusRefId = 2;
+                this.insertIntoCommunicationTrack(cTrack);
                 // Here i commented the below code as the caller is not handling the promise reject
                 // return Promise.reject(err);
             } else {
                 logger.info('TeamService - sendInviteMail : Mail sent successfully');
+                this.insertIntoCommunicationTrack(cTrack);
             }
             transporter.close();
             return Promise.resolve();
         });
-        cTrack.content = mailOptions.html;
+        
 
         }catch(error){
-            cTrack.statusRefId = 2;
+            
          }
     }
 
@@ -423,5 +428,10 @@ export default class TeamService extends BaseService<Team> {
             .andWhere('team.deleted_at is null')
             .andWhere('division.deleted_at is null')
             .getCount();
+    }
+
+    public async insertIntoCommunicationTrack(ctrack : CommunicationTrack ) {
+        await this.entityManager.query(`insert into wsa_common.communicationTrack(id, emailId,content,subject,contactNumber,userId,entityId,communicationType,statusRefId,deliveryChannelRefId,createdBy) values(?,?,?,?,?,?,?,?,?,?,?))`,
+        [ctrack.id,ctrack.emailId,ctrack.content,ctrack.subject,ctrack.contactNumber,ctrack.userId,ctrack.entityId,ctrack.communicationType,ctrack.statusRefId,ctrack.deliveryChannelRefId,ctrack.createdBy]);
     }
 }

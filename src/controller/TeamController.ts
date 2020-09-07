@@ -231,8 +231,8 @@ export class TeamController extends BaseController {
                 }
             }
         }
-        let cTrack = new CommunicationTrack();
-        this.teamService.sendInviteMail(user, player, isInviteToParents, existingUser,cTrack);
+        
+        this.teamService.sendInviteMail(user, player, isInviteToParents, existingUser);
         player.inviteStatus = "INVITED";
         this.notifyInvite(player.email);
         await this.playerService.createOrUpdate(player);
@@ -385,9 +385,8 @@ export class TeamController extends BaseController {
 
         if (savedUser) {
             let competitionData = await this.competitionService.findById(savedTeam.competitionId)
-            let cTrack = new CommunicationTrack();
-            this.userService.sentMail(user, [savedTeam], competitionData, Role.MANAGER, savedUser, password,cTrack);
-            await this.communicationTrackService.createOrUpdate(cTrack);
+            
+            this.userService.sentMail(user, [savedTeam], competitionData, Role.MANAGER, savedUser, password);
         }
 
         if (file && isPhoto(file.mimetype)) {
