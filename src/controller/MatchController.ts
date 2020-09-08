@@ -1200,7 +1200,7 @@ export class MatchController extends BaseController {
         @QueryParam('resultTypeId') resultTypeId: number,
         @Res() response: Response
     ) {
-        let matchesData = await this.matchService.findByDate(new Date(startTimeStart), new Date(startTimeEnd))
+        let matchesData = await this.matchService.findByDate(new Date(startTimeStart), new Date(startTimeEnd), competitionId);
 
         let arr = [];
         let endTime = Date.now();

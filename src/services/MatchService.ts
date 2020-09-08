@@ -343,10 +343,11 @@ export default class MatchService extends BaseService<Match> {
         return this.entityManager.insert(MatchEvent, me);
     }
 
-    public async findByDate(from: Date, to: Date): Promise<Match[]> {
+    public async findByDate(from: Date, to: Date, competitionId: number = undefined): Promise<Match[]> {
         let query = this.entityManager.createQueryBuilder(Match, 'match');
         if (from) query.andWhere("match.startTime >= :from", { from });
         if (to) query.andWhere("match.startTime <= :to", { to });
+        if (competitionId) query.andWhere("match.competitionId = :competitionId", { competitionId });
         return query.getMany()
     }
 

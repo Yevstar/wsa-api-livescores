@@ -574,11 +574,12 @@ export class CompetitionController extends BaseController {
     @Get('/list')
     async getCompetitions(
         @QueryParam('organisationId') organisationId: number,
+        @QueryParam('yearRefId') yearRefId: number,
         @QueryParam('organisationUniqueKey') organisationUniqueKey: string) {
         if (organisationUniqueKey !== null && organisationUniqueKey !== undefined) {
             organisationId = await this.organisationService.findByUniqueKey(organisationUniqueKey);
         }
-        return await this.competitionService.getCompetitionsPublic(organisationId);
+        return await this.competitionService.getCompetitionsPublic(organisationId, yearRefId);
     }
 
     @Authorized()
