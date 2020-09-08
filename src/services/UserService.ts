@@ -464,7 +464,7 @@ export default class UserService extends BaseService<User> {
     }
 
     public async insertIntoCommunicationTrack(ctrack : CommunicationTrack ) {
-        await this.entityManager.query(`insert into wsa_common.communicationTrack(id, emailId,content,subject,contactNumber,userId,entityId,communicationType,statusRefId,deliveryChannelRefId,createdBy) values(?,?,?,?,?,?,?,?,?,?,?))`,
+        await this.entityManager.query(`insert into wsa_common.communicationTrack(id, emailId,content,subject,contactNumber,userId,entityId,communicationType,statusRefId,deliveryChannelRefId,createdBy) values(?,?,?,?,?,?,?,?,?,?,?)`,
         [ctrack.id,ctrack.emailId,ctrack.content,ctrack.subject,ctrack.contactNumber,ctrack.userId,ctrack.entityId,ctrack.communicationType,ctrack.statusRefId,ctrack.deliveryChannelRefId,ctrack.createdBy]);
     }
 }
