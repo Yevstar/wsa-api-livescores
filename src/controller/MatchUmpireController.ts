@@ -339,12 +339,13 @@ export class MatchUmpireController extends BaseController {
         @Res() response: Response
     ) {
         const requiredField = [
+            'competitionId',
             'Match Id',
         ];
 
         const bufferString = file.buffer.toString('utf8');
         const data = arrangeCSVToJson(bufferString);
-        const competition = await this.competitionService.findById(competitionId);
+        // const competition = await this.competitionService.findById(competitionId);
 
         // File columns:
         // Match ID	Start Time	Home	Away	Round
@@ -357,22 +358,29 @@ export class MatchUmpireController extends BaseController {
         });
 
         const queryArr = [];
-        if (isNotNullAndUndefined(competition)) {
-            for (let i of importArr) {
+        const competitions = {};
+        for (let i of importArr) {
+            let competition;
+            if (isNotNullAndUndefined(competitions[i['competitionId']])) {
+                competition = await this.competitionService.findById(i['competitionId']);
+            } else {
+                competition = competitions[i['competitionId']];
+            }
+
+            if (isNotNullAndUndefined(competition)) {
+                competitions[i['competitionId']] = competition;
+
                 if (i['Umpire 1 Id']) {
                     const matchUmpire = new MatchUmpire();
                     matchUmpire.matchId = i['Match ID'];
                     matchUmpire.userId = i['Umpire 1 Id'];
                     await this.umpireAddRoster(matchUmpire, false);
                     queryArr.push(matchUmpire);
-                } else if (i['Umpire 1 First Name'] && i['Umpire 1 Surname']) {
+                } else if (i['Umpire 1']) {
                     if (i['Umpire 1 Organisation']) {
                         let org = await this.organisationService.findByNameAndCompetitionId(i['Umpire 1 Organisation'], competitionId);
                         if (isArrayPopulated(org)) {
-                            let firstName = i['Umpire 1 First Name'];
-                            let surname = i['Umpire 1 Surname'];
-                            let fullName = `${firstName} ${surname}`;
-
+                            let fullName = i['Umpire 1'];
                             let userResults = await this.userService.getUserIdBySecurity(EntityType.ORGANISATION, [org[0].id], fullName, { roleId: Role.UMPIRE });
                             if (isArrayPopulated(userResults)) {
                                 const matchUmpire = new MatchUmpire();
@@ -391,14 +399,11 @@ export class MatchUmpireController extends BaseController {
                     matchUmpire.userId = i['Umpire 2 Id'];
                     await this.umpireAddRoster(matchUmpire, false);
                     queryArr.push(matchUmpire);
-                } else if (i['Umpire 2 First Name'] && i['Umpire 2 Surname']) {
+                } else if (i['Umpire 2']) {
                     if (i['Umpire 2 Organisation']) {
                         let org = await this.organisationService.findByNameAndCompetitionId(i['Umpire 2 Organisation'], competitionId);
                         if (isArrayPopulated(org)) {
-                            let firstName = i['Umpire 2 First Name'];
-                            let surname = i['Umpire 2 Surname'];
-                            let fullName = `${firstName} ${surname}`;
-
+                            let fullName = i['Umpire 2'];
                             let userResults = await this.userService.getUserIdBySecurity(EntityType.ORGANISATION, [org[0].id], fullName, { roleId: Role.UMPIRE });
                             if (isArrayPopulated(userResults)) {
                                 const matchUmpire = new MatchUmpire();
@@ -410,9 +415,21 @@ export class MatchUmpireController extends BaseController {
                         }
                     }
                 }
+            } else {
+                competitions[i['competitionId']] = false;
+
+                if (message[`Line ${i.line}`]) {
+                    if (!message[`Line ${i.line}`].message) {
+                        message[`Line ${i.line}`].message = [];
+                    }
+                } else {
+                    message[`Line ${i.line}`] = {
+                        message: [],
+                    };
+                }
+
+                message[`Line ${i.line}`].message.push('Could not find a matching competition.');
             }
-        } else {
-            message[''].message.push('Could not find a matching competition.');
         }
 
         const totalCount = data.length;

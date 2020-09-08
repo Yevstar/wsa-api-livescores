@@ -770,6 +770,13 @@ export class UserController extends BaseController {
         let teamRequired = roleId == Role.COACH || roleId == Role.MANAGER;
         let teamChatRequired = roleId == Role.COACH || roleId == Role.MANAGER;
 
+        if (teamRequired) {
+            requiredField.push('Team');
+            requiredField.push('Division Grade');
+        } else if (roleId == Role.UMPIRE) {
+            requiredField.push('Organisation');
+        }
+
         const { result: importArr, message } = validationForField({
             filedList: requiredField,
             values: data,
@@ -826,40 +833,28 @@ export class UserController extends BaseController {
             if (!infoMisMatchArray.includes(i['Email'].toLowerCase())) {
                 let error;
                 if (teamRequired) {
-                    if (i['Team']) {
-                        if (i['Division Grade']) {
-                            const teamArray = i['Team'].split(',');
-                            for (let t of teamArray) {
-                                const teamDetail: Team[] = await this.teamService.findByNameAndCompetition(t, competitionId, i['Division Grade']);
-                                if (isArrayPopulated(teamDetail)) {
-                                    teamDetailArray.push(...teamDetail);
-                                }
-                            }
-
-                            if (teamDetailArray.length === 0) {
-                                error = `No matching team found for ${i['Team']}.`;
-                            }
-                        } else {
-                            error = `The field 'Division Grade' is required.`;
+                    const teamArray = i['Team'].split(',');
+                    for (let t of teamArray) {
+                        const teamDetail: Team[] = await this.teamService.findByNameAndCompetition(t, competitionId, i['Division Grade']);
+                        if (isArrayPopulated(teamDetail)) {
+                            teamDetailArray.push(...teamDetail);
                         }
-                    } else {
-                        error = `The field 'Team' is required.`;
+                    }
+
+                    if (teamDetailArray.length === 0) {
+                        error = `No matching team found for ${i['Team']}.`;
                     }
                 } else {
-                    if (i['Organisation']) {
-                        const orgArray = i['Organisation'].split(',');
-                        for (let org of orgArray) {
-                            const orgDetail: LinkedCompetitionOrganisation[] = await this.organisationService.findByNameAndCompetitionId(org, competitionId);
-                            if (isArrayPopulated(orgDetail)) {
-                                orgDetailArray.push(...orgDetail);
-                            }
+                    const orgArray = i['Organisation'].split(',');
+                    for (let org of orgArray) {
+                        const orgDetail: LinkedCompetitionOrganisation[] = await this.organisationService.findByNameAndCompetitionId(org, competitionId);
+                        if (isArrayPopulated(orgDetail)) {
+                            orgDetailArray.push(...orgDetail);
                         }
+                    }
 
-                        if (orgDetailArray.length === 0) {
-                            error = `No matching organization found for ${i['Organisation']}.`;
-                        }
-                    } else {
-                        error = `The field 'Organisation' is required.`;
+                    if (orgDetailArray.length === 0) {
+                        error = `No matching organization found for ${i['Organisation']}.`;
                     }
                 }
 
@@ -934,6 +929,19 @@ export class UserController extends BaseController {
                 }
 
                 successCount += 1;
+            } else {
+                if (message[`Line ${i.line}`]) {
+                    if (!message[`Line ${i.line}`].message) {
+                        message[`Line ${i.line}`].message = [];
+                    }
+                } else {
+                    message[`Line ${i.line}`] = {
+                        ...i,
+                        message: [],
+                    };
+                }
+
+                message[`Line ${i.line}`].message.push(`Email "${i['Email'].toLowerCase()}" already exists with different details.`);
             }
         }
 

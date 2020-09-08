@@ -1431,31 +1431,29 @@ export class MatchController extends BaseController {
         let queryArr = [];
         for (let i of importArr) {
             if (i.Date) {
-                let timeZone = parseDateTimeZoneString(trim(i.Date), trim(i.Time), trim(i["Timezone GMT"]));
+                let timeZone = parseDateTimeZoneString(i.Date, i.Time, i["Timezone GMT"]);
                 let startTimeInUTC = new Date(timeZone);
-                let divisionData = await this.divisionService.findByName(trim(i["Division Grade"]), competitionId);
-                let team1Data = await this.teamService.findByNameAndCompetition(trim(i["Home Team"]), competitionId, divisionData && divisionData.length > 1 ? divisionData[0].name : undefined);
-                let team2Data = await this.teamService.findByNameAndCompetition(trim(i["Away Team"]), competitionId, divisionData && divisionData.length > 1 ? divisionData[0].name : undefined);
-                let venueData = await this.competitionVenueService.findByCourtName(trim(i["Venue"]), competitionId);
+                let divisionData = await this.divisionService.findByName(i["Division Grade"], competitionId);
+                let team1Data = await this.teamService.findByNameAndCompetition(i["Home Team"], competitionId, divisionData.length > 0 ? divisionData[0].name : undefined);
+                let team2Data = await this.teamService.findByNameAndCompetition(i["Away Team"], competitionId, divisionData.length > 0 ? divisionData[0].name : undefined);
+                let venueData = await this.competitionVenueService.findByCourtName(i["Venue"], competitionId);
                 let roundData;
-                if (divisionData && !!divisionData[0] && !!team1Data[0] && !!team2Data[0] && !!venueData[0]) {
-                    let rounds = await this.roundService.findByName(competitionId, trim(i["Round"]), divisionData[0].id);
+                if (!!divisionData[0] && !!team1Data[0] && !!team2Data[0] && !!venueData[0]) {
+                    let rounds = await this.roundService.findByName(competitionId, i["Round"], divisionData[0].id);
                     roundData = rounds[0];
 
                     if (!roundData) {
                         let round = new Round();
                         let value;
-                        if (trim(i["Round"]).indexOf(" ") > -1) {
-                            const roundSplitStr = trim(i["Round"]).split(" ");
-                            value = stringTONumber(roundSplitStr.length > 1 ? roundSplitStr[1] : roundSplitStr[0]);
+                        if (i["Round"].indexOf(" ") > -1) {
+                            const roundSplitStr = i["Round"].split(" ");
+                            value = stringTONumber(roundSplitStr[1]);
                         } else {
-                            value = stringTONumber(trim(i["Round"]));
+                            value = stringTONumber(i["Round"]);
                         }
                         round.competitionId = competitionId;
-                        if (divisionData && divisionData[0] != null) {
-                            round.divisionId = divisionData[0].id;
-                        }
-                        round.name = trim(i["Round"]);
+                        round.divisionId = divisionData[0].id;
+                        round.name = i["Round"];
                         round.sequence = value;
                         roundData = await this.roundService.createOrUpdate(round);
                     }
@@ -1464,20 +1462,17 @@ export class MatchController extends BaseController {
                     match.startTime = startTimeInUTC;
                     match.competitionId = competitionId;
                     match.type = i.Type;
-                    match.matchDuration = stringTONumber(trim(i["Match Duration"]));
-                    match.breakDuration = stringTONumber(trim(i["Break Duration"]));
-                    match.mainBreakDuration = stringTONumber(trim(i["Main Break Duration"]));
+                    match.matchDuration = stringTONumber(i["Match Duration"]);
+                    match.breakDuration = stringTONumber(i["Break Duration"]);
+                    match.mainBreakDuration = stringTONumber(i["Main Break Duration"]);
                     match.mnbMatchId = i.mnbMatchId;
                     match.roundId = roundData.id;
-                    if (venueData && venueData[0] != null) {
-                        match.venueCourtId = venueData[0].id;
-                    }
                     match.team1Score = 0;
                     match.team2Score = 0;
-
-                    if (divisionData.length > 0) match.divisionId = divisionData[0].id;
-                    if (team1Data.length > 0) match.team1Id = team1Data[0].id;
-                    if (team2Data.length > 0) match.team2Id = team2Data[0].id;
+                    match.divisionId = divisionData[0].id;
+                    match.team1Id = team1Data[0].id;
+                    match.team2Id = team2Data[0].id;
+                    match.venueCourtId = venueData[0].id;
 
                     queryArr.push(match);
                 } else {
