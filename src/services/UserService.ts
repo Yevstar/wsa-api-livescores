@@ -280,7 +280,7 @@ export default class UserService extends BaseService<User> {
                             </body>
                         </html>`
             }
-        } else if (toRoleId == Role.UMPIRE) {
+        } else if (toRoleId == Role.UMPIRE || toRoleId == Role.UMPIRE_COACH) {
             html = `<!DOCTYPE html >
                     <html>
                         <head>

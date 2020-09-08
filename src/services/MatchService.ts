@@ -69,10 +69,17 @@ export default class MatchService extends BaseService<Match> {
             .getMany();
     }
 
-    public async findMatchById(id: number): Promise<Match> {
+    public async findMatchById(id: number, includeRosters: boolean = false): Promise<Match> {
         let query = this.entityManager.createQueryBuilder(Match, 'match')
             .andWhere('match.id = :id', { id });
         this.addDefaultJoin(query);
+
+        if (includeRosters) {
+            query.leftJoinAndSelect('match.rosters', 'rosters')
+              .leftJoinAndSelect('rosters.user', 'user')
+              .leftJoinAndSelect('rosters.role', 'role');
+        }
+
         return query.getOne();
     }
 

@@ -40,13 +40,19 @@ import {RequestFilter} from "../models/RequestFilter";
 import {Roster} from "../models/security/Roster";
 import {Role} from "../models/security/Role";
 import {GamePosition} from "../models/GamePosition";
+import {StateTimezone} from "../models/StateTimezone";
+import {getMatchUmpireNotificationMessage} from "../utils/NotificationMessageUtils";
+import { Competition } from '../models/Competition';
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
     @Authorized()
     @Get('/id/:id')
-    async get(@Param("id") id: number) {
-        return this.matchService.findMatchById(id);
+    async get(
+        @Param("id") id: number,
+        @QueryParam('includeRosters') includeRosters: boolean = false
+    ) {
+        return this.matchService.findMatchById(id, includeRosters);
     }
 
     @Authorized()
@@ -318,7 +324,12 @@ export class MatchController extends BaseController {
         /// Getting all old scorer or umpire rosters
         let oldRosters = (await this.rosterService
             .findAllRostersByParam([match.id]))
-            .filter(roster => (roster.roleId == Role.SCORER || roster.roleId == Role.UMPIRE));
+            .filter(roster =>
+                (roster.roleId == Role.SCORER ||
+                  roster.roleId == Role.UMPIRE ||
+                  roster.roleId == Role.UMPIRE_RESERVE ||
+                  roster.roleId == Role.UMPIRE_COACH)
+            );
         if (isArrayPopulated(match.rosters)) {
             let newRosters = match.rosters;
             /// Deleting rosters which doesn't match with new one's provided
@@ -348,22 +359,13 @@ export class MatchController extends BaseController {
                     ++umpireSequence;
                 }
                 if (newRoster.roleId == Role.UMPIRE && competition.recordUmpireType == "USERS") {
-                    // add new umpire roster only if it doesn't match old role, user
-                    let matchedOldRosters = oldRosters.filter(
-                        roster =>
-                            (roster.roleId == Role.UMPIRE &&
-                                roster.userId &&
-                                roster.userId == newRoster.userId)
+                    this.addUmpireTypeRoster(
+                        match.id,
+                        Role.UMPIRE,
+                        oldRosters,
+                        newRoster,
+                        umpireSequence
                     );
-                    if (matchedOldRosters.length == 0 && newRoster.userId) {
-                        let mu = new MatchUmpire();
-                        mu.matchId = newRoster.matchId;
-                        mu.userId = newRoster.userId;
-                        mu.umpireName = '';
-
-                        this.umpireAddRoster(mu, false);
-                        this.createMatchUmpireFromRoster(newRoster, user.id, umpireSequence);
-                    }
                 } else if (newRoster.roleId == Role.SCORER) {
                     // add new umpire roster only if it doesn't match old role, user, team
                     let matchedOldRosters = oldRosters.filter(
@@ -373,9 +375,23 @@ export class MatchController extends BaseController {
                                 roster.userId == newRoster.userId &&
                                 roster.teamId == newRoster.teamId)
                     );
-                    if (matchedOldRosters.length == 0) {
+                    if (matchedOldRosters.length == 0 && newRoster.userId) {
                         this.addScorerRoster(newRoster, user);
                     }
+                } else if (newRoster.roleId == Role.UMPIRE_RESERVE) {
+                    this.addUmpireTypeRoster(
+                        match.id,
+                        Role.UMPIRE_RESERVE,
+                        oldRosters,
+                        newRoster
+                    );
+                } else if (newRoster.roleId == Role.UMPIRE_COACH) {
+                    this.addUmpireTypeRoster(
+                        match.id,
+                        Role.UMPIRE_COACH,
+                        oldRosters,
+                        newRoster
+                    );
                 }
             }
         } else if (oldRosters.length > 0) {
@@ -400,6 +416,37 @@ export class MatchController extends BaseController {
 
         this.sendMatchEvent(saved); // This is to send notification for devices
         return saved;
+    }
+
+    private async addUmpireTypeRoster(
+        matchId: number,
+        roleId: number,
+        oldRosters: Roster[],
+        newRoster: Roster,
+        umpireSequence: number = undefined
+    ) {
+      // add new umpire or umpire reserve or umpire coach only if it doesn't match old role, user
+      let matchedOldRosters = oldRosters.filter(
+          roster =>
+              (roster.roleId == roleId &&
+                  roster.userId &&
+                  roster.userId == newRoster.userId)
+      );
+      if (matchedOldRosters.length == 0 && newRoster.userId) {
+          let user = await this.userService.findById(newRoster.userId);
+          this.umpireAddRoster(
+              roleId,
+              matchId,
+              newRoster.userId,
+              `${user.firstName} ${user.lastName}`,
+              false
+          );
+
+          /// If umpire role then create match umpire
+          if (roleId == Role.UMPIRE && umpireSequence) {
+              this.createMatchUmpireFromRoster(newRoster, user.id, umpireSequence);
+          }
+      }
     }
 
     private async createUmpire(umpire: MatchUmpire, createdBy: number, existingUmpire: MatchUmpire = null) {
@@ -439,6 +486,22 @@ export class MatchController extends BaseController {
     private async deleteRoster(roster: Roster) {
         if (roster.roleId == Role.SCORER) {
             await this.removeScorerRoster(roster.matchId, roster);
+        } else if (roster.roleId == Role.UMPIRE_RESERVE) {
+            if (roster.userId) {
+                await this.umpireRemoveRoster(
+                    Role.UMPIRE_RESERVE,
+                    roster.userId,
+                    roster.matchId
+                );
+            }
+        } else if (roster.roleId == Role.UMPIRE_COACH) {
+            if (roster.userId) {
+                await this.umpireRemoveRoster(
+                    Role.UMPIRE_COACH,
+                    roster.userId,
+                    roster.matchId
+                );
+            }
         } else {
             if (roster.userId) {
                 /// For users umpire type need to delete matchUmpire data as well
@@ -447,10 +510,11 @@ export class MatchController extends BaseController {
                     roster.userId
                 );
 
-                let mu = new MatchUmpire();
-                mu.matchId = roster.matchId;
-                mu.userId = roster.userId;
-                await this.umpireRemoveRoster(mu);
+                await this.umpireRemoveRoster(
+                    Role.UMPIRE,
+                    roster.userId,
+                    roster.matchId
+                );
             }
         }
     }

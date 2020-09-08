@@ -480,10 +480,31 @@ export class UserController extends BaseController {
     async addUmpire(
         @HeaderParam("authorization") user: User,
         @QueryParam('competitionId', { required: true }) competitionId: number,
+        @QueryParam('isUmpire', { required: true }) isUmpire: boolean,
+        @QueryParam('isUmpireCoach', { required: true }) isUmpireCoach: boolean,
         @Body() userData: User,
         @Res() response: Response
     ) {
-        return await this.add(user, "UMPIRE", competitionId, userData, response);
+        if (isUmpire && isUmpireCoach) {
+          /// If the adding user is both then first create for umpire and
+          /// then add a additional URE for coach
+          const data = await this.add(user, "UMPIRE", competitionId, userData, response);
+          // existing user - delete existing team assignments
+          await this.deleteRolesNecessary("UMPIRE_COACH", userData, competitionId);
+          // Create necessary URE's and notify
+          await this.createUREAndNotify("UMPIRE_COACH", userData, competitionId, user.id);
+
+          return data;
+        } else if (isUmpire) {
+            return await this.add(user, "UMPIRE", competitionId, userData, response);
+        } else if (isUmpireCoach) {
+            return await this.add(user, "UMPIRE_COACH", competitionId, userData, response);
+        } else {
+          return response.status(400).send({
+              name: 'required_fields_error',
+              message: 'Provide all required fields data'
+          });
+        }
     }
 
     @Authorized()
@@ -501,7 +522,7 @@ export class UserController extends BaseController {
     @Post('/add')
     async add(
         @HeaderParam("authorization") user: User,
-        @QueryParam("type", { required: true }) type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER",
+        @QueryParam("type", { required: true }) type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH",
         @QueryParam("competitionId", { required: true }) competitionId: number,
         @Body() userData: User,
         @Res() response: Response
@@ -574,7 +595,7 @@ export class UserController extends BaseController {
     }
 
     private async canSendMailForAdd(
-        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER",
+        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH",
         user: User
     ) {
         switch (type) {
@@ -584,6 +605,7 @@ export class UserController extends BaseController {
             case 'COACH':
                 return isArrayPopulated(user.teams);
             case 'UMPIRE':
+            case 'UMPIRE_COACH':
                 return isArrayPopulated(user.affiliates);
             default:
                 return false;
@@ -591,7 +613,7 @@ export class UserController extends BaseController {
     }
 
     private async getRoleIdForType(
-        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER",
+        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH",
     ) {
         let roleId;
         switch (type) {
@@ -604,6 +626,9 @@ export class UserController extends BaseController {
             case 'UMPIRE':
                 roleId = Role.UMPIRE;
                 break;
+            case 'UMPIRE_COACH':
+                roleId = Role.UMPIRE_COACH;
+                break;
             default:
                 roleId = Role.MEMBER;
                 break;
@@ -612,7 +637,7 @@ export class UserController extends BaseController {
     }
 
     private async deleteRolesNecessary(
-        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER",
+        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH",
         user: User,
         competitionId: number
     ) {
@@ -629,6 +654,10 @@ export class UserController extends BaseController {
                 break;
             case 'UMPIRE':
                 roleToDelete = Role.UMPIRE;
+                entityType = EntityType.ORGANISATION;
+                break;
+            case 'UMPIRE_COACH':
+                roleToDelete = Role.UMPIRE_COACH;
                 entityType = EntityType.ORGANISATION;
                 break;
             default:
@@ -660,7 +689,7 @@ export class UserController extends BaseController {
     }
 
     private async createUREAndNotify(
-        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER",
+        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH",
         user: User,
         competitionId: number,
         createdBy: number
@@ -685,6 +714,11 @@ export class UserController extends BaseController {
             case 'UMPIRE':
                 loopData = user.affiliates;
                 roleId = Role.UMPIRE;
+                entityTypeId = EntityType.ORGANISATION;
+                break;
+            case 'UMPIRE_COACH':
+                loopData = user.affiliates;
+                roleId = Role.UMPIRE_COACH;
                 entityTypeId = EntityType.ORGANISATION;
                 break;
             default:
@@ -921,7 +955,7 @@ export class UserController extends BaseController {
                     if (isArrayPopulated(teamDetailArray)) {
                         this.userService.sentMail(user, teamDetailArray, competitionData, roleId, savedUserDetail, password);
                     } else if (isArrayPopulated(orgDetailArray)) {
-                        this.userService.sentMail(user, orgDetailArray, competitionData, roleId, savedUserDetail, password);                       
+                        this.userService.sentMail(user, orgDetailArray, competitionData, roleId, savedUserDetail, password);
                     }
                 }
                 if (teamChatRequired) {

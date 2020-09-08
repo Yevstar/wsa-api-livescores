@@ -16,6 +16,8 @@ export class Role extends BaseEntity {
     public static EVENT_INVITEE = 14;
     public static UMPIRE = 15;
     public static COACH = 17;
+    public static UMPIRE_RESERVE = 19;
+    public static UMPIRE_COACH = 20;
 
     @IsNumber()
     @PrimaryGeneratedColumn()

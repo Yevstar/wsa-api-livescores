@@ -190,7 +190,13 @@ export class MatchUmpireController extends BaseController {
 
     private async createUmpireRosters(umpire: MatchUmpire, rosterLocked: boolean) {
         if (umpire.umpireType == 'USERS' && umpire.userId) {
-            await this.umpireAddRoster(umpire, rosterLocked);
+            await this.umpireAddRoster(
+                Role.UMPIRE,
+                umpire.matchId,
+                umpire.userId,
+                umpire.umpireName,
+                rosterLocked
+            );
         }
     }
 
@@ -203,16 +209,36 @@ export class MatchUmpireController extends BaseController {
 
         if (oldUmpire.userId == null && newUmpire.umpireType == 'USERS') {
             // Creating new roster for umpire as new user assigned
-            this.umpireAddRoster(newUmpire, rosterLocked);
+            this.umpireAddRoster(
+                Role.UMPIRE,
+                newUmpire.matchId,
+                newUmpire.userId,
+                newUmpire.umpireName,
+                rosterLocked
+            );
         } else if (oldUmpire.userId && newUmpire.userId && oldUmpire.userId != newUmpire.userId) {
             // A umpire slot got updated to a new user
             // Removing old roster
-            this.umpireRemoveRoster(oldUmpire);
+            this.umpireRemoveRoster(
+                Role.UMPIRE,
+                oldUmpire.userId,
+                oldUmpire.matchId
+            );
             // Creating new roster
-            this.umpireAddRoster(newUmpire, rosterLocked);
+            this.umpireAddRoster(
+                Role.UMPIRE,
+                newUmpire.matchId,
+                newUmpire.userId,
+                newUmpire.umpireName,
+                rosterLocked
+            );
         } else if (oldUmpire.userId && newUmpire.userId == null) {
             // A umpire got removed
-            this.umpireRemoveRoster(oldUmpire);
+            this.umpireRemoveRoster(
+                Role.UMPIRE,
+                oldUmpire.userId,
+                oldUmpire.matchId
+            );
         }
     }
 
@@ -374,7 +400,13 @@ export class MatchUmpireController extends BaseController {
                     const matchUmpire = new MatchUmpire();
                     matchUmpire.matchId = i['Match ID'];
                     matchUmpire.userId = i['Umpire 1 Id'];
-                    await this.umpireAddRoster(matchUmpire, false);
+                    await this.umpireAddRoster(
+                        Role.UMPIRE,
+                        matchUmpire.matchId,
+                        matchUmpire.userId,
+                        matchUmpire.umpireName,
+                        false
+                    );
                     queryArr.push(matchUmpire);
                 } else if (i['Umpire 1']) {
                     if (i['Umpire 1 Organisation']) {
@@ -386,7 +418,13 @@ export class MatchUmpireController extends BaseController {
                                 const matchUmpire = new MatchUmpire();
                                 matchUmpire.matchId = i['Match ID'];
                                 matchUmpire.userId = userResults[0].id;
-                                await this.umpireAddRoster(matchUmpire, false);
+                                await this.umpireAddRoster(
+                                    Role.UMPIRE,
+                                    matchUmpire.matchId,
+                                    matchUmpire.userId,
+                                    matchUmpire.umpireName,
+                                    false
+                                );
                                 queryArr.push(matchUmpire);
                             }
                         }
@@ -397,7 +435,13 @@ export class MatchUmpireController extends BaseController {
                     const matchUmpire = new MatchUmpire();
                     matchUmpire.matchId = i['Match ID'];
                     matchUmpire.userId = i['Umpire 2 Id'];
-                    await this.umpireAddRoster(matchUmpire, false);
+                    await this.umpireAddRoster(
+                        Role.UMPIRE,
+                        matchUmpire.matchId,
+                        matchUmpire.userId,
+                        matchUmpire.umpireName,
+                        false
+                    );
                     queryArr.push(matchUmpire);
                 } else if (i['Umpire 2']) {
                     if (i['Umpire 2 Organisation']) {
@@ -409,7 +453,13 @@ export class MatchUmpireController extends BaseController {
                                 const matchUmpire = new MatchUmpire();
                                 matchUmpire.matchId = i['Match ID'];
                                 matchUmpire.userId = userResults[0].id;
-                                await this.umpireAddRoster(matchUmpire, false);
+                                await this.umpireAddRoster(
+                                    Role.UMPIRE,
+                                    matchUmpire.matchId,
+                                    matchUmpire.userId,
+                                    matchUmpire.umpireName,
+                                    false
+                                );
                                 queryArr.push(matchUmpire);
                             }
                         }
