@@ -48,11 +48,8 @@ import { Competition } from '../models/Competition';
 export class MatchController extends BaseController {
     @Authorized()
     @Get('/id/:id')
-    async get(
-        @Param("id") id: number,
-        @QueryParam('includeRosters') includeRosters: boolean = false
-    ) {
-        return this.matchService.findMatchById(id, includeRosters);
+    async get(@Param("id") id: number) {
+        return this.matchService.findMatchById(id);
     }
 
     @Authorized()
