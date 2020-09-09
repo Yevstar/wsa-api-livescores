@@ -573,7 +573,7 @@ export class TeamController extends BaseController {
                 e['Logo'] = e['logoUrl']
                 e['Team Name'] = e['name']
                 e['Team Alias Name'] = e['alias'];
-                e['Affiliate'] = e['organisation']['name']
+                e['Affiliate'] = e['competitionOrganisation']['name']
                 e['Division'] = e['division']['name']
                 e['#Players'] = e['playersCount']
                 const managerName = [];

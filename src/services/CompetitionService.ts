@@ -16,6 +16,7 @@ export default class CompetitionService extends BaseService<Competition> {
         let query = this.entityManager.createQueryBuilder(Competition, 'competition')
             .leftJoinAndSelect('competition.competitionOrganisation', 'competitionOrganisation')
             .leftJoinAndSelect('competition.competitionVenues', 'competitionVenue')
+            .leftJoinAndSelect('competition.competitionInvitees', 'competitionInvitee')
             .leftJoinAndSelect('competitionVenue.venue', 'venue');
 
         query.andWhere("competition.id = :id", { id });

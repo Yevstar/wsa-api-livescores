@@ -197,7 +197,7 @@ export default class RosterService extends BaseService<Roster> {
             [competitionId, roleId, requestFilter.paging.limit, requestFilter.paging.offset, requestFilter.search, sortBy, sortOrder]
         );
         if (result != null) {
-            let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
+            let totalCount = result[0].length;
             let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);
             responseObject["users"] = result[0];
             return responseObject;

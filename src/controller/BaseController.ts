@@ -42,6 +42,7 @@ import {getMatchUmpireNotificationMessage} from "../utils/NotificationMessageUti
 import {logger} from "../logger";
 import CommunicationTrackService from "../services/CommunicationTrackService";
 import {Role} from "../models/security/Role";
+import CompetitionInviteesService from "../services/CompetitionInviteesService";
 
 export class BaseController {
 
@@ -140,6 +141,9 @@ export class BaseController {
 
     @Inject()
     protected communicationTrackService: CommunicationTrackService;
+
+    @Inject()
+    protected competitionInviteesService: CompetitionInviteesService;
 
     protected async updateFirebaseData(user: User, password: string) {
         user.password = password;
