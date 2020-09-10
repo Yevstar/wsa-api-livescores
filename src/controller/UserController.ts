@@ -17,7 +17,7 @@ import axios from 'axios';
 import { decode as atob } from 'base-64';
 
 import { logger } from '../logger';
-import { authToken, isNullOrEmpty, validationForField, arrangeCSVToJson, trim} from '../utils/Utils';
+import {authToken, isNullOrEmpty, validationForField, arrangeCSVToJson, trim, formatPhoneNumber} from '../utils/Utils';
 import { LoginError } from '../exceptions/LoginError';
 import { User } from '../models/User';
 import { UserDevice } from '../models/UserDevice';
@@ -829,15 +829,15 @@ export class UserController extends BaseController {
             if (foundUser) {
                 newUser = false;
                 if (
-                    foundUser.firstName == trim(i['First Name']) &&
-                    foundUser.lastName == trim(i['Last Name']) &&
-                    foundUser.mobileNumber == trim(i['Contact No'])
+                    foundUser.firstName == i['First Name'] &&
+                    foundUser.lastName == i['Last Name'] &&
+                    foundUser.mobileNumber == i['Contact No']
                 ) {
                     userDetails.id = foundUser.id;
                     userDetails.email = foundUser.email;
                     userDetails.firstName = foundUser.firstName;
                     userDetails.lastName = foundUser.lastName;
-                    userDetails.mobileNumber = foundUser.mobileNumber;
+                    userDetails.mobileNumber = foundUser.mobileNumber ? formatPhoneNumber(foundUser.mobileNumber) : null;
 
                     savedUserDetail = await this.userService.createOrUpdate(userDetails);
                     await this.updateFirebaseData(userDetails, userDetails.password);
@@ -856,7 +856,7 @@ export class UserController extends BaseController {
                 userDetails.password = md5(password);
                 userDetails.firstName = i['First Name'];
                 userDetails.lastName = i['Last Name'];
-                userDetails.mobileNumber = i['Contact No'];
+                userDetails.mobileNumber = i['Contact No'] ? formatPhoneNumber(i['Contact No']) : null;
 
                 savedUserDetail = await this.userService.createOrUpdate(userDetails);
                 await this.updateFirebaseData(userDetails, userDetails.password);
@@ -955,7 +955,7 @@ export class UserController extends BaseController {
                     if (isArrayPopulated(teamDetailArray)) {
                         this.userService.sentMail(user, teamDetailArray, competitionData, roleId, savedUserDetail, password);
                     } else if (isArrayPopulated(orgDetailArray)) {
-                        this.userService.sentMail(user, orgDetailArray, competitionData, roleId, savedUserDetail, password);
+                        this.userService.sentMail(user, orgDetailArray, competitionData, roleId, savedUserDetail, password);                       
                     }
                 }
                 if (teamChatRequired) {
