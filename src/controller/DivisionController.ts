@@ -100,14 +100,12 @@ export class DivisionController extends BaseController {
         });
 
         for (let i of importArr) {
-            if (i.Name) {
-                let divisionObj = new Division();
-                divisionObj.name = i.Name;
-                divisionObj.divisionName = i.Division;
-                divisionObj.grade = i.Grade;
-                divisionObj.competitionId = competitionId;
-                queryArr.push(divisionObj);
-            }
+            let divisionObj = new Division();
+            divisionObj.name = i.Name;
+            divisionObj.divisionName = i.Division;
+            divisionObj.grade = i.Grade;
+            divisionObj.competitionId = competitionId;
+            queryArr.push(divisionObj);
         }
 
         const totalCount = data.length;

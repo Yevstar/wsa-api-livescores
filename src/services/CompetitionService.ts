@@ -16,6 +16,7 @@ export default class CompetitionService extends BaseService<Competition> {
         let query = this.entityManager.createQueryBuilder(Competition, 'competition')
             .leftJoinAndSelect('competition.competitionOrganisation', 'competitionOrganisation')
             .leftJoinAndSelect('competition.competitionVenues', 'competitionVenue')
+            .leftJoinAndSelect('competition.competitionInvitees', 'competitionInvitee')
             .leftJoinAndSelect('competitionVenue.venue', 'venue');
 
         query.andWhere("competition.id = :id", { id });
@@ -82,15 +83,25 @@ export default class CompetitionService extends BaseService<Competition> {
         return query.getOne();
     }
 
-    public async getCompetitionsPublic(organisationId: number): Promise<any> {
-        return await this.entityManager.query(
+    public async getCompetitionsPublic(organisationId: number, yearRefId: number): Promise<any> {
+        const conditionalArray = [];
+        conditionalArray.push(organisationId,organisationId);
+        let query = 
             'select distinct c.*\n' +
             'from competition c, competitionOrganisation co\n' +
             'where \n' +
             '   ((c.id = co.competitionId and c.organisationId = ?)\n' +
             ' or (c.id = co.competitionId and co.orgId = ?))\n' +
-            ' and c.deleted_at is null \n' +
-            'order by c.name ASC', [organisationId, organisationId]);
+            ' and c.deleted_at is null \n' ;
+
+            if(yearRefId) {
+                query += ' and c.yearRefId = ? ' 
+                conditionalArray.push(yearRefId)
+            }
+
+            query += 'order by c.name ASC';
+
+            return await this.entityManager.query(query, conditionalArray);
     }
 
     public async getAllAffiliatedOrganisations(organisationId: number, invitorId: number, organisationTypeRefId: number): Promise<any> {

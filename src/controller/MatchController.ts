@@ -40,6 +40,9 @@ import {RequestFilter} from "../models/RequestFilter";
 import {Roster} from "../models/security/Roster";
 import {Role} from "../models/security/Role";
 import {GamePosition} from "../models/GamePosition";
+import {StateTimezone} from "../models/StateTimezone";
+import {getMatchUmpireNotificationMessage} from "../utils/NotificationMessageUtils";
+import { Competition } from '../models/Competition';
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
@@ -318,7 +321,12 @@ export class MatchController extends BaseController {
         /// Getting all old scorer or umpire rosters
         let oldRosters = (await this.rosterService
             .findAllRostersByParam([match.id]))
-            .filter(roster => (roster.roleId == Role.SCORER || roster.roleId == Role.UMPIRE));
+            .filter(roster =>
+                (roster.roleId == Role.SCORER ||
+                  roster.roleId == Role.UMPIRE ||
+                  roster.roleId == Role.UMPIRE_RESERVE ||
+                  roster.roleId == Role.UMPIRE_COACH)
+            );
         if (isArrayPopulated(match.rosters)) {
             let newRosters = match.rosters;
             /// Deleting rosters which doesn't match with new one's provided
@@ -348,22 +356,13 @@ export class MatchController extends BaseController {
                     ++umpireSequence;
                 }
                 if (newRoster.roleId == Role.UMPIRE && competition.recordUmpireType == "USERS") {
-                    // add new umpire roster only if it doesn't match old role, user
-                    let matchedOldRosters = oldRosters.filter(
-                        roster =>
-                            (roster.roleId == Role.UMPIRE &&
-                                roster.userId &&
-                                roster.userId == newRoster.userId)
+                    this.addUmpireTypeRoster(
+                        match.id,
+                        Role.UMPIRE,
+                        oldRosters,
+                        newRoster,
+                        umpireSequence
                     );
-                    if (matchedOldRosters.length == 0 && newRoster.userId) {
-                        let mu = new MatchUmpire();
-                        mu.matchId = newRoster.matchId;
-                        mu.userId = newRoster.userId;
-                        mu.umpireName = '';
-
-                        this.umpireAddRoster(mu, false);
-                        this.createMatchUmpireFromRoster(newRoster, user.id, umpireSequence);
-                    }
                 } else if (newRoster.roleId == Role.SCORER) {
                     // add new umpire roster only if it doesn't match old role, user, team
                     let matchedOldRosters = oldRosters.filter(
@@ -373,9 +372,23 @@ export class MatchController extends BaseController {
                                 roster.userId == newRoster.userId &&
                                 roster.teamId == newRoster.teamId)
                     );
-                    if (matchedOldRosters.length == 0) {
+                    if (matchedOldRosters.length == 0 && newRoster.userId) {
                         this.addScorerRoster(newRoster, user);
                     }
+                } else if (newRoster.roleId == Role.UMPIRE_RESERVE) {
+                    this.addUmpireTypeRoster(
+                        match.id,
+                        Role.UMPIRE_RESERVE,
+                        oldRosters,
+                        newRoster
+                    );
+                } else if (newRoster.roleId == Role.UMPIRE_COACH) {
+                    this.addUmpireTypeRoster(
+                        match.id,
+                        Role.UMPIRE_COACH,
+                        oldRosters,
+                        newRoster
+                    );
                 }
             }
         } else if (oldRosters.length > 0) {
@@ -400,6 +413,37 @@ export class MatchController extends BaseController {
 
         this.sendMatchEvent(saved); // This is to send notification for devices
         return saved;
+    }
+
+    private async addUmpireTypeRoster(
+        matchId: number,
+        roleId: number,
+        oldRosters: Roster[],
+        newRoster: Roster,
+        umpireSequence: number = undefined
+    ) {
+      // add new umpire or umpire reserve or umpire coach only if it doesn't match old role, user
+      let matchedOldRosters = oldRosters.filter(
+          roster =>
+              (roster.roleId == roleId &&
+                  roster.userId &&
+                  roster.userId == newRoster.userId)
+      );
+      if (matchedOldRosters.length == 0 && newRoster.userId) {
+          let user = await this.userService.findById(newRoster.userId);
+          this.umpireAddRoster(
+              roleId,
+              matchId,
+              newRoster.userId,
+              `${user.firstName} ${user.lastName}`,
+              false
+          );
+
+          /// If umpire role then create match umpire
+          if (roleId == Role.UMPIRE && umpireSequence) {
+              this.createMatchUmpireFromRoster(newRoster, user.id, umpireSequence);
+          }
+      }
     }
 
     private async createUmpire(umpire: MatchUmpire, createdBy: number, existingUmpire: MatchUmpire = null) {
@@ -439,6 +483,22 @@ export class MatchController extends BaseController {
     private async deleteRoster(roster: Roster) {
         if (roster.roleId == Role.SCORER) {
             await this.removeScorerRoster(roster.matchId, roster);
+        } else if (roster.roleId == Role.UMPIRE_RESERVE) {
+            if (roster.userId) {
+                await this.umpireRemoveRoster(
+                    Role.UMPIRE_RESERVE,
+                    roster.userId,
+                    roster.matchId
+                );
+            }
+        } else if (roster.roleId == Role.UMPIRE_COACH) {
+            if (roster.userId) {
+                await this.umpireRemoveRoster(
+                    Role.UMPIRE_COACH,
+                    roster.userId,
+                    roster.matchId
+                );
+            }
         } else {
             if (roster.userId) {
                 /// For users umpire type need to delete matchUmpire data as well
@@ -447,10 +507,11 @@ export class MatchController extends BaseController {
                     roster.userId
                 );
 
-                let mu = new MatchUmpire();
-                mu.matchId = roster.matchId;
-                mu.userId = roster.userId;
-                await this.umpireRemoveRoster(mu);
+                await this.umpireRemoveRoster(
+                    Role.UMPIRE,
+                    roster.userId,
+                    roster.matchId
+                );
             }
         }
     }
@@ -1200,7 +1261,7 @@ export class MatchController extends BaseController {
         @QueryParam('resultTypeId') resultTypeId: number,
         @Res() response: Response
     ) {
-        let matchesData = await this.matchService.findByDate(new Date(startTimeStart), new Date(startTimeEnd))
+        let matchesData = await this.matchService.findByDate(new Date(startTimeStart), new Date(startTimeEnd), competitionId);
 
         let arr = [];
         let endTime = Date.now();
@@ -1291,7 +1352,7 @@ export class MatchController extends BaseController {
         @QueryParam('newDate') newDate: Date,
         @Res() response: Response
     ) {
-        let matchesData = await this.matchService.findByDate(new Date(startTimeStart), new Date(startTimeEnd))
+        let matchesData = await this.matchService.findByDate(new Date(startTimeStart), new Date(startTimeEnd), competitionId)
         let arr = [];
         if (newDate) {
             for (let match of matchesData) {
@@ -1431,31 +1492,29 @@ export class MatchController extends BaseController {
         let queryArr = [];
         for (let i of importArr) {
             if (i.Date) {
-                let timeZone = parseDateTimeZoneString(trim(i.Date), trim(i.Time), trim(i["Timezone GMT"]));
+                let timeZone = parseDateTimeZoneString(i.Date, i.Time, i["Timezone GMT"]);
                 let startTimeInUTC = new Date(timeZone);
-                let divisionData = await this.divisionService.findByName(trim(i["Division Grade"]), competitionId);
-                let team1Data = await this.teamService.findByNameAndCompetition(trim(i["Home Team"]), competitionId, divisionData && divisionData.length > 1 ? divisionData[0].name : undefined);
-                let team2Data = await this.teamService.findByNameAndCompetition(trim(i["Away Team"]), competitionId, divisionData && divisionData.length > 1 ? divisionData[0].name : undefined);
-                let venueData = await this.competitionVenueService.findByCourtName(trim(i["Venue"]), competitionId);
+                let divisionData = await this.divisionService.findByName(i["Division Grade"], competitionId);
+                let team1Data = await this.teamService.findByNameAndCompetition(i["Home Team"], competitionId, divisionData.length > 0 ? divisionData[0].name : undefined);
+                let team2Data = await this.teamService.findByNameAndCompetition(i["Away Team"], competitionId, divisionData.length > 0 ? divisionData[0].name : undefined);
+                let venueData = await this.competitionVenueService.findByCourtName(i["Venue"], competitionId);
                 let roundData;
-                if (divisionData && !!divisionData[0] && !!team1Data[0] && !!team2Data[0] && !!venueData[0]) {
-                    let rounds = await this.roundService.findByName(competitionId, trim(i["Round"]), divisionData[0].id);
+                if (!!divisionData[0] && !!team1Data[0] && !!team2Data[0] && !!venueData[0]) {
+                    let rounds = await this.roundService.findByName(competitionId, i["Round"], divisionData[0].id);
                     roundData = rounds[0];
 
                     if (!roundData) {
                         let round = new Round();
                         let value;
-                        if (trim(i["Round"]).indexOf(" ") > -1) {
-                            const roundSplitStr = trim(i["Round"]).split(" ");
-                            value = stringTONumber(roundSplitStr.length > 1 ? roundSplitStr[1] : roundSplitStr[0]);
+                        if (i["Round"].indexOf(" ") > -1) {
+                            const roundSplitStr = i["Round"].split(" ");
+                            value = stringTONumber(roundSplitStr[1]);
                         } else {
-                            value = stringTONumber(trim(i["Round"]));
+                            value = stringTONumber(i["Round"]);
                         }
                         round.competitionId = competitionId;
-                        if (divisionData && divisionData[0] != null) {
-                            round.divisionId = divisionData[0].id;
-                        }
-                        round.name = trim(i["Round"]);
+                        round.divisionId = divisionData[0].id;
+                        round.name = i["Round"];
                         round.sequence = value;
                         roundData = await this.roundService.createOrUpdate(round);
                     }
@@ -1464,20 +1523,17 @@ export class MatchController extends BaseController {
                     match.startTime = startTimeInUTC;
                     match.competitionId = competitionId;
                     match.type = i.Type;
-                    match.matchDuration = stringTONumber(trim(i["Match Duration"]));
-                    match.breakDuration = stringTONumber(trim(i["Break Duration"]));
-                    match.mainBreakDuration = stringTONumber(trim(i["Main Break Duration"]));
+                    match.matchDuration = stringTONumber(i["Match Duration"]);
+                    match.breakDuration = stringTONumber(i["Break Duration"]);
+                    match.mainBreakDuration = stringTONumber(i["Main Break Duration"]);
                     match.mnbMatchId = i.mnbMatchId;
                     match.roundId = roundData.id;
-                    if (venueData && venueData[0] != null) {
-                        match.venueCourtId = venueData[0].id;
-                    }
                     match.team1Score = 0;
                     match.team2Score = 0;
-
-                    if (divisionData.length > 0) match.divisionId = divisionData[0].id;
-                    if (team1Data.length > 0) match.team1Id = team1Data[0].id;
-                    if (team2Data.length > 0) match.team2Id = team2Data[0].id;
+                    match.divisionId = divisionData[0].id;
+                    match.team1Id = team1Data[0].id;
+                    match.team2Id = team2Data[0].id;
+                    match.venueCourtId = venueData[0].id;
 
                     queryArr.push(match);
                 } else {

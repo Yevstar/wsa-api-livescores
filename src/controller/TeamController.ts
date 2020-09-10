@@ -442,37 +442,11 @@ export class TeamController extends BaseController {
 
         if (isNotNullAndUndefined(competition)) {
             for (let i of importArr) {
-                if (i["Team Name"]) {
-                    let teamData = await this.teamService.findByNameAndCompetition(trim(i["Team Name"]), competitionId, trim(i["Division Grade"]));
-                    if (!isArrayPopulated(teamData)) {
-                        let divisionData = await this.divisionService.findByName(trim(i["Division Grade"]), competitionId);
-                        let organisationData = await this.organisationService.findByNameAndCompetitionId(trim(i.Organisation), competitionId);
-                        if (!isArrayPopulated(divisionData) || !isArrayPopulated(organisationData)) {
-                            if (message[`Line ${i.line}`]) {
-                                if (!message[`Line ${i.line}`].message) {
-                                    message[`Line ${i.line}`].message = [];
-                                }
-                            } else {
-                                message[`Line ${i.line}`] = {
-                                    ...i,
-                                    message: [],
-                                };
-                            }
-                            if (!isArrayPopulated(divisionData)) {
-                                message[`Line ${i.line}`].message.push(`Can't find a matching Division Grade "${i['Division Grade']}" related to current competition: ${competition.longName}.`);
-                            }
-                            if (!isArrayPopulated(organisationData)) {
-                                message[`Line ${i.line}`].message.push(`Can't find a matching organisation "${i.Organisation}" related to current competition: ${competition.longName}.`);
-                            }
-                        } else {
-                            let team = new Team();
-                            team.name = i["Team Name"];
-                            team.competitionId = competitionId;
-                            if (divisionData.length > 0) team.divisionId = divisionData[0].id;
-                            if (organisationData.length > 0) team.organisationId = organisationData[0].id;
-                            queryArr.push(team);
-                        }
-                    } else {
+                let teamData = await this.teamService.findByNameAndCompetition(i["Team Name"], competitionId, i["Division Grade"]);
+                if (!isArrayPopulated(teamData)) {
+                    let divisionData = await this.divisionService.findByName(i["Division Grade"], competitionId);
+                    let organisationData = await this.organisationService.findByNameAndCompetitionId(i.Organisation, competitionId);
+                    if (!isArrayPopulated(divisionData) || !isArrayPopulated(organisationData)) {
                         if (message[`Line ${i.line}`]) {
                             if (!message[`Line ${i.line}`].message) {
                                 message[`Line ${i.line}`].message = [];
@@ -483,8 +457,32 @@ export class TeamController extends BaseController {
                                 message: [],
                             };
                         }
-                        message[`Line ${i.line}`].message.push(`The team "${i["Team Name"]}" is already registered.`);
+                        if (!isArrayPopulated(divisionData)) {
+                            message[`Line ${i.line}`].message.push(`Can't find a matching Division Grade "${i['Division Grade']}" related to current competition: ${competition.longName}.`);
+                        }
+                        if (!isArrayPopulated(organisationData)) {
+                            message[`Line ${i.line}`].message.push(`Can't find a matching organisation "${i.Organisation}" related to current competition: ${competition.longName}.`);
+                        }
+                    } else {
+                        let team = new Team();
+                        team.name = i["Team Name"];
+                        team.competitionId = competitionId;
+                        team.divisionId = divisionData[0].id;
+                        team.organisationId = organisationData[0].id;
+                        queryArr.push(team);
                     }
+                } else {
+                    if (message[`Line ${i.line}`]) {
+                        if (!message[`Line ${i.line}`].message) {
+                            message[`Line ${i.line}`].message = [];
+                        }
+                    } else {
+                        message[`Line ${i.line}`] = {
+                            ...i,
+                            message: [],
+                        };
+                    }
+                    message[`Line ${i.line}`].message.push(`The team "${i["Team Name"]}" is already registered.`);
                 }
             }
 
@@ -575,7 +573,7 @@ export class TeamController extends BaseController {
                 e['Logo'] = e['logoUrl']
                 e['Team Name'] = e['name']
                 e['Team Alias Name'] = e['alias'];
-                e['Affiliate'] = e['organisation']['name']
+                e['Affiliate'] = e['competitionOrganisation']['name']
                 e['Division'] = e['division']['name']
                 e['#Players'] = e['playersCount']
                 const managerName = [];

@@ -38,9 +38,11 @@ import {convertMatchStartTimeByTimezone} from "../utils/TimeFormatterUtils";
 import {isNullOrEmpty} from "../utils/Utils";
 import TeamLadderService from '../services/TeamLadderService';
 import MatchSheetService from "../services/MatchSheetService";
-
+import {getMatchUmpireNotificationMessage} from "../utils/NotificationMessageUtils";
 import {logger} from "../logger";
 import CommunicationTrackService from "../services/CommunicationTrackService";
+import {Role} from "../models/security/Role";
+import CompetitionInviteesService from "../services/CompetitionInviteesService";
 
 export class BaseController {
 
@@ -139,6 +141,9 @@ export class BaseController {
 
     @Inject()
     protected communicationTrackService: CommunicationTrackService;
+
+    @Inject()
+    protected competitionInviteesService: CompetitionInviteesService;
 
     protected async updateFirebaseData(user: User, password: string) {
         user.password = password;
@@ -316,15 +321,26 @@ export class BaseController {
           }
     }
 
-    public async umpireAddRoster(matchUmpire: MatchUmpire, rosterLocked: boolean) {
-      let umpireRole = await this.userService.getRole("umpire");
-      let user = await this.userService.findById(matchUmpire.userId);
-      let match = await this.matchService.findMatchById(matchUmpire.matchId);
+    public async umpireAddRoster(
+        roleId: number,
+        matchId: number,
+        userId: number,
+        userName: String,
+        rosterLocked: boolean
+    ) {
+      if (roleId != Role.UMPIRE &&
+          roleId != Role.UMPIRE_RESERVE &&
+          roleId != Role.UMPIRE_COACH) {
+            console.log(roleId);
+            throw 'Got wrong roleId for umpire add roster';
+      }
+
+      let match = await this.matchService.findMatchById(matchId);
 
       let umpireRoster = new Roster();
-      umpireRoster.roleId = umpireRole;
-      umpireRoster.matchId = matchUmpire.matchId;
-      umpireRoster.userId = matchUmpire.userId;
+      umpireRoster.roleId = roleId;
+      umpireRoster.matchId = matchId;
+      umpireRoster.userId = userId;
       if ((rosterLocked != null || rosterLocked != undefined) && rosterLocked) {
           umpireRoster.locked = rosterLocked;
           umpireRoster.status = "YES";
@@ -335,27 +351,16 @@ export class BaseController {
         if (tokens && tokens.length > 0) {
           try {
             if (match.competition && match.competition.location && match.competition.location.id) {
-              let constants = require('../constants/Constants');
               let stateTimezone: StateTimezone = await this.matchService.getMatchTimezone(match.competition.locationId);
-              let matchTime = convertMatchStartTimeByTimezone(
-                  match.startTime,
-                  stateTimezone != null ? stateTimezone.timezone : null,
-                  `${constants.DATE_FORMATTER_KEY} at ${constants.TIME_FORMATTER_KEY}`
+              let messageBody: String = getMatchUmpireNotificationMessage(
+                  match,
+                  stateTimezone,
+                  rosterLocked
               );
 
-              let messageBody = '';
-              if (rosterLocked) {
-                messageBody = `${match.competition.name} has sent you a ` +
-                        `new Umpiring Duty for ${matchTime}.`;
-              } else {
-                messageBody = `${match.competition.name} has sent you a ` +
-                        `new Umpiring Duty for ${matchTime}. ` +
-                        `Please log into your Netball Live Scores ` +
-                        `App to accept/decline.`;
-              }
               this.firebaseService.sendMessageChunked({
                   tokens: tokens,
-                  title: `Hi ${matchUmpire.umpireName}`,
+                  title: `Hi ${userName}`,
                   body: messageBody,
                   data: {
                       type: 'add_umpire_match',
@@ -371,13 +376,22 @@ export class BaseController {
       }
     }
 
-    public async umpireRemoveRoster(matchUmpire: MatchUmpire) {
-      let umpireRole = await this.userService.getRole("umpire");
-      let roster = await this.rosterService.findByParams(umpireRole.id, matchUmpire.userId, matchUmpire.matchId);
+    public async umpireRemoveRoster(
+      roleId: number,
+      userId: number,
+      matchId: number
+    ) {
+      if (roleId != Role.UMPIRE &&
+          roleId != Role.UMPIRE_RESERVE &&
+          roleId != Role.UMPIRE_COACH) {
+            throw 'Got wrong roleId for umpire remove roster';
+      }
+
+      let roster = await this.rosterService.findByParams(roleId, userId, matchId);
       if (roster) {
           let result = await this.rosterService.delete(roster);
           if (result) {
-              let tokens = (await this.deviceService.getUserDevices(matchUmpire.userId)).map(device => device.deviceId);
+              let tokens = (await this.deviceService.getUserDevices(userId)).map(device => device.deviceId);
               if (tokens && tokens.length > 0) {
                   this.firebaseService.sendMessageChunked({
                       tokens: tokens,

@@ -77,9 +77,14 @@ export default class RosterService extends BaseService<Roster> {
     }
 
     // keeping the query as light as possible but more fields can be added if needed - used for umpire roster list
-    public async findUserRostersByCompetition(competitionId: number, roleId: number, status: string,
-        requestFilter: RequestFilter, sortBy: string = undefined, sortOrder: "ASC" | "DESC" = undefined): Promise<any> {
-
+    public async findUserRostersByCompetition(
+        competitionId: number,
+        roleIds: number[],
+        status: string,
+        requestFilter: RequestFilter,
+        sortBy: string = undefined,
+        sortOrder: "ASC" | "DESC" = undefined
+    ): Promise<any> {
         let query = this.entityManager.createQueryBuilder(Roster, 'roster')
             .innerJoinAndSelect('roster.match', 'match')
             .innerJoinAndSelect('roster.user', 'user')
@@ -87,10 +92,10 @@ export default class RosterService extends BaseService<Roster> {
             .leftJoinAndSelect('user.userRoleEntities', 'userRoleEntity')
             .leftJoinAndSelect('userRoleEntity.competitionOrganisation', 'competitionOrganisation')
             .andWhere('match.competitionId = :competitionId', {competitionId})
-            .andWhere('roster.roleId = :roleId', {roleId})
+            .andWhere('roster.roleId in (:roleIds)', {roleIds})
             .andWhere('match.deleted_at is null')
             .andWhere('userRoleEntity.entityTypeId = 2')
-            .andWhere('userRoleEntity.roleId = 15');
+            .andWhere('userRoleEntity.roleId in (:roleIds)', {roleIds});
 
             if (status) {
                 if (status == Roster.STATUS_NONE) {
@@ -192,7 +197,7 @@ export default class RosterService extends BaseService<Roster> {
             [competitionId, roleId, requestFilter.paging.limit, requestFilter.paging.offset, requestFilter.search, sortBy, sortOrder]
         );
         if (result != null) {
-            let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
+            let totalCount = result[0].length;
             let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);
             responseObject["users"] = result[0];
             return responseObject;

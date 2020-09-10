@@ -3,6 +3,7 @@ import {Location} from "./Location";
 import {CompetitionVenue} from "./CompetitionVenue";
 import {LinkedCompetitionOrganisation} from "./LinkedCompetitionOrganisation";
 import {IsBoolean, IsNumber, IsString, ValidateNested} from "class-validator";
+import { CompetitionInvitees } from "./CompetitionInvitees";
 
 @Entity()
 export class Competition extends BaseEntity {
@@ -12,6 +13,7 @@ export class Competition extends BaseEntity {
     public static DIRECT_INVITE: number = 5;
     public static ANY_ORGANISATION_ASSOCIATION: number = 7;
     public static ANY_ORGANISATION_CLUB: number = 8;
+    public static NOT_APPLICABLE: number = 6;
 
     @IsNumber()
     @PrimaryGeneratedColumn()
@@ -170,4 +172,10 @@ export class Competition extends BaseEntity {
     @IsNumber()
     @Column()
     yearRefId: number;
+
+    @ValidateNested()
+    @OneToMany(type => CompetitionInvitees, competitionInvitee => competitionInvitee.competition)
+    @JoinColumn()
+    competitionInvitees: CompetitionInvitees[];
+
 }

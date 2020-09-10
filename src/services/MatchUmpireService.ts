@@ -7,6 +7,7 @@ import {UserRoleEntity} from "../models/security/UserRoleEntity";
 import {DeleteResult} from "typeorm-plus";
 import {RequestFilter} from "../models/RequestFilter";
 import {stringTONumber, paginationData, isNotNullAndUndefined, isArrayPopulated} from "../utils/Utils";
+import {Role} from '../models/security/Role';
 
 @Service()
 export default class MatchUmpireService extends BaseService<MatchUmpire> {
@@ -47,8 +48,17 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
             .andWhere("matchId = :matchId", {matchId}).execute();
     }
 
-    public async findByRosterAndCompetition(organisationId: number, competitionId: number, matchId: number, divisionId: number,
-        venueId: number, roundIds: number[], requestFilter: RequestFilter, sortBy: string = undefined, sortOrder: "ASC" | "DESC" = undefined): Promise<any> {
+    public async findByRosterAndCompetition(
+        organisationId: number,
+        competitionId: number,
+        matchId: number,
+        divisionId: number,
+        venueId: number,
+        roundIds: number[],
+        requestFilter: RequestFilter,
+        sortBy: string = undefined,
+        sortOrder: "ASC" | "DESC" = undefined
+    ): Promise<any> {
 
         let limit = 50000;
         let offset = 0;
@@ -61,8 +71,21 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
         }
 
         let roundString = roundIds ? roundIds.join(',') : '-1';
-        let result = await this.entityManager.query("call wsa.usp_get_umpires(?,?,?,?,?,?,?,?, ?,?)",
-            [organisationId, competitionId, matchId, divisionId, venueId, roundString, limit, offset, sortBy, sortOrder]);
+        let result = await this.entityManager.query("call wsa.usp_get_umpires(?,?,?,?,?,?,?,?,?,?,?,?)",
+            [
+                organisationId,
+                competitionId,
+                matchId,
+                divisionId,
+                venueId,
+                roundString,
+                limit,
+                offset,
+                sortBy,
+                sortOrder,
+                Role.UMPIRE_RESERVE,
+                Role.UMPIRE_COACH
+            ]);
 
         if (result != null) {
             let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;

@@ -190,7 +190,13 @@ export class MatchUmpireController extends BaseController {
 
     private async createUmpireRosters(umpire: MatchUmpire, rosterLocked: boolean) {
         if (umpire.umpireType == 'USERS' && umpire.userId) {
-            await this.umpireAddRoster(umpire, rosterLocked);
+            await this.umpireAddRoster(
+                Role.UMPIRE,
+                umpire.matchId,
+                umpire.userId,
+                umpire.umpireName,
+                rosterLocked
+            );
         }
     }
 
@@ -203,16 +209,36 @@ export class MatchUmpireController extends BaseController {
 
         if (oldUmpire.userId == null && newUmpire.umpireType == 'USERS') {
             // Creating new roster for umpire as new user assigned
-            this.umpireAddRoster(newUmpire, rosterLocked);
+            this.umpireAddRoster(
+                Role.UMPIRE,
+                newUmpire.matchId,
+                newUmpire.userId,
+                newUmpire.umpireName,
+                rosterLocked
+            );
         } else if (oldUmpire.userId && newUmpire.userId && oldUmpire.userId != newUmpire.userId) {
             // A umpire slot got updated to a new user
             // Removing old roster
-            this.umpireRemoveRoster(oldUmpire);
+            this.umpireRemoveRoster(
+                Role.UMPIRE,
+                oldUmpire.userId,
+                oldUmpire.matchId
+            );
             // Creating new roster
-            this.umpireAddRoster(newUmpire, rosterLocked);
+            this.umpireAddRoster(
+                Role.UMPIRE,
+                newUmpire.matchId,
+                newUmpire.userId,
+                newUmpire.umpireName,
+                rosterLocked
+            );
         } else if (oldUmpire.userId && newUmpire.userId == null) {
             // A umpire got removed
-            this.umpireRemoveRoster(oldUmpire);
+            this.umpireRemoveRoster(
+                Role.UMPIRE,
+                oldUmpire.userId,
+                oldUmpire.matchId
+            );
         }
     }
 
@@ -339,12 +365,13 @@ export class MatchUmpireController extends BaseController {
         @Res() response: Response
     ) {
         const requiredField = [
+            'competitionId',
             'Match Id',
         ];
 
         const bufferString = file.buffer.toString('utf8');
         const data = arrangeCSVToJson(bufferString);
-        const competition = await this.competitionService.findById(competitionId);
+        // const competition = await this.competitionService.findById(competitionId);
 
         // File columns:
         // Match ID	Start Time	Home	Away	Round
@@ -357,28 +384,47 @@ export class MatchUmpireController extends BaseController {
         });
 
         const queryArr = [];
-        if (isNotNullAndUndefined(competition)) {
-            for (let i of importArr) {
+        const competitions = {};
+        for (let i of importArr) {
+            let competition;
+            if (isNotNullAndUndefined(competitions[i['competitionId']])) {
+                competition = await this.competitionService.findById(i['competitionId']);
+            } else {
+                competition = competitions[i['competitionId']];
+            }
+
+            if (isNotNullAndUndefined(competition)) {
+                competitions[i['competitionId']] = competition;
+
                 if (i['Umpire 1 Id']) {
                     const matchUmpire = new MatchUmpire();
                     matchUmpire.matchId = i['Match ID'];
                     matchUmpire.userId = i['Umpire 1 Id'];
-                    await this.umpireAddRoster(matchUmpire, false);
+                    await this.umpireAddRoster(
+                        Role.UMPIRE,
+                        matchUmpire.matchId,
+                        matchUmpire.userId,
+                        matchUmpire.umpireName,
+                        false
+                    );
                     queryArr.push(matchUmpire);
-                } else if (i['Umpire 1 First Name'] && i['Umpire 1 Surname']) {
+                } else if (i['Umpire 1']) {
                     if (i['Umpire 1 Organisation']) {
                         let org = await this.organisationService.findByNameAndCompetitionId(i['Umpire 1 Organisation'], competitionId);
                         if (isArrayPopulated(org)) {
-                            let firstName = i['Umpire 1 First Name'];
-                            let surname = i['Umpire 1 Surname'];
-                            let fullName = `${firstName} ${surname}`;
-
+                            let fullName = i['Umpire 1'];
                             let userResults = await this.userService.getUserIdBySecurity(EntityType.ORGANISATION, [org[0].id], fullName, { roleId: Role.UMPIRE });
                             if (isArrayPopulated(userResults)) {
                                 const matchUmpire = new MatchUmpire();
                                 matchUmpire.matchId = i['Match ID'];
                                 matchUmpire.userId = userResults[0].id;
-                                await this.umpireAddRoster(matchUmpire, false);
+                                await this.umpireAddRoster(
+                                    Role.UMPIRE,
+                                    matchUmpire.matchId,
+                                    matchUmpire.userId,
+                                    matchUmpire.umpireName,
+                                    false
+                                );
                                 queryArr.push(matchUmpire);
                             }
                         }
@@ -389,30 +435,51 @@ export class MatchUmpireController extends BaseController {
                     const matchUmpire = new MatchUmpire();
                     matchUmpire.matchId = i['Match ID'];
                     matchUmpire.userId = i['Umpire 2 Id'];
-                    await this.umpireAddRoster(matchUmpire, false);
+                    await this.umpireAddRoster(
+                        Role.UMPIRE,
+                        matchUmpire.matchId,
+                        matchUmpire.userId,
+                        matchUmpire.umpireName,
+                        false
+                    );
                     queryArr.push(matchUmpire);
-                } else if (i['Umpire 2 First Name'] && i['Umpire 2 Surname']) {
+                } else if (i['Umpire 2']) {
                     if (i['Umpire 2 Organisation']) {
                         let org = await this.organisationService.findByNameAndCompetitionId(i['Umpire 2 Organisation'], competitionId);
                         if (isArrayPopulated(org)) {
-                            let firstName = i['Umpire 2 First Name'];
-                            let surname = i['Umpire 2 Surname'];
-                            let fullName = `${firstName} ${surname}`;
-
+                            let fullName = i['Umpire 2'];
                             let userResults = await this.userService.getUserIdBySecurity(EntityType.ORGANISATION, [org[0].id], fullName, { roleId: Role.UMPIRE });
                             if (isArrayPopulated(userResults)) {
                                 const matchUmpire = new MatchUmpire();
                                 matchUmpire.matchId = i['Match ID'];
                                 matchUmpire.userId = userResults[0].id;
-                                await this.umpireAddRoster(matchUmpire, false);
+                                await this.umpireAddRoster(
+                                    Role.UMPIRE,
+                                    matchUmpire.matchId,
+                                    matchUmpire.userId,
+                                    matchUmpire.umpireName,
+                                    false
+                                );
                                 queryArr.push(matchUmpire);
                             }
                         }
                     }
                 }
+            } else {
+                competitions[i['competitionId']] = false;
+
+                if (message[`Line ${i.line}`]) {
+                    if (!message[`Line ${i.line}`].message) {
+                        message[`Line ${i.line}`].message = [];
+                    }
+                } else {
+                    message[`Line ${i.line}`] = {
+                        message: [],
+                    };
+                }
+
+                message[`Line ${i.line}`].message.push('Could not find a matching competition.');
             }
-        } else {
-            message[''].message.push('Could not find a matching competition.');
         }
 
         const totalCount = data.length;

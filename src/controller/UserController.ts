@@ -17,7 +17,7 @@ import axios from 'axios';
 import { decode as atob } from 'base-64';
 
 import { logger } from '../logger';
-import { authToken, isNullOrEmpty, validationForField, arrangeCSVToJson, trim} from '../utils/Utils';
+import {authToken, isNullOrEmpty, validationForField, arrangeCSVToJson, trim, formatPhoneNumber} from '../utils/Utils';
 import { LoginError } from '../exceptions/LoginError';
 import { User } from '../models/User';
 import { UserDevice } from '../models/UserDevice';
@@ -480,10 +480,31 @@ export class UserController extends BaseController {
     async addUmpire(
         @HeaderParam("authorization") user: User,
         @QueryParam('competitionId', { required: true }) competitionId: number,
+        @QueryParam('isUmpire', { required: true }) isUmpire: boolean,
+        @QueryParam('isUmpireCoach', { required: true }) isUmpireCoach: boolean,
         @Body() userData: User,
         @Res() response: Response
     ) {
-        return await this.add(user, "UMPIRE", competitionId, userData, response);
+        if (isUmpire && isUmpireCoach) {
+          /// If the adding user is both then first create for umpire and
+          /// then add a additional URE for coach
+          const data = await this.add(user, "UMPIRE", competitionId, userData, response);
+          // existing user - delete existing team assignments
+          await this.deleteRolesNecessary("UMPIRE_COACH", userData, competitionId);
+          // Create necessary URE's and notify
+          await this.createUREAndNotify("UMPIRE_COACH", userData, competitionId, user.id);
+
+          return data;
+        } else if (isUmpire) {
+            return await this.add(user, "UMPIRE", competitionId, userData, response);
+        } else if (isUmpireCoach) {
+            return await this.add(user, "UMPIRE_COACH", competitionId, userData, response);
+        } else {
+          return response.status(400).send({
+              name: 'required_fields_error',
+              message: 'Provide all required fields data'
+          });
+        }
     }
 
     @Authorized()
@@ -501,7 +522,7 @@ export class UserController extends BaseController {
     @Post('/add')
     async add(
         @HeaderParam("authorization") user: User,
-        @QueryParam("type", { required: true }) type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER",
+        @QueryParam("type", { required: true }) type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH",
         @QueryParam("competitionId", { required: true }) competitionId: number,
         @Body() userData: User,
         @Res() response: Response
@@ -574,7 +595,7 @@ export class UserController extends BaseController {
     }
 
     private async canSendMailForAdd(
-        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER",
+        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH",
         user: User
     ) {
         switch (type) {
@@ -584,6 +605,7 @@ export class UserController extends BaseController {
             case 'COACH':
                 return isArrayPopulated(user.teams);
             case 'UMPIRE':
+            case 'UMPIRE_COACH':
                 return isArrayPopulated(user.affiliates);
             default:
                 return false;
@@ -591,7 +613,7 @@ export class UserController extends BaseController {
     }
 
     private async getRoleIdForType(
-        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER",
+        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH",
     ) {
         let roleId;
         switch (type) {
@@ -604,6 +626,9 @@ export class UserController extends BaseController {
             case 'UMPIRE':
                 roleId = Role.UMPIRE;
                 break;
+            case 'UMPIRE_COACH':
+                roleId = Role.UMPIRE_COACH;
+                break;
             default:
                 roleId = Role.MEMBER;
                 break;
@@ -612,7 +637,7 @@ export class UserController extends BaseController {
     }
 
     private async deleteRolesNecessary(
-        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER",
+        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH",
         user: User,
         competitionId: number
     ) {
@@ -629,6 +654,10 @@ export class UserController extends BaseController {
                 break;
             case 'UMPIRE':
                 roleToDelete = Role.UMPIRE;
+                entityType = EntityType.ORGANISATION;
+                break;
+            case 'UMPIRE_COACH':
+                roleToDelete = Role.UMPIRE_COACH;
                 entityType = EntityType.ORGANISATION;
                 break;
             default:
@@ -660,7 +689,7 @@ export class UserController extends BaseController {
     }
 
     private async createUREAndNotify(
-        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER",
+        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH",
         user: User,
         competitionId: number,
         createdBy: number
@@ -685,6 +714,11 @@ export class UserController extends BaseController {
             case 'UMPIRE':
                 loopData = user.affiliates;
                 roleId = Role.UMPIRE;
+                entityTypeId = EntityType.ORGANISATION;
+                break;
+            case 'UMPIRE_COACH':
+                loopData = user.affiliates;
+                roleId = Role.UMPIRE_COACH;
                 entityTypeId = EntityType.ORGANISATION;
                 break;
             default:
@@ -770,6 +804,13 @@ export class UserController extends BaseController {
         let teamRequired = roleId == Role.COACH || roleId == Role.MANAGER;
         let teamChatRequired = roleId == Role.COACH || roleId == Role.MANAGER;
 
+        if (teamRequired) {
+            requiredField.push('Team');
+            requiredField.push('Division Grade');
+        } else if (roleId == Role.UMPIRE) {
+            requiredField.push('Organisation');
+        }
+
         const { result: importArr, message } = validationForField({
             filedList: requiredField,
             values: data,
@@ -788,15 +829,15 @@ export class UserController extends BaseController {
             if (foundUser) {
                 newUser = false;
                 if (
-                    foundUser.firstName == trim(i['First Name']) &&
-                    foundUser.lastName == trim(i['Last Name']) &&
-                    foundUser.mobileNumber == trim(i['Contact No'])
+                    foundUser.firstName == i['First Name'] &&
+                    foundUser.lastName == i['Last Name'] &&
+                    foundUser.mobileNumber == i['Contact No']
                 ) {
                     userDetails.id = foundUser.id;
                     userDetails.email = foundUser.email;
                     userDetails.firstName = foundUser.firstName;
                     userDetails.lastName = foundUser.lastName;
-                    userDetails.mobileNumber = foundUser.mobileNumber;
+                    userDetails.mobileNumber = foundUser.mobileNumber ? formatPhoneNumber(foundUser.mobileNumber) : null;
 
                     savedUserDetail = await this.userService.createOrUpdate(userDetails);
                     await this.updateFirebaseData(userDetails, userDetails.password);
@@ -815,7 +856,7 @@ export class UserController extends BaseController {
                 userDetails.password = md5(password);
                 userDetails.firstName = i['First Name'];
                 userDetails.lastName = i['Last Name'];
-                userDetails.mobileNumber = i['Contact No'];
+                userDetails.mobileNumber = i['Contact No'] ? formatPhoneNumber(i['Contact No']) : null;
 
                 savedUserDetail = await this.userService.createOrUpdate(userDetails);
                 await this.updateFirebaseData(userDetails, userDetails.password);
@@ -826,40 +867,28 @@ export class UserController extends BaseController {
             if (!infoMisMatchArray.includes(i['Email'].toLowerCase())) {
                 let error;
                 if (teamRequired) {
-                    if (i['Team']) {
-                        if (i['Division Grade']) {
-                            const teamArray = i['Team'].split(',');
-                            for (let t of teamArray) {
-                                const teamDetail: Team[] = await this.teamService.findByNameAndCompetition(t, competitionId, i['Division Grade']);
-                                if (isArrayPopulated(teamDetail)) {
-                                    teamDetailArray.push(...teamDetail);
-                                }
-                            }
-
-                            if (teamDetailArray.length === 0) {
-                                error = `No matching team found for ${i['Team']}.`;
-                            }
-                        } else {
-                            error = `The field 'Division Grade' is required.`;
+                    const teamArray = i['Team'].split(',');
+                    for (let t of teamArray) {
+                        const teamDetail: Team[] = await this.teamService.findByNameAndCompetition(t, competitionId, i['Division Grade']);
+                        if (isArrayPopulated(teamDetail)) {
+                            teamDetailArray.push(...teamDetail);
                         }
-                    } else {
-                        error = `The field 'Team' is required.`;
+                    }
+
+                    if (teamDetailArray.length === 0) {
+                        error = `No matching team found for ${i['Team']}.`;
                     }
                 } else {
-                    if (i['Organisation']) {
-                        const orgArray = i['Organisation'].split(',');
-                        for (let org of orgArray) {
-                            const orgDetail: LinkedCompetitionOrganisation[] = await this.organisationService.findByNameAndCompetitionId(org, competitionId);
-                            if (isArrayPopulated(orgDetail)) {
-                                orgDetailArray.push(...orgDetail);
-                            }
+                    const orgArray = i['Organisation'].split(',');
+                    for (let org of orgArray) {
+                        const orgDetail: LinkedCompetitionOrganisation[] = await this.organisationService.findByNameAndCompetitionId(org, competitionId);
+                        if (isArrayPopulated(orgDetail)) {
+                            orgDetailArray.push(...orgDetail);
                         }
+                    }
 
-                        if (orgDetailArray.length === 0) {
-                            error = `No matching organization found for ${i['Organisation']}.`;
-                        }
-                    } else {
-                        error = `The field 'Organisation' is required.`;
+                    if (orgDetailArray.length === 0) {
+                        error = `No matching organization found for ${i['Organisation']}.`;
                     }
                 }
 
@@ -934,6 +963,19 @@ export class UserController extends BaseController {
                 }
 
                 successCount += 1;
+            } else {
+                if (message[`Line ${i.line}`]) {
+                    if (!message[`Line ${i.line}`].message) {
+                        message[`Line ${i.line}`].message = [];
+                    }
+                } else {
+                    message[`Line ${i.line}`] = {
+                        ...i,
+                        message: [],
+                    };
+                }
+
+                message[`Line ${i.line}`].message.push(`Email "${i['Email'].toLowerCase()}" already exists with different details.`);
             }
         }
 

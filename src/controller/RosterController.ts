@@ -56,15 +56,15 @@ export class RosterController extends BaseController {
     @Post('/list')
     async rosterList(
         @QueryParam("competitionId") competitionId: number,
-        @QueryParam("roleId") roleId: number,
+        @QueryParam("roleIds") roleIds: number[],
         @QueryParam("status") status: string,
         @QueryParam('sortBy') sortBy: string = undefined,
         @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined,
         @Body() requestFilter: RequestFilter,
         @Res() response: Response
     ) {
-        if (competitionId && roleId) {
-            return this.rosterService.findUserRostersByCompetition(competitionId, roleId, status, requestFilter, sortBy, sortOrder);
+        if (competitionId && isArrayPopulated(roleIds)) {
+            return this.rosterService.findUserRostersByCompetition(competitionId, roleIds, status, requestFilter, sortBy, sortOrder);
         } else {
             return response.status(200).send({
                 name: 'search_error', message: `Invalid parameters`
@@ -456,7 +456,7 @@ export class RosterController extends BaseController {
         @Res() response: Response
     ): Promise<any> {
         if (competitionId && roleId) {
-            const dict = await this.rosterService.findUserRostersByCompetition(competitionId, roleId, status, null);
+            const dict = await this.rosterService.findUserRostersByCompetition(competitionId, [roleId], status, null);
             let competition: Competition = await this.competitionService.findById(competitionId);
             let competitionTimezone: StateTimezone;
             if (competition && competition.locationId) {

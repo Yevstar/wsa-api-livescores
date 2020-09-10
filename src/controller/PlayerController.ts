@@ -267,9 +267,9 @@ export class PlayerController extends BaseController {
                 .on('end', async () => {
                     for (let i of arr) {
                         const team = trim(i.Team);
-                        const teamId = await this.teamService.findByNameAndCompetition(team, competitionId, trim(i['Division Grade']));
+                        const teams = await this.teamService.findByNameAndCompetition(team, competitionId, trim(i['Division Grade']));
                         const playerObj = new Player();
-                        playerObj.teamId = isArrayPopulated(teamId) ? teamId[0].id : -1;
+                        playerObj.teamId = isArrayPopulated(teams) ? teams[0].id : -1;
                         playerObj.firstName = trim(i['First Name']);
                         playerObj.lastName = trim(i['Last Name']);
                         playerObj.mnbPlayerId = trim(i.mnbPlayerId);
@@ -297,6 +297,7 @@ export class PlayerController extends BaseController {
                     }
 
                     resolve({
+                        success: true,
                         message: resMsg,
                         error: message,
                         data,
