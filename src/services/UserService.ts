@@ -352,8 +352,8 @@ export default class UserService extends BaseService<User> {
         try{
             cTrack.id= 0;
 
-            cTrack.communicationType = 1;
-            cTrack.contactNumber = receiverData.mobileNumber
+            cTrack.communicationType = 11;
+            //cTrack.contactNumber = receiverData.mobileNumber
             cTrack.entityId = receiverData.id;
             cTrack.deliveryChannelRefId = 1;
             cTrack.emailId = receiverData.email;
@@ -371,6 +371,7 @@ export default class UserService extends BaseService<User> {
                 // Here i commented the below code as the caller is not handling the promise reject
                 // return Promise.reject(err);
             } else {
+                cTrack.statusRefId = 1;
                 logger.info('UserService - sendMail : Mail sent successfully');
                 html = html.replace(password,"******")
                 cTrack.content = html;
@@ -381,7 +382,7 @@ export default class UserService extends BaseService<User> {
         });
         
     }catch(error){
-        cTrack.statusRefId = 2;
+        //cTrack.statusRefId = 2;
     }
     }
 

@@ -346,8 +346,8 @@ export default class TeamService extends BaseService<Team> {
         try{
             cTrack.id= 0;
 
-            cTrack.communicationType = 1;
-            cTrack.contactNumber = player.phoneNumber
+            cTrack.communicationType = 10;
+           // cTrack.contactNumber = player.phoneNumber
             cTrack.entityId = player.id;
             cTrack.deliveryChannelRefId = 1;
             cTrack.emailId = player.email;
@@ -365,6 +365,7 @@ export default class TeamService extends BaseService<Team> {
                 // return Promise.reject(err);
             } else {
                 logger.info('TeamService - sendInviteMail : Mail sent successfully');
+                cTrack.statusRefId = 1;
                 this.insertIntoCommunicationTrack(cTrack);
             }
             transporter.close();
