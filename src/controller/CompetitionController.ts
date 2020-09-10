@@ -122,20 +122,21 @@ export class CompetitionController extends BaseController {
                     competition.invitedAnyClub = JSON.parse(competition.invitedAnyClub)
                 }
 
+                const getInviteesDetail = await this.competitionInviteesService.getInviteesByCompetition(saved.id);
+
                 if ((isNotNullAndUndefined(competition.invitedTo) && competition.invitedTo !== '' && isArrayPopulated(competition.invitedTo)) ||
                     (isNotNullAndUndefined(competition.invitedAnyAssoc) && competition.invitedAnyAssoc !== '' && isArrayPopulated(competition.invitedAnyAssoc)) ||
                     (isNotNullAndUndefined(competition.invitedAnyClub) && competition.invitedAnyClub !== '' && isArrayPopulated(competition.invitedAnyClub))) {
 
                     let affliliateInvited = 0;
                     const INVITED_TO = competition.invitedTo;
-                    let GET_ORGANISATIONS;
+                    let GET_ORGANISATIONS = [];
                     let invitationTo;
 
                     const MULTIPLE_ORGANISATIONS = [];
                     const ORG_ARRAY = [];
                     const CREATE_COMP_ORG = [];
                     const COMPETITION_INVITEES = [];
-                    const getInviteesDetail = await this.competitionInviteesService.getInviteesByCompetition(saved.id);
 
                     const AFFILIATED_ASSOCIATION = Competition.AFFILIATED_ASSOCIATION;
                     const AFFILIATED_CLUB = Competition.AFFILIATED_CLUB;
@@ -241,36 +242,59 @@ export class CompetitionController extends BaseController {
                                 GET_ORGANISATIONS = [{ organisationId: competition.organisationId }];
                             }
 
-                            if (isNotNullAndUndefined(competition.invitedAnyAssoc) && isArrayPopulated(competition.invitedAnyAssoc)) { // Any Organisation Invited
+                            if (INVITED_TO.includes(ANY_ASSOCIATION) && isNotNullAndUndefined(competition.invitedAnyAssoc) && isArrayPopulated(competition.invitedAnyAssoc)) { // Any Organisation Invited
                                 invitationTo = ANY_ASSOCIATION;
+                                const GET_ANY_ORGANISATIONS = [];
                                 if ((INVITED_TO.includes(ANY_ASSOCIATION) || INVITED_TO.includes(ANY_CLUB)) && (!INVITED_TO.includes(DIRECT))) {
-                                    if(GET_ORGANISATIONS===undefined||GET_ORGANISATIONS===null) {
-                                        GET_ORGANISATIONS = []   
-                                    }
-                                     GET_ORGANISATIONS.push(...competition.invitedAnyAssoc);
+                                    GET_ANY_ORGANISATIONS.push(...competition.invitedAnyAssoc);
+                                }
+
+                                for (let i of GET_ANY_ORGANISATIONS) {
+                                    const compInv = new CompetitionInvitees();
+                                    compInv.id = 0;
+                                    compInv.inviteesRefId = invitationTo;
+                                    compInv.competitionId = saved.id;
+                                    compInv.invitedOrganisationId = i.organisationId;
+                                    COMPETITION_INVITEES.push(compInv)
+
+                                    ORG_ARRAY.push(i)
                                 }
                             }
 
-                            if (isNotNullAndUndefined(competition.invitedAnyClub) && isArrayPopulated(competition.invitedAnyClub)) { // Any Organisation Invited
+                            if (INVITED_TO.includes(ANY_CLUB) && isNotNullAndUndefined(competition.invitedAnyClub) && isArrayPopulated(competition.invitedAnyClub)) { // Any Organisation Invited
                                 invitationTo = ANY_CLUB;
+                                const GET_ANY_ORGANISATIONS = [];
                                 if ((INVITED_TO.includes(ANY_ASSOCIATION) || INVITED_TO.includes(ANY_CLUB)) && (!INVITED_TO.includes(DIRECT))) {
-                                    if(GET_ORGANISATIONS===undefined||GET_ORGANISATIONS===null) {
-                                        GET_ORGANISATIONS = []   
-                                    }
-                                    GET_ORGANISATIONS.push(...competition.invitedAnyClub);
+                                    GET_ANY_ORGANISATIONS.push(...competition.invitedAnyClub);
+                                }
+
+                                for (let i of GET_ANY_ORGANISATIONS) {
+                                    const compInv = new CompetitionInvitees();
+                                    compInv.id = 0;
+                                    compInv.inviteesRefId = invitationTo;
+                                    compInv.competitionId = saved.id;
+                                    compInv.invitedOrganisationId = i.organisationId;
+                                    COMPETITION_INVITEES.push(compInv)
+                                    ORG_ARRAY.push(i)
                                 }
                             }
 
-                            for (let i of GET_ORGANISATIONS) {
-                                const compInv = new CompetitionInvitees();
-                                compInv.id = 0;
-                                compInv.inviteesRefId = invitationTo;
-                                compInv.competitionId = saved.id;
-                                compInv.invitedOrganisationId = i.organisationId;
-                                COMPETITION_INVITEES.push(compInv)
+                            if(!((isNotNullAndUndefined(competition.invitedAnyAssoc) && isArrayPopulated(competition.invitedAnyAssoc))
+                            && (isNotNullAndUndefined(competition.invitedAnyClub) && isArrayPopulated(competition.invitedAnyClub)))
+                            && isArrayPopulated(GET_ORGANISATIONS)) {
+                                
+                                for (let i of GET_ORGANISATIONS) {
+                                    const compInv = new CompetitionInvitees();
+                                    compInv.id = 0;
+                                    compInv.inviteesRefId = invitationTo;
+                                    compInv.competitionId = saved.id;
+                                    compInv.invitedOrganisationId = i.organisationId;
+                                    COMPETITION_INVITEES.push(compInv)
+                                }
                             }
-
-                            ORG_ARRAY.push(...GET_ORGANISATIONS);
+                                if(isArrayPopulated(GET_ORGANISATIONS)) {
+                                    ORG_ARRAY.push(...GET_ORGANISATIONS);
+                                }
                         }
                     } else {
                         // delete the existing invitees
@@ -290,6 +314,10 @@ export class CompetitionController extends BaseController {
                     }
 
                     await this.competitionOrganisationService.batchCreateOrUpdate(CREATE_COMP_ORG);
+                }else {
+                    if (isArrayPopulated(getInviteesDetail)) {
+                        await this.competitionInviteesService.deleteInviteesByCompetitionId(saved.id);
+                    }
                 }
 
                 await this.competitionVenueService.deleteByCompetitionId(saved.id);
