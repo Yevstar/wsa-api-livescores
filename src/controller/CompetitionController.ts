@@ -231,7 +231,8 @@ export class CompetitionController extends BaseController {
                                 invitationTo = AFFILIATED_CLUB;
                             }
 
-                            GET_ORGANISATIONS = await this.competitionService.getAllAffiliatedOrganisations(competition.organisationId, affliliateInvited, invitationTo);
+                            const organisationTypeRefId = await this.organisationService.findAffiliateDetailsByOrganisationId(competition.organisationId)
+                            GET_ORGANISATIONS = await this.competitionService.getAllAffiliatedOrganisations(competition.organisationId, affliliateInvited, organisationTypeRefId);
 
                             if (isArrayPopulated(getInviteesDetail)) {
                                 await this.competitionInviteesService.deleteInviteesByCompetitionId(saved.id);
