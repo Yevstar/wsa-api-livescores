@@ -501,8 +501,8 @@ export class UserController extends BaseController {
             return await this.add(user, "UMPIRE_COACH", competitionId, userData, response);
         } else {
           return response.status(400).send({
-              name: 'required_fields_error',
-              message: 'Provide all required fields data'
+              name: 'params_error',
+              message: 'User should be an umpire or umpire coach or both'
           });
         }
     }
@@ -869,7 +869,12 @@ export class UserController extends BaseController {
                 if (teamRequired) {
                     const teamArray = i['Team'].split(',');
                     for (let t of teamArray) {
-                        const teamDetail: Team[] = await this.teamService.findByNameAndCompetition(t, competitionId, i['Division Grade']);
+                        const teamDetail: Team[] = await this.teamService.findByNameAndCompetition(
+                            t,
+                            competitionId,
+                            i['Division Grade'],
+                            true
+                        );
                         if (isArrayPopulated(teamDetail)) {
                             teamDetailArray.push(...teamDetail);
                         }
@@ -928,14 +933,61 @@ export class UserController extends BaseController {
                         }
                     }
                 } else if (isArrayPopulated(orgDetailArray)) {
-                    for (let i of orgDetailArray) {
-                        let ure = new UserRoleEntity();
-                        ure.roleId = roleId;
-                        ure.entityId = i.id;
-                        ure.entityTypeId = EntityType.ORGANISATION;
-                        ure.userId = userDetails.id;
-                        ure.createdBy = user.id;
-                        ureArray.push(ure);
+                    for (let org of orgDetailArray) {
+                      if (roleId == Role.UMPIRE) {
+                          var createUmpireURE = false;
+                          var createUmpireCoachURE = false;
+
+                          const umpire = i['Umpire'].toLowerCase();
+                          const umpireCoach = i['Umpire Coach'].toLowerCase();
+
+                          if ((isNullOrEmpty(umpire) && isNullOrEmpty(umpireCoach)) ||
+                                ((!isNullOrEmpty(umpire) &&
+                                (umpire == 'yes' || umpire == 'true')) &&
+                                isNullOrEmpty(umpireCoach))) {
+                                    createUmpireURE = true;
+                          } else if (isNullOrEmpty(umpire) &&
+                              (!isNullOrEmpty(umpireCoach) &&
+                              (umpireCoach == 'yes' || umpireCoach == 'true'))) {
+                                  createUmpireCoachURE = true;
+                          } else {
+                            if (!isNullOrEmpty(umpire) &&
+                              (umpire == 'yes' || umpire == 'true')) {
+                                  createUmpireURE = true;
+                            }
+                          if (!isNullOrEmpty(umpireCoach) &&
+                              (umpireCoach == 'yes' || umpireCoach == 'true')) {
+                                  createUmpireCoachURE = true;
+                          }
+                        }
+
+                        if (createUmpireURE) {
+                            let ure = new UserRoleEntity();
+                            ure.roleId = roleId;
+                            ure.entityId = org.id;
+                            ure.entityTypeId = EntityType.ORGANISATION;
+                            ure.userId = userDetails.id;
+                            ure.createdBy = user.id;
+                            ureArray.push(ure);
+                        }
+                        if (createUmpireCoachURE) {
+                            let ure = new UserRoleEntity();
+                            ure.roleId = Role.UMPIRE_COACH;
+                            ure.entityId = org.id;
+                            ure.entityTypeId = EntityType.ORGANISATION;
+                            ure.userId = userDetails.id;
+                            ure.createdBy = user.id;
+                            ureArray.push(ure);
+                        }
+                      } else {
+                          let ure = new UserRoleEntity();
+                          ure.roleId = roleId;
+                          ure.entityId = org.id;
+                          ure.entityTypeId = EntityType.ORGANISATION;
+                          ure.userId = userDetails.id;
+                          ure.createdBy = user.id;
+                          ureArray.push(ure);
+                      }
                     }
                 }
 
@@ -955,7 +1007,7 @@ export class UserController extends BaseController {
                     if (isArrayPopulated(teamDetailArray)) {
                         this.userService.sentMail(user, teamDetailArray, competitionData, roleId, savedUserDetail, password);
                     } else if (isArrayPopulated(orgDetailArray)) {
-                        this.userService.sentMail(user, orgDetailArray, competitionData, roleId, savedUserDetail, password);                       
+                        this.userService.sentMail(user, orgDetailArray, competitionData, roleId, savedUserDetail, password);
                     }
                 }
                 if (teamChatRequired) {

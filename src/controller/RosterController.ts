@@ -128,7 +128,7 @@ export class RosterController extends BaseController {
 
     @Authorized()
     @Get('/match')
-    async findByMatchId(
+    async findByMatchIds(
         @QueryParam('ids') matchIds: number[] = [],
         @Res() response: Response
     ) {
@@ -518,5 +518,20 @@ export class RosterController extends BaseController {
                 message: `Invalid parameters passed`
             });
         }
+    }
+
+    @Authorized()
+    @Get('/detailsWithUser')
+    async findRostersByMatchWithUserDetails(
+        @QueryParam('matchId') matchId: number,
+        @Res() response: Response
+    ) {
+        if (!matchId) {
+            return response.status(400).send({
+                name: 'validation_error',
+                message: 'Match id required.'
+            });
+        }
+        return this.rosterService.findRostersWithUserDetails(matchId);
     }
 }
