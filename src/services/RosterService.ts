@@ -251,15 +251,4 @@ export default class RosterService extends BaseService<Roster> {
                 .where('eventOccurrenceId in (:ids)', { ids: ids })
                 .execute();
     }
-
-
-    public async findRostersWithUserDetails(matchId: number): Promise<Roster[]> {
-        return this.entityManager.createQueryBuilder(Roster, 'roster')
-            .innerJoinAndSelect('roster.user', 'user')
-            .innerJoinAndSelect('roster.role', 'role')
-            .andWhere('roster.matchId = :matchId', {matchId})
-            .andWhere('roster.userId != 0')
-            .andWhere('roster.roleId != 0')
-            .getMany();
-    }
 }

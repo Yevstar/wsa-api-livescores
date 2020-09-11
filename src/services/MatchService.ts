@@ -85,7 +85,8 @@ export default class MatchService extends BaseService<Match> {
             match: Match,
             umpires: [],
             team1players: [],
-            team2players: []
+            team2players: [],
+            rosters: []
         }
         let result = await this.entityManager.query("call wsa.usp_get_match(?,?)", [matchId, lineups]);
         if (result != null && result[0] != null) {
@@ -99,6 +100,8 @@ export default class MatchService extends BaseService<Match> {
             response.team1players = result[2];
             response.team2players = result[3];
             response.umpires = result[4];
+            response.rosters = result[5];
+
             return response;
         } else {
             return [];
