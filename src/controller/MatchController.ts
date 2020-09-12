@@ -60,7 +60,7 @@ export class MatchController extends BaseController {
     ) {
         let match = await this.matchService.findById(id);
         let deletedMatch = await this.matchService.softDelete(id, user.id);
-        this.sendMatchEvent(match);
+        this.sendMatchEvent(match, false, user, 'match_removed');
         return deletedMatch;
     }
 
