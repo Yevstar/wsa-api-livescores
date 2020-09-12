@@ -1,7 +1,6 @@
 import {Service} from "typedi";
 import {DeleteResult} from "typeorm-plus";
-
-import {paginationData, stringTONumber, isNotNullAndUndefined} from "../utils/Utils";
+import {paginationData, stringTONumber, isNotNullAndUndefined, isArrayPopulated} from "../utils/Utils";
 import BaseService from "./BaseService";
 import {Roster} from "../models/security/Roster";
 import {User} from "../models/User";
@@ -250,5 +249,27 @@ export default class RosterService extends BaseService<Roster> {
                 .from(Roster, 'roster')
                 .where('eventOccurrenceId in (:ids)', { ids: ids })
                 .execute();
+    }
+
+    public async deleteFutureUserRosters(
+        userIds: number[],
+        teamIds: number[] = [],
+        roleIds: number[] = []
+    ): Promise<DeleteResult> {
+        let query = this.entityManager.createQueryBuilder(Roster, 'r')
+            .innerJoin('r.match', 'm', 'm.startTime > :currentTime', {currentTime: new Date()})
+            .delete()
+            .where('userId in (:userIds)', {userIds})
+            .where('matchId is not null')
+            .andWhere('eventOccurrenceId is null');
+
+        if (isArrayPopulated(teamIds)) {
+          query.andWhere('teamId in (:teamIds)', {teamIds: teamIds});
+        }
+        if (isArrayPopulated(roleIds)) {
+            query.andWhere('roleId in (:roleIds)', {roleIds: roleIds});
+        }
+
+        return query.execute();
     }
 }

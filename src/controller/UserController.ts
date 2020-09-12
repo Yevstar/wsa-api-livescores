@@ -488,16 +488,23 @@ export class UserController extends BaseController {
         if (isUmpire && isUmpireCoach) {
           /// If the adding user is both then first create for umpire and
           /// then add a additional URE for coach
-          const data = await this.add(user, "UMPIRE", competitionId, userData, response);
-          // existing user - delete existing team assignments
-          await this.deleteRolesNecessary("UMPIRE_COACH", userData, competitionId);
-          // Create necessary URE's and notify
-          await this.createUREAndNotify("UMPIRE_COACH", userData, competitionId, user.id);
+          await this.add(user, "UMPIRE", competitionId, userData, response);
+          await this.add(user, "UMPIRE_COACH", competitionId, userData, response);
 
-          return data;
+          return userData;
         } else if (isUmpire) {
+            const foundUser = await this.userService.findByEmail(userData.email.toLowerCase());
+            if (foundUser) {
+              // Delete umpire coach ure
+              await this.deleteRolesNecessary("UMPIRE_COACH", foundUser, competitionId);
+            }
             return await this.add(user, "UMPIRE", competitionId, userData, response);
         } else if (isUmpireCoach) {
+            const foundUser = await this.userService.findByEmail(userData.email.toLowerCase());
+            if (foundUser) {
+              // Delete umpire coach ure
+              await this.deleteRolesNecessary("UMPIRE", foundUser, competitionId);
+            }
             return await this.add(user, "UMPIRE_COACH", competitionId, userData, response);
         } else {
           return response.status(400).send({
@@ -675,6 +682,13 @@ export class UserController extends BaseController {
                     entityType
                 )
             );
+            promiseList.push(
+                this.rosterService.deleteFutureUserRosters(
+                    [user.id],
+                    null,
+                    [roleToDelete]
+                )
+            );
         }
         promiseList.push(
             this.userService.deleteRolesByUser(
@@ -686,6 +700,17 @@ export class UserController extends BaseController {
             )
         );
         await Promise.all(promiseList);
+        if (user.id) {
+            let tokens = (await this.deviceService.getUserDevices(user.id)).map(device => device.deviceId);
+            if (tokens && tokens.length > 0) {
+                this.firebaseService.sendMessage({
+                    tokens: tokens,
+                    data: {
+                        type: 'user_roster_updated'
+                    }
+                });
+            }
+        }
     }
 
     private async createUREAndNotify(
