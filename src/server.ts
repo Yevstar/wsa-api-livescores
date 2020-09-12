@@ -27,6 +27,7 @@ import FirebaseService from "./services/FirebaseService";
 import cors from "cors";
 import { decrypt, isNullOrEmpty } from "./utils/Utils";
 import { Role } from "./models/security/Role";
+import bodyParser from "body-parser";
 
 require("dotenv").config();
 
@@ -83,8 +84,8 @@ async function start() {
 
     handleCors(app);
 
-    app.use(express.json({limit: 1024*1024*10}));
-    app.use(express.urlencoded({ extended:true,limit:1024*1024*10,type:'application/x-www-form-urlencoded' }));
+    app.use(bodyParser.json({ limit: '5mb' }));
+    app.use(bodyParser.urlencoded({ limit: '5mb', extended: true }));
 
     const routingControllersOptions = {
         controllers: [__dirname + "/controller/*"],
