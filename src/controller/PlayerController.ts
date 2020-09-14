@@ -26,7 +26,7 @@ import {
     parseDateString,
     formatPhoneNumber,
     validationForField,
-    trim,
+    trim, arrangeCSVToJson,
 } from '../utils/Utils';
 import { BaseController } from './BaseController';
 import { Player } from '../models/Player';
@@ -245,65 +245,56 @@ export class PlayerController extends BaseController {
         @HeaderParam("authorization") user: User,
         @QueryParam('competitionId', { required: true }) competitionId: number,
         @UploadedFile("file") file: Express.Multer.File,
+        @Res() response: Response,
     ) {
-        return new Promise(resolve => {
-            const buf = Buffer.from(file.buffer);
-            let str = buf.toString();
-            let arr = [];
-            let playerArr = [];
+        const requiredField = [
+            'First Name',
+            'Last Name',
+            'DOB',
+            'Team',
+        ];
 
-            const requiredField = [
-                'First Name',
-                'Last Name',
-                'DOB',
-                'Team',
-            ];
+        const bufferString = file.buffer.toString('utf8');
+        const data = arrangeCSVToJson(bufferString);
 
-            fastcsv.parseString(str, { headers: true })
-                .on('error', error => console.error(error))
-                .on('data', row => {
-                    arr.push(row)
-                })
-                .on('end', async () => {
-                    for (let i of arr) {
-                        const team = trim(i.Team);
-                        const teams = await this.teamService.findByNameAndCompetition(team, competitionId, trim(i['Division Grade']));
-                        const playerObj = new Player();
-                        playerObj.teamId = isArrayPopulated(teams) ? teams[0].id : -1;
-                        playerObj.firstName = trim(i['First Name']);
-                        playerObj.lastName = trim(i['Last Name']);
-                        playerObj.mnbPlayerId = trim(i.mnbPlayerId);
-                        playerObj.dateOfBirth = i.DOB ? parseDateString(i.DOB) : undefined;
-                        playerObj.phoneNumber = i['Contact No'] ? formatPhoneNumber(i['Contact No']) : null;
-                        playerObj.competitionId = competitionId;
-                        playerArr.push(playerObj);
-                    }
+        const { result: importArr, message } = validationForField({
+            filedList: requiredField,
+            values: data,
+        });
 
-                    const { templateResult: players, message } = validationForField({
-                        filedList: requiredField,
-                        values: playerArr,
-                    });
+        let queryArr = [];
+        for (let i of importArr) {
+            const team = i.Team;
+            const teams = await this.teamService.findByNameAndCompetition(team, competitionId, i['Division Grade']);
+            const playerObj = new Player();
+            playerObj.teamId = isArrayPopulated(teams) ? teams[0].id : -1;
+            playerObj.firstName = i['First Name'];
+            playerObj.lastName = i['Last Name'];
+            playerObj.mnbPlayerId = i.mnbPlayerId;
+            playerObj.dateOfBirth = i.DOB ? parseDateString(i.DOB) : undefined;
+            playerObj.phoneNumber = formatPhoneNumber(i['Contact No']);
+            playerObj.competitionId = competitionId;
+            queryArr.push(playerObj);
+        }
 
-                    const totalCount = arr.length;
-                    const successCount = players.length;
-                    const failedCount = arr.length - players.length;
-                    const resMsg = `${totalCount} lines processed. ${successCount} lines successfully imported and ${failedCount} lines failed.`;
+        let result = await this.playerService.batchCreateOrUpdate(queryArr as Player[]);
+        for (let p of result) {
+            const playerUser = await this.loadPlayerUser(user, p);
+            p.userId = playerUser ? playerUser.id : -1;
+            await this.playerService.createOrUpdate(p);
+        }
 
-                    let data = await this.playerService.batchCreateOrUpdate(players as Player[]);
-                    for (let p of data) {
-                        const playerUser = await this.loadPlayerUser(user, p);
-                        p.userId = playerUser ? playerUser.id : -1;
-                        await this.playerService.createOrUpdate(p);
-                    }
+        const totalCount = data.length;
+        const successCount = queryArr.length;
+        const failedCount = data.length - queryArr.length;
+        const resMsg = `${totalCount} lines processed. ${successCount} lines successfully imported and ${failedCount} lines failed.`;
 
-                    resolve({
-                        success: true,
-                        message: resMsg,
-                        error: message,
-                        data,
-                        rawData: arr,
-                    });
-                });
+        return response.status(200).send({
+            success: true,
+            message: resMsg,
+            error: message,
+            data: queryArr,
+            rawData: data,
         });
     }
 

@@ -202,6 +202,10 @@ export function parseDateString(dateStr: string): Date {
 }
 
 export function formatPhoneNumber(phoneNumber: string): string {
+    if (!phoneNumber) {
+        return null;
+    }
+
     let phone = trim(phoneNumber);
     return (phone && phone.charAt(0) === '4') ? `0${phone}` : phone;
 }

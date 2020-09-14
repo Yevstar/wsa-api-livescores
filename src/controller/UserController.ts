@@ -856,13 +856,13 @@ export class UserController extends BaseController {
                 if (
                     foundUser.firstName == i['First Name'] &&
                     foundUser.lastName == i['Last Name'] &&
-                    foundUser.mobileNumber == i['Contact No']
+                    formatPhoneNumber(foundUser.mobileNumber) == formatPhoneNumber(i['Contact No'])
                 ) {
                     userDetails.id = foundUser.id;
                     userDetails.email = foundUser.email;
                     userDetails.firstName = foundUser.firstName;
                     userDetails.lastName = foundUser.lastName;
-                    userDetails.mobileNumber = foundUser.mobileNumber ? formatPhoneNumber(foundUser.mobileNumber) : null;
+                    userDetails.mobileNumber = formatPhoneNumber(foundUser.mobileNumber);
 
                     savedUserDetail = await this.userService.createOrUpdate(userDetails);
                     await this.updateFirebaseData(userDetails, userDetails.password);
@@ -881,7 +881,7 @@ export class UserController extends BaseController {
                 userDetails.password = md5(password);
                 userDetails.firstName = i['First Name'];
                 userDetails.lastName = i['Last Name'];
-                userDetails.mobileNumber = i['Contact No'] ? formatPhoneNumber(i['Contact No']) : null;
+                userDetails.mobileNumber = formatPhoneNumber(i['Contact No']);
 
                 savedUserDetail = await this.userService.createOrUpdate(userDetails);
                 await this.updateFirebaseData(userDetails, userDetails.password);
