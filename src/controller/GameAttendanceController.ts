@@ -249,7 +249,7 @@ export class GameAttendanceController extends BaseController {
                     lineup.competitionId = comp.id;
                     lineup.teamId = att.teamId;
                     lineup.playerId = att.playerId;
-                    lineup.positionId = 0;
+                    lineup.positionId = att.positionId;
                     lineup.playing = att.isPlaying;
                     lineup.borrowed = att.isBorrowed;
                     lineup.verifiedBy = att.verifiedBy;
