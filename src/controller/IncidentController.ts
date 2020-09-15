@@ -177,13 +177,13 @@ export class IncidentController extends BaseController {
         @UploadedFiles("media", {required: true}) files: Express.Multer.File[],
         @Res() response: Response
     ) {
-        if (!files || files.length == 0) {
-            return response.status(400).send({
-                success: false,
-                name: 'upload_error',
-                message: `Incident media required`
-            });
-        }
+        // if (!files || files.length == 0) {
+        //     return response.status(400).send({
+        //         success: false,
+        //         name: 'upload_error',
+        //         message: `Incident media required`
+        //     });
+        // }
 
         let mediaCount = await this.incidentService.mediaCount(incidentId, guid);
         if (mediaCount > 0) {

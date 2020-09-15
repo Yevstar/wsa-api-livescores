@@ -75,6 +75,8 @@ export default class IncidentService extends BaseService<Incident> {
             .leftJoinAndSelect('incidentPlayer.player', 'player')
             .leftJoinAndSelect('incident.incidentMediaList', 'incidentMedia')
             .innerJoinAndSelect('incident.match', 'match')
+            .innerJoinAndSelect('match.team1', 'team1')
+            .innerJoinAndSelect('match.team2', 'team2')
             .innerJoinAndSelect('player.team', 'team')
             .innerJoinAndSelect('team.competitionOrganisation', 'competitionOrganisation')
             .innerJoinAndSelect('incident.incidentType', 'incidentType');
