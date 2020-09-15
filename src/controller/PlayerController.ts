@@ -26,7 +26,8 @@ import {
     parseDateString,
     formatPhoneNumber,
     validationForField,
-    trim, arrangeCSVToJson,
+    trim,
+    arrangeCSVToJson,
 } from '../utils/Utils';
 import { BaseController } from './BaseController';
 import { Player } from '../models/Player';
@@ -266,15 +267,30 @@ export class PlayerController extends BaseController {
         for (let i of importArr) {
             const team = i.Team;
             const teams = await this.teamService.findByNameAndCompetition(team, competitionId, i['Division Grade']);
-            const playerObj = new Player();
-            playerObj.teamId = isArrayPopulated(teams) ? teams[0].id : -1;
-            playerObj.firstName = i['First Name'];
-            playerObj.lastName = i['Last Name'];
-            playerObj.mnbPlayerId = i.mnbPlayerId;
-            playerObj.dateOfBirth = i.DOB ? parseDateString(i.DOB) : undefined;
-            playerObj.phoneNumber = formatPhoneNumber(i['Contact No']);
-            playerObj.competitionId = competitionId;
-            queryArr.push(playerObj);
+            if (isArrayPopulated(teams)) {
+                const playerObj = new Player();
+                playerObj.teamId = teams[0].id;
+                playerObj.firstName = i['First Name'];
+                playerObj.lastName = i['Last Name'];
+                playerObj.mnbPlayerId = i.mnbPlayerId;
+                playerObj.dateOfBirth = i.DOB ? parseDateString(i.DOB) : undefined;
+                playerObj.phoneNumber = formatPhoneNumber(i['Contact No']);
+                playerObj.competitionId = competitionId;
+                queryArr.push(playerObj);
+            } else {
+                if (message[`Line ${i.line}`]) {
+                    if (!message[`Line ${i.line}`].message) {
+                        message[`Line ${i.line}`].message = [];
+                    }
+                } else {
+                    message[`Line ${i.line}`] = {
+                        ...i,
+                        message: [],
+                    };
+                }
+
+                message[`Line ${i.line}`].message.push(`No matching team found for ${i['Team']}.`);
+            }
         }
 
         let result = await this.playerService.batchCreateOrUpdate(queryArr as Player[]);
