@@ -19,10 +19,9 @@ import {User} from "../models/User";
 import {Event} from "../models/Event";
 import {EventInvitee} from "../models/EventInvitee";
 import {EventOccurrence} from "../models/EventOccurrence";
-import {authToken, fileExt, timestamp} from "../utils/Utils";
+import {authToken, fileExt, timestamp, isArrayPopulated} from "../utils/Utils";
 import {EntityType} from "../models/security/EntityType";
 import * as _ from 'lodash';
-import { isArrayPopulated } from "../utils/Utils";
 
 @JsonController('/event')
 export class EventController  extends BaseController {
@@ -37,7 +36,15 @@ export class EventController  extends BaseController {
     async findOccurrences(
         @HeaderParam("authorization") user: User,
     ): Promise<EventOccurrence[]> {
-        return this.eventService.findUserEventOccurrences(user.id);
+        const eventRecipientFunction = await this.userService.getFunction('event_recipient');
+        const functionRolesArray = await this.userService.getFunctionRoles(eventRecipientFunction.id);
+
+        let eventReceipientsRoleIds = [];
+        functionRolesArray.forEach(fr => {
+            eventReceipientsRoleIds.push(fr.roleId);
+        });
+
+        return this.eventService.findUserEventOccurrences(user.id, eventReceipientsRoleIds);
     }
 
     @Authorized()
@@ -67,17 +74,28 @@ export class EventController  extends BaseController {
 
           let inviteesList = [];
           let teamIdList = [];
+          let userIdList = [];
+
           for (const index in event['invitees']) {
               if (event['invitees'][index].entityTypeId == EntityType.USER) {
                   let userInvitee = new EventInvitee();
                   userInvitee.eventId = savedEvent['identifiers'][0].id;
                   userInvitee.entityId = event['invitees'][index].entityId;
                   userInvitee.entityTypeId = EntityType.USER;
-                  inviteesList.push(
-                      userInvitee
-                  );
+
+                  inviteesList.push(userInvitee);
+
+                  userIdList.push(event['invitees'][index].entityId);
               } else if (event['invitees'][index].entityTypeId == EntityType.TEAM) {
                   teamIdList.push(event['invitees'][index].entityId);
+
+                  let teamInvite = new EventInvitee();
+                  teamInvite.eventId = savedEvent['identifiers'][0].id;
+                  teamInvite.entityId = event['invitees'][index].entityId;
+                  teamInvite.entityTypeId = EntityType.TEAM;
+                  inviteesList.push(
+                      teamInvite
+                  );
               }
           }
 
@@ -93,42 +111,22 @@ export class EventController  extends BaseController {
               if (userList) {
                   userList.forEach(teamUser => {
                       if (teamUser.id != user.id) {
-                          let userInvitee = new EventInvitee();
-                          userInvitee.eventId = savedEvent['identifiers'][0].id;
-                          userInvitee.entityId = teamUser.id;
-                          userInvitee.entityTypeId = EntityType.USER;
-                          inviteesList.push(
-                              userInvitee
-                          );
+                          _.remove(inviteesList, function(invitee) { return (invitee.entityId == teamUser.id && invitee.entityTypeId == EntityType.USER) });
+                          userIdList.push(teamUser.id);
                       }
                   });
               }
           }
 
           const eventInviteePromises = [];
-          const eventInviteeNotificationPromises = [];
 
           if (inviteesList.length > 0) {
-              let uniqueInviteesList = _.uniqBy(inviteesList, invitee => invitee.entityId);
-
-              uniqueInviteesList.forEach(async userInvitee => {
+              inviteesList.forEach(async userInvitee => {
                 eventInviteePromises.push(
                   this.eventService.createEventInvitee(
                     userInvitee
                   )
                 );
-                let tokens = (await this.deviceService.getUserDevices(userInvitee.entityId)).map(device => device.deviceId);
-                if (tokens && tokens.length > 0) {
-                    eventInviteeNotificationPromises.push(
-                        this.firebaseService.sendMessage({
-                            tokens: tokens,
-                            data: {
-                                type: 'new_event', entityTypeId: userInvitee.entityTypeId.toString(),
-                                entityId: userInvitee.entityId.toString(), eventId: userInvitee.eventId.toString()
-                            }
-                        })
-                    );
-                }
               });
           }
           await Promise.all(eventInviteePromises);
@@ -166,7 +164,7 @@ export class EventController  extends BaseController {
             );
         }
 
-        await Promise.all(eventInviteeNotificationPromises);
+        this.notifyEventToUsers(savedEvent['identifiers'][0].id, 'new_event', userIdList, user);
         return response.status(200).send({ "success" : true });
     }
 
@@ -175,6 +173,7 @@ export class EventController  extends BaseController {
     async updateEvent(
         @HeaderParam("authorization") user: User,
         @QueryParam('eventOccurrenceId', {required: true}) eventOccurrenceId: number,
+        @QueryParam('createdBy', {required: true}) createdBy: number,
         @Body() event: Event,
         @Res() response: Response
     ) {
@@ -182,7 +181,7 @@ export class EventController  extends BaseController {
           const prevEventInvitees = await this.eventService.fetchEventInvitees(event.id);
 
           /// 1. Saved the event coming
-          const savedEvent = await this.eventService.createEvent(event, user.id);
+          const savedEvent = await this.eventService.createEvent(event, createdBy);
           /// 2. Removing event occurrences, event invitees and event occurrence rosters if any
           const deletePromises = [];
           deletePromises.push(
@@ -192,24 +191,37 @@ export class EventController  extends BaseController {
             this.eventService.deleteEventInvitees(event.id)
           );
           deletePromises.push(
-            this.deleteEventOccurrenceRoster('EVENT_OCCURRENCES', eventOccurrence)
+            this.deleteEventOccurrenceRoster(
+                'EVENT_OCCURRENCES',
+                eventOccurrence,
+                user
+            )
           );
           await Promise.all(deletePromises);
           /// 3. Getting the new invitees list from the event
           let inviteesList = [];
-          let uniqueInviteesList = [];
           let teamIdList = [];
+          let userIdList = [];
+
           for (const index in event['invitees']) {
               if (event['invitees'][index].entityTypeId == EntityType.USER) {
                   let userInvitee = new EventInvitee();
                   userInvitee.eventId = event.id;
                   userInvitee.entityId = event['invitees'][index].entityId;
                   userInvitee.entityTypeId = EntityType.USER;
-                  inviteesList.push(
-                      userInvitee
-                  );
+                  inviteesList.push(userInvitee);
+
+                  userIdList.push(event['invitees'][index].entityId);
               } else if (event['invitees'][index].entityTypeId == EntityType.TEAM) {
                   teamIdList.push(event['invitees'][index].entityId);
+
+                  let teamInvite = new EventInvitee();
+                  teamInvite.eventId = event.id;
+                  teamInvite.entityId = event['invitees'][index].entityId;
+                  teamInvite.entityTypeId = EntityType.TEAM;
+                  inviteesList.push(
+                      teamInvite
+                  );
               }
           }
 
@@ -224,14 +236,9 @@ export class EventController  extends BaseController {
               );
               if (userList) {
                   userList.forEach(teamUser => {
-                      if (teamUser.id != user.id) {
-                          let userInvitee = new EventInvitee();
-                          userInvitee.eventId = event.id;
-                          userInvitee.entityId = teamUser.id;
-                          userInvitee.entityTypeId = EntityType.USER;
-                          inviteesList.push(
-                              userInvitee
-                          );
+                      if (teamUser.id != createdBy) {
+                          _.remove(inviteesList, function(invitee) { return (invitee.entityId == teamUser.id && invitee.entityTypeId == EntityType.USER) });
+                          userIdList.push(teamUser.id);
                       }
                   });
               }
@@ -239,31 +246,14 @@ export class EventController  extends BaseController {
           /// 4. Create promises for creation of event invitee and respective
           ///    notifications to update the users.
           const eventInviteePromises = [];
-          const eventInviteeNotificationPromises = [];
 
           if (inviteesList.length > 0) {
-              Array.prototype.push.apply(
-                  uniqueInviteesList,
-                  _.uniqBy(inviteesList, invitee => invitee.entityId)
-              );
-              uniqueInviteesList.forEach(async userInvitee => {
+              inviteesList.forEach(async userInvitee => {
                 eventInviteePromises.push(
                   this.eventService.createEventInvitee(
                     userInvitee
                   )
                 );
-                let tokens = (await this.deviceService.getUserDevices(userInvitee.entityId)).map(device => device.deviceId);
-                if (tokens && tokens.length > 0) {
-                    eventInviteeNotificationPromises.push(
-                        this.firebaseService.sendMessage({
-                            tokens: tokens,
-                            data: {
-                                type: 'event_updated', entityTypeId: userInvitee.entityTypeId.toString(),
-                                entityId: userInvitee.entityId.toString(), eventId: userInvitee.eventId.toString()
-                            }
-                        })
-                    );
-                }
               });
           }
           await Promise.all(eventInviteePromises);
@@ -293,7 +283,7 @@ export class EventController  extends BaseController {
                         event.allDay,
                         startTime,
                         endTime,
-                        user.id
+                        createdBy
                       )
                     );
                 }
@@ -304,20 +294,33 @@ export class EventController  extends BaseController {
                 event.allDay ,
                 event.startTime,
                 event.endTime,
-                user.id
+                createdBy
             );
         }
 
-        Promise.all(eventInviteeNotificationPromises);
+        if (createdBy != user.id && userIdList.indexOf(createdBy) < 0) {
+            userIdList.push(createdBy);
+        }
+        this.notifyEventToUsers(event.id, 'event_updated', userIdList, user);
+
         /// 5. Send event removed for any missing previous event invitees
-        this.notifyRemovedUsers(uniqueInviteesList, prevEventInvitees);
+        this.notifyRemovedUsers(
+            event.id,
+            inviteesList,
+            userIdList,
+            prevEventInvitees,
+            user
+        );
 
         return response.status(200).send({ "success" : true });
     }
 
     private async notifyRemovedUsers(
+        eventId: number,
         currentEventInvitees: EventInvitee[],
-        prevEventInvitees: EventInvitee[]
+        userIdsNeedNotNotify: number[],
+        prevEventInvitees: EventInvitee[],
+        updatedBy: User
     ) {
         let deletedEventInvitees = [];
         /// Get all invitees who are not there in the current invitee list
@@ -330,43 +333,72 @@ export class EventController  extends BaseController {
         }
 
         if (isArrayPopulated(deletedEventInvitees)) {
-            this.sendEventRemovedNotification(deletedEventInvitees);
+            this.sendEventRemovedNotification(
+                eventId,
+                deletedEventInvitees,
+                updatedBy,
+                userIdsNeedNotNotify
+            );
         }
     }
 
     @Authorized()
     @Delete('/deleteEvent')
     async deleteEvent(
+      @HeaderParam("authorization") user: User,
       @QueryParam('deleteType', {required: true}) deleteType: "EVENT" | "SINGLE_EVENT_OCCURRENCE" | "EVENT_OCCURRENCES",
       @Body() eventOccurrence: EventOccurrence,
       @Res() response: Response
     ) {
         await this.eventService.deleteEvent(eventOccurrence, deleteType);
-        await this.deleteEventOccurrenceRoster(deleteType, eventOccurrence);
+        await this.deleteEventOccurrenceRoster(
+            deleteType,
+            eventOccurrence,
+            user
+        );
         let eventInvitees = await this.eventService.fetchEventInvitees(eventOccurrence.eventId);
-        this.sendEventRemovedNotification(eventInvitees);
+        this.sendEventRemovedNotification(eventOccurrence.eventId, eventInvitees, user);
 
         return response.status(200).send({ "success" : true});
     }
 
-    private async deleteEventOccurrenceRoster(deleteType: string, eventOccurrence: EventOccurrence) {
-        let rosters = [];
+    private async deleteEventOccurrenceRoster(
+        deleteType: string,
+        eventOccurrence: EventOccurrence,
+        user: User
+    ) {
         if (deleteType == "EVENT_OCCURRENCES") {
             let eventOccurrences = await this.eventService.fetchEventOccurrences(eventOccurrence);
             if (eventOccurrences && eventOccurrences.length > 0) {
                 let eventOccurrenceIdsArray = eventOccurrences.map(eo => eo.id);
-                let eventOccurrenceRosters = await this.rosterService.findByEventOccurrenceIds(eventOccurrenceIdsArray);
-                Array.prototype.push.apply(rosters, eventOccurrenceRosters);
                 await this.rosterService.deleteByEventOccurrenceIds(eventOccurrenceIdsArray);
             }
         } else {
-            let eventOccurrenceRosters = await this.rosterService.findByEventOccurrence(eventOccurrence.id);
-            Array.prototype.push.apply(rosters, eventOccurrenceRosters);
             await this.rosterService.deleteByEventOccurrence(eventOccurrence.id);
         }
     }
 
-    private async sendEventRemovedNotification(eventInvitees: EventInvitee[]) {
+    private async notifyEventToUsers(eventId: number, notifyType: string, userIdList: number[], updatedBy: User) {
+        let tokens = (await this.deviceService.getUserTokens(userIdList)).map(device => device.deviceId);
+        if (tokens && tokens.length > 0) {
+            let uniqTokens = new Set(tokens);
+            this.firebaseService.sendMessage({
+                tokens: Array.from(uniqTokens),
+                data: {
+                    type: notifyType,
+                    eventId: eventId.toString(),
+                    userId: updatedBy.id.toString()
+                }
+            });
+        }
+    }
+
+    private async sendEventRemovedNotification(
+        eventId: number,
+        eventInvitees: EventInvitee[],
+        updatedBy: User,
+        userIdsNeedNotNotify: number[] = undefined,
+    ) {
         let userIdList = [];
         let teamIdList = [];
         eventInvitees.forEach(ei => {
@@ -391,20 +423,20 @@ export class EventController  extends BaseController {
 
         /// Getting all the tokens and then will send notification to only
         /// Uniq token set
-        let tokens = [];
-        for (let userId of userIdList) {
-            let userTokens = (await this.deviceService.getUserDevices(userId)).map(device => device.deviceId);
-            if (userTokens && userTokens.length > 0) {
-                Array.prototype.push.apply(tokens, userTokens);
-            }
+        if (isArrayPopulated(userIdsNeedNotNotify)) {
+            _.remove(userIdList, function(userId) { return  userIdsNeedNotNotify.indexOf(userId) >= 0 });
         }
+
+        let tokens = (await this.deviceService.getUserTokens(userIdList)).map(device => device.deviceId);
 
         if (isArrayPopulated(tokens)) {
             let uniqTokens = new Set(tokens);
             this.firebaseService.sendMessage({
                 tokens: Array.from(uniqTokens),
                 data: {
-                    type: 'event_occurrence_removed'
+                    type: 'event_occurrence_removed',
+                    eventId: eventId.toString(),
+                    userId: updatedBy.id.toString()
                 }
             });
         }

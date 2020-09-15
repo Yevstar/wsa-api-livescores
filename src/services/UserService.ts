@@ -73,6 +73,12 @@ export default class UserService extends BaseService<User> {
             .getRawOne();
     }
 
+    public async getFunctionRoles(functionId: number): Promise<RoleFunction[]> {
+        return this.entityManager.createQueryBuilder(RoleFunction, 'rf')
+            .where('rf.functionId = :functionId', {functionId})
+            .getMany();
+    }
+
     public async deleteRolesByUser(userId: number, roleId:number, inputEntityId: number, inputEntityTypeId: number, linkedEntityTypeId: number) {
         try {
             let result = await this.entityManager.query("call wsa_users.usp_delete_entity_roles_by_user(?,?,?,?,?)",[userId, roleId, inputEntityId, inputEntityTypeId, linkedEntityTypeId]);
@@ -380,7 +386,7 @@ export default class UserService extends BaseService<User> {
             transporter.close();
             return Promise.resolve();
         });
-        
+
     }catch(error){
         //cTrack.statusRefId = 2;
     }

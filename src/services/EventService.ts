@@ -17,13 +17,13 @@ export default class EventService extends BaseService<Event> {
     }
 
     public async findUserEventOccurrences(
-        userId: number
+        userId: number,
+        eventReceipientsRoleIds: number[]
     ): Promise<any> {
         let result = await this.entityManager.query(
-          "call wsa.usp_get_eventOccurrences(?, ?, ?, ?, ?)",[
+          "call wsa.usp_get_eventOccurrences(?, ?, ?, ?)",[
             userId,
-            Role.MANAGER,
-            Role.PLAYER,
+            eventReceipientsRoleIds.toString(),
             EntityType.TEAM,
             EntityType.USER
           ]);
