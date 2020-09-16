@@ -311,7 +311,7 @@ export default class UserService extends BaseService<User> {
                         <body >
                             <p>Hi ${receiverData.firstName} ${receiverData.lastName},
                             <p>${userData.firstName} ${userData.lastName}, ${competitionData.competitionOrganisation.name} has invited you
-                            to Umpire Coach for the ${competitionData.name}. Download the Netball LiveScores App from the <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
+                            to Umpire Coach for the ${competitionData.name}. Please Download the Netball LiveScores App from the <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
                             <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a> and start Umpire Coaching.
                             <p> Your password is <b>${password}</b> - you can change it when you log in if you would like.
                             <p> We hope you enjoy using Netball Live Scores.
