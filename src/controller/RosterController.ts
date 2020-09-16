@@ -64,7 +64,14 @@ export class RosterController extends BaseController {
         @Res() response: Response
     ) {
         if (competitionId && isArrayPopulated(roleIds)) {
-            return this.rosterService.findUserRostersByCompetition(competitionId, roleIds, status, requestFilter, sortBy, sortOrder);
+            return this.rosterService.findUserRostersByCompetition(
+                competitionId,
+                roleIds,
+                status,
+                requestFilter,
+                sortBy,
+                sortOrder
+            );
         } else {
             return response.status(200).send({
                 name: 'search_error', message: `Invalid parameters`
@@ -167,7 +174,7 @@ export class RosterController extends BaseController {
     async addRoster(
         @HeaderParam("authorization") user: User,
         @Body() roster: Roster,
-        @QueryParam('category', { required: true }) category: "Scoring" | "Playing" | "Event" | "Umpiring",
+        @QueryParam('category', { required: true }) category: "Scoring" | "Playing" | "Event" | "Umpiring" | "UmpireReserve" | "UmpireCoach",
         @Res() response: Response
     ) {
         if (!roster) {
@@ -194,7 +201,8 @@ export class RosterController extends BaseController {
         @HeaderParam("authorization") user: User,
         @QueryParam('rosterId', { required: true }) rosterId: number,
         @QueryParam('status', { required: true }) status: "YES" | "NO" | "LATER" | "MAYBE",
-        @QueryParam('category', { required: true }) category: "Scoring" | "Playing" | "Event" | "Umpiring",
+        @QueryParam('category', { required: true }) category: "Scoring" | "Playing" | "Event" | "Umpiring" | "UmpireReserve" | "UmpireCoach",
+        @QueryParam('callViaWeb') callViaWeb: boolean = false,
         @Res() response: Response
     ) {
         let roster = await this.rosterService.findFullById(rosterId);
@@ -260,6 +268,8 @@ export class RosterController extends BaseController {
                     }
                     break;
                 case "Umpiring":
+                case "UmpireReserve":
+                case "UmpireCoach":
                     let umpireDeviceTokens = (await this.deviceService.findManagerDevice(result.teamId)).map(device => device.deviceId);
                     if (umpireDeviceTokens && umpireDeviceTokens.length > 0) {
                         if (status == "NO") {
@@ -285,6 +295,18 @@ export class RosterController extends BaseController {
                         }
                     }
                     break;
+            }
+
+            if (callViaWeb) {
+                let tokens = (await this.deviceService.getUserDevices(roster.userId)).map(device => device.deviceId);
+                if (tokens && tokens.length > 0) {
+                    this.firebaseService.sendMessage({
+                        tokens: tokens,
+                        data: {
+                            type: 'user_roster_updated'
+                        }
+                    });
+                }
             }
 
             return result;

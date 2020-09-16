@@ -274,7 +274,11 @@ export class BaseController {
         }
     }
 
-    protected async notifyRosterChange(user: User, roster: Roster, category: "Scoring" | "Playing" | "Event" | "Umpiring") {
+    protected async notifyRosterChange(
+        user: User,
+        roster: Roster,
+        category: "Scoring" | "Playing" | "Event" | "Umpiring" | "UmpireReserve" | "UmpireCoach"
+    ) {
         switch (category) {
             case "Scoring":
               let tokens = [];

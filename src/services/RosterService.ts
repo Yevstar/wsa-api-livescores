@@ -92,10 +92,8 @@ export default class RosterService extends BaseService<Roster> {
             .leftJoinAndSelect('userRoleEntity.competitionOrganisation', 'competitionOrganisation')
             .andWhere('match.competitionId = :competitionId', {competitionId})
             .andWhere('roster.roleId in (:roleIds)', {roleIds})
-            .andWhere('match.deleted_at is null')
-            .andWhere('userRoleEntity.entityTypeId = 2')
-            .andWhere('userRoleEntity.roleId in (:roleIds)', {roleIds});
-
+            .andWhere('match.deleted_at is null');
+            
             if (status) {
                 if (status == Roster.STATUS_NONE) {
                     query.andWhere('roster.status is null');
