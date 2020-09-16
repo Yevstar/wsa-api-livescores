@@ -673,6 +673,17 @@ export class UserController extends BaseController {
 
         const promiseList = [];
         if (roleToDelete && entityType) {
+            const rosters = await this.rosterService.findFutureUserRostersForRole(
+                user.id,
+                roleToDelete
+            );
+            if (isArrayPopulated(rosters)) {
+                rosters.forEach((roster) => {
+                  promiseList.push(
+                      this.rosterService.deleteById(roster.id)
+                  );
+                });
+            }
             promiseList.push(
                 this.userService.deleteRolesByUser(
                     user.id,
@@ -680,13 +691,6 @@ export class UserController extends BaseController {
                     competitionId,
                     EntityType.COMPETITION,
                     entityType
-                )
-            );
-            promiseList.push(
-                this.rosterService.deleteFutureUserRosters(
-                    [user.id],
-                    null,
-                    [roleToDelete]
                 )
             );
         }

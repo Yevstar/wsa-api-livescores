@@ -93,7 +93,7 @@ export default class RosterService extends BaseService<Roster> {
             .andWhere('match.competitionId = :competitionId', {competitionId})
             .andWhere('roster.roleId in (:roleIds)', {roleIds})
             .andWhere('match.deleted_at is null');
-            
+
             if (status) {
                 if (status == Roster.STATUS_NONE) {
                     query.andWhere('roster.status is null');
@@ -249,25 +249,22 @@ export default class RosterService extends BaseService<Roster> {
                 .execute();
     }
 
-    public async deleteFutureUserRosters(
-        userIds: number[],
-        teamIds: number[] = [],
-        roleIds: number[] = []
-    ): Promise<DeleteResult> {
-        let query = this.entityManager.createQueryBuilder(Roster, 'r')
-            .innerJoin('r.match', 'm', 'm.startTime > :currentTime', {currentTime: new Date()})
-            .delete()
-            .where('userId in (:userIds)', {userIds})
-            .where('matchId is not null')
-            .andWhere('eventOccurrenceId is null');
+    public async findFutureUserRostersForRole(
+        userId: number,
+        roleId: number
+    ): Promise<Roster[]> {
+        let query = this.entityManager.createQueryBuilder(Roster, 'roster')
+            .innerJoinAndSelect('roster.match', 'match')
+            .where('match.deleted_at is null')
+            .andWhere('match.startTime > :currentTime', {currentTime: new Date()})
+            .andWhere('roster.userId = :userId', {userId})
+            .andWhere('roster.matchId is not null')
+            .andWhere('roster.eventOccurrenceId is null');
 
-        if (isArrayPopulated(teamIds)) {
-          query.andWhere('teamId in (:teamIds)', {teamIds: teamIds});
-        }
-        if (isArrayPopulated(roleIds)) {
-            query.andWhere('roleId in (:roleIds)', {roleIds: roleIds});
+        if (roleId) {
+            query.andWhere('roster.roleId = :roleId', {roleId});
         }
 
-        return query.execute();
+        return query.getMany();
     }
 }
