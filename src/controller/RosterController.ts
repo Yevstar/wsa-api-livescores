@@ -101,29 +101,70 @@ export class RosterController extends BaseController {
 
     @Authorized()
     @Delete('/')
-    async delete(@QueryParam("id") id: number, @Res() response: Response) {
-        //TODO: Add back in assign_scorer authorisation
+    async delete(
+      @QueryParam("id") id: number,
+      @QueryParam('category') category: "Scoring" | "Umpiring" | "UmpireReserve" | "UmpireCoach",
+      @Res() response: Response
+    ) {
         let roster = await this.rosterService.findById(id);
         if (roster) {
-            let tokens = (await this.deviceService.findScorerDeviceFromRoster(undefined, id)).map(device => device.deviceId);
             let result = await this.rosterService.delete(roster);
             if (result) {
-                if (tokens && tokens.length > 0) {
-                    this.firebaseService.sendMessageChunked({
-                        tokens: tokens,
-                        data: {
-                            type: 'remove_scorer_match',
-                            rosterId: id.toString(),
-                            matchId: roster.matchId.toString()
+                switch (category) {
+                    case "Scoring":
+                        let scorerDeviceTokens = (await this.deviceService.findScorerDeviceFromRoster(undefined, id)).map(device => device.deviceId);
+                        if (scorerDeviceTokens && scorerDeviceTokens.length > 0) {
+                            this.firebaseService.sendMessageChunked({
+                                tokens: scorerDeviceTokens,
+                                data: {
+                                    type: 'remove_scorer_match',
+                                    rosterId: id.toString(),
+                                    matchId: roster.matchId.toString()
+                                }
+                            })
                         }
-                    })
+                        break;
+                    case "Umpiring":
+                    case "UmpireReserve":
+                    case "UmpireCoach":
+                        let umpireDeviceTokens = (await this.deviceService.getUserDevices(roster.userId)).map(device => device.deviceId);
+                        if (umpireDeviceTokens && umpireDeviceTokens.length > 0) {
+                            this.firebaseService.sendMessage({
+                                tokens: umpireDeviceTokens,
+                                data: {
+                                    type: 'remove_umpire_match',
+                                    rosterId: id.toString(),
+                                    matchId: roster.matchId.toString()
+                                }
+                            });
+                        }
+                        break;
+                    default:
+                        let tokens = (await this.deviceService.getUserDevices(roster.userId)).map(device => device.deviceId);
+                        if (tokens && tokens.length > 0) {
+                            this.firebaseService.sendMessage({
+                                tokens: tokens,
+                                data: {
+                                    type: 'user_roster_removed',
+                                    rosterId: id.toString()
+                                }
+                            });
+                        }
+                        break;
                 }
+
                 return response.status(200).send({ delete: true });
             } else {
-                return response.status(200).send({ delete: false });
+                return response.status(404).send({
+                    name: 'delete_error',
+                    message: `Roster with id [${id}] could not be deleted`
+                });
             }
         } else {
-            return response.status(200).send({ delete: false });
+            return response.status(404).send({
+                name: 'search_error',
+                message: `Roster with id [${id}] not found`
+            });
         }
     }
 
@@ -303,7 +344,8 @@ export class RosterController extends BaseController {
                     this.firebaseService.sendMessage({
                         tokens: tokens,
                         data: {
-                            type: 'user_roster_updated'
+                            type: 'user_roster_updated',
+                            rosterId: rosterId.toString()
                         }
                     });
                 }
@@ -382,29 +424,16 @@ export class RosterController extends BaseController {
     // specific response to allow inline editing for admin
     @Authorized()
     @Delete('/admin')
-    async deleteAdminRoster(@QueryParam("id") id: number, @Res() response: Response) {
-        let roster = await this.rosterService.findById(id);
-        if (roster) {
-            let tokens = (await this.deviceService.findScorerDeviceFromRoster(undefined, id)).map(device => device.deviceId);
-            let result = await this.rosterService.delete(roster);
-            if (result) {
-                if (tokens && tokens.length > 0) {
-                    this.firebaseService.sendMessageChunked({
-                        tokens: tokens,
-                        data: {
-                            type: 'remove_scorer_match',
-                            rosterId: id.toString(),
-                            matchId: roster.matchId.toString()
-                        }
-                    })
-                }
-                return response.status(200).send();
-            } else {
-                return response.status(200).send({ delete: false });
-            }
-        } else {
-            return response.status(200).send({ delete: false });
-        }
+    async deleteAdminRoster(
+        @QueryParam("id") id: number,
+        @QueryParam('category') category: "Scoring" | "Umpiring" | "UmpireReserve" | "UmpireCoach",
+        @Res() response: Response
+    ) {
+        return await this.delete(
+            id,
+            category,
+            response
+        );
     }
 
     @Authorized()
