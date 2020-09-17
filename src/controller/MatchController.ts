@@ -544,14 +544,19 @@ export class MatchController extends BaseController {
            
             let result = await this.rosterService.delete(roster);
             logger.debug(`tokens` + JSON.stringify(tokens) + `##` + JSON.stringify(result));
+            
+            let rosterId = roster.id ? roster.id.toString() : "";
+            let mtchId = roster.matchId ? roster.matchId.toString(): "";
+
+            logger.debug(`rosterId::` + rosterId + `mtchId::` + mtchId);
             if (result) {
                 if (tokens && tokens.length > 0) {
                     this.firebaseService.sendMessageChunked({
                         tokens: tokens,
                         data: {
                             type: 'remove_scorer_match',
-                            rosterId: roster.id ? roster.id.toString() : "",
-                            matchId: roster.matchId ? roster.matchId.toString(): ""
+                            rosterId: rosterId,
+                            matchId: mtchId
                         }
                     })
                 }
