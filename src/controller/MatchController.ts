@@ -540,13 +540,11 @@ export class MatchController extends BaseController {
         try{
             logger.debug(`Inside the removeScorerRoster ` + JSON.stringify(roster) + "&&" + matchId);
             let tokens = (await this.deviceService.findScorerDeviceFromRoster(matchId, roster.id)).map(device => device.deviceId);
-
+            let rosterId = roster.id ? roster.id.toString() : "";
+            let mtchId = roster.matchId ? roster.matchId.toString(): "";
            
             let result = await this.rosterService.delete(roster);
             logger.debug(`tokens` + JSON.stringify(tokens) + `##` + JSON.stringify(result));
-            
-            let rosterId = roster.id ? roster.id.toString() : "";
-            let mtchId = roster.matchId ? roster.matchId.toString(): "";
 
             logger.debug(`rosterId::` + rosterId + `mtchId::` + mtchId);
             if (result) {
