@@ -410,7 +410,7 @@ export class MatchController extends BaseController {
 
         await this.performTeamLadderOperation(arr, user.id);
         // }
-
+        logger.debug("After Ladder");
         this.sendMatchEvent(saved); // This is to send notification for devices
         return saved;
     }
