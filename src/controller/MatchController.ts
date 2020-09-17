@@ -251,168 +251,175 @@ export class MatchController extends BaseController {
         @Body() match: Match,
         @Res() response: Response
     ) {
-        let isNewMatch = false;
-        if (match.id == 0) {
-            isNewMatch = true;
-        }
-
-        // Saving match scores if match id and userId are present
-        if (userId && match.id && !isNewMatch) {
-            const matchScores = new MatchScores();
-            matchScores.userId = userId;
-            matchScores.matchId = match.id;
-            matchScores.team1Score = match.team1Score;
-            matchScores.team2Score = match.team2Score;
-
-            this.matchScorerService.createOrUpdate(matchScores);
-        }
-
-        // Saving match
-        const saved = await this.matchService.createOrUpdate(match);
-        if (isNewMatch) {
-            match.id = saved.id;
-        }
-
-        // Getting match competition and rosters existing for the match
-        const competition = await this.competitionService.findById(match.competitionId);
-
-        // Updating umpires
-        if (competition.recordUmpireType == "NAMES") {
-            let oldUmpires = await this.matchUmpireService.findByMatchIds([match.id]);
-            let newUmpires = match.matchUmpires;
-            if (newUmpires) {
-                if (oldUmpires) {
-                    const matchUmpireDeletePromises = [];
-                    /// Checking if any of the old umpires sequences are not present in new data
-                    for (let oldUmpire of oldUmpires) {
-                        /// If there is no new umpire with that sequence that delete old one.
-                        if (newUmpires.filter(umpire => (umpire.umpireName && umpire.sequence == oldUmpire.sequence)).length == 0) {
-                            matchUmpireDeletePromises.push(
-                                this.matchUmpireService.deleteById(oldUmpire.id)
-                            );
-                        }
-                    }
-                    await Promise.all(matchUmpireDeletePromises);
-                }
-
-                /// Updating umpires data
-                for (let newUmpire of newUmpires) {
-                    if (newUmpire.umpireName) {
-                        newUmpire.matchId = saved.id;
-                        let oldMatchingUmpireList = [];
-                        if (oldUmpires) {
-                            oldMatchingUmpireList = oldUmpires.filter(umpire => umpire.sequence == newUmpire.sequence);
-                        }
-                        if (oldMatchingUmpireList.length > 0) {
-                            let oldUmpire = oldMatchingUmpireList[0];
-                            if (oldUmpire.organisationId != newUmpire.organisationId ||
-                                oldUmpire.umpireName != newUmpire.umpireName ||
-                                oldUmpire.umpireType != newUmpire.umpireType) {
-                                this.createUmpire(newUmpire, user.id, oldUmpire);
+        try{
+            logger.debug(`Inside the Create Match::` + JSON.stringify(match));
+            let isNewMatch = false;
+            if (match.id == 0) {
+                isNewMatch = true;
+            }
+    
+            // Saving match scores if match id and userId are present
+            if (userId && match.id && !isNewMatch) {
+                const matchScores = new MatchScores();
+                matchScores.userId = userId;
+                matchScores.matchId = match.id;
+                matchScores.team1Score = match.team1Score;
+                matchScores.team2Score = match.team2Score;
+    
+                this.matchScorerService.createOrUpdate(matchScores);
+            }
+    
+            // Saving match
+            const saved = await this.matchService.createOrUpdate(match);
+            if (isNewMatch) {
+                match.id = saved.id;
+            }
+    
+            // Getting match competition and rosters existing for the match
+            const competition = await this.competitionService.findById(match.competitionId);
+    
+            // Updating umpires
+            if (competition.recordUmpireType == "NAMES") {
+                let oldUmpires = await this.matchUmpireService.findByMatchIds([match.id]);
+                let newUmpires = match.matchUmpires;
+                if (newUmpires) {
+                    if (oldUmpires) {
+                        const matchUmpireDeletePromises = [];
+                        /// Checking if any of the old umpires sequences are not present in new data
+                        for (let oldUmpire of oldUmpires) {
+                            /// If there is no new umpire with that sequence that delete old one.
+                            if (newUmpires.filter(umpire => (umpire.umpireName && umpire.sequence == oldUmpire.sequence)).length == 0) {
+                                matchUmpireDeletePromises.push(
+                                    this.matchUmpireService.deleteById(oldUmpire.id)
+                                );
                             }
-                        } else {
-                            this.createUmpire(newUmpire, user.id);
+                        }
+                        await Promise.all(matchUmpireDeletePromises);
+                    }
+    
+                    /// Updating umpires data
+                    for (let newUmpire of newUmpires) {
+                        if (newUmpire.umpireName) {
+                            newUmpire.matchId = saved.id;
+                            let oldMatchingUmpireList = [];
+                            if (oldUmpires) {
+                                oldMatchingUmpireList = oldUmpires.filter(umpire => umpire.sequence == newUmpire.sequence);
+                            }
+                            if (oldMatchingUmpireList.length > 0) {
+                                let oldUmpire = oldMatchingUmpireList[0];
+                                if (oldUmpire.organisationId != newUmpire.organisationId ||
+                                    oldUmpire.umpireName != newUmpire.umpireName ||
+                                    oldUmpire.umpireType != newUmpire.umpireType) {
+                                    this.createUmpire(newUmpire, user.id, oldUmpire);
+                                }
+                            } else {
+                                this.createUmpire(newUmpire, user.id);
+                            }
                         }
                     }
                 }
             }
-        }
-
-        /// Getting all old scorer or umpire rosters
-        let oldRosters = (await this.rosterService
-            .findAllRostersByParam([match.id]))
-            .filter(roster =>
-                (roster.roleId == Role.SCORER ||
-                  roster.roleId == Role.UMPIRE ||
-                  roster.roleId == Role.UMPIRE_RESERVE ||
-                  roster.roleId == Role.UMPIRE_COACH)
-            );
-        if (isArrayPopulated(match.rosters)) {
-            let newRosters = match.rosters;
-            /// Deleting rosters which doesn't match with new one's provided
-            const deleteRosterPromises = [];
-            for (let oldRoster of oldRosters) {
-                // delete old roster only if it doesn't match new role, user, team
-                let matchedNewRosters = newRosters.filter(
-                    roster =>
-                        (roster.userId &&
-                            oldRoster.roleId == roster.roleId &&
-                            oldRoster.userId == roster.userId &&
-                            oldRoster.teamId == roster.teamId)
+    
+            /// Getting all old scorer or umpire rosters
+            let oldRosters = (await this.rosterService
+                .findAllRostersByParam([match.id]))
+                .filter(roster =>
+                    (roster.roleId == Role.SCORER ||
+                      roster.roleId == Role.UMPIRE ||
+                      roster.roleId == Role.UMPIRE_RESERVE ||
+                      roster.roleId == Role.UMPIRE_COACH)
                 );
-                if (matchedNewRosters.length == 0) {
-                    deleteRosterPromises.push(
-                        this.deleteRoster(oldRoster)
-                    );
-                }
-            }
-            await Promise.all(deleteRosterPromises);
-
-            let umpireSequence = 0;
-            for (let newRoster of match.rosters) {
-                newRoster.matchId = saved.id;
-                if (newRoster.roleId == Role.UMPIRE) {
-                    // Increment the umpire sequence if the roster role is umpire
-                    ++umpireSequence;
-                }
-                if (newRoster.roleId == Role.UMPIRE && competition.recordUmpireType == "USERS") {
-                    this.addUmpireTypeRoster(
-                        match.id,
-                        Role.UMPIRE,
-                        oldRosters,
-                        newRoster,
-                        umpireSequence
-                    );
-                } else if (newRoster.roleId == Role.SCORER) {
-                    // add new umpire roster only if it doesn't match old role, user, team
-                    let matchedOldRosters = oldRosters.filter(
+            if (isArrayPopulated(match.rosters)) {
+                let newRosters = match.rosters;
+                /// Deleting rosters which doesn't match with new one's provided
+                const deleteRosterPromises = [];
+                for (let oldRoster of oldRosters) {
+                    // delete old roster only if it doesn't match new role, user, team
+                    let matchedNewRosters = newRosters.filter(
                         roster =>
-                            (roster.roleId == Role.SCORER &&
-                                roster.userId &&
-                                roster.userId == newRoster.userId &&
-                                roster.teamId == newRoster.teamId)
+                            (roster.userId &&
+                                oldRoster.roleId == roster.roleId &&
+                                oldRoster.userId == roster.userId &&
+                                oldRoster.teamId == roster.teamId)
                     );
-                    if (matchedOldRosters.length == 0 && newRoster.userId) {
-                        this.addScorerRoster(newRoster, user);
+                    if (matchedNewRosters.length == 0) {
+                        deleteRosterPromises.push(
+                            this.deleteRoster(oldRoster)
+                        );
                     }
-                } else if (newRoster.roleId == Role.UMPIRE_RESERVE) {
-                    this.addUmpireTypeRoster(
-                        match.id,
-                        Role.UMPIRE_RESERVE,
-                        oldRosters,
-                        newRoster
-                    );
-                } else if (newRoster.roleId == Role.UMPIRE_COACH) {
-                    this.addUmpireTypeRoster(
-                        match.id,
-                        Role.UMPIRE_COACH,
-                        oldRosters,
-                        newRoster
+                }
+                await Promise.all(deleteRosterPromises);
+    
+                let umpireSequence = 0;
+                for (let newRoster of match.rosters) {
+                    newRoster.matchId = saved.id;
+                    if (newRoster.roleId == Role.UMPIRE) {
+                        // Increment the umpire sequence if the roster role is umpire
+                        ++umpireSequence;
+                    }
+                    if (newRoster.roleId == Role.UMPIRE && competition.recordUmpireType == "USERS") {
+                        this.addUmpireTypeRoster(
+                            match.id,
+                            Role.UMPIRE,
+                            oldRosters,
+                            newRoster,
+                            umpireSequence
+                        );
+                    } else if (newRoster.roleId == Role.SCORER) {
+                        // add new umpire roster only if it doesn't match old role, user, team
+                        let matchedOldRosters = oldRosters.filter(
+                            roster =>
+                                (roster.roleId == Role.SCORER &&
+                                    roster.userId &&
+                                    roster.userId == newRoster.userId &&
+                                    roster.teamId == newRoster.teamId)
+                        );
+                        if (matchedOldRosters.length == 0 && newRoster.userId) {
+                            this.addScorerRoster(newRoster, user);
+                        }
+                    } else if (newRoster.roleId == Role.UMPIRE_RESERVE) {
+                        this.addUmpireTypeRoster(
+                            match.id,
+                            Role.UMPIRE_RESERVE,
+                            oldRosters,
+                            newRoster
+                        );
+                    } else if (newRoster.roleId == Role.UMPIRE_COACH) {
+                        this.addUmpireTypeRoster(
+                            match.id,
+                            Role.UMPIRE_COACH,
+                            oldRosters,
+                            newRoster
+                        );
+                    }
+                }
+            } else if (oldRosters.length > 0) {
+                /// As there are no rosters provided with match we will remove
+                /// all existing rosters.
+                const deleteRosterPromises = [];
+                for (let roster of oldRosters) {
+                    deleteRosterPromises.push(
+                        this.deleteRoster(roster)
                     );
                 }
+                await Promise.all(deleteRosterPromises);
             }
-        } else if (oldRosters.length > 0) {
-            /// As there are no rosters provided with match we will remove
-            /// all existing rosters.
-            const deleteRosterPromises = [];
-            for (let roster of oldRosters) {
-                deleteRosterPromises.push(
-                    this.deleteRoster(roster)
-                );
-            }
-            await Promise.all(deleteRosterPromises);
+    
+            // Team Ladder
+            // if (!isNewMatch) {
+            let arr = [];
+            arr.push(match);
+    
+            await this.performTeamLadderOperation(arr, user.id);
+            // }
+            logger.debug("After Ladder");
+            this.sendMatchEvent(saved); // This is to send notification for devices
+            return saved;
         }
-
-        // Team Ladder
-        // if (!isNewMatch) {
-        let arr = [];
-        arr.push(match);
-
-        await this.performTeamLadderOperation(arr, user.id);
-        // }
-        logger.debug("After Ladder");
-        this.sendMatchEvent(saved); // This is to send notification for devices
-        return saved;
+        catch(error){
+            logger.error(`Exception occurred in create Match ${error}`);
+        }
+        
     }
 
     private async addUmpireTypeRoster(
