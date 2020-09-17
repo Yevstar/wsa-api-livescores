@@ -252,7 +252,7 @@ export class MatchController extends BaseController {
         @Res() response: Response
     ) {
         try{
-            logger.debug(`Inside the Create Match::` + JSON.stringify(match));
+           // logger.debug(`Inside the Create Match::` + JSON.stringify(match));
             let isNewMatch = false;
             if (match.id == 0) {
                 isNewMatch = true;
@@ -277,15 +277,15 @@ export class MatchController extends BaseController {
     
             // Getting match competition and rosters existing for the match
             const competition = await this.competitionService.findById(match.competitionId);
-            logger.debug(`competition::` + JSON.stringify(competition));
+          //  logger.debug(`competition::` + JSON.stringify(competition));
     
             // Updating umpires
             if (competition.recordUmpireType == "NAMES") {
                 
                 let oldUmpires = await this.matchUmpireService.findByMatchIds([match.id]);
                 let newUmpires = match.matchUmpires;
-                logger.debug(`newUmpires::` + JSON.stringify(newUmpires));
-                logger.debug(`oldUmpires::` + JSON.stringify(oldUmpires));
+                // logger.debug(`newUmpires::` + JSON.stringify(newUmpires));
+                // logger.debug(`oldUmpires::` + JSON.stringify(oldUmpires));
                 if (newUmpires) {
                     if (oldUmpires) {
                         const matchUmpireDeletePromises = [];
@@ -323,7 +323,7 @@ export class MatchController extends BaseController {
                     }
                 }
             }
-            logger.debug(` Before oldRosters::` + match.id);
+          //  logger.debug(` Before oldRosters::` + match.id);
             /// Getting all old scorer or umpire rosters
             let oldRosters = (await this.rosterService
                 .findAllRostersByParam([match.id]))
@@ -333,8 +333,8 @@ export class MatchController extends BaseController {
                       roster.roleId == Role.UMPIRE_RESERVE ||
                       roster.roleId == Role.UMPIRE_COACH)
                 );
-                logger.debug(` After oldRosters::` + JSON.stringify(oldRosters));
-                logger.debug(` Mach Rosters::` + JSON.stringify(match.rosters));
+                // logger.debug(` After oldRosters::` + JSON.stringify(oldRosters));
+                // logger.debug(` Mach Rosters::` + JSON.stringify(match.rosters));
             if (isArrayPopulated(match.rosters)) {
                 let newRosters = match.rosters;
                 /// Deleting rosters which doesn't match with new one's provided
@@ -357,7 +357,7 @@ export class MatchController extends BaseController {
                 await Promise.all(deleteRosterPromises);
     
                 let umpireSequence = 0;
-                logger.debug("Match Create Rosters" + JSON.stringify(match.rosters));
+               // logger.debug("Match Create Rosters" + JSON.stringify(match.rosters));
                 for (let newRoster of match.rosters) {
                     newRoster.matchId = saved.id;
                     if (newRoster.roleId == Role.UMPIRE) {
@@ -403,7 +403,6 @@ export class MatchController extends BaseController {
             } else if (oldRosters.length > 0) {
                 /// As there are no rosters provided with match we will remove
                 /// all existing rosters.
-                logger.debug("Else if");
                 const deleteRosterPromises = [];
                 for (let roster of oldRosters) {
                     deleteRosterPromises.push(
@@ -417,10 +416,8 @@ export class MatchController extends BaseController {
             // if (!isNewMatch) {
             let arr = [];
             arr.push(match);
-            logger.debug(`Before Ladder` + JSON.stringify(arr));
             await this.performTeamLadderOperation(arr, user.id);
-            // }
-            logger.debug(`After Ladder`);
+ 
             this.sendMatchEvent(saved); // This is to send notification for devices
             return saved;
         }
@@ -496,7 +493,7 @@ export class MatchController extends BaseController {
     }
 
     private async deleteRoster(roster: Roster) {
-        logger.debug(`Inside the deleteRoster` + JSON.stringify(roster));
+       // logger.debug(`Inside the deleteRoster` + JSON.stringify(roster));
         try {
             if (roster.roleId == Role.SCORER) {
                 await this.removeScorerRoster(roster.matchId, roster);
@@ -538,15 +535,11 @@ export class MatchController extends BaseController {
 
     private async removeScorerRoster(matchId: number, roster: Roster) {
         try{
-            logger.debug(`Inside the removeScorerRoster ` + JSON.stringify(roster) + "&&" + matchId);
+           // logger.debug(`Inside the removeScorerRoster ` + JSON.stringify(roster) + "&&" + matchId);
             let tokens = (await this.deviceService.findScorerDeviceFromRoster(matchId, roster.id)).map(device => device.deviceId);
             let rosterId = roster.id ? roster.id.toString() : "";
             let mtchId = roster.matchId ? roster.matchId.toString(): "";
-           
             let result = await this.rosterService.delete(roster);
-            logger.debug(`tokens` + JSON.stringify(tokens) + `##` + JSON.stringify(result));
-
-            logger.debug(`rosterId::` + rosterId + `mtchId::` + mtchId);
             if (result) {
                 if (tokens && tokens.length > 0) {
                     this.firebaseService.sendMessageChunked({
