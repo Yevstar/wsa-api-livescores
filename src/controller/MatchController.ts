@@ -913,19 +913,26 @@ export class MatchController extends BaseController {
     async sendMatchEvent(match: Match, updateScore: boolean = false, user?: User, subtype?: string) {
         try {
             if (match) {
+                console.log("sendMatchEvent:: Match" + JSON.stringify(match));
+                console.log("sendMatchEvent:: updateScore" + updateScore);
+                console.log("sendMatchEvent:: user" + JSON.stringify(user));
+                console.log("sendMatchEvent:: subtype" + JSON.stringify(subtype));
+
                 const dataDict = {};
                 dataDict["type"] = "match_updated";
                 dataDict["matchId"] = match.id.toString();
                 if (user) {
+                    console.log("&&&&&&&&&&& Inside User");
                     dataDict["userId"] = user.id.toString();
                 }
                 if (subtype) {
+                    console.log("&&&&&&&&&&& Inside Subtype");
                     dataDict["subtype"] = subtype;
                     if (subtype == 'match_livestreamURL_updated') {
                       dataDict["livestreamURL"] = match.livestreamURL;
                     }
                 }
-
+                console.log("******************####" + JSON.stringify(dataDict));
                 // send by roster and ure
                 if (!updateScore) {
                     let userDevices = await this.deviceService.findDeviceByMatch(match);
@@ -937,7 +944,7 @@ export class MatchController extends BaseController {
                         });
                     }
                 }
-
+                console.log("******************####222" + JSON.stringify(dataDict));
                 if (updateScore) {
                     dataDict["type"] = "match_score_updated";
                     dataDict["team1Score"] = match.team1Score.toString();
@@ -947,7 +954,7 @@ export class MatchController extends BaseController {
                         dataDict["centrePassStatus"] = match.centrePassStatus.toString();
                     }
                 }
-
+                console.log("******************####333" + JSON.stringify(dataDict));
                 logger.debug('Prepare data for update match message', dataDict);
                 let list = await this.watchlistService.loadByParam(match.id, [match.team1Id, match.team2Id]);
                 let tokens = (list).map(wl => wl['token']);
@@ -1335,6 +1342,7 @@ export class MatchController extends BaseController {
                 await this.teamLadderService.batchCreateOrUpdate(arr);
             }
         } catch (error) {
+            logger.error(` Exception occurred in performTeamLadderOperation :: ${error}`);
             throw error;
         }
     }
