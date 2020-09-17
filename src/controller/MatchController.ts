@@ -1244,7 +1244,7 @@ export class MatchController extends BaseController {
 
         const promises = matchesData.map(async match => {
             let dbMatch = await this.matchService.findById(match.id);
-            if (match.team1Score && match.team2Score) {
+            if (isNotNullAndUndefined(match.team1Score) && isNotNullAndUndefined(match.team2Score)) {
                 dbMatch.team1Score = match.team1Score;
                 dbMatch.team2Score = match.team2Score;
                 if (dbMatch.matchStatus != "ENDED") {
