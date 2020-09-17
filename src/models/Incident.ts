@@ -1,4 +1,4 @@
-import {BaseEntity, Column, Entity, PrimaryGeneratedColumn, JoinColumn, OneToMany, OneToOne} from 'typeorm-plus';
+import { BaseEntity, Column, Entity, PrimaryGeneratedColumn, JoinColumn, OneToMany, OneToOne, DeleteDateColumn } from 'typeorm-plus';
 import {IsArray, IsDate, IsNumber, IsString, ValidateNested} from "class-validator";
 import {IncidentType} from './IncidentType';
 import {IncidentPlayer} from './IncidentPlayer';
@@ -69,4 +69,9 @@ export class Incident extends BaseEntity {
     @IsArray({each: true})
     @OneToMany(type => IncidentMedia, incidentMedia => incidentMedia.incident)
     incidentMediaList: IncidentMedia[];
+
+    @IsDate()
+    @DeleteDateColumn({ nullable: true, default: null, name: 'deleted_at' })
+    deleted_at: Date;
+
 }

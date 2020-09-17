@@ -1,4 +1,4 @@
-import { BaseEntity, Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn } from 'typeorm-plus';
+import { BaseEntity, Column, DeleteDateColumn, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn } from 'typeorm-plus';
 import { Competition } from './Competition';
 import { Team } from './Team';
 import { Lineup } from './Lineup';
@@ -82,5 +82,8 @@ export class Player extends BaseEntity {
     @IsString()
     @Column()
     inviteStatus: "INVITED" | "REGISTERED";
+
+    @DeleteDateColumn({ nullable: true, default: null, name: 'deleted_at' })
+    public deleted_at: Date;
 
 }

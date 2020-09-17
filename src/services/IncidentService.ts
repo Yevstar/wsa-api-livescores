@@ -27,7 +27,10 @@ export default class IncidentService extends BaseService<Incident> {
             .leftJoinAndSelect('match.team2', 'team2')
             .innerJoinAndSelect('incident.incidentType', 'incidentType');
 
-        if (incidentId) query.andWhere("incident.id = :incidentId", {incidentId});
+        if (incidentId) {
+            query.andWhere("incident.id = :incidentId", { incidentId });
+            query.andWhere("incident.deleted_at is null");
+        }
         if (competitionId) query.andWhere("incident.competitionId = :competitionId", {competitionId});
 
         if (isNotNullAndUndefined(search) && search !== '') {
@@ -100,6 +103,7 @@ export default class IncidentService extends BaseService<Incident> {
         let query = this.entityManager.createQueryBuilder(Incident, 'i')
             .innerJoin(IncidentPlayer, 'pi', 'pi.incidentId = i.id')
             .andWhere('i.teamId = :teamId', {teamId})
+            .andWhere('i.deleted_at is null')
             .andWhere('pi.playerId = :playerId', {playerId});
 
         if (competitionId) query.andWhere("i.competitionId = :competitionId", {competitionId});
@@ -169,7 +173,8 @@ export default class IncidentService extends BaseService<Incident> {
     public async fetchIncidentByGUID(guid: string): Promise<Incident> {
       let query = this.entityManager
           .createQueryBuilder(Incident, "incident")
-          .andWhere('guid = :guid', {guid});
+          .andWhere('guid = :guid', { guid })
+          .andWhere('deleted_at is null');
 
       return query.getOne();
     }

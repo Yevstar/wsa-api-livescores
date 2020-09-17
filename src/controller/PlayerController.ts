@@ -580,6 +580,6 @@ export class PlayerController extends BaseController {
     async delete(
         @Param("id") id: number,
         @HeaderParam("authorization") user: User) {
-        return this.playerService.deleteById(id);
+        return this.playerService.softDeleteBy(id);
     }
 }
