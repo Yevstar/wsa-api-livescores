@@ -351,6 +351,7 @@ export class MatchController extends BaseController {
                 await Promise.all(deleteRosterPromises);
     
                 let umpireSequence = 0;
+                logger.debug("Match Create Rosters" + JSON.stringify(match.rosters));
                 for (let newRoster of match.rosters) {
                     newRoster.matchId = saved.id;
                     if (newRoster.roleId == Role.UMPIRE) {

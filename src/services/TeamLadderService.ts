@@ -16,15 +16,11 @@ export default class TeamLadderService extends BaseService<TeamLadder> {
             let team1Arr = [];
             let team2Arr = [];
             let resultStatus = null;
-            console.log("Match Result Status Match Id" +  match.id);
-            console.log("Match Result Status" +  match.resultStatus);
+           // console.log("Match Result Status ::" + match.resultStatus);
             if(match.resultStatus!= null && match.resultStatus!= undefined){
-                console.log("Match Result Status Match Id" +  match.resultStatus);
-                //resultStatus = match.resultStatus.toString().toLowerCase();
-                resultStatus = match.resultStatus;
-                console.log("Match Result Status Match Id" +  resultStatus);
+                resultStatus = match.resultStatus.toString().toLowerCase();
             }
-            console.log("Match Result Status after ::" + resultStatus);
+            
            // if(resultStatus != "dispute" && resultStatus!= "unconfirmed"){
                 if(match.team1Id!= 1)
                     team1Arr = this.teamLadderRow(match, 1, competitionLadderSettings, resultStatus);
@@ -43,7 +39,7 @@ export default class TeamLadderService extends BaseService<TeamLadder> {
             }
            
         } catch (error) {
-            console.log(`Exception in getTeamLadderByMatch ${error}`);
+            console.log(`Exception in getTeamLadderByMatch ${error}`)
             throw error;
         }
 

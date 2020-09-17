@@ -279,6 +279,9 @@ export class BaseController {
         roster: Roster,
         category: "Scoring" | "Playing" | "Event" | "Umpiring" | "UmpireReserve" | "UmpireCoach"
     ) {
+        logger.debug("notifyRosterChange" + category);
+        logger.debug("notifyRosterChange roster" + JSON.stringify(roster));
+        logger.debug("notifyRosterChange user" + JSON.stringify(user));
         switch (category) {
             case "Scoring":
               let tokens = [];
