@@ -12,6 +12,7 @@ export class EntityType extends BaseEntity {
     public static TEAM: number = 3;
     public static USER: number = 4;
     public static PLAYER: number = 5;
+    public static COMPETITION_ORGANISATION: number = 6;
 
     @IsNumber()
     @PrimaryGeneratedColumn()

@@ -661,11 +661,11 @@ export class UserController extends BaseController {
                 break;
             case 'UMPIRE':
                 roleToDelete = Role.UMPIRE;
-                entityType = EntityType.ORGANISATION;
+                entityType = EntityType.COMPETITION_ORGANISATION;
                 break;
             case 'UMPIRE_COACH':
                 roleToDelete = Role.UMPIRE_COACH;
-                entityType = EntityType.ORGANISATION;
+                entityType = EntityType.COMPETITION_ORGANISATION;
                 break;
             default:
                 break;
@@ -743,12 +743,12 @@ export class UserController extends BaseController {
             case 'UMPIRE':
                 loopData = user.affiliates;
                 roleId = Role.UMPIRE;
-                entityTypeId = EntityType.ORGANISATION;
+                entityTypeId = EntityType.COMPETITION_ORGANISATION;
                 break;
             case 'UMPIRE_COACH':
                 loopData = user.affiliates;
                 roleId = Role.UMPIRE_COACH;
-                entityTypeId = EntityType.ORGANISATION;
+                entityTypeId = EntityType.COMPETITION_ORGANISATION;
                 break;
             default:
                 break;
@@ -994,7 +994,7 @@ export class UserController extends BaseController {
                             let ure = new UserRoleEntity();
                             ure.roleId = roleId;
                             ure.entityId = org.id;
-                            ure.entityTypeId = EntityType.ORGANISATION;
+                            ure.entityTypeId = EntityType.COMPETITION_ORGANISATION;
                             ure.userId = userDetails.id;
                             ure.createdBy = user.id;
                             ureArray.push(ure);
@@ -1003,7 +1003,7 @@ export class UserController extends BaseController {
                             let ure = new UserRoleEntity();
                             ure.roleId = Role.UMPIRE_COACH;
                             ure.entityId = org.id;
-                            ure.entityTypeId = EntityType.ORGANISATION;
+                            ure.entityTypeId = EntityType.COMPETITION_ORGANISATION;
                             ure.userId = userDetails.id;
                             ure.createdBy = user.id;
                             ureArray.push(ure);
@@ -1012,7 +1012,7 @@ export class UserController extends BaseController {
                           let ure = new UserRoleEntity();
                           ure.roleId = roleId;
                           ure.entityId = org.id;
-                          ure.entityTypeId = EntityType.ORGANISATION;
+                          ure.entityTypeId = EntityType.COMPETITION_ORGANISATION;
                           ure.userId = userDetails.id;
                           ure.createdBy = user.id;
                           ureArray.push(ure);
