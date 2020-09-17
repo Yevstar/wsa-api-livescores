@@ -20,7 +20,8 @@ export default class TeamLadderService extends BaseService<TeamLadder> {
             console.log("Match Result Status" +  match.resultStatus);
             if(match.resultStatus!= null && match.resultStatus!= undefined){
                 console.log("Match Result Status Match Id" +  match.resultStatus);
-                resultStatus = match.resultStatus.toString().toLowerCase();
+                //resultStatus = match.resultStatus.toString().toLowerCase();
+                resultStatus = match.resultStatus;
                 console.log("Match Result Status Match Id" +  resultStatus);
             }
             console.log("Match Result Status after ::" + resultStatus);
