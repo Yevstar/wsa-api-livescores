@@ -497,56 +497,70 @@ export class MatchController extends BaseController {
 
     private async deleteRoster(roster: Roster) {
         logger.debug(`Inside the deleteRoster` + JSON.stringify(roster));
-        if (roster.roleId == Role.SCORER) {
-            await this.removeScorerRoster(roster.matchId, roster);
-        } else if (roster.roleId == Role.UMPIRE_RESERVE) {
-            if (roster.userId) {
-                await this.umpireRemoveRoster(
-                    Role.UMPIRE_RESERVE,
-                    roster.userId,
-                    roster.matchId
-                );
+        try {
+            if (roster.roleId == Role.SCORER) {
+                await this.removeScorerRoster(roster.matchId, roster);
+            } else if (roster.roleId == Role.UMPIRE_RESERVE) {
+                if (roster.userId) {
+                    await this.umpireRemoveRoster(
+                        Role.UMPIRE_RESERVE,
+                        roster.userId,
+                        roster.matchId
+                    );
+                }
+            } else if (roster.roleId == Role.UMPIRE_COACH) {
+                if (roster.userId) {
+                    await this.umpireRemoveRoster(
+                        Role.UMPIRE_COACH,
+                        roster.userId,
+                        roster.matchId
+                    );
+                }
+            } else {
+                if (roster.userId) {
+                    /// For users umpire type need to delete matchUmpire data as well
+                    this.matchUmpireService.deleteByParms(
+                        roster.matchId,
+                        roster.userId
+                    );
+    
+                    await this.umpireRemoveRoster(
+                        Role.UMPIRE,
+                        roster.userId,
+                        roster.matchId
+                    );
+                }
             }
-        } else if (roster.roleId == Role.UMPIRE_COACH) {
-            if (roster.userId) {
-                await this.umpireRemoveRoster(
-                    Role.UMPIRE_COACH,
-                    roster.userId,
-                    roster.matchId
-                );
-            }
-        } else {
-            if (roster.userId) {
-                /// For users umpire type need to delete matchUmpire data as well
-                this.matchUmpireService.deleteByParms(
-                    roster.matchId,
-                    roster.userId
-                );
-
-                await this.umpireRemoveRoster(
-                    Role.UMPIRE,
-                    roster.userId,
-                    roster.matchId
-                );
-            }
+        } catch (error) {
+            logger.error(`Exception occurred in deleteRoster ${error}` );
         }
     }
 
     private async removeScorerRoster(matchId: number, roster: Roster) {
-        let tokens = (await this.deviceService.findScorerDeviceFromRoster(matchId, roster.id)).map(device => device.deviceId);
-        let result = await this.rosterService.delete(roster);
-        if (result) {
-            if (tokens && tokens.length > 0) {
-                this.firebaseService.sendMessageChunked({
-                    tokens: tokens,
-                    data: {
-                        type: 'remove_scorer_match',
-                        rosterId: roster.id.toString(),
-                        matchId: roster.matchId.toString()
-                    }
-                })
+        try{
+            logger.debug(`Inside the removeScorerRoster ` + JSON.stringify(roster) + "&&" + matchId);
+            let tokens = (await this.deviceService.findScorerDeviceFromRoster(matchId, roster.id)).map(device => device.deviceId);
+
+           
+            let result = await this.rosterService.delete(roster);
+            logger.debug(`tokens` + JSON.stringify(tokens) + `##` + JSON.stringify(result));
+            if (result) {
+                if (tokens && tokens.length > 0) {
+                    this.firebaseService.sendMessageChunked({
+                        tokens: tokens,
+                        data: {
+                            type: 'remove_scorer_match',
+                            rosterId: roster.id ? roster.id.toString() : "",
+                            matchId: roster.matchId ? roster.matchId.toString(): ""
+                        }
+                    })
+                }
             }
         }
+        catch(error){
+            logger.error(`Exception occurred in removeScorerRoster ${error}`);
+        }
+        
     }
 
     private async addScorerRoster(roster: Roster, user: User) {
