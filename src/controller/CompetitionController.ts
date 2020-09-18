@@ -306,6 +306,8 @@ export class CompetitionController extends BaseController {
                         await this.competitionInviteesService.batchCreateOrUpdate(COMPETITION_INVITEES);
                     }
 
+                    await this.competitionOrganisationService.deleteByCompetitionId(saved.id);
+
                     for (let i of ORG_ARRAY) {
                         const compOrg = new CompetitionOrganisation();
                         compOrg.id = 0;
