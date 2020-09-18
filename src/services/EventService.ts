@@ -17,11 +17,29 @@ export default class EventService extends BaseService<Event> {
     }
 
     public async findUserEventOccurrences(
+        userId: number
+    ): Promise<any> {
+        let result = await this.entityManager.query(
+          "call wsa.usp_get_eventOccurrences(?, ?, ?, ?, ?)",[
+            userId,
+            Role.MANAGER,
+            Role.PLAYER,
+            EntityType.TEAM,
+            EntityType.USER
+          ]);
+        if (isArrayPopulated(result)) {
+          return result[0];
+        } else {
+          return [];
+        }
+    }
+
+    public async findUserEventOccurrencesV2(
         userId: number,
         eventReceipientsRoleIds: number[]
     ): Promise<any> {
         let result = await this.entityManager.query(
-          "call wsa.usp_get_eventOccurrences(?, ?, ?, ?)",[
+          "call wsa.usp_get_eventOccurrences_v2(?, ?, ?, ?)",[
             userId,
             eventReceipientsRoleIds.toString(),
             EntityType.TEAM,
