@@ -3,6 +3,7 @@ import {DeleteResult} from "typeorm-plus";
 import {paginationData, stringTONumber, isNotNullAndUndefined, isArrayPopulated} from "../utils/Utils";
 import BaseService from "./BaseService";
 import {Roster} from "../models/security/Roster";
+import {EntityType} from "../models/security/EntityType";
 import {User} from "../models/User";
 import {Match} from "../models/Match";
 import {RequestFilter} from "../models/RequestFilter";
@@ -24,6 +25,7 @@ export default class RosterService extends BaseService<Roster> {
             .leftJoinAndSelect('match.competition', 'competition')
             .leftJoinAndSelect('match.matchPausedTimes', 'matchPausedTimes')
             .leftJoinAndSelect('competition.location', 'location')
+
             .leftJoinAndSelect('venueCourt.venue', 'venue')
             .leftJoinAndSelect('roster.eventOccurrence', 'eo')
             .leftJoinAndSelect('eo.event', 'e')
@@ -92,6 +94,9 @@ export default class RosterService extends BaseService<Roster> {
             .leftJoinAndSelect('userRoleEntity.competitionOrganisation', 'competitionOrganisation')
             .andWhere('match.competitionId = :competitionId', {competitionId})
             .andWhere('roster.roleId in (:roleIds)', {roleIds})
+            .andWhere('userRoleEntity.entityTypeId = 6')
+            .andWhere('userRoleEntity.roleId = 15 or userRoleEntity.roleId = 20')
+            .andWhere('competitionOrganisation.competitionId = :competitionId', {competitionId})
             .andWhere('match.deleted_at is null');
 
             if (status) {
