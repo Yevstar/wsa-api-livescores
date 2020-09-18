@@ -14,13 +14,4 @@ export default class CompetitionOrganisationService extends BaseService<Competit
         query.andWhere("co.competitionId = :competitionId", { competitionId });
         return query.execute();
     }
-
-    public async deleteByCompetitionId(competitionId: number): Promise<any> {
-        return this.entityManager
-            .createQueryBuilder()
-            .delete()
-            .from(CompetitionOrganisation)
-            .where("competitionId = :competitionId", { competitionId })
-            .execute();
-    }
 }
