@@ -21,7 +21,6 @@ import BannerService from "../services/BannerService";
 import {User} from "../models/User";
 import {Roster} from "../models/security/Roster";
 import {StateTimezone} from "../models/StateTimezone";
-import {MatchUmpire} from "../models/MatchUmpire";
 import {EntityType} from "../models/security/EntityType";
 import EventService from "../services/EventService";
 import UserRoleEntityService from "../services/UserRoleEntityService";
@@ -34,7 +33,6 @@ import CompetitionOrganisationService from "../services/CompetitionOrganisationS
 import LineupService from "../services/LineupService";
 import LadderFormatService from '../services/LadderFormatService';
 import LadderFormatDivisionService from '../services/LadderFormatDivisionService';
-import {convertMatchStartTimeByTimezone} from "../utils/TimeFormatterUtils";
 import {isNullOrEmpty} from "../utils/Utils";
 import TeamLadderService from '../services/TeamLadderService';
 import MatchSheetService from "../services/MatchSheetService";
@@ -43,6 +41,7 @@ import {logger} from "../logger";
 import CommunicationTrackService from "../services/CommunicationTrackService";
 import {Role} from "../models/security/Role";
 import CompetitionInviteesService from "../services/CompetitionInviteesService";
+import PlayerMinuteTrackingService from "../services/PlayerMinuteTrackingService";
 
 export class BaseController {
 
@@ -144,6 +143,9 @@ export class BaseController {
 
     @Inject()
     protected competitionInviteesService: CompetitionInviteesService;
+
+    @Inject()
+    protected playerMinuteTrackingService: PlayerMinuteTrackingService;
 
     protected async updateFirebaseData(user: User, password: string) {
         user.password = password;
