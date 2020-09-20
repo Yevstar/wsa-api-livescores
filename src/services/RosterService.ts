@@ -3,9 +3,11 @@ import {DeleteResult} from "typeorm-plus";
 import {paginationData, stringTONumber, isNotNullAndUndefined, isArrayPopulated} from "../utils/Utils";
 import BaseService from "./BaseService";
 import {Roster} from "../models/security/Roster";
+import {EntityType} from "../models/security/EntityType";
 import {User} from "../models/User";
 import {Match} from "../models/Match";
 import {RequestFilter} from "../models/RequestFilter";
+import {Role} from "../models/security/Role";
 
 @Service()
 export default class RosterService extends BaseService<Roster> {
@@ -24,6 +26,7 @@ export default class RosterService extends BaseService<Roster> {
             .leftJoinAndSelect('match.competition', 'competition')
             .leftJoinAndSelect('match.matchPausedTimes', 'matchPausedTimes')
             .leftJoinAndSelect('competition.location', 'location')
+
             .leftJoinAndSelect('venueCourt.venue', 'venue')
             .leftJoinAndSelect('roster.eventOccurrence', 'eo')
             .leftJoinAndSelect('eo.event', 'e')
@@ -84,54 +87,60 @@ export default class RosterService extends BaseService<Roster> {
         sortBy: string = undefined,
         sortOrder: "ASC" | "DESC" = undefined
     ): Promise<any> {
+        let ureRoleIds = [];
+        Array.prototype.push.apply(ureRoleIds, roleIds);
+        if (roleIds.indexOf(Role.UMPIRE_RESERVE) >= 0 && roleIds.indexOf(Role.UMPIRE) < 0) {
+            ureRoleIds.push(Role.UMPIRE);
+        }
+
         let query = this.entityManager.createQueryBuilder(Roster, 'roster')
             .innerJoinAndSelect('roster.match', 'match')
             .innerJoinAndSelect('roster.user', 'user')
             .innerJoinAndSelect('match.competition', 'competition')
-            .leftJoinAndSelect('user.userRoleEntities', 'userRoleEntity')
-            .leftJoinAndSelect('userRoleEntity.competitionOrganisation', 'competitionOrganisation')
+            .innerJoinAndSelect('user.userRoleEntities', 'ure', 'ure.roleId in (:ids)', {ids: ureRoleIds})
+            .innerJoinAndSelect('ure.competitionOrganisation', 'cOrg', 'cOrg.competitionId = :compId', {compId: competitionId})
             .andWhere('match.competitionId = :competitionId', {competitionId})
             .andWhere('roster.roleId in (:roleIds)', {roleIds})
             .andWhere('match.deleted_at is null');
 
-            if (status) {
-                if (status == Roster.STATUS_NONE) {
-                    query.andWhere('roster.status is null');
-                } else {
-                    query.andWhere('roster.status = :status', { status });
-                }
-            }
-
-            if (sortBy) {
-                if (sortBy === 'organisation') {
-                    query.orderBy('competitionOrganisation.name', sortOrder);
-                } else if (sortBy === 'firstName') {
-                    query.orderBy('user.firstName', sortOrder);
-                } else if (sortBy === 'lastName') {
-                    query.orderBy('user.lastName', sortOrder);
-                } else if (sortBy === 'matchId') {
-                    query.orderBy('match_id', sortOrder);
-                } else if (sortBy === 'startTime') {
-                    query.orderBy('match_startTime', sortOrder);
-                } else if (sortBy === 'status') {
-                    query.orderBy('roster.status', sortOrder);
-                }
-            }
-
-            if (isNotNullAndUndefined(requestFilter)
-                && isNotNullAndUndefined(requestFilter.paging)
-                && isNotNullAndUndefined(requestFilter.paging.limit)
-                && isNotNullAndUndefined(requestFilter.paging.offset)) {
-                const result = await query.skip(requestFilter.paging.offset).take(requestFilter.paging.limit).getMany();
-                let totalCount = await query.getCount();
-                let responseObject = paginationData(totalCount, requestFilter.paging.limit, requestFilter.paging.offset);
-                responseObject["results"] = result;
-                return responseObject;
+        if (status) {
+            if (status == Roster.STATUS_NONE) {
+                query.andWhere('roster.status is null');
             } else {
-                let responseObject = paginationData(null, null, null);
-                responseObject["results"] = await query.getMany();
-                return responseObject;
+                query.andWhere('roster.status = :status', { status });
             }
+        }
+
+        if (sortBy) {
+            if (sortBy === 'organisation') {
+                query.orderBy('cOrg.name', sortOrder);
+            } else if (sortBy === 'firstName') {
+                query.orderBy('user.firstName', sortOrder);
+            } else if (sortBy === 'lastName') {
+                query.orderBy('user.lastName', sortOrder);
+            } else if (sortBy === 'matchId') {
+                query.orderBy('match_id', sortOrder);
+            } else if (sortBy === 'startTime') {
+                query.orderBy('match_startTime', sortOrder);
+            } else if (sortBy === 'status') {
+                query.orderBy('roster.status', sortOrder);
+            }
+        }
+
+        if (isNotNullAndUndefined(requestFilter)
+            && isNotNullAndUndefined(requestFilter.paging)
+            && isNotNullAndUndefined(requestFilter.paging.limit)
+            && isNotNullAndUndefined(requestFilter.paging.offset)) {
+            const result = await query.skip(requestFilter.paging.offset).take(requestFilter.paging.limit).getMany();
+            let totalCount = await query.getCount();
+            let responseObject = paginationData(totalCount, requestFilter.paging.limit, requestFilter.paging.offset);
+            responseObject["results"] = result;
+            return responseObject;
+        } else {
+            let responseObject = paginationData(null, null, null);
+            responseObject["results"] = await query.getMany();
+            return responseObject;
+        }
     }
 
     public async findRosterId(rosterId: number): Promise<Roster> {

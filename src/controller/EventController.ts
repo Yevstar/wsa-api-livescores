@@ -36,6 +36,14 @@ export class EventController  extends BaseController {
     async findOccurrences(
         @HeaderParam("authorization") user: User,
     ): Promise<EventOccurrence[]> {
+        return this.eventService.findUserEventOccurrences(user.id);
+    }
+
+    @Authorized()
+    @Get("/v2/occurrences")
+    async findOccurrencesV2(
+        @HeaderParam("authorization") user: User,
+    ): Promise<EventOccurrence[]> {
         const eventRecipientFunction = await this.userService.getFunction('event_recipient');
         const functionRolesArray = await this.userService.getFunctionRoles(eventRecipientFunction.id);
 
@@ -44,7 +52,7 @@ export class EventController  extends BaseController {
             eventReceipientsRoleIds.push(fr.roleId);
         });
 
-        return this.eventService.findUserEventOccurrences(user.id, eventReceipientsRoleIds);
+        return this.eventService.findUserEventOccurrencesV2(user.id, eventReceipientsRoleIds);
     }
 
     @Authorized()
