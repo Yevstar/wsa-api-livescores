@@ -43,7 +43,6 @@ export class PlayerMinuteTrackingController extends BaseController {
   ): Promise<any> {
     try {
       if (trackingData && trackingData.length > 0) {
-        const trackingDataList = [];
         for (let i = 0; i < trackingData.length; i++) {
           if (
             trackingData[i].matchId
@@ -52,18 +51,18 @@ export class PlayerMinuteTrackingController extends BaseController {
           && trackingData[i].period
           && trackingData[i].duration
           ) {
-            const data = new PlayerMinuteTracking();
+            const data = trackingData[i].id
+              ? await this.playerMinuteTrackingService.findById(trackingData[i].id)
+              : new PlayerMinuteTracking();
             data.matchId = trackingData[i].matchId;
             data.teamId = trackingData[i].teamId;
             data.playerId = trackingData[i].playerId;
             data.period = trackingData[i].period;
             data.duration = trackingData[i].duration;
 
-            trackingDataList.push(data);
+            await this.playerMinuteTrackingService.createOrUpdate(data);
           }
         }
-
-        await this.playerMinuteTrackingService.batchCreateOrUpdate(trackingDataList);
       }
 
       return response.status(200).send({ success: true });

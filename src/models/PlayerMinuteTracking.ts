@@ -13,7 +13,7 @@ export class PlayerMinuteTracking extends BaseEntity {
     id: number;
 
     @IsNumber()
-    @Column({select: false})
+    @Column()
     matchId: number;
 
     @ValidateNested()
@@ -22,7 +22,7 @@ export class PlayerMinuteTracking extends BaseEntity {
     match: Match;
 
     @IsNumber()
-    @Column({select: false})
+    @Column()
     teamId: number;
 
     @ValidateNested()
@@ -31,7 +31,7 @@ export class PlayerMinuteTracking extends BaseEntity {
     team: Team;
 
     @IsNumber()
-    @Column({select: false})
+    @Column()
     playerId: number;
 
     @ValidateNested()
@@ -40,14 +40,18 @@ export class PlayerMinuteTracking extends BaseEntity {
     player: Player;
 
     @IsNumber()
-    @Column({select: false})
+    @Column()
     period: number;
 
     @IsNumber()
-    @Column({select: false})
+    @Column()
     duration: number;
 
     @IsBoolean()
-    @Column({select: false})
-    playedFullPeriod: boolean;
+    @Column()
+    playedInPeriod: boolean;
+
+    @IsBoolean()
+    @Column()
+    playedEndPeriod: boolean;
 }

@@ -21,6 +21,6 @@ export default class PlayerMinuteTrackingService extends BaseService<PlayerMinut
     if (teamId) query.andWhere("pmt.teamId = :teamId", { teamId });
     if (playerId) query.andWhere('pmt.playerId = :playerId', { playerId });
 
-    return query.getMany()
+    return query.getMany();
   }
 }
