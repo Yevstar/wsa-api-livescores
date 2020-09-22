@@ -102,6 +102,7 @@ export class CompetitionController extends BaseController {
                 c.playerBorrowingType = competition.playerBorrowingType;
                 c.gamesBorrowedThreshold = competition.gamesBorrowedThreshold;
                 c.linkedCompetitionId = competition.linkedCompetitionId;
+                c.gameTimeTrackingType = stringTONumber(competition.gameTimeTrackingType);
 
                 if(c.id===0){
                     c.uniqueKey = uuidv4();
@@ -313,8 +314,38 @@ export class CompetitionController extends BaseController {
                         compOrg.orgId = i.organisationId;
                         CREATE_COMP_ORG.push(compOrg);
                     }
+                    
+                    const getExistingOrganisation = await this.competitionOrganisationService.findByCompetitionId(saved.id);
 
-                    await this.competitionOrganisationService.batchCreateOrUpdate(CREATE_COMP_ORG);
+                    const ORG_ID_IN_COMP_ORG = []
+                    const ORG_ID_IN_EXISTING_COMP_ORG = []
+                    for (let i of CREATE_COMP_ORG) ORG_ID_IN_COMP_ORG.push(i.orgId)
+                    for (let i of getExistingOrganisation) ORG_ID_IN_EXISTING_COMP_ORG.push(i.orgId)
+
+                    for (let i of getExistingOrganisation) {
+                        if (ORG_ID_IN_COMP_ORG.indexOf(i.orgId) !== -1 && ORG_ID_IN_COMP_ORG.length > 0) {
+                            ORG_ID_IN_EXISTING_COMP_ORG.splice(ORG_ID_IN_EXISTING_COMP_ORG.indexOf(i.orgId), 1);
+                            ORG_ID_IN_COMP_ORG.splice(ORG_ID_IN_COMP_ORG.indexOf(i.orgId), 1);
+                        }
+                    }
+
+                    // delete enteries that dont match the current organisation
+                    for (let i of ORG_ID_IN_EXISTING_COMP_ORG) {
+                        await this.competitionOrganisationService.softDeleteByOrgId(i);
+                    }
+
+                    const CREATE_COMP_ORGANISATIONS = [];
+                    if (ORG_ID_IN_COMP_ORG.length > 0) {
+                        for (let i of ORG_ID_IN_COMP_ORG) {
+                            const compOrg = new CompetitionOrganisation();
+                            compOrg.id = 0;
+                            compOrg.competitionId = saved.id;
+                            compOrg.orgId = i;
+                            CREATE_COMP_ORGANISATIONS.push(compOrg);
+                        }
+                    }
+
+                    await this.competitionOrganisationService.batchCreateOrUpdate(CREATE_COMP_ORGANISATIONS);
                 }else {
                     if (isArrayPopulated(getInviteesDetail)) {
                         await this.competitionInviteesService.deleteInviteesByCompetitionId(saved.id);

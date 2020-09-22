@@ -178,4 +178,7 @@ export class Competition extends BaseEntity {
     @JoinColumn()
     competitionInvitees: CompetitionInvitees[];
 
+    @IsNumber()
+    @Column()
+    gameTimeTrackingType: number;
 }

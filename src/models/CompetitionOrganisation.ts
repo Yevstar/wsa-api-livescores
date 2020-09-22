@@ -1,4 +1,4 @@
-import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from "typeorm-plus";
+import { BaseEntity, Column, DeleteDateColumn, Entity, PrimaryGeneratedColumn } from "typeorm-plus";
 import { IsNumber } from "class-validator";
 
 @Entity('competitionOrganisation')
@@ -15,4 +15,7 @@ export class CompetitionOrganisation extends BaseEntity {
     @IsNumber()
     @Column()
     competitionId: number;
+
+    @DeleteDateColumn({ nullable: true, default: null, name: 'deleted_at' })
+    public deleted_at: Date;    
 }

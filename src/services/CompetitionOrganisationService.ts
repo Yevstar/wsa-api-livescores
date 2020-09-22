@@ -12,6 +12,12 @@ export default class CompetitionOrganisationService extends BaseService<Competit
     public async findByCompetitionId(competitionId: number): Promise<any> {
         let query = this.entityManager.createQueryBuilder(CompetitionOrganisation, 'co');
         query.andWhere("co.competitionId = :competitionId", { competitionId });
-        return query.execute();
+        return query.getMany();
+    }
+
+    public async softDeleteByOrgId(compOrgId: any): Promise<any> {
+        let query = this.entityManager.createQueryBuilder(CompetitionOrganisation, 'co');
+        query.andWhere("co.orgId = :compOrgId", { compOrgId });
+        return query.softDelete().execute();
     }
 }
