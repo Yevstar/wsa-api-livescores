@@ -317,6 +317,8 @@ export class PlayerController extends BaseController {
     @Post('/activity')
     async listTeamPlayerActivity(
         @QueryParam('competitionId') competitionId: number,
+        @QueryParam('divisionId') divisionId: string = undefined,
+        @QueryParam('roundIds') roundIds: string = undefined,
         @QueryParam('status') status: string,
         @QueryParam('sortBy') sortBy: string = undefined,
         @QueryParam('sortOrder') sortOrder: "ASC"|"DESC" = undefined,
@@ -325,7 +327,7 @@ export class PlayerController extends BaseController {
         if (status === undefined || status === '') status = null;
         if (requestFilter.search === undefined || requestFilter.search === '') requestFilter.search = null;
 
-        return this.playerService.listTeamPlayerActivity(competitionId, requestFilter, status, sortBy, sortOrder);
+        return this.playerService.listTeamPlayerActivity(competitionId, requestFilter, divisionId, roundIds, status, sortBy, sortOrder);
     }
 
     @Get('/admin')
