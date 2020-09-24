@@ -322,8 +322,14 @@ export class StatController extends BaseController {
         @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined,
         @Res() response: Response) {
         if (competitionId) {
-            return this.gameTimeAttendanceService.loadPositionTrackingStats(aggregate, reporting, competitionId, teamId, matchId, search, requestFilter, sortBy, sortOrder);
-        } else {
+            let competition = await this.competitionService.findById(competitionId);
+            if (competition.positionTracking == true) {
+                return this.gameTimeAttendanceService.loadPositionTrackingStats(aggregate, reporting, competitionId, teamId, matchId, search, requestFilter, sortBy, sortOrder);
+            } else {
+                return response.status(200).send(
+                    {name: 'search_error', message: `Position tracking is not enabled for this competition`});
+            }
+        } else { 
             return response.status(200).send(
                 {name: 'search_error', message: `Competition id required field`});
         }
