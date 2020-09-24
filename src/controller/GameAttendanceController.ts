@@ -142,7 +142,7 @@ export class GameAttendanceController extends BaseController {
         period: number,
         updateMatchEvents: boolean,
         user: User,
-    ) {
+    ) { 
         let gsPlayerId;
         let gaPlayerId;
 
@@ -155,7 +155,7 @@ export class GameAttendanceController extends BaseController {
             if (gta) {
                 if ((att.period && gta.period != att.period) ||
                     (att.positionId && gta.positionId != att.positionId) ||
-                    (att.isPlaying && gta.isPlaying != att.isPlaying)) {
+                    (gta.isPlaying != att.isPlaying)) {
                     save.push(this.gameTimeAttendanceService.prepare(match.id, teamId, period, att, user.id));
                 }
             } else {
