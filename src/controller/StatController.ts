@@ -326,8 +326,9 @@ export class StatController extends BaseController {
             if (competition.positionTracking == true) {
                 return this.gameTimeAttendanceService.loadPositionTrackingStats(aggregate, reporting, competitionId, teamId, matchId, search, requestFilter, sortBy, sortOrder);
             } else {
-                return response.status(200).send(
-                    {name: 'search_error', message: `Position tracking is not enabled for this competition`});
+                // temporarily return blank rows till front end sorts it out
+                return this.gameTimeAttendanceService.loadPositionTrackingStats(aggregate, reporting, 0, teamId, matchId, search, requestFilter, sortBy, sortOrder);
+                //return response.status(200).send( {name: 'search_error', message: `Position tracking is not enabled for this competition`});
             }
         } else { 
             return response.status(200).send(
