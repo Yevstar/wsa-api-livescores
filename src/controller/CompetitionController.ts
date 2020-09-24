@@ -331,7 +331,7 @@ export class CompetitionController extends BaseController {
 
                     // delete enteries that dont match the current organisation
                     for (let i of ORG_ID_IN_EXISTING_COMP_ORG) {
-                        await this.competitionOrganisationService.softDeleteByOrgId(i);
+                        await this.competitionOrganisationService.softDeleteByOrgId(i, saved.id);
                     }
 
                     const CREATE_COMP_ORGANISATIONS = [];
