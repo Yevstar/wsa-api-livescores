@@ -49,7 +49,12 @@ export class UserController extends BaseController {
             if (user) {
                 user.lastAppLogin = new Date();
                 await this.userService.update(email, user);
-                return this.responseWithTokenAndUser(email, password, user, deviceId);
+                const loginResponse = await this.responseWithTokenAndUser(email, password, user, deviceId);
+                if (loginResponse && loginResponse['user'] && loginResponse['user'].id) {
+                    await this.evaluateUserWatchlist(loginResponse['user'], deviceId, false);
+                }
+
+                return loginResponse;
             } else {
                 throw new LoginError();
             }
@@ -185,44 +190,7 @@ export class UserController extends BaseController {
         @QueryParam('organisationIds') organisationIds: number[] = [],
         @Res() response: Response
     ): Promise<{ teamIds: number[], organisationIds: number[] }> {
-        if (organisationIds && !Array.isArray(organisationIds)) organisationIds = [organisationIds];
-        if (teamIds && !Array.isArray(teamIds)) teamIds = [teamIds];
-        let topics = await this.loadTopics(teamIds, organisationIds);
-        if (topics.length > 0) {
-            await this.firebaseService.subscribeTopic(deviceId, topics)
-        }
-        await this.watchlistService.save(user ? user.id : undefined, deviceId, organisationIds, teamIds);
-        /// On saving of watchlist we will add the user spectator role
-        /// to those team's or organisation's
-        if (user) {
-            let compIds: number[] = [];
-            if (teamIds) {
-                const teamList = await this.teamService.findByIds(teamIds);
-                teamList.forEach((team) => {
-                    compIds.push(team.competitionId);
-                });
-            }
-            if (organisationIds) {
-                const orgList = await this.organisationService.findByIds(organisationIds);
-                orgList.forEach((org) => {
-                    compIds.push(org.competitionId);
-                });
-            }
-            if (compIds.length > 0) {
-                let ureList: UserRoleEntity[] = [];
-                (new Set(compIds)).forEach((compId) => {
-                    let spectatorURE = new UserRoleEntity();
-                    spectatorURE.roleId = Role.SPECTATOR;
-                    spectatorURE.entityId = compId;
-                    spectatorURE.entityTypeId = EntityType.COMPETITION;
-                    spectatorURE.userId = user.id;
-                    spectatorURE.createdBy = user.id;
-                    ureList.push(spectatorURE);
-                });
-                await this.ureService.batchCreateOrUpdate(ureList);
-                this.notifyChangeRole(user.id);
-            }
-        }
+        await this.createUserWatchlist(user, deviceId, teamIds, organisationIds, false);
         return this.loadWatchlist(user, deviceId, response);
     }
 
@@ -235,37 +203,7 @@ export class UserController extends BaseController {
         @QueryParam('entityTypeId') entityTypeId: number,
         @Res() response: Response
     ): Promise<{ teamIds: number[], organisationIds: number[] }> {
-        if (entityTypeId) {
-            let teamIds: number[] = [];
-            if (entityTypeId == EntityType.ORGANISATION) {
-                teamIds = (await this.teamService.teamByOrganisationId(entityId)).map(team => team.id);
-            }
-            if (entityTypeId == EntityType.TEAM) {
-                teamIds.push(entityId);
-            }
-            let topics = teamIds.map(id => `score_team_${id}`);
-            if (topics.length > 0) {
-                await this.firebaseService.unsubscribeTopic(deviceId, topics)
-            }
-        }
-        await this.watchlistService.deleteByParam(user ? user.id : undefined, deviceId, entityId, entityTypeId);
-        /// On removing of a watchlist item we will remove the user spectator role
-        /// to those team's or organisation's
-        if (user) {
-            let compId;
-            if (entityTypeId == EntityType.ORGANISATION) {
-                let org = await this.organisationService.findById(entityId);
-                compId = org.competitionId;
-            } else if (entityTypeId == EntityType.TEAM) {
-                let team = await this.teamService.findById(entityId);
-                compId = team.competitionId;
-            }
-
-            if (compId) {
-                await this.ureService.deleteRoleByParams(compId, EntityType.COMPETITION, Role.SPECTATOR, user.id);
-                this.notifyChangeRole(user.id);
-            }
-        }
+        await this.removeUserWatchlist(user, deviceId, entityId, entityTypeId);
         return this.loadWatchlist(user, deviceId, response);
     }
 
@@ -401,23 +339,6 @@ export class UserController extends BaseController {
         }
     }
 
-    private async loadTopics(teamIds: number[], organisationIds: number[]): Promise<string[]> {
-        if (teamIds || organisationIds) {
-            let listIds: number[] = [];
-            if (organisationIds && organisationIds.length > 0) {
-                listIds = ((await this.teamService.teamIdsByOrganisationIds(organisationIds)).map(x => x['id']));
-            }
-            if (teamIds && teamIds.length > 0) {
-                for (const teamId of teamIds) {
-                    listIds.push(teamId);
-                }
-            }
-            listIds = Array.from(new Set(listIds));
-            return listIds.map(id => `score_team_${id}`);
-        }
-        return [];
-    }
-
     private async loadUserWatchlist(
         userId: number = undefined,
         deviceId: string = undefined
@@ -461,7 +382,20 @@ export class UserController extends BaseController {
         @Body() userData: User,
         @Res() response: Response
     ) {
-        return await this.add(user, "MANAGER", competitionId, userData, response);
+        const addManagerResponse = await this.add(user, "MANAGER", competitionId, userData, response);
+        if (userData.id) {
+            let deviceIds = (await this.deviceService.getUserDevices(userData.id)).map(device => device.deviceId);
+            if (isArrayPopulated(deviceIds)) {
+                deviceIds.forEach((deviceId) => {
+                    this.evaluateUserWatchlist(
+                        userData,
+                        deviceId,
+                        true
+                    );
+                });
+            }
+        }
+        return addManagerResponse;
     }
 
     @Authorized()
@@ -472,7 +406,20 @@ export class UserController extends BaseController {
         @Body() userData: User,
         @Res() response: Response
     ) {
-        return await this.add(user, "COACH", competitionId, userData, response);
+        const addCoachResponse =  await this.add(user, "COACH", competitionId, userData, response);
+        if (userData.id) {
+            let deviceIds = (await this.deviceService.getUserDevices(userData.id)).map(device => device.deviceId);
+            if (isArrayPopulated(deviceIds)) {
+                deviceIds.forEach((deviceId) => {
+                    this.evaluateUserWatchlist(
+                        userData,
+                        deviceId,
+                        true
+                    );
+                });
+            }
+        }
+        return addCoachResponse;
     }
 
     @Authorized()
@@ -1088,5 +1035,159 @@ export class UserController extends BaseController {
                 });
         }
         return await this.deviceService.countDistinctDevices(organisationId, competitionId);
+    }
+
+    private async createUserWatchlist(
+        user: User,
+        deviceId: string = undefined,
+        teamIds: number[] = [],
+        organisationIds: number[] = [],
+        notifyUser: boolean = true
+    ) {
+        if (organisationIds && !Array.isArray(organisationIds)) organisationIds = [organisationIds];
+        if (teamIds && !Array.isArray(teamIds)) teamIds = [teamIds];
+        let topics = await this.loadTopics(teamIds, organisationIds);
+        if (topics.length > 0) {
+            await this.firebaseService.subscribeTopic(deviceId, topics)
+        }
+        await this.watchlistService.save(user ? user.id : undefined, deviceId, organisationIds, teamIds);
+
+        /// On saving of watchlist we will add the user spectator role
+        /// to those team's or organisation's
+        if (user) {
+            let compIds: number[] = [];
+            if (teamIds) {
+                const teamList = await this.teamService.findByIds(teamIds);
+                teamList.forEach((team) => {
+                    compIds.push(team.competitionId);
+                });
+            }
+            if (organisationIds) {
+                const orgList = await this.organisationService.findByIds(organisationIds);
+                orgList.forEach((org) => {
+                    compIds.push(org.competitionId);
+                });
+            }
+            if (compIds.length > 0) {
+                let existingUREs = await this.ureService.findCompetitionsUREs(
+                    compIds,
+                    Role.SPECTATOR,
+                    user.id
+                );
+                let ureList: UserRoleEntity[] = [];
+                (new Set(compIds)).forEach((compId) => {
+                    if (existingUREs.filter(ure => (ure.entityId == compId)).length == 0) {
+                        let spectatorURE = new UserRoleEntity();
+                        spectatorURE.roleId = Role.SPECTATOR;
+                        spectatorURE.entityId = compId;
+                        spectatorURE.entityTypeId = EntityType.COMPETITION;
+                        spectatorURE.userId = user.id;
+                        spectatorURE.createdBy = user.id;
+                        ureList.push(spectatorURE);
+                    }
+                });
+                await this.ureService.batchCreateOrUpdate(ureList);
+                this.notifyChangeRole(user.id);
+            }
+
+            if (notifyUser && deviceId) {
+              this.firebaseService.sendMessage({
+                  tokens: [deviceId],
+                  data: {
+                      type: 'watchlist_updated'
+                  }
+              });
+            }
+        }
+    }
+
+    private async removeUserWatchlist(
+      user: User,
+      deviceId: string = undefined,
+      entityId: number,
+      entityTypeId: number
+    ) {
+        if (entityTypeId) {
+            let teamIds: number[] = [];
+            if (entityTypeId == EntityType.ORGANISATION) {
+                teamIds = (await this.teamService.teamByOrganisationId(entityId)).map(team => team.id);
+            }
+            if (entityTypeId == EntityType.TEAM) {
+                teamIds.push(entityId);
+            }
+            let topics = teamIds.map(id => `score_team_${id}`);
+            if (topics.length > 0) {
+                await this.firebaseService.unsubscribeTopic(deviceId, topics)
+            }
+        }
+        await this.watchlistService.deleteByParam(user ? user.id : undefined, deviceId, entityId, entityTypeId);
+        /// On removing of a watchlist item we will remove the user spectator role
+        /// to those team's or organisation's
+        if (user) {
+            let compId;
+            if (entityTypeId == EntityType.ORGANISATION) {
+                let org = await this.organisationService.findById(entityId);
+                compId = org.competitionId;
+            } else if (entityTypeId == EntityType.TEAM) {
+                let team = await this.teamService.findById(entityId);
+                compId = team.competitionId;
+            }
+
+            if (compId) {
+                await this.ureService.deleteRoleByParams(compId, EntityType.COMPETITION, Role.SPECTATOR, user.id);
+                this.notifyChangeRole(user.id);
+            }
+        }
+    }
+
+    private async evaluateUserWatchlist(user: User, deviceId: string, notifyAnyChange: boolean) {
+        let teamIdSet = new Set();
+        let organisationIdSet = new Set();
+
+        let rosters = await this.rosterService.findByUser(user.id);
+        if (isArrayPopulated(rosters)) {
+            rosters.forEach((roster) => {
+                if (roster.roleId == Role.SCORER) {
+                    teamIdSet.add(roster.teamId);
+                }
+            });
+        }
+        let ures = await this.ureService.findUREsOfUser(user.id);
+        if (isArrayPopulated(ures)) {
+            ures.forEach((ure) => {
+                if (ure.roleId == Role.MANAGER ||
+                      ure.roleId == Role.PLAYER ||
+                      ure.roleId == Role.COACH) {
+                          if (ure.entityTypeId == EntityType.ORGANISATION) {
+                              organisationIdSet.add(ure.entityId);
+                          } else {
+                              teamIdSet.add(ure.entityId);
+                          }
+                      }
+            });
+        }
+
+        let userWatchlist = await this.watchlistService.findByParam(user.id, deviceId);
+        userWatchlist.forEach((watchItem) => {
+            if (watchItem.entityTypeId == EntityType.ORGANISATION &&
+                  organisationIdSet.has(watchItem.entityId)) {
+                      organisationIdSet.delete(watchItem.entityId);
+            } else if (teamIdSet.has(watchItem.entityId)) {
+                teamIdSet.delete(watchItem.entityId);
+            }
+        });
+
+        if (user &&
+            deviceId &&
+            (teamIdSet.size != 0 ||
+              organisationIdSet.size != 0)) {
+                await this.createUserWatchlist(
+                    user,
+                    deviceId,
+                    Array.from(teamIdSet),
+                    Array.from(organisationIdSet),
+                    notifyAnyChange
+                );
+        }
     }
 }

@@ -330,7 +330,7 @@ export class BaseController {
           }
     }
 
-    public async umpireAddRoster(
+    protected async umpireAddRoster(
         roleId: number,
         matchId: number,
         userId: number,
@@ -340,7 +340,6 @@ export class BaseController {
       if (roleId != Role.UMPIRE &&
           roleId != Role.UMPIRE_RESERVE &&
           roleId != Role.UMPIRE_COACH) {
-            console.log(roleId);
             throw 'Got wrong roleId for umpire add roster';
       }
 
@@ -385,7 +384,7 @@ export class BaseController {
       }
     }
 
-    public async umpireRemoveRoster(
+    protected async umpireRemoveRoster(
       roleId: number,
       userId: number,
       matchId: number
@@ -413,5 +412,22 @@ export class BaseController {
               }
           }
       }
+    }
+
+    protected async loadTopics(teamIds: number[], organisationIds: number[]): Promise<string[]> {
+        if (teamIds || organisationIds) {
+            let listIds: number[] = [];
+            if (organisationIds && organisationIds.length > 0) {
+                listIds = ((await this.teamService.teamIdsByOrganisationIds(organisationIds)).map(x => x['id']));
+            }
+            if (teamIds && teamIds.length > 0) {
+                for (const teamId of teamIds) {
+                    listIds.push(teamId);
+                }
+            }
+            listIds = Array.from(new Set(listIds));
+            return listIds.map(id => `score_team_${id}`);
+        }
+        return [];
     }
 }

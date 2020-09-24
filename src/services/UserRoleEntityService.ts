@@ -4,6 +4,7 @@ import {UserRoleEntity} from "../models/security/UserRoleEntity";
 import {DeleteResult} from "typeorm-plus";
 import {EntityType} from "../models/security/EntityType";
 import {RoleFunction} from "../models/security/RoleFunction";
+import { isArrayPopulated } from '../utils/Utils';
 
 @Service()
 export default class UserRoleEntityService extends BaseService<UserRoleEntity> {
@@ -21,7 +22,7 @@ export default class UserRoleEntityService extends BaseService<UserRoleEntity> {
           query.andWhere("roleId = :roleId", {roleId});
       }
       query.andWhere("isDeleted = 0");
-      
+
       return query.getMany();
     }
 
@@ -34,7 +35,7 @@ export default class UserRoleEntityService extends BaseService<UserRoleEntity> {
         let query = this.entityManager.createQueryBuilder().delete().from(UserRoleEntity)
             .andWhere("entityId = :entityId", {entityId});
         query.andWhere("entityTypeId = :entityTypeId", {entityTypeId});
-        
+
         if (roleId) {
             query.andWhere("roleId = :roleId", {roleId});
         }
@@ -102,5 +103,28 @@ export default class UserRoleEntityService extends BaseService<UserRoleEntity> {
         query.andWhere('ure.isDeleted = 0');
 
         return query.getCount()
+    }
+
+    public async findCompetitionsUREs(
+        compIds: number[],
+        roleId: number,
+        userId: number
+    ): Promise<UserRoleEntity[]> {
+        if (isArrayPopulated(compIds)) {
+            let query = this.entityManager.createQueryBuilder(UserRoleEntity, 'ure')
+                          .andWhere('ure.entityId in (:entityId)', {entityId: compIds})
+                          .andWhere('ure.entityTypeId = :entityTypeId', {entityTypeId: EntityType.COMPETITION});      
+            if (roleId) {
+                query.andWhere('ure.roleId = :roleId', {roleId});
+            }
+            if (userId) {
+                query.andWhere('ure.userId = :userId', {userId});
+            }
+            query.andWhere('ure.isDeleted = 0');
+
+            return query.getMany()
+        } else {
+            return [];
+        }
     }
 }

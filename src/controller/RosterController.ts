@@ -22,6 +22,8 @@ import {User} from '../models/User';
 import {Competition} from '../models/Competition';
 import {RequestFilter} from '../models/RequestFilter';
 import {StateTimezone} from '../models/StateTimezone';
+import {UserRoleEntity} from '../models/security/UserRoleEntity';
+import {Role} from '../models/security/Role';
 
 @JsonController('/roster')
 export class RosterController extends BaseController {
@@ -226,6 +228,9 @@ export class RosterController extends BaseController {
         }
         let savedRoster = await this.rosterService.createOrUpdate(roster);
         if (savedRoster) {
+            if (category == "Scoring" || category == "Playing") {
+                await this.evaluateWatchlist(roster, user.id);
+            }
             await this.notifyRosterChange(user, savedRoster, category);
             return savedRoster;
         } else {
@@ -569,5 +574,86 @@ export class RosterController extends BaseController {
                 message: `Invalid parameters passed`
             });
         }
+    }
+
+    private async evaluateWatchlist(roster: Roster, createdBy: number) {
+        let deviceIds = (await this.deviceService.getUserDevices(roster.userId)).map(device => device.deviceId);
+        if (isArrayPopulated(deviceIds)) {
+            let needToSetWatch = true;
+            let userWatchlist = await this.watchlistService.findByParam(roster.userId);
+            for (let watchItem of userWatchlist) {
+                if (watchItem.entityTypeId == EntityType.TEAM &&
+                      roster.teamId == watchItem.entityId) {
+                          needToSetWatch  = false;
+                          break;
+                }
+            }
+
+            if (needToSetWatch) {
+              await this.createWatchlist(
+                  roster.userId,
+                  roster.teamId,
+                  createdBy,
+                  deviceIds
+              );
+            }
+        }
+    }
+
+    private async createWatchlist(
+        userId: number,
+        teamId: number,
+        createdBy: number,
+        deviceIds: string[]
+    ) {
+        let topics = await this.loadTopics([teamId], []);
+        if (topics.length > 0) {
+            await this.firebaseService.subscribeTopic(deviceIds, topics)
+        }
+
+        const watchlistSavePromises = [];
+        deviceIds.forEach(async deviceId => {
+          watchlistSavePromises.push(
+              this.watchlistService.save(userId, deviceId, [], [teamId])
+          );
+        });
+        await Promise.all(watchlistSavePromises);
+
+        /// On saving of watchlist we will add the user spectator role
+        /// to those team's or organisation's
+        let compIds: number[] = [];
+        const teamList = await this.teamService.findByIds([teamId]);
+        teamList.forEach((team) => {
+            compIds.push(team.competitionId);
+        });
+
+        if (compIds.length > 0) {
+            let existingUREs = await this.ureService.findCompetitionsUREs(
+                compIds,
+                Role.SPECTATOR,
+                userId
+            );
+            let ureList: UserRoleEntity[] = [];
+            (new Set(compIds)).forEach((compId) => {
+                if (existingUREs.filter(ure => (ure.entityId == compId)).length == 0) {
+                    let spectatorURE = new UserRoleEntity();
+                    spectatorURE.roleId = Role.SPECTATOR;
+                    spectatorURE.entityId = compId;
+                    spectatorURE.entityTypeId = EntityType.COMPETITION;
+                    spectatorURE.userId = userId;
+                    spectatorURE.createdBy = createdBy;
+                    ureList.push(spectatorURE);
+                }
+            });
+            await this.ureService.batchCreateOrUpdate(ureList);
+            this.notifyChangeRole(userId);
+        }
+
+        this.firebaseService.sendMessage({
+            tokens: deviceIds,
+            data: {
+                type: 'watchlist_updated'
+            }
+        });
     }
 }

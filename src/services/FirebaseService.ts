@@ -134,7 +134,7 @@ export default class FirebaseService {
             });
     }
 
-    public async subscribeTopic(token, topics: string[]) {
+    public async subscribeTopic(token: string | string[], topics: string[]) {
         for (const topic of topics) {
             admin.messaging().subscribeToTopic(token, topic)
                 .then(function (response) {
@@ -146,7 +146,7 @@ export default class FirebaseService {
         }
     }
 
-    public async unsubscribeTopic(token, topics: string[]) {
+    public async unsubscribeTopic(token: string | string[], topics: string[]) {
         for (const topic of topics) {
             admin.messaging().unsubscribeFromTopic(token, topic)
                 .then(function (response) {
