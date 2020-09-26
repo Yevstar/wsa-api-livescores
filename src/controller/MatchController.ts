@@ -911,7 +911,7 @@ export class MatchController extends BaseController {
                 ? new Date(time.getTime() + startedMsFromStart)
                 : Date.now() - periodDuration * 1000;
         }
-        this.matchService.logMatchEvent(match.id, 'timer', 'periodStart', scores.period, eventTimestamp, user.id);
+        await this.matchService.logMatchEvent(match.id, 'timer', 'periodStart', scores.period, eventTimestamp, user.id);
 
         eventTimestamp = msFromStart ? new Date(time.getTime() + msFromStart) : Date.now();
         this.matchService.logMatchEvent(match.id, 'timer', 'periodEnd', scores.period, eventTimestamp, user.id);
