@@ -376,7 +376,7 @@ export default class UserService extends BaseService<User> {
 
             cTrack.communicationType = 11;
             //cTrack.contactNumber = receiverData.mobileNumber
-            cTrack.entityId = receiverData.id;
+            cTrack.entityId = toRoleId;
             cTrack.deliveryChannelRefId = 1;
             cTrack.emailId = receiverData.email;
             cTrack.userId = receiverData.id;
