@@ -898,6 +898,12 @@ export class MatchController extends BaseController {
                 message: `Match can not be empty`
             });
         }
+
+        // Team Ladder
+        let arr = [];
+        arr.push(match);
+        await this.performTeamLadderOperation(arr, user.id);
+
         this.sendMatchEvent(match, false, user);
 
         // log match event
@@ -911,15 +917,10 @@ export class MatchController extends BaseController {
                 ? new Date(time.getTime() + startedMsFromStart)
                 : Date.now() - periodDuration * 1000;
         }
-        this.matchService.logMatchEvent(match.id, 'timer', 'periodStart', scores.period, eventTimestamp, user.id);
+        await this.matchService.logMatchEvent(match.id, 'timer', 'periodStart', scores.period, eventTimestamp, user.id);
 
         eventTimestamp = msFromStart ? new Date(time.getTime() + msFromStart) : Date.now();
         this.matchService.logMatchEvent(match.id, 'timer', 'periodEnd', scores.period, eventTimestamp, user.id);
-
-        // Team Ladder
-        let arr = [];
-        arr.push(match);
-        await this.performTeamLadderOperation(arr, user.id);
 
         return match;
     }
@@ -939,26 +940,20 @@ export class MatchController extends BaseController {
     async sendMatchEvent(match: Match, updateScore: boolean = false, user?: User, subtype?: string) {
         try {
             if (match) {
-                console.log("sendMatchEvent:: Match" + JSON.stringify(match));
-                console.log("sendMatchEvent:: updateScore" + updateScore);
-                console.log("sendMatchEvent:: user" + JSON.stringify(user));
-                console.log("sendMatchEvent:: subtype" + JSON.stringify(subtype));
+        
 
                 const dataDict = {};
                 dataDict["type"] = "match_updated";
                 dataDict["matchId"] = match.id.toString();
                 if (user) {
-                    console.log("&&&&&&&&&&& Inside User");
                     dataDict["userId"] = user.id.toString();
                 }
                 if (subtype) {
-                    console.log("&&&&&&&&&&& Inside Subtype");
                     dataDict["subtype"] = subtype;
                     if (subtype == 'match_livestreamURL_updated') {
                       dataDict["livestreamURL"] = match.livestreamURL;
                     }
                 }
-                console.log("******************####" + JSON.stringify(dataDict));
                 // send by roster and ure
                 if (!updateScore) {
                     let userDevices = await this.deviceService.findDeviceByMatch(match);
@@ -970,7 +965,6 @@ export class MatchController extends BaseController {
                         });
                     }
                 }
-                console.log("******************####222" + JSON.stringify(dataDict));
                 if (updateScore) {
                     dataDict["type"] = "match_score_updated";
                     dataDict["team1Score"] = match.team1Score.toString();
@@ -980,7 +974,6 @@ export class MatchController extends BaseController {
                         dataDict["centrePassStatus"] = match.centrePassStatus.toString();
                     }
                 }
-                console.log("******************####333" + JSON.stringify(dataDict));
                 logger.debug('Prepare data for update match message', dataDict);
                 let list = await this.watchlistService.loadByParam(match.id, [match.team1Id, match.team2Id]);
                 let tokens = (list).map(wl => wl['token']);
