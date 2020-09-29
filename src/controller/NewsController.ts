@@ -29,9 +29,22 @@ export class NewsController extends BaseController {
     @Authorized()
     @Delete('/id/:id')
     async softDelete(
-        @Param("id") id: number,
-        @HeaderParam("authorization") user: User) {
-        return this.newsService.softDelete(id, user.id);
+        @Param("id") id: number
+    ) {
+        let news = await this.newsService.findById(id);
+        let deleteResponse = await this.newsService.softDelete(id);
+        if (news) {
+            let tokens = await this.deviceService.findDeviceForNews(news);
+            if (tokens && tokens.length > 0) {
+                let data = {
+                    type: 'news_removed',
+                    news_id: news.id.toString()
+                };
+
+                this.firebaseService.sendMessageChunked({ tokens: tokens, data: data });
+            }
+        }
+        return deleteResponse;
     }
 
     @Authorized()
@@ -121,6 +134,17 @@ export class NewsController extends BaseController {
                 }
                 const savedNews = await this.newsService.createOrUpdate(n);
                 const getNews = await this.newsService.findById(savedNews.id);
+                if (getNews) {
+                    let tokens = await this.deviceService.findDeviceForNews(getNews);
+                    if (tokens && tokens.length > 0) {
+                        let data = {
+                            type: 'news_updated',
+                            news_id: getNews.id.toString()
+                        };
+
+                        this.firebaseService.sendMessageChunked({ tokens: tokens, data: data });
+                    }
+                }
                 return response.status(200).send(getNews);
 
             } else {

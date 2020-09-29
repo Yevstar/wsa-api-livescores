@@ -51,7 +51,7 @@ export default class NewsService extends BaseService<News> {
             return query.getRawMany();
     }
 
-    public async softDelete(id: number, userId:number): Promise<DeleteResult> {
+    public async softDelete(id: number): Promise<DeleteResult> {
         let query = this.entityManager.createQueryBuilder(News, 'news');
         query.andWhere("news.id = :id", { id });
         return query.softDelete().execute();
