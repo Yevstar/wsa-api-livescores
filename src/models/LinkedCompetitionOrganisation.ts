@@ -1,5 +1,6 @@
-import {BaseEntity, Column, Entity, PrimaryGeneratedColumn} from 'typeorm-plus';
-import {IsNumber, IsString} from "class-validator";
+import {BaseEntity, Column, Entity, PrimaryGeneratedColumn, OneToOne, JoinColumn} from 'typeorm-plus';
+import {IsNumber, IsString, ValidateNested} from "class-validator";
+import {Competition} from '../models/Competition';
 
 @Entity('linkedCompetitionOrganisation')
 export class LinkedCompetitionOrganisation extends BaseEntity {
@@ -23,4 +24,9 @@ export class LinkedCompetitionOrganisation extends BaseEntity {
     @IsNumber()
     @Column()
     competitionId: number;
+
+    @ValidateNested()
+    @OneToOne(type => Competition)
+    @JoinColumn()
+    competition: Competition;
 }

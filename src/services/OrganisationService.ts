@@ -11,7 +11,8 @@ export default class OrganisationService extends BaseService<LinkedCompetitionOr
     }
 
     public async findByNameAndCompetitionId(name: string, competitionId?: number): Promise<LinkedCompetitionOrganisation[]> {
-        let query = this.entityManager.createQueryBuilder(LinkedCompetitionOrganisation, 'competitionOrganisation');
+        let query = this.entityManager.createQueryBuilder(LinkedCompetitionOrganisation, 'competitionOrganisation')
+                        .innerJoinAndSelect("competitionOrganisation.competition", "competition", "competition.deleted_at is null")
         if (name) {
             query = query.where('LOWER(competitionOrganisation.name) like :name', {name: `${name.toLowerCase()}%`});
         }
