@@ -146,7 +146,16 @@ export class CompetitionController extends BaseController {
                     const DIRECT = Competition.DIRECT_INVITE;
                     const NOT_APPLICABLE = Competition.NOT_APPLICABLE;
 
+                    if (competition.isInvitorsChanged === 'true') {
+
                     if (isArrayPopulated(INVITED_TO)) {
+
+                        const getInvitationDetails = await this.competitionInviteesService.getInviteesByCompetition(saved.id);
+                        if (isArrayPopulated(getInvitationDetails)) {
+                            for (let i of getInvitationDetails) {
+                                await this.competitionInviteesService.deleteById(i.id);
+                            }
+                        }
 
                         if (INVITED_TO.includes(NOT_APPLICABLE)) {
 
@@ -301,6 +310,7 @@ export class CompetitionController extends BaseController {
                     } else {
                         // delete the existing invitees
                         await this.competitionInviteesService.deleteInviteesByCompetitionId(saved.id);
+                    }
                     }
 
                     if (isArrayPopulated(COMPETITION_INVITEES)) {
