@@ -83,7 +83,7 @@ export default class UserDeviceService extends BaseService<UserDevice> {
             .from(UserRoleEntity, "ure")
             .innerJoin('ure.role', 'r')
             .innerJoin('ure.entityType', 'et')
-            .andWhere("r.name = 'manager'")
+            .andWhere("r.name = 'manager' or r.name = 'player' or r.name = 'umpire' or r.name = 'coach' or r.name = 'spectator'")
             .andWhere(new Brackets(qb => {
                 qb.orWhere(
                     "(ure.entityId = :team1Id and ure.entityTypeId = :entityTypeId1) or " +
@@ -97,7 +97,7 @@ export default class UserDeviceService extends BaseService<UserDevice> {
         query.orWhere('ud.userId in ' + query.subQuery().select("r.userId")
             .from(Roster, "r")
             .innerJoin('r.role', 'role')
-            .andWhere("role.name = 'scorer' or role.name = 'player' or role.name = 'umpire' or role.name = 'coach'")
+            .andWhere("role.name = 'scorer'")
             .andWhere("r.matchId = :matchId", { matchId: match.id }).getQuery());
         return query.getMany();
     }
@@ -256,13 +256,13 @@ export default class UserDeviceService extends BaseService<UserDevice> {
 
         if (competitionId == 0) {
             return this.entityManager.query(
-                rawSQL + 
+                rawSQL +
                 ';'
                 ,[EntityType.COMPETITION, organisationId])
 
         } else {
             return this.entityManager.query(
-                rawSQL + 
+                rawSQL +
                 'and c.id = ? '+
                 ';'
                 ,[EntityType.COMPETITION, organisationId, competitionId])

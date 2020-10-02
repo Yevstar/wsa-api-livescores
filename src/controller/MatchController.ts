@@ -40,9 +40,7 @@ import {RequestFilter} from "../models/RequestFilter";
 import {Roster} from "../models/security/Roster";
 import {Role} from "../models/security/Role";
 import {GamePosition} from "../models/GamePosition";
-import {StateTimezone} from "../models/StateTimezone";
-import {getMatchUmpireNotificationMessage} from "../utils/NotificationMessageUtils";
-import { Competition } from '../models/Competition';
+import {Competition} from '../models/Competition';
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
@@ -60,7 +58,7 @@ export class MatchController extends BaseController {
     ) {
         let match = await this.matchService.findById(id);
         let deletedMatch = await this.matchService.softDelete(id, user.id);
-        this.sendMatchEvent(match, false, user, 'match_removed');
+        this.sendMatchEvent(match, false, {user: user, subtype: 'match_removed'});
         return deletedMatch;
     }
 
@@ -254,10 +252,26 @@ export class MatchController extends BaseController {
         try{
            // logger.debug(`Inside the Create Match::` + JSON.stringify(match));
             let isNewMatch = false;
+            let nonSilentNotify = false;
             if (match.id == 0) {
                 isNewMatch = true;
+            } else {
+                let dbMatch = await this.matchService.findById(match.id);
+                if ((dbMatch.divisionId != match.divisionId ||
+                    dbMatch.type != match.type ||
+                    dbMatch.team1Id != match.team1Id ||
+                    dbMatch.team2Id != match.team2Id ||
+                    dbMatch.venueCourtId != match.venueCourtId ||
+                    dbMatch.roundId != match.roundId ||
+                    dbMatch.matchDuration != match.matchDuration ||
+                    dbMatch.breakDuration != match.breakDuration ||
+                    dbMatch.mainBreakDuration != match.mainBreakDuration ||
+                    dbMatch.startTime != match.startTime) &&
+                    (match.startTime >= new Date())) {
+                        nonSilentNotify = true;
+                }
             }
-    
+
             // Saving match scores if match id and userId are present
             if (userId && match.id && !isNewMatch) {
                 const matchScores = new MatchScores();
@@ -265,23 +279,23 @@ export class MatchController extends BaseController {
                 matchScores.matchId = match.id;
                 matchScores.team1Score = match.team1Score;
                 matchScores.team2Score = match.team2Score;
-    
+
                 this.matchScorerService.createOrUpdate(matchScores);
             }
-    
+
             // Saving match
             const saved = await this.matchService.createOrUpdate(match);
             if (isNewMatch) {
                 match.id = saved.id;
             }
-    
+
             // Getting match competition and rosters existing for the match
             const competition = await this.competitionService.findById(match.competitionId);
           //  logger.debug(`competition::` + JSON.stringify(competition));
-    
+
             // Updating umpires
             if (competition.recordUmpireType == "NAMES") {
-                
+
                 let oldUmpires = await this.matchUmpireService.findByMatchIds([match.id]);
                 let newUmpires = match.matchUmpires;
                 // logger.debug(`newUmpires::` + JSON.stringify(newUmpires));
@@ -300,7 +314,7 @@ export class MatchController extends BaseController {
                         }
                         await Promise.all(matchUmpireDeletePromises);
                     }
-    
+
                     /// Updating umpires data
                     for (let newUmpire of newUmpires) {
                         if (newUmpire.umpireName) {
@@ -355,7 +369,7 @@ export class MatchController extends BaseController {
                     }
                 }
                 await Promise.all(deleteRosterPromises);
-    
+
                 let umpireSequence = 0;
                // logger.debug("Match Create Rosters" + JSON.stringify(match.rosters));
                 for (let newRoster of match.rosters) {
@@ -411,20 +425,24 @@ export class MatchController extends BaseController {
                 }
                 await Promise.all(deleteRosterPromises);
             }
-    
+
             // Team Ladder
             // if (!isNewMatch) {
             let arr = [];
             arr.push(match);
             await this.performTeamLadderOperation(arr, user.id);
- 
-            this.sendMatchEvent(saved); // This is to send notification for devices
+
+            this.sendMatchEvent(
+                saved,
+                false,
+                { nonSilentNotify: nonSilentNotify }
+            ); // This is to send notification for devices
             return saved;
         }
         catch(error){
             logger.error(`Exception occurred in create Match ${error}`);
         }
-        
+
     }
 
     private async addUmpireTypeRoster(
@@ -520,7 +538,7 @@ export class MatchController extends BaseController {
                         roster.matchId,
                         roster.userId
                     );
-    
+
                     await this.umpireRemoveRoster(
                         Role.UMPIRE,
                         roster.userId,
@@ -556,7 +574,7 @@ export class MatchController extends BaseController {
         catch(error){
             logger.error(`Exception occurred in removeScorerRoster ${error}`);
         }
-        
+
     }
 
     private async addScorerRoster(roster: Roster, user: User) {
@@ -651,7 +669,7 @@ export class MatchController extends BaseController {
             match.centrePassStatus = centrePassStatus;
         }
         await this.matchService.createOrUpdate(match);
-        this.sendMatchEvent(match, true, user);
+        this.sendMatchEvent(match, true, {user: user});
 
         let eventTimestamp = msFromStart
             ? new Date(match.startTime.getTime() + msFromStart)
@@ -721,7 +739,7 @@ export class MatchController extends BaseController {
                 message: `Match with id ${matchId} not found`
             });
         }
-        this.sendMatchEvent(match, false, user);
+        this.sendMatchEvent(match, false, {user: user, nonSilentNotify: true});
         await this.matchService.logLiteMatchEvent(matchId, 'timer', 'start', 1, match.startTime, user.id);
         return match;
     }
@@ -765,7 +783,7 @@ export class MatchController extends BaseController {
                 message: `Match with id ${matchId} not found`
             });
         }
-        this.sendMatchEvent(match, false, user);
+        this.sendMatchEvent(match, false, {user: user, nonSilentNotify: true});
         await this.matchService.logLiteMatchEvent(matchId, 'timer', 'start', 1, match.startTime, user.id);
         return response.status(200).send({ restarted: true });
     }
@@ -792,7 +810,7 @@ export class MatchController extends BaseController {
                 message: `Match with id ${matchId} not found`
             });
         }
-        this.sendMatchEvent(match, false, user);
+        this.sendMatchEvent(match, false, {user: user, nonSilentNotify: true});
 
         let eventTimestamp = msFromStart ? new Date(match.startTime.getTime() + msFromStart) : new Date(Date.now());
         this.matchService.logMatchEvent(matchId, 'timer', 'pause', period, eventTimestamp,
@@ -830,7 +848,7 @@ export class MatchController extends BaseController {
                 totalPausedTime
             );
 
-            this.sendMatchEvent(match, false, user);
+            this.sendMatchEvent(match, false, {user: user, nonSilentNotify: true});
             let eventTimestamp = msFromStart ? new Date(match.startTime.getTime() + msFromStart) : new Date(Date.now());
             this.matchService.logMatchEvent(matchId, 'timer', 'resume', period, eventTimestamp,
                 user.id, 'isBreak', isBreak ? "true" : "false");
@@ -863,7 +881,7 @@ export class MatchController extends BaseController {
                 message: `Match with id ${matchId} not found`
             });
         }
-        this.sendMatchEvent(match, false, user, "scorer_changed");
+        this.sendMatchEvent(match, false, {user: user, subtype: "scorer_changed"});
         let eventTimestamp = msFromStart ? new Date(match.startTime.getTime() + msFromStart) : new Date(Date.now());
         this.matchService.logMatchEvent(matchId, 'scorer', 'changed', period, eventTimestamp, user.id, 'scorerStatus', scorerStatus.toString());
         return match;
@@ -904,7 +922,7 @@ export class MatchController extends BaseController {
         arr.push(match);
         await this.performTeamLadderOperation(arr, user.id);
 
-        this.sendMatchEvent(match, false, user);
+        this.sendMatchEvent(match, false, {user: user, nonSilentNotify: true});
 
         // log match event
         let eventTimestamp;
@@ -937,34 +955,30 @@ export class MatchController extends BaseController {
         return match;
     }
 
-    async sendMatchEvent(match: Match, updateScore: boolean = false, user?: User, subtype?: string) {
+    async sendMatchEvent(
+        match: Match,
+        updateScore: boolean = false,
+        optionals?: { user?: User, subtype?: string, nonSilentNotify?: boolean }
+    ) {
         try {
             if (match) {
-        
-
+                var messageBody: string = undefined;
+                if (optionals && optionals.nonSilentNotify) {
+                    messageBody = 'A change has been made to your match. Please check match details.';
+                }
                 const dataDict = {};
                 dataDict["type"] = "match_updated";
                 dataDict["matchId"] = match.id.toString();
-                if (user) {
-                    dataDict["userId"] = user.id.toString();
+                if (optionals && optionals.user) {
+                    dataDict["userId"] = optionals.user.id.toString();
                 }
-                if (subtype) {
-                    dataDict["subtype"] = subtype;
-                    if (subtype == 'match_livestreamURL_updated') {
+                if (optionals && optionals.subtype) {
+                    dataDict["subtype"] = optionals.subtype;
+                    if (optionals.subtype == 'match_livestreamURL_updated') {
                       dataDict["livestreamURL"] = match.livestreamURL;
                     }
                 }
-                // send by roster and ure
-                if (!updateScore) {
-                    let userDevices = await this.deviceService.findDeviceByMatch(match);
-                    let tokens = (userDevices).map(device => device.deviceId);
-                    if (tokens && tokens.length > 0) {
-                        this.firebaseService.sendMessageChunked({
-                            tokens: tokens,
-                            data: dataDict
-                        });
-                    }
-                }
+
                 if (updateScore) {
                     dataDict["type"] = "match_score_updated";
                     dataDict["team1Score"] = match.team1Score.toString();
@@ -974,12 +988,28 @@ export class MatchController extends BaseController {
                         dataDict["centrePassStatus"] = match.centrePassStatus.toString();
                     }
                 }
-                logger.debug('Prepare data for update match message', dataDict);
+
+                // Getting tokens by match
+                let userDevices = await this.deviceService.findDeviceByMatch(match);
+                let userDeviceTokens = (userDevices).map(device => device.deviceId);
+                // Getting tokens by watchlist
                 let list = await this.watchlistService.loadByParam(match.id, [match.team1Id, match.team2Id]);
-                let tokens = (list).map(wl => wl['token']);
+                let watchlistTokens = (list).map(wl => wl['token']);
+                // tokens
+                let tokens = [];
+                Array.prototype.push.apply(tokens, userDeviceTokens);
+                Array.prototype.push.apply(tokens, watchlistTokens);
+
+
                 logger.debug('Load device tokens', tokens);
                 if (tokens && tokens.length > 0) {
-                    this.firebaseService.sendMessageChunked({ tokens: tokens, data: dataDict })
+                    logger.debug('Prepare data for update match message', dataDict);
+                    let uniqTokens = new Set(tokens);
+                    this.firebaseService.sendMessageChunked({
+                      body: messageBody,
+                      tokens: Array.from(uniqTokens),
+                      data: dataDict
+                    })
                 }
             } else {
                 logger.debug(`Cannot send message for empty match`);
@@ -1011,7 +1041,7 @@ export class MatchController extends BaseController {
                 message: `Match with id ${matchId} not found`
             });
         }
-        this.sendMatchEvent(match, false, user, "centre_pass_changed");
+        this.sendMatchEvent(match, false, {user: user, subtype: "centre_pass_changed"});
         return match;
     }
 
@@ -1830,7 +1860,7 @@ export class MatchController extends BaseController {
                 await this.matchService.updateLivestreamURL(match.id, match.livestreamURL);
                 const updatedMatch = await this.matchService.findById(match.id);
                 /// Need to send notification of match update event
-                this.sendMatchEvent(updatedMatch, false, null, 'match_livestreamURL_updated');
+                this.sendMatchEvent(updatedMatch, false, {subtype: 'match_livestreamURL_updated'});
 
                 return updatedMatch;
         } else {
@@ -1866,7 +1896,7 @@ export class MatchController extends BaseController {
                 message: `Match with id ${matchId} not found`
             });
         }
-        this.sendMatchEvent(match, false, user);
+        this.sendMatchEvent(match, false, {user: user, nonSilentNotify: true});
         this.matchService.logLiteMatchEvent(
             matchId,
             'timer',
