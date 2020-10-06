@@ -125,6 +125,7 @@ export class CompetitionController extends BaseController {
 
                 const getInviteesDetail = await this.competitionInviteesService.getInviteesByCompetition(saved.id);
 
+                if (competition.isInvitorsChanged === 'true') {
                 if ((isNotNullAndUndefined(competition.invitedTo) && competition.invitedTo !== '' && isArrayPopulated(competition.invitedTo)) ||
                     (isNotNullAndUndefined(competition.invitedAnyAssoc) && competition.invitedAnyAssoc !== '' && isArrayPopulated(competition.invitedAnyAssoc)) ||
                     (isNotNullAndUndefined(competition.invitedAnyClub) && competition.invitedAnyClub !== '' && isArrayPopulated(competition.invitedAnyClub))) {
@@ -145,8 +146,6 @@ export class CompetitionController extends BaseController {
                     const ANY_CLUB = Competition.ANY_ORGANISATION_CLUB;
                     const DIRECT = Competition.DIRECT_INVITE;
                     const NOT_APPLICABLE = Competition.NOT_APPLICABLE;
-
-                    if (competition.isInvitorsChanged === 'true') {
 
                     if (isArrayPopulated(INVITED_TO)) {
 
@@ -311,7 +310,6 @@ export class CompetitionController extends BaseController {
                         // delete the existing invitees
                         await this.competitionInviteesService.deleteInviteesByCompetitionId(saved.id);
                     }
-                    }
 
                     if (isArrayPopulated(COMPETITION_INVITEES)) {
                         await this.competitionInviteesService.batchCreateOrUpdate(COMPETITION_INVITEES);
@@ -360,6 +358,7 @@ export class CompetitionController extends BaseController {
                     if (isArrayPopulated(getInviteesDetail)) {
                         await this.competitionInviteesService.deleteInviteesByCompetitionId(saved.id);
                     }
+                }
                 }
 
                 await this.competitionVenueService.deleteByCompetitionId(saved.id);
