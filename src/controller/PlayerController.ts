@@ -244,7 +244,7 @@ export class PlayerController extends BaseController {
     @Post('/import')
     async importCSV(
         @HeaderParam("authorization") user: User,
-        @QueryParam('competitionId', { required: true }) competitionId: number,
+        @QueryParam("competitionId", { required: true }) competitionId: number,
         @UploadedFile("file") file: Express.Multer.File,
         @Res() response: Response,
     ) {
@@ -501,8 +501,8 @@ export class PlayerController extends BaseController {
             ure1.roleId = Role.MEMBER;
             ure1.entityId = player.competitionId;
             ure1.entityTypeId = EntityType.COMPETITION;
-            ure.userId = savedUserDetail.id;
-            ure.createdBy = creator.id;
+            ure1.userId = savedUserDetail.id;
+            ure1.createdBy = creator.id;
             ureArray.push(ure1);
             await this.ureService.batchCreateOrUpdate(ureArray);
 

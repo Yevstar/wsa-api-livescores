@@ -183,7 +183,7 @@ export function parseDateString(dateStr: string): Date {
     }
 
     let dateMax = 31;
-    if ([4, 6, 9, 11].indexOf(month)) {
+    if ([4, 6, 9, 11].indexOf(month) > -1) {
         dateMax = 30;
     } else if (month === 2) {
         if ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0) {
@@ -222,12 +222,12 @@ export function validationForField({ filedList, values }: { filedList: string[],
             if (isNullOrEmpty(val[field])) {
                 msg.push(`The field '${field}' is required.`);
             } else {
-                if (field === 'dateOfBirth' ||  field === 'Date') {
+                if (field === 'dateOfBirth' || field === 'DOB' ||  field === 'Date') {
                     const date = typeof tempValue[field] === 'string' ? parseDateString(tempValue[field]) : tempValue[field];
                     if (date.getFullYear() < 1000) {
                         msg.push(`The '${field}' value is invalid date.`);
                     }
-                    tempValue[field] = `${date.getDate()}.${date.getMonth()}.${date.getFullYear()}`;
+                    tempValue[field] = `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`;
                 } else if (field.toLowerCase() === 'email' && !validator.validate(val[field])) {
                     msg.push(`The '${field}' value is invalid email.`);
                 } else if (field.toLowerCase() === 'teamid' && val[field] < 0) {

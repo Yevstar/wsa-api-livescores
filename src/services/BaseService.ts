@@ -28,10 +28,7 @@ export default abstract class BaseService<T extends BaseEntity> {
     }
 
     public async batchCreateOrUpdate(model: T[]): Promise<T[]> {
-        return this.entityManager.save(model).then(
-        ).catch(
-            console.error.bind(console)
-        );
+        return this.entityManager.save(model);
     }
 
     public async deleteById(id: number): Promise<DeleteResult> {
