@@ -18,12 +18,9 @@ import {MatchPausedTime} from "../models/MatchPausedTime";
 import {Lineup} from "../models/Lineup";
 import {RequestFilter} from "../models/RequestFilter";
 import {StateTimezone} from "../models/StateTimezone";
-import {LinkedCompetitionOrganisation} from "../models/LinkedCompetitionOrganisation";
 import {Competition} from "../models/Competition";
 import {User} from "../models/User";
 import {MatchSheet} from "../models/MatchSheet";
-import { convertMatchStartTimeByTimezone } from "../utils/TimeFormatterUtils";
-let constants = require('../constants/Constants');
 
 @Service()
 export default class MatchService extends BaseService<Match> {
@@ -516,13 +513,6 @@ export default class MatchService extends BaseService<Match> {
                 competitionTimezone = await this.getMatchTimezone(competition.locationId);
             }
 
-            filteredMatches.map(m=> {
-                m.startTime = convertMatchStartTimeByTimezone(
-                    m.startTime, competitionTimezone != null ? competitionTimezone.timezone : null,
-                    `${constants.DATE_FORMATTER_KEY} ${constants.TIME_FORMATTER_KEY}`)
-                return m;
-            });
-
             let pdfBuf: Buffer;
 
             const createPDF = (html, options): Promise<Buffer> => new Promise(((resolve, reject) => {
@@ -544,7 +534,8 @@ export default class MatchService extends BaseService<Match> {
                     team1players,
                     team2players,
                     umpires,
-                    filteredMatches[i]
+                    filteredMatches[i],
+                    competitionTimezone
                 );
 
                 const options = { width: '595px', height: '842px', format: 'A4' };

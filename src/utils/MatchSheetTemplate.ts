@@ -1,6 +1,9 @@
 import moment from 'moment';
 import {Match} from '../models/Match';
 import {MatchUmpire} from '../models/MatchUmpire';
+import {StateTimezone} from "../models/StateTimezone";
+import { convertMatchStartTimeByTimezone } from "../utils/TimeFormatterUtils";
+let constants = require('../constants/Constants');
 
 const getMatchSheetTemplate = (
   templateType: string = 'Fixtures',
@@ -8,7 +11,8 @@ const getMatchSheetTemplate = (
   team1players: any[],
   team2players: any[],
   umpires: MatchUmpire[],
-  match: Match
+  match: Match,
+  competitionTimezone: StateTimezone
 ) => {
   const team1PlayersRef = team1players.length < 15
     ? [...team1players, ...Array(15 - team1players.length).fill(null)]
@@ -16,6 +20,14 @@ const getMatchSheetTemplate = (
   const team2PlayersRef = team2players.length < 15
     ? [...team2players, ...Array(15 - team2players.length).fill(null)]
     : team2players;
+
+  const matchDate = convertMatchStartTimeByTimezone(
+            match.startTime, competitionTimezone != null ? competitionTimezone.timezone : null,
+            `${constants.DATE_FORMATTER_KEY}`);
+
+  const matchStartTime = convertMatchStartTimeByTimezone(
+        match.startTime, competitionTimezone != null ? competitionTimezone.timezone : null,
+        `${constants.TIME_FORMATTER_KEY}`);
 
   return `
     <!doctype html>
@@ -307,8 +319,8 @@ const getMatchSheetTemplate = (
                     <div class="infodiv">${match.team1 ? match.team1.name : ''}</div>
                 </div>
                 <div class="infoContentRight">
-                    <div class="infodiv">Date: ${moment(new Date(match.startTime)).format('DD/MM/YYYY')}</div>
-                    <div class="infodiv">Time: ${moment(new Date(match.startTime)).format('HH:mm a')}</div>
+                    <div class="infodiv">Date: ${matchDate}</div>
+                    <div class="infodiv">Time: ${matchStartTime}</div>
                     <div class="infodiv">${match.team2 ? match.team2.name : ''}</div>
                 </div>
             </div>
