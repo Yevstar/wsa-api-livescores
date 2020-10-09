@@ -45,4 +45,15 @@ export default class OrganisationService extends BaseService<LinkedCompetitionOr
         }
     }
 
+    public async getOrganisationLogoDetails(organisationId: number): Promise<any> {
+        const query = await this.entityManager.query(
+            `select distinct o.id,o.name,ol.logoUrl from wsa_users.organisation o join wsa_users.organisationLogo ol 
+            on ol.organisationId = o.id and o.isDeleted = 0 where o.id = ? group by o.id` , [organisationId]);
+        if (isArrayPopulated(query)) {
+            return query[0];
+        } else {
+            return [];
+        }
+    }
+
 }

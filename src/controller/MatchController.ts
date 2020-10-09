@@ -1811,12 +1811,12 @@ export class MatchController extends BaseController {
     ): Promise<any> {
         try {
             const competition = await this.competitionService.findById(competitionId);
-            const competitionOrganisation = await this.organisationService.findById(competition.organisationId);
+            const organisation = await this.organisationService.getOrganisationLogoDetails(competition.organisationId);
 
             this.matchService.printMatchSheetTemplate(
                 templateType,
                 user,
-                competitionOrganisation,
+                organisation,
                 competition,
                 divisionIds,
                 teamIds,

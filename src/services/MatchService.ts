@@ -22,6 +22,8 @@ import {LinkedCompetitionOrganisation} from "../models/LinkedCompetitionOrganisa
 import {Competition} from "../models/Competition";
 import {User} from "../models/User";
 import {MatchSheet} from "../models/MatchSheet";
+import { convertMatchStartTimeByTimezone } from "../utils/TimeFormatterUtils";
+let constants = require('../constants/Constants');
 
 @Service()
 export default class MatchService extends BaseService<Match> {
@@ -479,7 +481,7 @@ export default class MatchService extends BaseService<Match> {
     public async printMatchSheetTemplate(
         templateType: string,
         user: User,
-        competitionOrganisation: LinkedCompetitionOrganisation,
+        organisation: any,
         competition: Competition,
         divisionIds: number[],
         teamIds: number[],
@@ -508,6 +510,19 @@ export default class MatchService extends BaseService<Match> {
             if (roundName !== null) {
                 filteredMatches = filteredMatches.filter((match) => match.round.name === roundName);
             }
+
+            let competitionTimezone: StateTimezone;
+            if (competition && competition.locationId) {
+                competitionTimezone = await this.getMatchTimezone(competition.locationId);
+            }
+
+            filteredMatches.map(m=> {
+                m.startTime = convertMatchStartTimeByTimezone(
+                    m.startTime, competitionTimezone != null ? competitionTimezone.timezone : null,
+                    `${constants.DATE_FORMATTER_KEY} ${constants.TIME_FORMATTER_KEY}`)
+                return m;
+            });
+
             let pdfBuf: Buffer;
 
             const createPDF = (html, options): Promise<Buffer> => new Promise(((resolve, reject) => {
@@ -525,7 +540,7 @@ export default class MatchService extends BaseService<Match> {
                 const { team1players, team2players, umpires } = matchDetail;
                 const htmlTmpl = getMatchSheetTemplate(
                     templateType,
-                    competitionOrganisation,
+                    organisation,
                     team1players,
                     team2players,
                     umpires,

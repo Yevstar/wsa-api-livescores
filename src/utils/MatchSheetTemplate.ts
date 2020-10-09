@@ -1,12 +1,10 @@
 import moment from 'moment';
-
-import {LinkedCompetitionOrganisation} from '../models/LinkedCompetitionOrganisation';
 import {Match} from '../models/Match';
 import {MatchUmpire} from '../models/MatchUmpire';
 
 const getMatchSheetTemplate = (
   templateType: string = 'Fixtures',
-  competitionOrganisation: LinkedCompetitionOrganisation,
+  organisation: any,
   team1players: any[],
   team2players: any[],
   umpires: MatchUmpire[],
@@ -297,20 +295,20 @@ const getMatchSheetTemplate = (
           <div class="page no-break">
             <div class="header no-break">
                 <div class="title">
-                    <div class="associationName">${competitionOrganisation.name || 'Association'}</div>
+                    <div class="associationName">${organisation.name || 'Association'}</div>
                     <div class="templateType">${templateType} Scoresheet</div>
                 </div>
-                <img class="logo" src="${competitionOrganisation.logoUrl || "https://img.icons8.com/color/myspace"}"/>
+                <img class="logo" src="${organisation.logoUrl || "https://img.icons8.com/color/myspace"}"/>
             </div>
             <div class="matchInfo no-break">
                 <div class="infoContentLeft">
-                    <div class="infodiv">${match.round ? match.round.name : ''}</div>
+                    <div class="infodiv">${match.round ? match.round.name : ''} - Court ${match.venueCourt?match.venueCourt.courtNumber:""}</div>
                     <div class="infodiv">${match.venueCourt && match.venueCourt.venue ? match.venueCourt.venue.name : ''}</div>
                     <div class="infodiv">${match.team1 ? match.team1.name : ''}</div>
                 </div>
                 <div class="infoContentRight">
                     <div class="infodiv">Date: ${moment(new Date(match.startTime)).format('DD/MM/YYYY')}</div>
-                    <div class="infodiv">Time: ${moment(new Date(match.startTime)).format('HH:MM a')}</div>
+                    <div class="infodiv">Time: ${moment(new Date(match.startTime)).format('HH:mm a')}</div>
                     <div class="infodiv">${match.team2 ? match.team2.name : ''}</div>
                 </div>
             </div>
