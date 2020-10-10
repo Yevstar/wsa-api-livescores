@@ -6,15 +6,15 @@ export function convertMatchStartTimeByTimezone(
     let constants = require('../constants/Constants');
 
     if (timezone) {
-        // let dateOptions = {
-        //     timeZone: timezone,
-        //     year: 'numeric', month: 'numeric', day: 'numeric'
-        // };
+        let dateOptions = {
+            timeZone: timezone,
+            year: 'numeric', month: '2-digit', day: '2-digit'
+        };
         let timeOptions = {
             timeZone: timezone,
             hour: 'numeric', minute: 'numeric'
         };
-        //let dateFormatter = new Intl.DateTimeFormat('en-AU', dateOptions);
+        let dateFormatter = new Intl.DateTimeFormat('en-US', dateOptions);
         let timeFormatter = new Intl.DateTimeFormat('en-AU', timeOptions);
 
         let matchStartTime = new Date(
@@ -28,12 +28,9 @@ export function convertMatchStartTimeByTimezone(
         );
 
         // date formatter was formatting as mm/dd/yyyy so hack used !!
-        var convertedDate = new Date(matchStartTime.toLocaleString('en-US', {
-            timeZone: timezone
-        }));
-        var diff = matchStartTime.getTime() - convertedDate.getTime();
-        var hackedDate = new Date(matchStartTime.getTime() + diff);
-        let matchDate = `${hackedDate.getDate()}/${hackedDate.getMonth()+1}/${hackedDate.getFullYear()}`;
+        // let matchDate = `${time.getDate()}/${time.getMonth()+1}/${time.getFullYear()}`; -- was not using timezone so discarded
+        let dateString = dateFormatter.format(matchStartTime);
+        let matchDate = dateString.substr(3, 2)+"/"+dateString.substr(0, 2)+"/"+dateString.substr(6, 4);
 
         let matchTime = timeFormatter.format(matchStartTime);
         
