@@ -28,7 +28,8 @@ export function convertMatchStartTimeByTimezone(
             )
         );
         // date formatter was formatting as mm/dd/yyyy
-        let matchDate = `${time.getDate()}/${time.getMonth()+1}/${time.getFullYear()}`;
+        //let matchDate = `${time.getDate()}/${time.getMonth()+1}/${time.getFullYear()}`;
+        let matchDate = dateFormatter.format(matchStartTime);
         let matchTime = timeFormatter.format(matchStartTime);
 
         var formattedValue = formatBy;
