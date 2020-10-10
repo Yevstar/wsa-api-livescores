@@ -1,5 +1,3 @@
-var moment = require('moment-timezone');
-
 export function convertMatchStartTimeByTimezone(
     time: Date,
     timezone: string,
