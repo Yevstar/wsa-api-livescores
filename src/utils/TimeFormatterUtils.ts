@@ -1,3 +1,4 @@
+var moment = require('moment-timezone');
 
 export function convertMatchStartTimeByTimezone(
     time: Date,
@@ -7,15 +8,15 @@ export function convertMatchStartTimeByTimezone(
     let constants = require('../constants/Constants');
 
     if (timezone) {
-        let dateOptions = {
-            timeZone: timezone,
-            year: 'numeric', month: 'numeric', day: 'numeric'
-        };
+        // let dateOptions = {
+        //     timeZone: timezone,
+        //     year: 'numeric', month: 'numeric', day: 'numeric'
+        // };
         let timeOptions = {
             timeZone: timezone,
             hour: 'numeric', minute: 'numeric'
         };
-        let dateFormatter = new Intl.DateTimeFormat('en-AU', dateOptions);
+        //let dateFormatter = new Intl.DateTimeFormat('en-AU', dateOptions);
         let timeFormatter = new Intl.DateTimeFormat('en-AU', timeOptions);
 
         let matchStartTime = new Date(
@@ -27,10 +28,17 @@ export function convertMatchStartTimeByTimezone(
                 time.getSeconds()
             )
         );
-        // date formatter was formatting as mm/dd/yyyy
-        //let matchDate = `${time.getDate()}/${time.getMonth()+1}/${time.getFullYear()}`;
-        let matchDate = dateFormatter.format(matchStartTime);
+
+        // date formatter was formatting as mm/dd/yyyy so hack used !!
+        var convertedDate = new Date(matchStartTime.toLocaleString('en-US', {
+            timeZone: timezone
+        }));
+        var diff = matchStartTime.getTime() - convertedDate.getTime();
+        var hackedDate = new Date(matchStartTime.getTime() + diff);
+        let matchDate = `${hackedDate.getDate()}/${hackedDate.getMonth()+1}/${hackedDate.getFullYear()}`;
+
         let matchTime = timeFormatter.format(matchStartTime);
+        
 
         var formattedValue = formatBy;
         formattedValue = formattedValue.replace(constants.DATE_FORMATTER_KEY, matchDate);
