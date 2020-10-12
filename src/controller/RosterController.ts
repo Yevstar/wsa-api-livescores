@@ -656,4 +656,22 @@ export class RosterController extends BaseController {
             }
         });
     }
+
+    @Authorized()
+    @Post('/umpireActivity')
+    async umpireActivity(
+        @QueryParam("userId") userId: number,
+        @QueryParam("roleIds") roleIds: number[],
+        @QueryParam('sortBy') sortBy: string = undefined,
+        @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined,
+        @Body() requestFilter: RequestFilter,
+        @Res() response: Response
+    ) {
+
+        if (userId && isArrayPopulated(roleIds)) {
+            return this.rosterService.umpireActivity(userId, roleIds, requestFilter, sortBy, sortOrder);
+        } else {
+            return response.status(200).send({ name: 'search_error', message: `Invalid parameters` });
+        }
+    }
 }

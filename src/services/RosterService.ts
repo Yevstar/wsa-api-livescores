@@ -276,4 +276,52 @@ export default class RosterService extends BaseService<Roster> {
 
         return query.getMany();
     }
+
+    public async umpireActivity(userId: number, roleIds: number[], requestFilter: RequestFilter,
+        sortBy: string = undefined, sortOrder: "ASC" | "DESC" = undefined): Promise<any> {
+
+        let query = this.entityManager.createQueryBuilder(Roster, 'roster')
+            .innerJoinAndSelect('roster.match', 'match')
+            .innerJoinAndSelect('roster.user', 'user')
+            .innerJoinAndSelect('match.competition', 'competition')
+            .leftJoinAndSelect('match.team1', 'team1')
+            .leftJoinAndSelect('match.team2', 'team2')
+            .innerJoinAndSelect('user.userRoleEntities', 'ure', 'ure.roleId in (:ids)', { ids: roleIds })
+            .innerJoinAndSelect('ure.competitionOrganisation', 'cOrg')
+            .andWhere('roster.roleId in (:roleIds)', { roleIds })
+            .andWhere('user.id = :userId', { userId })
+            .andWhere('match.deleted_at is null');
+
+        //sortBy is not implemented on status and amount column as it is to be linked later
+        if (sortBy) {
+            if (sortBy === 'competition') {
+                query.orderBy('competition.longName', sortOrder);
+            } else if (sortBy === 'matchId') {
+                query.orderBy('match.id', sortOrder);
+            } else if (sortBy === 'date') {
+                query.orderBy('match.startTime', sortOrder);
+            } else if (sortBy === 'affiliate') {
+                query.orderBy('cOrg.name', sortOrder);
+            } else if (sortBy === 'home') {
+                query.orderBy('team1.name', sortOrder);
+            } else if (sortBy === 'away') {
+                query.orderBy('team2.name', sortOrder);
+            }
+        }
+
+        if (isNotNullAndUndefined(requestFilter)
+            && isNotNullAndUndefined(requestFilter.paging)
+            && isNotNullAndUndefined(requestFilter.paging.limit)
+            && isNotNullAndUndefined(requestFilter.paging.offset)) {
+            const result = await query.skip(requestFilter.paging.offset).take(requestFilter.paging.limit).getMany();
+            let totalCount = await query.getCount();
+            let responseObject = paginationData(totalCount, requestFilter.paging.limit, requestFilter.paging.offset);
+            responseObject["results"] = result;
+            return responseObject;
+        } else {
+            let responseObject = paginationData(null, null, null);
+            responseObject["results"] = await query.getMany();
+            return responseObject;
+        }
+    }
 }
