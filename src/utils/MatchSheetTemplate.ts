@@ -388,7 +388,7 @@ const getMatchSheetTemplate = (
             }
             #attendance2 {
                 width: 49%;
-                padding: 0 16px 0 0;
+                padding: 0 16px 0 4px;
                 box-sizing: border-box;
             }
             .table {
