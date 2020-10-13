@@ -520,12 +520,12 @@ const getMatchSheetTemplate = (
                box-sizing: border-box;
             }
             .gapCell {
-               width: 1.8%;
+               width: 0.5%;
                border-right: 1px solid black;
                text-align: center;
             }
             .signatureCell {
-               width: 21%;
+               width: 20%;
                padding-top: 2px;
                border-right: 1px solid black;
                box-sizing: border-box;
