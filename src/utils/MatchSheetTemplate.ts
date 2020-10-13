@@ -309,7 +309,7 @@ const getMatchSheetTemplate = (
             .page {
                width: 100%;
                max-width: 800px;
-               padding: 20px 2px 2px 2px;
+               padding: 40px 2px 2px 2px;
                background-color: #FFFFFF;
                box-sizing: border-box;
                page-break-before:avoid;
