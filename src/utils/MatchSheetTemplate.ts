@@ -498,7 +498,7 @@ const getMatchSheetTemplate = (
             }
             .summaryTable {
                width: 100%;
-               padding: 4px 24px 4px 16px;
+               padding: 16px 24px 4px 0px;
                box-sizing: border-box;
             }
             .summaryRow {
