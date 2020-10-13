@@ -309,7 +309,7 @@ const getMatchSheetTemplate = (
             .page {
                width: 100%;
                max-width: 800px;
-               padding: 2px;
+               padding: 20px 2px 2px 2px;
                background-color: #FFFFFF;
                box-sizing: border-box;
                page-break-before:avoid;
@@ -514,18 +514,18 @@ const getMatchSheetTemplate = (
                border-bottom: 1px solid black;
             }
             .summaryCell {
-               width: 28%;
+               width: 29%;
                padding-left: 12px;
                padding-top: 2px;
                box-sizing: border-box;
             }
             .gapCell {
-               width: 3.8%;
+               width: 1.8%;
                border-right: 1px solid black;
                text-align: center;
             }
             .signatureCell {
-               width: 20%;
+               width: 21%;
                padding-top: 2px;
                border-right: 1px solid black;
                box-sizing: border-box;
