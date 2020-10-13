@@ -381,14 +381,14 @@ const getMatchSheetTemplate = (
                flex-direction: row;
                box-sizing: border-box;
             }
-            #attendance {
+            #attendance1 {
                width: 49%;
                padding: 0 0 0 16px;
                box-sizing: border-box;
             }
             #attendance2 {
                 width: 49%;
-                padding: 0 0 0 16px;
+                padding: 0 16px 0 0;
                 box-sizing: border-box;
             }
             .table {
@@ -605,7 +605,7 @@ const getMatchSheetTemplate = (
             </div>
             ${templateType !== 'Carnival' ? (
                 `<div class="tableContent">
-                    <div class="signTable" id="attendance2">
+                    <div class="signTable" id="attendance1">
                         <div class="table">
                             <div class="row">
                                 <div class="cell" id="playerid">#</div>
