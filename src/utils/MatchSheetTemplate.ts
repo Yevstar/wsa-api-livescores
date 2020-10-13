@@ -514,18 +514,18 @@ const getMatchSheetTemplate = (
                border-bottom: 1px solid black;
             }
             .summaryCell {
-               width: 29%;
+               width: 28.5%;
                padding-left: 12px;
                padding-top: 2px;
                box-sizing: border-box;
             }
             .gapCell {
-               width: 0.5%;
+               width: 0.8%;
                border-right: 1px solid black;
                text-align: center;
             }
             .signatureCell {
-               width: 20%;
+               width: 21%;
                padding-top: 2px;
                border-right: 1px solid black;
                box-sizing: border-box;
