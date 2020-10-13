@@ -43,7 +43,8 @@ const getMatchSheetTemplate = (
              .no-break {
                page-break-inside: avoid;
              }
-             .page {
+             ${templateType !== 'Simple' ? (
+             `.page {
                 width: 100%;
                 max-width: 800px;
                 padding: 16px;
@@ -300,7 +301,285 @@ const getMatchSheetTemplate = (
                 text-align: center;
                 border-bottom: 1px solid black;
              }
-           }
+           }`
+           ) : (
+            `body {
+                font-family: Arial
+             }
+            .page {
+               width: 100%;
+               max-width: 800px;
+               padding: 2px;
+               background-color: #FFFFFF;
+               box-sizing: border-box;
+               page-break-before:avoid;
+            }
+            .document {
+               width: 100%;
+            }
+            .header {
+               padding: 0 16px;
+               margin-bottom: 8px;
+               width: 100%;
+               display: -webkit-box;
+               display: -webkit-flex;
+               -webkit-flex-wrap: wrap;
+               display: flex;
+               flex-wrap: wrap;
+               flex-direction: row;
+               justify-content: space-between;
+               box-sizing: border-box;
+            }
+            .associationName {
+               font-size: 14px;
+               font-weight: bold;
+               padding: 8px 0;
+               box-sizing: border-box;
+            }
+            .templateType {
+               font-size: 12px;
+            }
+            .title {
+               width: 50%;
+            }
+            .logo {
+               width: 50px;
+               height: 50px;
+               margin-left: auto;
+               margin-right: 16px;
+            }
+            .matchInfo {
+               padding: 8px 16px;
+               display: -webkit-box;
+               display: -webkit-flex;
+               -webkit-flex-wrap: wrap;
+               display: flex;
+               flex-wrap: wrap;
+               flex-direction: row;
+               box-sizing: border-box;
+            }
+            .infoContentLeft {
+               width: 50%;
+               box-sizing: border-box;
+            }
+            .infoContentRight {
+               width: 50%;
+               padding-left: 8px;
+               box-sizing: border-box;
+            }
+            .infodiv {
+                font-size: 12px;
+                margin-bottom: 4px;
+            }
+            .tableContent {
+               width: 100%;
+               display: -webkit-box;
+               display: -webkit-flex;
+               -webkit-flex-wrap: wrap;
+               display: flex;
+               flex-wrap: wrap;
+               flex-direction: row;
+               box-sizing: border-box;
+            }
+            #attendance {
+               width: 49%;
+               padding: 0 0 0 16px;
+               box-sizing: border-box;
+            }
+            #attendance2 {
+                width: 49%;
+                padding: 0 0 0 16px;
+                box-sizing: border-box;
+            }
+            .table {
+               border: 1px solid black;
+               border-right: 0;
+               border-bottom: 0;
+            }
+            .row {
+               width: 100%;
+               height: 20px;
+               display: -webkit-box;
+               display: -webkit-flex;
+               -webkit-flex-wrap: wrap;
+               display: flex;
+               flex-wrap: wrap;
+               flex-direction: row;
+               font-size: 12px;
+               border-bottom: 1px solid black;
+               border-right: 1px solid black;
+            }
+            #quarter1 {
+               border-right: 1px solid black;
+            }
+            .cell {
+               width: 8.54%;
+               padding-top: 2px;
+               text-align: center;
+            }
+            .largeCell {
+               padding-top: 2px;
+               padding-left: 2px;
+               border-right: 1px solid black;
+               text-align: left;
+            }
+            #signature {
+                width: 20%;
+            }
+            #player {
+                width: 60%;
+            }
+            #playerid, #quarter3, #quarter4 {
+                display: none;
+                width: 0%;
+            }
+            .subTitle {
+               padding: 10px 9px 4px 16px;
+               font-size: 12px;
+               box-sizing: border-box;
+            }
+            .passCell:not(:last-child) {
+               border-right: 1px solid black;
+            }
+            .passCell {
+               width: 2.308%;
+               text-align: center;
+            }
+            .passTable {
+               width: 100%;
+               padding-left: 16px;
+               padding-right: 24px;
+               box-sizing: border-box;
+            }
+            .passTable .table {
+               border-right: 1px solid black;
+            }
+            .passRow {
+               width: 100%;
+               height: 12px;
+               display: -webkit-box;
+               display: -webkit-flex;
+               -webkit-flex-wrap: wrap;
+               display: flex;
+               flex-wrap: wrap;
+               flex-direction: row;
+               font-size: 9px;
+               border-bottom: 1px solid black;
+            }
+            .scoreTableRight {
+               width: 50%;
+               padding: 4px 24px 4px 8px;
+               box-sizing: border-box;
+            }
+            .scoreTableLeft {
+               width: 50%;
+               padding: 4px 8px 4px 16px;
+               border-right: 1px solid black;
+               box-sizing: border-box;
+            }
+            .scoreCell {
+               width: 6.67%;
+               text-align: center;
+            }
+            .scoreRow {
+               width: 100%;
+               height: 16px;
+               display: -webkit-box;
+               display: -webkit-flex;
+               -webkit-flex-wrap: wrap;
+               display: flex;
+               flex-wrap: wrap;
+               flex-direction: row;
+               font-size: 12px;
+            }
+            .tableTitle {
+               font-size: 9px;
+               margin-bottom: 12px;
+            }
+            .summaryTable {
+               width: 100%;
+               padding: 4px 24px 4px 16px;
+               box-sizing: border-box;
+            }
+            .summaryRow {
+               width: 100%;
+               height: 36px;
+               display: -webkit-box;
+               display: -webkit-flex;
+               -webkit-flex-wrap: wrap;
+               display: flex;
+               flex-wrap: wrap;
+               flex-direction: row;
+               font-size: 12px;
+               border-bottom: 1px solid black;
+            }
+            .summaryCell {
+               width: 28%;
+               padding-left: 12px;
+               padding-top: 2px;
+               box-sizing: border-box;
+            }
+            .gapCell {
+               width: 3.8%;
+               border-right: 1px solid black;
+               text-align: center;
+            }
+            .signatureCell {
+               width: 20%;
+               padding-top: 2px;
+               border-right: 1px solid black;
+               box-sizing: border-box;
+            }
+            .voteCell {
+               width: 20%;
+               padding-left: 12px;
+               padding-top: 2px;
+               border-right: 1px solid black;
+               box-sizing: border-box;
+            }
+            .teamCell {
+               width: 40%;
+               padding-left: 12px;
+               padding-top: 2px;
+               border-right: 1px solid black;
+               box-sizing: border-box;
+            }
+            .goalTable {
+               width: 100%;
+               padding: 8px 24px 8px 16px;
+               box-sizing: border-box;
+            }
+            .goalTable .table {
+               border-right: 1px solid black;
+            }
+            .goalRow {
+               width: 100%;
+               height: 24px;
+               display: -webkit-box;
+               display: -webkit-flex;
+               -webkit-flex-wrap: wrap;
+               display: flex;
+               flex-wrap: wrap;
+               flex-direction: row;
+               font-size: 8px;
+               border-bottom: 1px solid black;
+            }
+            .goalCell {
+               width: 5.85%;
+               border-right: 1px solid black;
+               text-align: center;
+            }
+            .goalCheckCell {
+               width: 29%;
+               border-right: 1px solid black;
+            }
+            .goalSubCell {
+               height: 12px;
+               text-align: center;
+               border-bottom: 1px solid black;
+            }
+          }`
+          )}
           </style>
        </head>
        <body>
@@ -326,57 +605,58 @@ const getMatchSheetTemplate = (
             </div>
             ${templateType !== 'Carnival' ? (
                 `<div class="tableContent">
-                    <div class="signTable">
+                    <div class="signTable" id="attendance2">
                         <div class="table">
                             <div class="row">
-                                <div class="cell">#</div>
-                                <div class="largeCell">Player Name</div>
-                                <div class="largeCell">Signature</div>
-                                <div class="cell">1</div>
-                                <div class="cell">2</div>
-                                <div class="cell">3</div>
-                                <div class="cell">4</div>
+                                <div class="cell" id="playerid">#</div>
+                                <div class="largeCell" id="player">Player Name</div>
+                                <div class="largeCell" id="signature">Signature</div>
+                                <div class="cell" id="quarter1">1</div>
+                                <div class="cell" id="quarter2">2</div>
+                                <div class="cell" id="quarter3">3</div>
+                                <div class="cell" id="quarter4">4</div>
                             </div>
                             ${team1PlayersRef.length > 0 ? team1PlayersRef.map((player, index) => (
                                 `<div class="row">
-                                    <div class="cell">${player && player.playerId || ''}</div>
-                                    <div class="largeCell">${player && player.firstName || ''} ${player && player.lastName || ''}</div>
-                                    <div class="largeCell"></div>
-                                    <div class="cell"></div>
-                                    <div class="cell"></div>
-                                    <div class="cell"></div>
-                                    <div class="cell"></div>
+                                    <div class="cell" id="playerid">${player && player.playerId || ''}</div>
+                                    <div class="largeCell" id="player">${player && player.firstName || ''} ${player && player.lastName || ''}</div>
+                                    <div class="largeCell" id="signature"></div>
+                                    <div class="cell" id="quarter1"></div>
+                                    <div class="cell" id="quarter2"></div>
+                                    <div class="cell" id="quarter3"></div>
+                                    <div class="cell" id="quarter4"></div>
                                 </div>`
                             )).join('') : ''}
                         </div>
                     </div>
-                    <div class="signTable">
+                    <div class="signTable" id="attendance2">
                         <div class="table">
                             <div class="row">
-                                <div class="cell">#</div>
-                                <div class="largeCell">Player Name</div>
-                                <div class="largeCell">Signature</div>
-                                <div class="cell">1</div>
-                                <div class="cell">2</div>
-                                <div class="cell">3</div>
-                                <div class="cell">4</div>
+                                <div class="cell" id="playerid">#</div>
+                                <div class="largeCell" id="player">Player Name</div>
+                                <div class="largeCell" id="signature">Signature</div>
+                                <div class="cell" id="quarter1">1</div>
+                                <div class="cell" id="quarter2">2</div>
+                                <div class="cell" id="quarter3">3</div>
+                                <div class="cell" id="quarter4">4</div>
                             </div>
                             ${team2PlayersRef.length > 0 ? team2PlayersRef.map((player, index) => (
                                 `<div class="row">
-                                    <div class="cell">${player && player.playerId || ''}</div>
-                                    <div class="largeCell">${player && player.firstName || ''} ${player && player.lastName || ''}</div>
-                                    <div class="largeCell"></div>
-                                    <div class="cell"></div>
-                                    <div class="cell"></div>
-                                    <div class="cell"></div>
-                                    <div class="cell"></div>
+                                    <div class="cell" id="playerid">${player && player.playerId || ''}</div>
+                                    <div class="largeCell" id="player">${player && player.firstName || ''} ${player && player.lastName || ''}</div>
+                                    <div class="largeCell" id="signature"></div>
+                                    <div class="cell" id="quarter1"></div>
+                                    <div class="cell" id="quarter2"></div>
+                                    <div class="cell" id="quarter3"></div>
+                                    <div class="cell" id="quarter4"></div>
                                 </div>`
                             )).join('') : ''}
                         </div>
                     </div>
                 </div>`
             ) : ''}
-            <div class="subTitle">Centre Pass</div>
+            ${templateType !== 'Simple' ? (
+            `<div class="subTitle">Centre Pass</div>
             <div class="tableContent">
                 <div class="passTable">
                     <div class="table">
@@ -389,8 +669,10 @@ const getMatchSheetTemplate = (
                         )).join('')}
                     </div>
                 </div>
-            </div>
-            <div class="subTitle">Progressive Score</div>
+            </div>`
+            ) : ''}
+            ${templateType !== 'Simple' ? (
+            `<div class="subTitle">Progressive Score</div>
             <div class="tableContent">
                 <div class="scoreTableLeft">
                     <div class="tableTitle">Team 1</div>
@@ -412,8 +694,33 @@ const getMatchSheetTemplate = (
                         </div>`
                     )).join('')}
                 </div>
-            </div>
-            ${templateType !== 'Social' ? (
+            </div>`
+            ) : (
+                `<div class="subTitle">Progressive Score</div>
+                <div class="tableContent">
+                    <div class="scoreTableLeft">
+                        <div class="tableTitle">Team 1</div>
+                        ${[...Array(4).keys()].map((rowIndex) => (
+                            `<div class="scoreRow">
+                              ${[...Array(15).keys()].map((cellIndex) => (
+                                  `<div class="scoreCell">${cellIndex + 1 + 15 * rowIndex}</div>`
+                                )).join('')}
+                            </div>`
+                        )).join('')}
+                    </div>
+                    <div class="scoreTableRight">
+                        <div class="tableTitle">Team 2</div>
+                        ${[...Array(4).keys()].map((rowIndex) => (
+                            `<div class="scoreRow">
+                                ${[...Array(15).keys()].map((cellIndex) => (
+                                    `<div class="scoreCell">${cellIndex + 1 + 15 * rowIndex}</div>`
+                                )).join('')}
+                            </div>`
+                        )).join('')}
+                    </div>
+                </div>`
+            ) }
+            ${templateType !== 'Social' && templateType !== 'Simple'  ? (
                 `<div>
                     <div class="subTitle">Goal Statistics</div>
                     <div class="tableContent">
