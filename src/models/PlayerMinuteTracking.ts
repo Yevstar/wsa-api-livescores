@@ -3,6 +3,7 @@ import {Team} from './Team';
 import {IsBoolean, IsDate, IsNumber, IsString, ValidateNested} from "class-validator";
 import {Match} from "./Match";
 import {Player} from "./Player";
+import {GamePosition} from "./GamePosition";
 
 @Entity("playerMinuteTracking")
 @Unique(['matchId', 'teamId', 'playerId'])
@@ -45,6 +46,15 @@ export class PlayerMinuteTracking extends BaseEntity {
 
     @IsNumber()
     @Column()
+    positionId: number;
+
+    @ValidateNested()
+    @OneToOne(type => GamePosition)
+    @JoinColumn()
+    position: GamePosition;
+
+    @IsNumber()
+    @Column()
     duration: number;
 
     @IsBoolean()
@@ -54,4 +64,12 @@ export class PlayerMinuteTracking extends BaseEntity {
     @IsBoolean()
     @Column()
     playedEndPeriod: boolean;
+
+    @IsBoolean()
+    @Column()
+    playedFullPeriod: boolean;
+
+    @IsNumber()
+    @Column()
+    periodDuration: number;
 }

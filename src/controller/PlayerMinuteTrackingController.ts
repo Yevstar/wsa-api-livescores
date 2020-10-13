@@ -43,31 +43,63 @@ export class PlayerMinuteTrackingController extends BaseController {
   ): Promise<any> {
     try {
       if (trackingData && trackingData.length > 0) {
-        for (let i = 0; i < trackingData.length; i++) {
-          if (
-            trackingData[i].matchId
-          && trackingData[i].teamId
-          && trackingData[i].playerId
-          && trackingData[i].period
-          && trackingData[i].duration
-          ) {
-            const data = trackingData[i].id
-              ? await this.playerMinuteTrackingService.findById(trackingData[i].id)
-              : new PlayerMinuteTracking();
-            data.matchId = trackingData[i].matchId;
-            data.teamId = trackingData[i].teamId;
-            data.playerId = trackingData[i].playerId;
-            data.period = trackingData[i].period;
-            data.duration = trackingData[i].duration;
+        const pmtPromises = [];
 
-            await this.playerMinuteTrackingService.createOrUpdate(data);
+        for (let i = 0; i < trackingData.length; i++) {
+          if (trackingData[i].matchId
+              && trackingData[i].teamId
+              && trackingData[i].playerId
+              && trackingData[i].period
+              && trackingData[i].duration
+          ) {
+              pmtPromises.push(
+                  this.createPMTRecord(trackingData[i])
+              );
           }
         }
+
+        await Promise.all(pmtPromises);
       }
 
       return response.status(200).send({ success: true });
     } catch (e) {
       return response.status(500).send({ success: false, message: 'Recording tracking time failed' });
     }
+  }
+
+  private async createPMTRecord(trackingData: PlayerMinuteTracking) {
+      try {
+          const data = trackingData.id
+            ? await this.playerMinuteTrackingService.findById(trackingData.id)
+            : new PlayerMinuteTracking();
+          data.matchId = trackingData.matchId;
+          data.teamId = trackingData.teamId;
+          data.playerId = trackingData.playerId;
+          data.period = trackingData.period;
+          if (trackingData.positionId != null ||
+              trackingData.positionId != undefined) {
+              data.positionId = trackingData.positionId;
+          }
+          data.duration = trackingData.duration;
+          if (trackingData.playedInPeriod != null ||
+              trackingData.playedInPeriod != undefined) {
+              data.playedInPeriod = trackingData.playedInPeriod;
+          }
+          if (trackingData.playedEndPeriod != null ||
+              trackingData.playedEndPeriod != undefined) {
+              data.playedEndPeriod = trackingData.playedEndPeriod;
+          }
+          if (trackingData.playedFullPeriod != null ||
+              trackingData.playedFullPeriod != undefined) {
+              data.playedFullPeriod = trackingData.playedFullPeriod;
+          }
+          if (trackingData.periodDuration) {
+              data.periodDuration = trackingData.periodDuration;
+          }
+
+          await this.playerMinuteTrackingService.createOrUpdate(data);
+      } catch (error) {
+          throw error;
+      }
   }
 }

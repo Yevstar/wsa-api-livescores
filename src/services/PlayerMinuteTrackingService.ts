@@ -16,6 +16,7 @@ export default class PlayerMinuteTrackingService extends BaseService<PlayerMinut
     playerId: number
   ): Promise<PlayerMinuteTracking[]> {
     let query = this.entityManager.createQueryBuilder(PlayerMinuteTracking, 'pmt')
+      .leftJoinAndSelect('pmt.position', 'position')
       .andWhere("pmt.matchId = :matchId", { matchId });
 
     if (teamId) query.andWhere("pmt.teamId = :teamId", { teamId });
