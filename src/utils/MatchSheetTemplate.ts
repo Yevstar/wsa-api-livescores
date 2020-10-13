@@ -478,19 +478,19 @@ const getMatchSheetTemplate = (
                box-sizing: border-box;
             }
             .scoreCell {
-               width: 6.67%;
+               width: 10%;
                text-align: center;
             }
             .scoreRow {
                width: 100%;
-               height: 16px;
+               height: 20px;
                display: -webkit-box;
                display: -webkit-flex;
                -webkit-flex-wrap: wrap;
                display: flex;
                flex-wrap: wrap;
                flex-direction: row;
-               font-size: 12px;
+               font-size: 16px;
             }
             .tableTitle {
                font-size: 9px;
@@ -577,6 +577,9 @@ const getMatchSheetTemplate = (
                height: 12px;
                text-align: center;
                border-bottom: 1px solid black;
+            }
+            #scorers {
+               display:none;
             }
           }`
           )}
@@ -702,8 +705,8 @@ const getMatchSheetTemplate = (
                         <div class="tableTitle">Team 1</div>
                         ${[...Array(4).keys()].map((rowIndex) => (
                             `<div class="scoreRow">
-                              ${[...Array(15).keys()].map((cellIndex) => (
-                                  `<div class="scoreCell">${cellIndex + 1 + 15 * rowIndex}</div>`
+                              ${[...Array(10).keys()].map((cellIndex) => (
+                                  `<div class="scoreCell">${cellIndex + 1 + 10 * rowIndex}</div>`
                                 )).join('')}
                             </div>`
                         )).join('')}
@@ -712,8 +715,8 @@ const getMatchSheetTemplate = (
                         <div class="tableTitle">Team 2</div>
                         ${[...Array(4).keys()].map((rowIndex) => (
                             `<div class="scoreRow">
-                                ${[...Array(15).keys()].map((cellIndex) => (
-                                    `<div class="scoreCell">${cellIndex + 1 + 15 * rowIndex}</div>`
+                                ${[...Array(10).keys()].map((cellIndex) => (
+                                    `<div class="scoreCell">${cellIndex + 1 + 10 * rowIndex}</div>`
                                 )).join('')}
                             </div>`
                         )).join('')}
@@ -790,7 +793,7 @@ const getMatchSheetTemplate = (
             <div class="tableContent">
                 <div class="summaryTable">
                     <div class="table">
-                        <div class="summaryRow">
+                        <div class="summaryRow" id="scorers">
                             <div class="summaryCell">
                                 Scorer 1
                             </div>
