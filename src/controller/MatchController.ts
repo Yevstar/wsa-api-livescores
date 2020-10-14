@@ -266,9 +266,14 @@ export class MatchController extends BaseController {
                     dbMatch.matchDuration != match.matchDuration ||
                     dbMatch.breakDuration != match.breakDuration ||
                     dbMatch.mainBreakDuration != match.mainBreakDuration ||
+                    dbMatch.matchStatus != match.matchStatus ||
+                    dbMatch.team1ResultId != match.team1ResultId ||
+                    dbMatch.team2ResultId != match.team2ResultId ||
+                    dbMatch.resultStatus != match.resultStatus ||
                     dbMatch.startTime != match.startTime) &&
-                    (match.startTime >= new Date())) {
-                        nonSilentNotify = true;
+                    (match.startTime > new Date())
+                ) {
+                    nonSilentNotify = true;
                 }
             }
 
@@ -739,7 +744,7 @@ export class MatchController extends BaseController {
                 message: `Match with id ${matchId} not found`
             });
         }
-        this.sendMatchEvent(match, false, {user: user, nonSilentNotify: true});
+        this.sendMatchEvent(match, false, {user: user});
         await this.matchService.logLiteMatchEvent(matchId, 'timer', 'start', 1, match.startTime, user.id);
         return match;
     }
@@ -783,7 +788,7 @@ export class MatchController extends BaseController {
                 message: `Match with id ${matchId} not found`
             });
         }
-        this.sendMatchEvent(match, false, {user: user, nonSilentNotify: true});
+        this.sendMatchEvent(match, false, {user: user});
         await this.matchService.logLiteMatchEvent(matchId, 'timer', 'start', 1, match.startTime, user.id);
         return response.status(200).send({ restarted: true });
     }
@@ -810,7 +815,7 @@ export class MatchController extends BaseController {
                 message: `Match with id ${matchId} not found`
             });
         }
-        this.sendMatchEvent(match, false, {user: user, nonSilentNotify: true});
+        this.sendMatchEvent(match, false, {user: user});
 
         let eventTimestamp = msFromStart ? new Date(match.startTime.getTime() + msFromStart) : new Date(Date.now());
         this.matchService.logMatchEvent(matchId, 'timer', 'pause', period, eventTimestamp,
@@ -848,7 +853,7 @@ export class MatchController extends BaseController {
                 totalPausedTime
             );
 
-            this.sendMatchEvent(match, false, {user: user, nonSilentNotify: true});
+            this.sendMatchEvent(match, false, {user: user});
             let eventTimestamp = msFromStart ? new Date(match.startTime.getTime() + msFromStart) : new Date(Date.now());
             this.matchService.logMatchEvent(matchId, 'timer', 'resume', period, eventTimestamp,
                 user.id, 'isBreak', isBreak ? "true" : "false");
@@ -922,7 +927,7 @@ export class MatchController extends BaseController {
         arr.push(match);
         await this.performTeamLadderOperation(arr, user.id);
 
-        this.sendMatchEvent(match, false, {user: user, nonSilentNotify: true});
+        this.sendMatchEvent(match, false, {user: user});
 
         // log match event
         let eventTimestamp;
@@ -963,8 +968,10 @@ export class MatchController extends BaseController {
         try {
             if (match) {
                 var messageBody: string = undefined;
-                if (optionals && optionals.nonSilentNotify) {
-                    messageBody = 'A change has been made to your match. Please check match details.';
+                if (optionals &&
+                    (optionals.nonSilentNotify != null || optionals.nonSilentNotify != undefined) &&
+                    optionals.nonSilentNotify == true) {
+                        messageBody = 'A change has been made to your match. Please check match details.';
                 }
                 const dataDict = {};
                 dataDict["type"] = "match_updated";
@@ -1296,7 +1303,7 @@ export class MatchController extends BaseController {
             let data = await this.matchService.batchCreateOrUpdate(arr);
             if (data) {
                 await this.performTeamLadderOperation(arr, currentUser.id);
-                this.sendBulkMatchUpdateNotification(data, 'bulk_end_matches');
+                this.sendBulkMatchUpdateNotification(data, {subtype: 'bulk_end_matches'});
             }
             return data;
         } else {
@@ -1359,7 +1366,7 @@ export class MatchController extends BaseController {
             let data = await this.matchService.batchCreateOrUpdate(arr);
             if (data) {
                 await this.performTeamLadderOperation(arr, currentUser.id);
-                this.sendBulkMatchUpdateNotification(data, 'bulk_end_matches');
+                this.sendBulkMatchUpdateNotification(data, {subtype: 'bulk_end_matches'});
             }
         }
         return response.status(200).send({ success: true });
@@ -1409,9 +1416,19 @@ export class MatchController extends BaseController {
         @QueryParam('newDate') newDate: Date,
         @Res() response: Response
     ) {
-        let matchesData = await this.matchService.findByDate(new Date(startTimeStart), new Date(startTimeEnd), competitionId)
+        let matchesData = await this.matchService.findByDate(new Date(startTimeStart), new Date(startTimeEnd), competitionId);
+
         let arr = [];
+        let nonSilentNotifyMatches = [];
+        let silentNotifyMatches = [];
+
         if (newDate) {
+            if (new Date(newDate) > new Date()) {
+                Array.prototype.push.apply(nonSilentNotifyMatches, matchesData);
+            } else {
+                Array.prototype.push.apply(silentNotifyMatches, matchesData);
+            }
+
             for (let match of matchesData) {
                 match.startTime = new Date(newDate);
                 arr.push(match);
@@ -1431,6 +1448,11 @@ export class MatchController extends BaseController {
                     }
                     match.startTime = new Date(myDate);
                     arr.push(match);
+                    if (match.startTime > new Date()) {
+                        nonSilentNotifyMatches.push(match);
+                    } else {
+                        silentNotifyMatches.push(match);
+                    }
                 }
             } else if (type == 'forward') {
                 for (let match of matchesData) {
@@ -1446,15 +1468,31 @@ export class MatchController extends BaseController {
                     }
                     match.startTime = new Date(myDate);
                     arr.push(match);
+                    if (match.startTime > new Date()) {
+                        nonSilentNotifyMatches.push(match);
+                    } else {
+                        silentNotifyMatches.push(match);
+                    }
                 }
             }
         }
         if (arr.length > 0) {
-            let data = await this.matchService.batchCreateOrUpdate(arr);
-            if (data) {
-                this.sendBulkMatchUpdateNotification(data, 'bulk_time_matches');
+            await this.matchService.batchCreateOrUpdate(arr);
+
+            if (nonSilentNotifyMatches.length > 0) {
+                this.sendBulkMatchUpdateNotification(
+                    nonSilentNotifyMatches,
+                    {subtype: 'bulk_time_matches', nonSilentNotify: true}
+                );
+            }
+            if (silentNotifyMatches.length > 0) {
+                this.sendBulkMatchUpdateNotification(
+                    silentNotifyMatches,
+                    {subtype: 'bulk_time_matches'}
+                );
             }
         }
+
         return response.status(200).send({ success: true });
     }
 
@@ -1466,48 +1504,92 @@ export class MatchController extends BaseController {
         @QueryParam('round2', { required: true }) round2: string,
         @Res() response: Response
     ) {
-        let firstRoundArray = await this.roundService.findByName(competitionId, round1);
-        let secondRoundArray = await this.roundService.findByName(competitionId, round2);
-        if (isArrayPopulated(firstRoundArray) && isArrayPopulated(secondRoundArray)) {
-            for (let r1 of firstRoundArray) {
-                for (let r2 of secondRoundArray) {
-                    if (r2.divisionId === r1.divisionId) {
-                        let firstMatchesArray = await this.matchService.findByRound(r1.id);
-                        let secondMatchesArray = await this.matchService.findByRound(r2.id);
-                        if (isArrayPopulated(firstMatchesArray) && isArrayPopulated(secondMatchesArray)) {
-                            let secondMatchTemplate = secondMatchesArray[0];
-                            if (secondMatchTemplate.startTime) {
-                                for (let m1 of firstMatchesArray) {
-                                    m1.startTime = secondMatchTemplate.startTime;
-                                    m1.type = 'TWO_HALVES';
-                                    m1.matchDuration = m1.matchDuration / 2;
-                                    let match = await this.matchService.createOrUpdate(m1);
-                                    if (match) {
-                                        this.sendMatchEvent(match);
+        let firstRoundArray = await this.roundService.findByName(
+            competitionId,
+            round1
+        );
+        let secondRoundArray = await this.roundService.findByName(
+            competitionId,
+            round2
+        );
+
+        if (isArrayPopulated(firstRoundArray) &&
+            isArrayPopulated(secondRoundArray)) {
+                let arr = [];
+                let nonSilentNotifyMatches = [];
+                let silentNotifyMatches = [];
+
+                for (let r1 of firstRoundArray) {
+                    for (let r2 of secondRoundArray) {
+                        if (r2.divisionId === r1.divisionId) {
+                            let firstMatchesArray = await this.matchService.findByRound(r1.id);
+                            let secondMatchesArray = await this.matchService.findByRound(r2.id);
+
+                            if (isArrayPopulated(firstMatchesArray) && isArrayPopulated(secondMatchesArray)) {
+                                let secondMatchTemplate = secondMatchesArray[0];
+                                if (secondMatchTemplate.startTime) {
+                                    for (let m1 of firstMatchesArray) {
+                                        if (m1.type == 'FOUR_QUARTERS' &&
+                                            (m1.extraTimeDuration == null || m1.extraTimeDuration == undefined)) {
+                                                m1.startTime = secondMatchTemplate.startTime;
+                                                m1.type = 'TWO_HALVES';
+                                                m1.matchDuration = m1.matchDuration / 2;
+                                                arr.push(m1);
+                                                if (m1.startTime > new Date()) {
+                                                    nonSilentNotifyMatches.push(m1);
+                                                } else {
+                                                    silentNotifyMatches.push(m1);
+                                                }
+                                        }
+                                    }
+                                }
+
+                                for (let m2 of secondMatchesArray) {
+                                    if (m2.type == 'FOUR_QUARTERS') {
+                                        m2.startTime =
+                                            new Date(m2.startTime.getTime() +
+                                                ((m2.matchDuration / 2) +
+                                                  m2.breakDuration +
+                                                  m2.mainBreakDuration)
+                                            );
+                                        m2.type = 'TWO_HALVES';
+                                        m2.matchDuration = m2.matchDuration / 2;
+                                        arr.push(m2);
+                                        if (m2.startTime > new Date()) {
+                                            nonSilentNotifyMatches.push(m2);
+                                        } else {
+                                            silentNotifyMatches.push(m2);
+                                        }
                                     }
                                 }
                             }
-
-                            for (let m2 of secondMatchesArray) {
-                                let secondMatchOffset = m2.matchDuration / 2 + m2.breakDuration + m2.mainBreakDuration;
-                                m2.type = 'TWO_HALVES';
-                                m2.matchDuration = m2.matchDuration / 2;
-                                let match = await this.matchService.createOrUpdate(m2);
-                                if (match) {
-                                    this.sendMatchEvent(match);
-                                }
-                            }
-
-                            return response.status(200).send({ success: true });
-                        } else {
-                            return response.status(212).json({
-                                success: false,
-                                message: "cannot find matches with the provided rounds"
-                            })
                         }
                     }
                 }
-            }
+
+                if (arr.length > 0) {
+                    await this.matchService.batchCreateOrUpdate(arr);
+
+                    if (nonSilentNotifyMatches.length > 0) {
+                        this.sendBulkMatchUpdateNotification(
+                            nonSilentNotifyMatches,
+                            {subtype: 'bulk_double_header', nonSilentNotify: true}
+                        );
+                    }
+                    if (silentNotifyMatches.length > 0) {
+                        this.sendBulkMatchUpdateNotification(
+                            silentNotifyMatches,
+                            {subtype: 'bulk_double_header'}
+                        );
+                    }
+
+                    return response.status(200).send({ success: true });
+                } else {
+                    return response.status(212).json({
+                        success: false,
+                        message: "cannot find matches with the provided rounds"
+                    });
+                }
         } else {
             response.status(212).json({
                 success: false,
@@ -1638,16 +1720,38 @@ export class MatchController extends BaseController {
         @Res() response: Response
     ): Promise<any> {
         const getMatches = await this.matchService.getMatchDetailsForVenueCourtUpdate(competitionId, startTime, endTime, fromCourtIds);
+
         if (isArrayPopulated(getMatches)) {
+            let nonSilentNotifyMatches = [];
+            let silentNotifyMatches = [];
             const mArray = [];
+
             for (let i of getMatches) {
                 let m = new Match();
                 m.id = i.id;
                 m.venueCourtId = toCourtId;
                 mArray.push(m);
+                if (m.startTime > new Date()) {
+                    nonSilentNotifyMatches.push(m);
+                } else {
+                    silentNotifyMatches.push(m);
+                }
             }
 
             await this.matchService.batchCreateOrUpdate(mArray);
+
+            if (nonSilentNotifyMatches.length > 0) {
+                this.sendBulkMatchUpdateNotification(
+                    nonSilentNotifyMatches,
+                    {subtype: 'bulk_court_matches', nonSilentNotify: true}
+                );
+            }
+            if (silentNotifyMatches.length > 0) {
+                this.sendBulkMatchUpdateNotification(
+                    silentNotifyMatches,
+                    {subtype: 'bulk_court_matches'}
+                );
+            }
 
             return response.status(200).send({ success: true, message: "venue courts update successfully" });
         } else {
@@ -1752,8 +1856,18 @@ export class MatchController extends BaseController {
             .pipe(response);
     }
 
-    private async sendBulkMatchUpdateNotification(matches: Match[], subtype?: string) {
+    private async sendBulkMatchUpdateNotification(
+        matches: Match[],
+        optionals?: { subtype?: string, nonSilentNotify?: boolean }
+    ) {
         try {
+            var messageBody: String = undefined;
+            if (optionals &&
+                (optionals.nonSilentNotify != null || optionals.nonSilentNotify != undefined) &&
+                optionals.nonSilentNotify == true) {
+                    messageBody = 'A number of changes have been made to your matches. Please check match details.';
+            }
+
             if (isArrayPopulated(matches)) {
                 var deviceTokensArray = Array();
                 var matchIdsArray = Array();
@@ -1779,10 +1893,11 @@ export class MatchController extends BaseController {
                     let dataDict = {};
                     dataDict["type"] = "bulk_matches_updated";
                     dataDict["matchIds"] = JSON.stringify(matchIdsArray);
-                    if (subtype) {
-                        dataDict["subtype"] = subtype;
+                    if (optionals && optionals.subtype) {
+                        dataDict["subtype"] = optionals.subtype;
                     }
                     this.firebaseService.sendMessageChunked({
+                        body: messageBody,
                         tokens: Array.from(uniqTokens),
                         data: dataDict
                     });
@@ -1896,7 +2011,7 @@ export class MatchController extends BaseController {
                 message: `Match with id ${matchId} not found`
             });
         }
-        this.sendMatchEvent(match, false, {user: user, nonSilentNotify: true});
+        this.sendMatchEvent(match, false, {user: user});
         this.matchService.logLiteMatchEvent(
             matchId,
             'timer',
