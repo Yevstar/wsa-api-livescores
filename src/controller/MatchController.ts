@@ -271,7 +271,7 @@ export class MatchController extends BaseController {
                     dbMatch.team2ResultId != match.team2ResultId ||
                     dbMatch.resultStatus != match.resultStatus ||
                     dbMatch.startTime != match.startTime) &&
-                    (match.startTime > new Date())
+                    (new Date(match.startTime) > new Date())
                 ) {
                     nonSilentNotify = true;
                 }
@@ -1448,7 +1448,7 @@ export class MatchController extends BaseController {
                     }
                     match.startTime = new Date(myDate);
                     arr.push(match);
-                    if (match.startTime > new Date()) {
+                    if (new Date(match.startTime) > new Date()) {
                         nonSilentNotifyMatches.push(match);
                     } else {
                         silentNotifyMatches.push(match);
@@ -1468,7 +1468,7 @@ export class MatchController extends BaseController {
                     }
                     match.startTime = new Date(myDate);
                     arr.push(match);
-                    if (match.startTime > new Date()) {
+                    if (new Date(match.startTime) > new Date()) {
                         nonSilentNotifyMatches.push(match);
                     } else {
                         silentNotifyMatches.push(match);
@@ -1535,7 +1535,7 @@ export class MatchController extends BaseController {
                                                 m1.type = 'TWO_HALVES';
                                                 m1.matchDuration = m1.matchDuration / 2;
                                                 arr.push(m1);
-                                                if (m1.startTime > new Date()) {
+                                                if (new Date(m1.startTime) > new Date()) {
                                                     nonSilentNotifyMatches.push(m1);
                                                 } else {
                                                     silentNotifyMatches.push(m1);
@@ -1555,7 +1555,7 @@ export class MatchController extends BaseController {
                                         m2.type = 'TWO_HALVES';
                                         m2.matchDuration = m2.matchDuration / 2;
                                         arr.push(m2);
-                                        if (m2.startTime > new Date()) {
+                                        if (new Date(m2.startTime) > new Date()) {
                                             nonSilentNotifyMatches.push(m2);
                                         } else {
                                             silentNotifyMatches.push(m2);
@@ -1731,7 +1731,7 @@ export class MatchController extends BaseController {
                 m.id = i.id;
                 m.venueCourtId = toCourtId;
                 mArray.push(m);
-                if (m.startTime > new Date()) {
+                if (new Date(m.startTime) > new Date()) {
                     nonSilentNotifyMatches.push(m);
                 } else {
                     silentNotifyMatches.push(m);
