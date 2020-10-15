@@ -1,6 +1,7 @@
 import { Service } from "typedi";
 
 import BaseService from "./BaseService";
+import {DeleteResult} from "typeorm-plus";
 import { PlayerMinuteTracking } from "../models/PlayerMinuteTracking";
 
 @Service()
@@ -23,5 +24,16 @@ export default class PlayerMinuteTrackingService extends BaseService<PlayerMinut
     if (playerId) query.andWhere('pmt.playerId = :playerId', { playerId });
 
     return query.getMany();
+  }
+
+  public async findByMatch(matchId: number): Promise<PlayerMinuteTracking[]> {
+      let query = this.entityManager.createQueryBuilder(PlayerMinuteTracking, 'pmt')
+        .andWhere("pmt.matchId = :matchId", { matchId });
+      return query.getMany();
+  }
+
+  public async deleteByIds(ids: number[]): Promise<DeleteResult> {
+      return this.entityManager.createQueryBuilder().delete().from(PlayerMinuteTracking)
+          .andWhere("id in (:ids)", {ids: ids}).execute();
   }
 }

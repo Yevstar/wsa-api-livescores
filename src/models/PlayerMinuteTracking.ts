@@ -72,4 +72,28 @@ export class PlayerMinuteTracking extends BaseEntity {
     @IsNumber()
     @Column()
     periodDuration: number;
+
+    @IsString()
+    @Column()
+    source: String;
+
+    @IsNumber()
+    @Column()
+    createdBy: number;
+
+    @IsDate()
+    @Column()
+    created_at: Date;
+
+    @IsNumber()
+    @Column()
+    updatedBy: number;
+
+    @IsDate()
+    @Column()
+    updated_at: Date;
+
+    @IsDate()
+    @Column()
+    deleted_at: Date;
 }
