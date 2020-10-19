@@ -597,7 +597,7 @@ const getMatchSheetTemplate = (
             </div>
             <div class="matchInfo no-break">
                 <div class="infoContentLeft">
-                    <div class="infodiv">${match.round ? match.round.name : ''} - Court ${match.venueCourt?match.venueCourt.courtNumber:""}</div>
+                    <div class="infodiv">${match.round ? match.round.name : ''} - Court ${match.venueCourt?match.venueCourt.courtNumber:""} - ${match.division?match.division.divisionName:""}</div>
                     <div class="infodiv">${match.venueCourt && match.venueCourt.venue ? match.venueCourt.venue.name : ''}</div>
                     <div class="infodiv">${match.team1 ? match.team1.name : ''}</div>
                 </div>
