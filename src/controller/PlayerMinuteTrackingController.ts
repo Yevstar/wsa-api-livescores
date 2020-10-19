@@ -2,6 +2,7 @@ import {
   Get,
   Post,
   JsonController,
+  HeaderParam,
   QueryParam,
   Body,
   Authorized, Res,
@@ -11,7 +12,9 @@ import { Response } from 'express';
 import { BaseController } from './BaseController';
 import { PlayerMinuteTracking } from '../models/PlayerMinuteTracking';
 import { GameTimeAttendance } from '../models/GameTimeAttendance';
+import { User } from '../models/User';
 import { isArrayPopulated } from "../utils/Utils"
+import {logger} from "../logger";
 
 @JsonController('/pmt')
 export class PlayerMinuteTrackingController extends BaseController {
@@ -40,6 +43,7 @@ export class PlayerMinuteTrackingController extends BaseController {
   @Authorized()
   @Post('/record')
   async record(
+    @HeaderParam("authorization") user: User,
     @QueryParam('matchId', {required: true}) matchId: number,
     @Body() trackingData: PlayerMinuteTracking[],
     @Res() response: Response
@@ -73,7 +77,7 @@ export class PlayerMinuteTrackingController extends BaseController {
                   && trackingData[i].duration
               ) {
                   pmtPromises.push(
-                      this.createPMTRecord(trackingData[i], matchGTAData)
+                      this.createPMTRecord(trackingData[i], matchGTAData, user)
                   );
               }
             }
@@ -85,6 +89,7 @@ export class PlayerMinuteTrackingController extends BaseController {
             return response.status(212).send({ success: false, message: 'No player minute tracking data has been sent' });
         }
     } catch (e) {
+        logger.error(`Failed PMT record due to error -`, e);
         return response.status(500).send({ success: false, message: 'Recording tracking time failed' });
     }
   }
@@ -92,6 +97,7 @@ export class PlayerMinuteTrackingController extends BaseController {
   private async createPMTRecord(
       trackingData: PlayerMinuteTracking,
       matchGTAData: GameTimeAttendance[],
+      user: User,
   ) {
       try {
           let player = await this.playerService.findById(trackingData.playerId);
@@ -153,7 +159,11 @@ export class PlayerMinuteTrackingController extends BaseController {
               gta.isBorrowed = (player.teamId != trackingData.teamId);
               gta.isPlaying = true;
               gta.source = trackingData.source;
-              gta.createdBy = trackingData.createdBy;
+              if (trackingData.updatedBy) {
+                  gta.createdBy = trackingData.updatedBy;
+              } else {
+                  gta.createdBy = user.id;
+              }
               gta.createdAt = new Date();
               await this.gameTimeAttendanceService.createOrUpdate(gta);
           }
