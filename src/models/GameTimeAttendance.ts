@@ -64,6 +64,10 @@ export class GameTimeAttendance extends BaseEntity {
     @Column()
     verifiedBy: string;
 
+    @IsString()
+    @Column()
+    source: String;
+    
     @IsDate()
     @Column()
     createdAt: Date;

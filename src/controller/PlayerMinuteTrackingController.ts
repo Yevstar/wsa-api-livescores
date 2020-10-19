@@ -10,6 +10,8 @@ import { Response } from 'express';
 
 import { BaseController } from './BaseController';
 import { PlayerMinuteTracking } from '../models/PlayerMinuteTracking';
+import { GameTimeAttendance } from '../models/GameTimeAttendance';
+import { isArrayPopulated } from "../utils/Utils"
 
 @JsonController('/pmt')
 export class PlayerMinuteTrackingController extends BaseController {
@@ -47,6 +49,7 @@ export class PlayerMinuteTrackingController extends BaseController {
             /// --- Deleting PMT items which are not send in the body
             /// Currently doing hard delete
             let matchPMTData = await this.playerMinuteTrackingService.findByMatch(matchId);
+            let matchGTAData = await this.gameTimeAttendanceService.findByMatch(matchId);
             var result = matchPMTData.filter(function(existingPMT){
                 // filter out (!) items in result2
                 return !trackingData.some(function(newPMT){
@@ -70,7 +73,7 @@ export class PlayerMinuteTrackingController extends BaseController {
                   && trackingData[i].duration
               ) {
                   pmtPromises.push(
-                      this.createPMTRecord(trackingData[i])
+                      this.createPMTRecord(trackingData[i], matchGTAData)
                   );
               }
             }
@@ -86,8 +89,13 @@ export class PlayerMinuteTrackingController extends BaseController {
     }
   }
 
-  private async createPMTRecord(trackingData: PlayerMinuteTracking) {
+  private async createPMTRecord(
+      trackingData: PlayerMinuteTracking,
+      matchGTAData: GameTimeAttendance[],
+  ) {
       try {
+          let player = await this.playerService.findById(trackingData.playerId);
+
           const data = trackingData.id
             ? await this.playerMinuteTrackingService.findById(trackingData.id)
             : new PlayerMinuteTracking();
@@ -115,8 +123,40 @@ export class PlayerMinuteTrackingController extends BaseController {
           if (trackingData.periodDuration) {
               data.periodDuration = trackingData.periodDuration;
           }
+          data.source = trackingData.source;
+          data.createdBy = trackingData.createdBy;
+          data.updatedBy = trackingData.updatedBy;
 
           await this.playerMinuteTrackingService.createOrUpdate(data);
+          let createGTA = false;
+          /// Game Time Attendance checks
+          if (matchGTAData && matchGTAData.length > 0) {
+              // Check if we have gameTimeAttendance record for the PMT entry
+              const filteredGTA = matchGTAData.filter(
+                  (gta) => (gta.playerId === trackingData.playerId &&
+                      gta.period === trackingData.period &&
+                      gta.isPlaying));
+              if (!isArrayPopulated(filteredGTA)) {
+                  createGTA = true;
+              }
+          } else {
+              // Create a gameTimeAttendance record for the PMT entry
+              createGTA = true;
+          }
+          if (createGTA) {
+              let gta = new GameTimeAttendance();
+              gta.matchId = trackingData.matchId;
+              gta.teamId = trackingData.teamId;
+              gta.playerId = trackingData.playerId;
+              gta.period = trackingData.period;
+              gta.positionId = trackingData.positionId;
+              gta.isBorrowed = (player.teamId != trackingData.teamId);
+              gta.isPlaying = true;
+              gta.source = trackingData.source;
+              gta.createdBy = trackingData.createdBy;
+              gta.createdAt = new Date();
+              await this.gameTimeAttendanceService.createOrUpdate(gta);
+          }
       } catch (error) {
           throw error;
       }

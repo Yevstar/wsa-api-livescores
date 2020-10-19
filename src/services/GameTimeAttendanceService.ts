@@ -111,7 +111,7 @@ export default class GameTimeAttendanceService extends BaseService<GameTimeAtten
                 .getCount();
     }
 
-    public async loadPositionTrackingStats(aggregate: ("MATCH" | "TOTAL"), reporting: ("PERIOD" | "MINUTE"), 
+    public async loadPositionTrackingStats(aggregate: ("MATCH" | "TOTAL"), reporting: ("PERIOD" | "MINUTE"),
     competitionId: number, teamId: number, matchId: number, search: string, requestFilter: RequestFilter,
     sortBy: string = undefined, sortOrder: "ASC" | "DESC" = undefined): Promise<any> {
         let queryFields = `SELECT
@@ -219,6 +219,12 @@ export default class GameTimeAttendanceService extends BaseService<GameTimeAtten
         if (teamId) query.andWhere("gta.teamId = :teamId", {teamId});
         if (borrowed) query.andWhere('gta.isBorrowed = :borrowed', { borrowed: borrowed ? 1 : 0 });
 
+        return query.getMany()
+    }
+
+    public async findByMatch(matchId: number): Promise<GameTimeAttendance[]> {
+        let query = this.entityManager.createQueryBuilder(GameTimeAttendance, 'att')
+                        .andWhere("att.matchId = :matchId", {matchId});
         return query.getMany()
     }
 }
