@@ -15,9 +15,6 @@ import {UserRoleEntity} from "./models/security/UserRoleEntity";
 import {RoleFunction} from "./models/security/RoleFunction";
 import {Function} from "./models/security/Function";
 import * as admin from "firebase-admin";
-import {firebaseCertAdminConfig, firebaseConfig} from "./integration/firebase.config";
-import {firebaseDevCertAdminConfig, firebaseDevConfig} from "./integration/firebase.dev.config";
-import {firebaseStgCertAdminConfig, firebaseStgConfig} from "./integration/firebase.stg.config";
 import {validationMetadatasToSchemas} from "class-validator-jsonschema";
 import {getFromContainer, MetadataStorage} from "class-validator";
 import {routingControllersToSpec} from "routing-controllers-openapi";
@@ -29,9 +26,17 @@ import { decrypt, isNullOrEmpty } from "./utils/Utils";
 import { Role } from "./models/security/Role";
 import bodyParser from "body-parser";
 
-require("dotenv").config();
 
-wrapConsole();
+let envPromise = setEnvFromCredentialManager();
+
+envPromise.then(function(){
+    wrapConsole();
+    start().then(() => {
+        logger.info("Application started.");
+    }).catch((err) => {
+        logger.error("Failed to start application", err);
+    });
+});
 
 //TODO: Need to Confirm whether to have this function in Livescores module
 async function checkFirebaseUser(user, password: string) {
@@ -171,19 +176,8 @@ async function start() {
         , middlewares: [RequestLogger, ErrorHandlerMiddleware]
     });
 
-    const firebaseEnv = process.env.FIREBASE_ENV;
-    var projId;
-    var cred;
-    if (firebaseEnv == "wsa-prod") {
-        cred = admin.credential.cert(firebaseCertAdminConfig);
-        projId = firebaseConfig.projectId;
-    } else if (firebaseEnv == "wsa-stg") {
-        cred = admin.credential.cert(firebaseStgCertAdminConfig)
-        projId = firebaseStgConfig.projectId;
-    } else {
-        cred = admin.credential.cert(firebaseDevCertAdminConfig);
-        projId = firebaseDevConfig.projectId;
-    }
+    let projId = JSON.parse(process.env.firebaseCertAdminConfig).projectId;
+    let cred = admin.credential.cert(JSON.parse(process.env.firebaseCertAdminConfig));
 
     admin.initializeApp({
         credential: cred,
@@ -222,8 +216,49 @@ async function start() {
     });
 }
 
-start().then(() => {
-    logger.info("Application started.");
-}).catch((err) => {
-    logger.error("Failed to start application", err);
-});
+function setEnvFromCredentialManager(){
+    let promise = new Promise(function(resolve, reject) {
+        var AWS = require('aws-sdk'),
+        region = process.env.REGION,
+        secretName = process.env.SECRET_NAME,
+        accessKeyId = process.env.ACCESS_KEY_ID,
+        secretAccessKey = process.env.SECRET_ACCESS_KEY,
+        secret,
+        decodedBinarySecret;
+    
+        var client = new AWS.SecretsManager({
+            region: region,
+            accessKeyId,
+            secretAccessKey
+        });
+    
+        client.getSecretValue({SecretId: secretName}, function(err, data) {
+            if (err) {
+                console.log("If entry With error" + err);
+                reject();
+            }
+            else {
+                if ('SecretString' in data) {
+                    secret = data.SecretString;
+                    let secretData = JSON.parse(secret)
+                    let keys = Object.keys(secretData);
+                    for(let key of keys){
+                        process.env[key] = secretData[key];
+                    }
+                   
+                } else {
+                    let buff = new Buffer(data.SecretBinary, 'base64');
+                    decodedBinarySecret = buff.toString('ascii');
+                    let secretData = JSON.parse(decodedBinarySecret)
+                    let keys = Object.keys(secretData);
+                    for(let key of keys){
+                        process.env[key] = secretData[key];
+                    }
+                }
+    
+                resolve();
+            }
+        });
+    })
+    return promise;
+}

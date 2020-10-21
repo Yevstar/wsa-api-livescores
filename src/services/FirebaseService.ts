@@ -1,7 +1,4 @@
 import { Service } from "typedi";
-import { firebaseConfig } from "../integration/firebase.config";
-import { firebaseDevConfig } from "../integration/firebase.dev.config";
-import { firebaseStgConfig } from "../integration/firebase.stg.config";
 import * as admin from "firebase-admin";
 import { logger } from "../logger";
 import { chunk, isArrayPopulated } from "../utils/Utils";
@@ -233,15 +230,7 @@ export default class FirebaseService {
     }
 
     private async getFirebaseStorageBucket() {
-        const firebaseEnv = process.env.FIREBASE_ENV;
-        var fbStorageBuck;
-        if (firebaseEnv == "wsa-prod") {
-            fbStorageBuck = firebaseConfig.storageBucket;
-        } else if (firebaseEnv == "wsa-stg") {
-            fbStorageBuck = firebaseStgConfig.storageBucket;
-        } else {
-            fbStorageBuck = firebaseDevConfig.storageBucket;
-        }
+        var fbStorageBuck = JSON.parse(process.env.firebaseConfig)
         return admin.storage().bucket(fbStorageBuck);
     }
 
