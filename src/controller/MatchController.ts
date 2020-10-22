@@ -620,6 +620,19 @@ export class MatchController extends BaseController {
                 saved = await this.matchScorerService.createOrUpdate(scores);
             }
 
+            /// On period scores call if the match team scores are not matching
+            /// then we will update the match team scores as per the data from
+            /// Scores and send a match notification for update score.
+            if (match &&
+                (match.team1Score != scores.team1Score ||
+                  match.team2Score != scores.team2Score)
+            ) {
+                match.team1Score = scores.team1Score;
+                match.team2Score = scores.team2Score;
+                await this.matchService.createOrUpdate(match);
+                this.sendMatchEvent(match, true, {user: user});
+            }
+
             // return
             if (saved) {
                 // log match event
