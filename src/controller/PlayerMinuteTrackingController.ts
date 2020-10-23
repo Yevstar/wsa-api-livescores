@@ -108,7 +108,7 @@ export class PlayerMinuteTrackingController extends BaseController {
         }
     } catch (e) {
         logger.error(`Failed PMT record due to error -`, e);
-        return response.status(500).send({ success: false, message: `Recording tracking time failed - ${e}` });
+        return response.status(500).send({ success: false, message: 'Recording tracking time failed' });
     }
   }
 
@@ -123,7 +123,10 @@ export class PlayerMinuteTrackingController extends BaseController {
                   throw `Wrong period sent for player with id - ${playerMinuteTracking.playerId}`;
           }
 
-          let player = await this.playerService.findById(playerMinuteTracking.playerId);
+          let player;
+          if (playerMinuteTracking.playerId) {
+              player = await this.playerService.findById(playerMinuteTracking.playerId);
+          }
 
           const data = playerMinuteTracking.id
             ? await this.playerMinuteTrackingService.findById(playerMinuteTracking.id)
@@ -173,7 +176,13 @@ export class PlayerMinuteTrackingController extends BaseController {
               gta.playerId = data.playerId;
               gta.period = data.period;
               gta.positionId = data.positionId;
-              gta.isBorrowed = (player.teamId != data.teamId);
+              if (player &&
+                  isNotNullAndUndefined(player.teamId) &&
+                  isNotNullAndUndefined(data.teamId)) {
+                      gta.isBorrowed = (player.teamId != data.teamId);
+              } else {
+                    gta.isBorrowed = false;
+              }
               gta.isPlaying = true;
               gta.source = data.source;
               if (!isNotNullAndUndefined(data.id) &&
