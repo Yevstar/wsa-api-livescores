@@ -74,6 +74,7 @@ export class PlayerMinuteTrackingController extends BaseController {
                 return deletePMTs.some(function(pmt){
                     return (existingGTA.playerId === pmt.playerId &&
                         existingGTA.period === pmt.period &&
+                        isNotNullAndUndefined(existingGTA) &&
                         existingGTA.isPlaying);
                 });
             }).map(function(gta){
@@ -87,11 +88,11 @@ export class PlayerMinuteTrackingController extends BaseController {
             const pmtPromises = [];
 
             for (let i = 0; i < trackingData.length; i++) {
-              if (trackingData[i].matchId
-                  && trackingData[i].teamId
-                  && trackingData[i].playerId
-                  && trackingData[i].period
-                  && trackingData[i].duration
+              if (isNotNullAndUndefined(trackingData[i].matchId)
+                  && isNotNullAndUndefined(trackingData[i].teamId)
+                  && isNotNullAndUndefined(trackingData[i].playerId)
+                  && isNotNullAndUndefined(trackingData[i].period)
+                  && isNotNullAndUndefined(trackingData[i].duration)
               ) {
                   pmtPromises.push(
                       this.createPMTRecord(trackingData[i], matchGTAData, user)
@@ -117,8 +118,9 @@ export class PlayerMinuteTrackingController extends BaseController {
       user: User,
   ) {
       try {
-          if (!playerMinuteTracking.period || playerMinuteTracking.period == 0) {
-              throw `Wrong period sent for player with id - ${playerMinuteTracking.playerId}`;
+          if (!isNotNullAndUndefined(playerMinuteTracking.period) ||
+              playerMinuteTracking.period == 0) {
+                  throw `Wrong period sent for player with id - ${playerMinuteTracking.playerId}`;
           }
 
           let player = await this.playerService.findById(playerMinuteTracking.playerId);
@@ -155,6 +157,7 @@ export class PlayerMinuteTrackingController extends BaseController {
               const filteredGTA = matchGTAData.filter(
                   (gta) => (gta.playerId === playerMinuteTracking.playerId &&
                       gta.period === playerMinuteTracking.period &&
+                      isNotNullAndUndefined(gta.isPlaying) &&
                       gta.isPlaying));
               if (!isArrayPopulated(filteredGTA)) {
                   createGTA = true;
@@ -173,9 +176,10 @@ export class PlayerMinuteTrackingController extends BaseController {
               gta.isBorrowed = (player.teamId != data.teamId);
               gta.isPlaying = true;
               gta.source = data.source;
-              if (!data.id && data.createdBy) {
-                  gta.createdBy = data.createdBy;
-              } else if (data.updatedBy) {
+              if (!isNotNullAndUndefined(data.id) &&
+                  isNotNullAndUndefined(data.createdBy)) {
+                      gta.createdBy = data.createdBy;
+              } else if (isNotNullAndUndefined(data.updatedBy)) {
                   gta.createdBy = data.updatedBy;
               } else {
                   gta.createdBy = user.id;
