@@ -108,7 +108,7 @@ export class PlayerMinuteTrackingController extends BaseController {
         }
     } catch (e) {
         logger.error(`Failed PMT record due to error -`, e);
-        return response.status(500).send({ success: false, message: 'Recording tracking time failed' });
+        return response.status(500).send({ success: false, message: `Recording tracking time failed - ${e}` });
     }
   }
 
