@@ -13,7 +13,7 @@ import { BaseController } from './BaseController';
 import { PlayerMinuteTracking } from '../models/PlayerMinuteTracking';
 import { GameTimeAttendance } from '../models/GameTimeAttendance';
 import { User } from '../models/User';
-import { isArrayPopulated } from "../utils/Utils"
+import { isArrayPopulated, isNotNullAndUndefined } from "../utils/Utils"
 import {logger} from "../logger";
 
 @JsonController('/pmt')
@@ -50,20 +50,37 @@ export class PlayerMinuteTrackingController extends BaseController {
   ): Promise<any> {
     try {
         if (trackingData && trackingData.length > 0) {
-            /// --- Deleting PMT items which are not send in the body
-            /// Currently doing hard delete
+            /// --- Deleting (Currently doing hard delete)
+            /// PMT items which are not send in the body
             let matchPMTData = await this.playerMinuteTrackingService.findByMatch(matchId);
             let matchGTAData = await this.gameTimeAttendanceService.findByMatch(matchId);
-            var result = matchPMTData.filter(function(existingPMT){
-                // filter out (!) items in result2
+            var deletePMTs = [];
+            var pmtIds = matchPMTData.filter(function(existingPMT){
+                // filter out (!) items in existing PMT which are not been
+                // provided in the body
                 return !trackingData.some(function(newPMT){
                     return existingPMT.id === newPMT.id;
                 });
             }).map(function(pmt){
+                deletePMTs.push(pmt);
                 return pmt.id;
             });
-            if (result.length > 0) {
-                await this.playerMinuteTrackingService.deleteByIds(result);
+            if (pmtIds.length > 0) {
+                await this.playerMinuteTrackingService.deleteByIds(pmtIds);
+            }
+            /// GameTimeAttendance items matching the PMTs deleted with isPlaying true
+            var gtaIds = matchGTAData.filter(function(existingGTA){
+                // filter out items in matching deleted PMTs
+                return deletePMTs.some(function(pmt){
+                    return (existingGTA.playerId === pmt.playerId &&
+                        existingGTA.period === pmt.period &&
+                        existingGTA.isPlaying);
+                });
+            }).map(function(gta){
+                return gta.id;
+            });
+            if (gtaIds.length > 0) {
+                await this.gameTimeAttendanceService.deleteByIds(gtaIds);
             }
             /// ---
 
@@ -95,52 +112,49 @@ export class PlayerMinuteTrackingController extends BaseController {
   }
 
   private async createPMTRecord(
-      trackingData: PlayerMinuteTracking,
+      playerMinuteTracking: PlayerMinuteTracking,
       matchGTAData: GameTimeAttendance[],
       user: User,
   ) {
       try {
-          let player = await this.playerService.findById(trackingData.playerId);
+          if (!playerMinuteTracking.period || playerMinuteTracking.period == 0) {
+              throw `Wrong period sent for player with id - ${playerMinuteTracking.playerId}`;
+          }
 
-          const data = trackingData.id
-            ? await this.playerMinuteTrackingService.findById(trackingData.id)
+          let player = await this.playerService.findById(playerMinuteTracking.playerId);
+
+          const data = playerMinuteTracking.id
+            ? await this.playerMinuteTrackingService.findById(playerMinuteTracking.id)
             : new PlayerMinuteTracking();
-          data.matchId = trackingData.matchId;
-          data.teamId = trackingData.teamId;
-          data.playerId = trackingData.playerId;
-          data.period = trackingData.period;
-          if (trackingData.positionId != null ||
-              trackingData.positionId != undefined) {
-              data.positionId = trackingData.positionId;
-          }
-          data.duration = trackingData.duration;
-          if (trackingData.playedInPeriod != null ||
-              trackingData.playedInPeriod != undefined) {
-              data.playedInPeriod = trackingData.playedInPeriod;
-          }
-          if (trackingData.playedEndPeriod != null ||
-              trackingData.playedEndPeriod != undefined) {
-              data.playedEndPeriod = trackingData.playedEndPeriod;
-          }
-          if (trackingData.playedFullPeriod != null ||
-              trackingData.playedFullPeriod != undefined) {
-              data.playedFullPeriod = trackingData.playedFullPeriod;
-          }
-          if (trackingData.periodDuration) {
-              data.periodDuration = trackingData.periodDuration;
-          }
-          data.source = trackingData.source;
-          data.createdBy = trackingData.createdBy;
-          data.updatedBy = trackingData.updatedBy;
+          data.matchId = playerMinuteTracking.matchId;
+          data.teamId = playerMinuteTracking.teamId;
+          data.playerId = playerMinuteTracking.playerId;
+          data.period = playerMinuteTracking.period;
+          data.positionId = isNotNullAndUndefined(playerMinuteTracking.positionId) ?
+                playerMinuteTracking.positionId : 0;
+          data.duration = isNotNullAndUndefined(playerMinuteTracking.duration) ?
+                playerMinuteTracking.duration : 0;
+          data.playedInPeriod = isNotNullAndUndefined(playerMinuteTracking.playedInPeriod) ?
+              playerMinuteTracking.playedInPeriod : false;
+          data.playedEndPeriod = isNotNullAndUndefined(playerMinuteTracking.playedEndPeriod) ?
+              playerMinuteTracking.playedEndPeriod : false;
+          data.playedFullPeriod = isNotNullAndUndefined(playerMinuteTracking.playedFullPeriod) ?
+               playerMinuteTracking.playedFullPeriod : false;
+          data.periodDuration = isNotNullAndUndefined(playerMinuteTracking.periodDuration) ?
+               playerMinuteTracking.periodDuration : 0;
+          data.source = playerMinuteTracking.source;
+          data.createdBy = playerMinuteTracking.createdBy;
+          data.updatedBy = playerMinuteTracking.updatedBy;
 
           await this.playerMinuteTrackingService.createOrUpdate(data);
+
           let createGTA = false;
           /// Game Time Attendance checks
           if (matchGTAData && matchGTAData.length > 0) {
               // Check if we have gameTimeAttendance record for the PMT entry
               const filteredGTA = matchGTAData.filter(
-                  (gta) => (gta.playerId === trackingData.playerId &&
-                      gta.period === trackingData.period &&
+                  (gta) => (gta.playerId === playerMinuteTracking.playerId &&
+                      gta.period === playerMinuteTracking.period &&
                       gta.isPlaying));
               if (!isArrayPopulated(filteredGTA)) {
                   createGTA = true;
@@ -151,20 +165,23 @@ export class PlayerMinuteTrackingController extends BaseController {
           }
           if (createGTA) {
               let gta = new GameTimeAttendance();
-              gta.matchId = trackingData.matchId;
-              gta.teamId = trackingData.teamId;
-              gta.playerId = trackingData.playerId;
-              gta.period = trackingData.period;
-              gta.positionId = trackingData.positionId;
-              gta.isBorrowed = (player.teamId != trackingData.teamId);
+              gta.matchId = data.matchId;
+              gta.teamId = data.teamId;
+              gta.playerId = data.playerId;
+              gta.period = data.period;
+              gta.positionId = data.positionId;
+              gta.isBorrowed = (player.teamId != data.teamId);
               gta.isPlaying = true;
-              gta.source = trackingData.source;
-              if (trackingData.updatedBy) {
-                  gta.createdBy = trackingData.updatedBy;
+              gta.source = data.source;
+              if (!data.id && data.createdBy) {
+                  gta.createdBy = data.createdBy;
+              } else if (data.updatedBy) {
+                  gta.createdBy = data.updatedBy;
               } else {
                   gta.createdBy = user.id;
               }
               gta.createdAt = new Date();
+
               await this.gameTimeAttendanceService.createOrUpdate(gta);
           }
       } catch (error) {

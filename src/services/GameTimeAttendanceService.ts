@@ -227,4 +227,9 @@ export default class GameTimeAttendanceService extends BaseService<GameTimeAtten
                         .andWhere("att.matchId = :matchId", {matchId});
         return query.getMany()
     }
+
+    public async deleteByIds(ids: number[]): Promise<DeleteResult> {
+        return this.entityManager.createQueryBuilder().delete().from(GameTimeAttendance)
+            .andWhere("id in (:ids)", {ids: ids}).execute();
+    }
 }
