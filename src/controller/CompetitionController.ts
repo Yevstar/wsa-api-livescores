@@ -18,7 +18,7 @@ import {User} from "../models/User";
 import {BaseController} from "./BaseController";
 import {RequestFilter} from "../models/RequestFilter";
 import { CompetitionVenue } from "../models/CompetitionVenue";
-import { isPhoto, fileExt, stringTONumber, stringToBoolean, timestamp, uuidv4, isArrayPopulated, isNotNullAndUndefined } from "../utils/Utils"
+import { isPhoto, fileExt, stringTONumber, stringToBoolean, timestamp, uuidv4, isArrayPopulated, isNotNullAndUndefined, removeDuplicatesByValue } from "../utils/Utils"
 import { CompetitionOrganisation } from "../models/CompetitionOrganisation";
 import { logger } from "../logger";
 import { LadderFormat } from "../models/LadderFormat";
@@ -312,7 +312,8 @@ export class CompetitionController extends BaseController {
                     }
 
                     if (isArrayPopulated(COMPETITION_INVITEES)) {
-                        await this.competitionInviteesService.batchCreateOrUpdate(COMPETITION_INVITEES);
+                        const UNIQUE_COMPETITION_INVITEES = removeDuplicatesByValue(COMPETITION_INVITEES,["invitedOrganisationId"]);
+                        await this.competitionInviteesService.batchCreateOrUpdate(UNIQUE_COMPETITION_INVITEES);
                     }
 
                     for (let i of ORG_ARRAY) {
@@ -352,8 +353,20 @@ export class CompetitionController extends BaseController {
                             CREATE_COMP_ORGANISATIONS.push(compOrg);
                         }
                     }
+                    const UNIQUE_CREATE_COMP_ORGANISATIONS = removeDuplicatesByValue(CREATE_COMP_ORGANISATIONS, ["orgId"]);
+                    const COMP_ORG_ARRAY = [...UNIQUE_CREATE_COMP_ORGANISATIONS];
 
-                    await this.competitionOrganisationService.batchCreateOrUpdate(CREATE_COMP_ORGANISATIONS);
+                    for (let i of getExistingOrganisation) {
+                        for (let j of COMP_ORG_ARRAY) {
+                            if (i.orgId === j.orgId) {
+                                UNIQUE_CREATE_COMP_ORGANISATIONS.splice(UNIQUE_CREATE_COMP_ORGANISATIONS.findIndex(e => e.orgId === i.orgid), 1)
+                            }
+                        }
+                    }
+
+                    if (isArrayPopulated(UNIQUE_CREATE_COMP_ORGANISATIONS)) {
+                        await this.competitionOrganisationService.batchCreateOrUpdate(UNIQUE_CREATE_COMP_ORGANISATIONS);
+                    }
                 }else {
                     if (isArrayPopulated(getInviteesDetail)) {
                         await this.competitionInviteesService.deleteInviteesByCompetitionId(saved.id);

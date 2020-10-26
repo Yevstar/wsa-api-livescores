@@ -320,3 +320,29 @@ export function arrangeCSVToJson(buffer) {
 
     return data;
 }
+
+export function removeDuplicatesByValue(originalArray, properties) {
+    var newArray = [];
+    var index = 0;
+    var totalProperties = properties.length;
+    for (var i = 0; i < originalArray.length; i++) {
+        var exists = false;
+        for (var a = 0; a < newArray.length; a++) {
+            var propsFound = 0;
+            for (var b = 0; b < totalProperties; b++) {
+                if (originalArray[i][properties[b]] == newArray[a][properties[b]]) {
+                    propsFound++;
+                }
+            }
+            if (propsFound == totalProperties) {
+                exists = true;
+                break;
+            }
+        }
+        if (!exists) {
+            newArray[index] = originalArray[i];
+            index++;
+        }
+    }
+    return newArray;
+}
