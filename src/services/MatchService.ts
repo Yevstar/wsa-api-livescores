@@ -8,7 +8,7 @@ import {Brackets, DeleteResult} from "typeorm-plus";
 import BaseService from "./BaseService";
 import {logger} from "../logger";
 import getMatchSheetTemplate from "../utils/MatchSheetTemplate";
-import {paginationData, stringTONumber, isNotNullAndUndefined, s3, isArrayPopulated} from "../utils/Utils";
+import {paginationData, stringTONumber, isNotNullAndUndefined, isArrayPopulated} from "../utils/Utils";
 import {Match} from "../models/Match";
 import {MatchResultType} from "../models/MatchResultType";
 import {GamePosition} from "../models/GamePosition";
@@ -21,6 +21,12 @@ import {StateTimezone} from "../models/StateTimezone";
 import {Competition} from "../models/Competition";
 import {User} from "../models/User";
 import {MatchSheet} from "../models/MatchSheet";
+import AWS from "aws-sdk";
+
+const s3 = new AWS.S3({
+    accessKeyId: process.env.AWS_ACCESS_KEY,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+});
 
 @Service()
 export default class MatchService extends BaseService<Match> {
