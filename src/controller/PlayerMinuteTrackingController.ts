@@ -55,7 +55,7 @@ export class PlayerMinuteTrackingController extends BaseController {
             let matchPMTData = await this.playerMinuteTrackingService.findByMatch(matchId);
             let matchGTAData = await this.gameTimeAttendanceService.findByMatch(matchId);
             var deletePMTs = [];
-            var pmtIds = matchPMTData.filter(function(existingPMT){
+            const pmtIds = matchPMTData.filter(function(existingPMT){
                 // filter out (!) items in existing PMT which are not been
                 // provided in the body
                 return !trackingData.some(function(newPMT){
