@@ -482,6 +482,7 @@ export class UserController extends BaseController {
         @Res() response: Response
     ) {
         try {
+            var password;
             // if existing user wasn't provided, search for the user
             if (!userData.id) {
                 if (
@@ -511,18 +512,12 @@ export class UserController extends BaseController {
                     }
                 } else {
                     // create user
-                    const password = Math.random().toString(36).slice(-8);
+                    password = Math.random().toString(36).slice(-8);
                     userData.email = userData.email.toLowerCase();
                     userData.password = md5(password);
                     const saved = await this.userService.createOrUpdate(userData);
                     await this.updateFirebaseData(userData, userData.password);
                     logger.info(`${type} ${userData.email} signed up.`);
-
-                    if (this.canSendMailForAdd(type, userData)) {
-                        let competitionData = await this.competitionService.findById(competitionId)
-                        let roleId = await this.getRoleIdForType(type);
-                        this.userService.sentMail(user, userData.teams ? userData.teams : null, competitionData, roleId, saved, password);
-                    }
                     userData.id = saved.id;
                 }
             } else if (userData.firstName && userData.lastName && userData.mobileNumber) {
@@ -537,6 +532,12 @@ export class UserController extends BaseController {
             await this.deleteRolesNecessary(type, userData, competitionId);
             // Create necessary URE's and notify
             await this.createUREAndNotify(type, userData, competitionId, user.id);
+
+            if (this.canSendMailForAdd(type, userData)) {
+                let competitionData = await this.competitionService.findById(competitionId)
+                let roleId = await this.getRoleIdForType(type);
+                this.userService.sentMail(user, userData.teams ? userData.teams : null, competitionData, roleId, userData, password);
+            }
 
             return userData;
         } catch (error) {
