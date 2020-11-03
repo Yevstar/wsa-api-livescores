@@ -467,32 +467,6 @@ const getMatchSheetTemplate = (
                font-size: 9px;
                border-bottom: 1px solid black;
             }
-            .scoreTableRight {
-               width: 50%;
-               padding: 4px 24px 4px 8px;
-               box-sizing: border-box;
-            }
-            .scoreTableLeft {
-               width: 50%;
-               padding: 4px 8px 4px 16px;
-               border-right: 1px solid black;
-               box-sizing: border-box;
-            }
-            .scoreCell {
-               width: 10%;
-               text-align: center;
-            }
-            .scoreRow {
-               width: 100%;
-               height: 20px;
-               display: -webkit-box;
-               display: -webkit-flex;
-               -webkit-flex-wrap: wrap;
-               display: flex;
-               flex-wrap: wrap;
-               flex-direction: row;
-               font-size: 16px;
-            }
             .tableTitle {
                font-size: 9px;
                margin-bottom: 12px;
@@ -584,6 +558,67 @@ const getMatchSheetTemplate = (
             }
           }`
           )}
+
+          ${templateType == 'Simple'? (
+            `.scoreTableRight {
+               width: 50%;
+               padding: 4px 24px 4px 8px;
+               box-sizing: border-box;
+            }
+            .scoreTableLeft {
+               width: 50%;
+               padding: 4px 8px 4px 16px;
+               border-right: 1px solid black;
+               box-sizing: border-box;
+            }
+            .scoreCell {
+               width: 10%;
+               text-align: center;
+            }
+            .scoreRow {
+               width: 100%;
+               height: 20px;
+               display: -webkit-box;
+               display: -webkit-flex;
+               -webkit-flex-wrap: wrap;
+               display: flex;
+               flex-wrap: wrap;
+               flex-direction: row;
+               font-size: 16px;
+            }`
+          ) : ''}
+
+          ${templateType == 'Scorecard'? (
+            `.scoreTableRight {
+               width: 50%;
+               padding: 4px 24px 4px 8px;
+               box-sizing: border-box;
+            }
+            .scoreTableLeft {
+               width: 50%;
+               padding: 4px 8px 4px 16px;
+               border-right: 1px solid black;
+               box-sizing: border-box;
+            }
+            .scoreCell {
+               width: 10%;
+               text-align: center;
+               border: 1px solid black;
+               color: #fff;
+            }
+            .scoreRow {
+               width: 100%;
+               height: 20px;
+               display: -webkit-box;
+               display: -webkit-flex;
+               -webkit-flex-wrap: wrap;
+               display: flex;
+               flex-wrap: wrap;
+               flex-direction: row;
+               font-size: 16px;
+            }`
+          ) : ''}
+
           </style>
        </head>
        <body>
@@ -622,7 +657,7 @@ const getMatchSheetTemplate = (
                </div>
             </div>`
             )}
-            ${templateType !== 'Carnival' ? (
+            ${templateType !== 'Carnival' && templateType !== 'Scorecard' ? (
                 `<div class="tableContent">
                     <div class="signTable" id="attendance1">
                         <div class="table">
@@ -674,7 +709,7 @@ const getMatchSheetTemplate = (
                     </div>
                 </div>`
             ) : ''}
-            ${templateType !== 'Simple' ? (
+            ${templateType !== 'Simple' && templateType !== 'Scorecard' ? (
             `<div class="subTitle">Centre Pass</div>
             <div class="tableContent">
                 <div class="passTable">
@@ -842,7 +877,7 @@ const getMatchSheetTemplate = (
             `<div class="tableContent">
                <div class="summaryTable">
                    <div class="table">
-                     <div class="summaryRow" id="scorers">
+                     <div class="summaryRow">
                         <div class="summaryCell">
                            Final Score
                         </div>
