@@ -90,4 +90,8 @@ export class User extends BaseEntity {
     @IsDate()
     @Column({ nullable: true, default: null })
     lastAppLogin: Date;
+
+    @IsString()
+    @Column()
+    stripeCustomerAccountId: string;
 }

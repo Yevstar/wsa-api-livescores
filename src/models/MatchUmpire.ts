@@ -59,6 +59,10 @@ export class MatchUmpire extends BaseEntity {
     @Column()
     verifiedBy: string;
 
+    @IsString()
+    @Column()
+    paymentStatus: "paid" | "approved" | "unpaid";
+
     @IsDate()
     @Column()
     created_at: Date;

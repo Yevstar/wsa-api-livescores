@@ -495,4 +495,23 @@ export class MatchUmpireController extends BaseController {
             rawData: data,
         });
     }
+
+    @Authorized()
+    @Post('/payments')
+    async umpirePayments(
+        @QueryParam('competitionId') competitionId: number,
+        @QueryParam('search') search: string,
+        @QueryParam('sortBy') sortBy: string,
+        @QueryParam('sortOrder') orderBy: "ASC"|"DESC",
+        @Body() requestFilter: RequestFilter
+    ) {
+        const paymentsData = await this.matchUmpireService.getUmpirePayments(competitionId, requestFilter, search, sortBy, orderBy);
+        const OFFSET = requestFilter.paging.offset
+        const LIMIT = requestFilter.paging.limit
+        if(isNotNullAndUndefined(OFFSET) && isNotNullAndUndefined(LIMIT)) {
+            return { page: paginationData(paymentsData.matchCount, LIMIT, OFFSET).page, players: paymentsData.result };
+        } else {
+            return { page: {}, umpireData: paymentsData.result };
+        }
+    }
 }
