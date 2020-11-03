@@ -544,7 +544,7 @@ export default class MatchService extends BaseService<Match> {
                     competitionTimezone
                 );
 
-                let options = { width: '595px', height: '842px', format: 'A4' };
+                const options = { width: '595px', height: '842px', format: 'A4' };
                 
 
                 await createPDF(htmlTmpl, options).then((newBuffer) => {
