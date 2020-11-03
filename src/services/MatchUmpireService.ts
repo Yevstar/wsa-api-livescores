@@ -108,4 +108,35 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
             .andWhere("userId = :userId", {userId})
             .execute();
     }
+
+    public async getUmpirePayments(competitionId: number, requestFilter: RequestFilter, search: string, sortBy: string, orderBy: "ASC"|"DESC"): Promise<any> {
+        const matchStatus = 'ENDED';
+        let query = this.entityManager.createQueryBuilder(MatchUmpire, 'matchUmpire');
+        query.leftJoinAndSelect('matchUmpire.match', 'match')
+            .leftJoinAndSelect('matchUmpire.user', 'user')
+            .where('match.competitionId = :competitionId', { competitionId })
+            .andWhere('match.matchStatus = :matchStatus', { matchStatus });
+
+        if (search !== null && search !== undefined && search !== '') {
+            query.andWhere(' lower(concat_ws(" ", user.firstName, user.lastName)) like :search ', { search: `%${search.toLowerCase()}%` });
+        }
+
+        if (isNotNullAndUndefined(sortBy) && isNotNullAndUndefined(orderBy) && sortBy!=='') {
+            if(sortBy=='firstName') {
+                query.orderBy('user.firstName', orderBy)
+            }else if(sortBy == 'lastName') {
+                query.orderBy('user.lastName', orderBy)
+            }else if(sortBy == 'matchId') {
+                query.orderBy('match.id', orderBy)
+            }else if(sortBy == 'verifiedBy') {
+                query.orderBy('matchUmpire.verifiedBy', orderBy)
+            }else if(sortBy == 'makePayment') {
+                query.orderBy('matchUmpire.paymentStatus', orderBy)
+            }
+        }
+
+        const matchCount = await query.getCount();
+        const result = await query.skip(requestFilter.paging.offset).take(requestFilter.paging.limit).getMany();
+        return { matchCount, result }
+    }
 }
