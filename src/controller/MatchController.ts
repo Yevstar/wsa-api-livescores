@@ -26,7 +26,8 @@ import {
     validationForField,
     parseDateTimeZoneString,
     arrangeCSVToJson,
-    trim
+    trim,
+    isNullOrEmpty
 } from "../utils/Utils";
 import {BaseController} from "./BaseController";
 import {logger} from "../logger";
@@ -253,10 +254,16 @@ export class MatchController extends BaseController {
            // logger.debug(`Inside the Create Match::` + JSON.stringify(match));
             let isNewMatch = false;
             let nonSilentNotify = false;
+            let mandatorySilentNotifyUserIds = [];
             if (match.id == 0) {
                 isNewMatch = true;
             } else {
                 let dbMatch = await this.matchService.findById(match.id);
+
+                let dbMatchStartTime = new Date(dbMatch.startTime);
+                let updatedMatchStartTime = new Date(match.startTime);
+                let currentTime = new Date();
+
                 if ((dbMatch.divisionId != match.divisionId ||
                     dbMatch.type != match.type ||
                     dbMatch.team1Id != match.team1Id ||
@@ -270,8 +277,8 @@ export class MatchController extends BaseController {
                     dbMatch.team1ResultId != match.team1ResultId ||
                     dbMatch.team2ResultId != match.team2ResultId ||
                     dbMatch.resultStatus != match.resultStatus ||
-                    dbMatch.startTime != match.startTime) &&
-                    (new Date(match.startTime) > new Date())
+                    dbMatchStartTime.getTime() !== updatedMatchStartTime.getTime()) &&
+                    (updatedMatchStartTime.getTime() > currentTime.getTime())
                 ) {
                     nonSilentNotify = true;
                 }
@@ -391,6 +398,9 @@ export class MatchController extends BaseController {
                             newRoster,
                             umpireSequence
                         );
+                        if (isNotNullAndUndefined(newRoster.userId)) {
+                            mandatorySilentNotifyUserIds.push(newRoster.userId);
+                        }
                     } else if (newRoster.roleId == Role.SCORER) {
                         // add new umpire roster only if it doesn't match old role, user, team
                         let matchedOldRosters = oldRosters.filter(
@@ -410,6 +420,9 @@ export class MatchController extends BaseController {
                             oldRosters,
                             newRoster
                         );
+                        if (isNotNullAndUndefined(newRoster.userId)) {
+                            mandatorySilentNotifyUserIds.push(newRoster.userId);
+                        }
                     } else if (newRoster.roleId == Role.UMPIRE_COACH) {
                         this.addUmpireTypeRoster(
                             match.id,
@@ -417,6 +430,9 @@ export class MatchController extends BaseController {
                             oldRosters,
                             newRoster
                         );
+                        if (isNotNullAndUndefined(newRoster.userId)) {
+                            mandatorySilentNotifyUserIds.push(newRoster.userId);
+                        }
                     }
                 }
             } else if (oldRosters.length > 0) {
@@ -440,7 +456,7 @@ export class MatchController extends BaseController {
             this.sendMatchEvent(
                 saved,
                 false,
-                { nonSilentNotify: nonSilentNotify }
+                { nonSilentNotify: nonSilentNotify, mandatorySilentNotifyUserIds: mandatorySilentNotifyUserIds }
             ); // This is to send notification for devices
             return saved;
         }
@@ -976,13 +992,13 @@ export class MatchController extends BaseController {
     async sendMatchEvent(
         match: Match,
         updateScore: boolean = false,
-        optionals?: { user?: User, subtype?: string, nonSilentNotify?: boolean }
+        optionals?: { user?: User, subtype?: string, nonSilentNotify?: boolean, mandatorySilentNotifyUserIds?: number[] }
     ) {
         try {
             if (match) {
                 var messageBody: string = undefined;
-                if (optionals &&
-                    (optionals.nonSilentNotify != null || optionals.nonSilentNotify != undefined) &&
+                if (isNotNullAndUndefined(optionals) &&
+                    (isNotNullAndUndefined(optionals.nonSilentNotify)) &&
                     optionals.nonSilentNotify == true) {
                         messageBody = 'A change has been made to your match. Please check match details.';
                 }
@@ -1019,15 +1035,34 @@ export class MatchController extends BaseController {
                 let tokens = [];
                 Array.prototype.push.apply(tokens, userDeviceTokens);
                 Array.prototype.push.apply(tokens, watchlistTokens);
+                let uniqTokens = Array.from(new Set(tokens));
 
+                /// Checking mandatory silent notify users and remove their tokens
+                /// When non-silent notify
+                if (!isNullOrEmpty(messageBody) &&
+                    isNotNullAndUndefined(optionals) &&
+                    isArrayPopulated(optionals.mandatorySilentNotifyUserIds)) {
+                        let silentNotifyDevices = await this.deviceService.getUserTokens(optionals.mandatorySilentNotifyUserIds);
+                        let silentNotifyDeviceTokens = (silentNotifyDevices).map(device => device.deviceId);
+                        if (isArrayPopulated(silentNotifyDeviceTokens)) {
+                            _.remove(uniqTokens, function(token) {
+                              return (silentNotifyDeviceTokens.indexOf(token) >= 0);
+                            });
+
+                            logger.debug('Load mandatory silent notify device tokens', silentNotifyDeviceTokens);
+                            this.firebaseService.sendMessageChunked({
+                              tokens: silentNotifyDeviceTokens,
+                              data: dataDict
+                            });
+                        }
+                }
 
                 logger.debug('Load device tokens', tokens);
-                if (tokens && tokens.length > 0) {
+                if (isArrayPopulated(uniqTokens)) {
                     logger.debug('Prepare data for update match message', dataDict);
-                    let uniqTokens = new Set(tokens);
                     this.firebaseService.sendMessageChunked({
                       body: messageBody,
-                      tokens: Array.from(uniqTokens),
+                      tokens: uniqTokens,
                       data: dataDict
                     })
                 }
