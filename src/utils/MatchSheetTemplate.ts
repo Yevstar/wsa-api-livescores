@@ -591,7 +591,7 @@ const getMatchSheetTemplate = (
                box-sizing: border-box;
             }
             .infodiv {
-                  font-size: 15px;
+                  font-size: 13px;
                   margin-bottom: 4px;
             }
             .tableContent {
@@ -679,7 +679,7 @@ const getMatchSheetTemplate = (
                display: flex;
                flex-wrap: wrap;
                flex-direction: row;
-               font-size: 15px;
+               font-size: 13px;
                border-bottom: 1px solid black;
             }
             .summaryCell {
