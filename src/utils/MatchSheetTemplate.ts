@@ -526,12 +526,12 @@ const getMatchSheetTemplate = (
           ${templateType == 'Scorecard'? (
             `
             body {
-               font-family: Arial
+               font-family: Arial;
             }
             .page {
                width: 100%;
-               max-width: 800px;
-               max-height:800px;
+               max-width: 400px;
+               max-height:377px;
                padding: 40px 2px 2px 2px;
                background-color: #FFFFFF;
                box-sizing: border-box;
@@ -591,7 +591,7 @@ const getMatchSheetTemplate = (
                box-sizing: border-box;
             }
             .infodiv {
-                  font-size: 12px;
+                  font-size: 18px;
                   margin-bottom: 4px;
             }
             .tableContent {
@@ -679,7 +679,7 @@ const getMatchSheetTemplate = (
                display: flex;
                flex-wrap: wrap;
                flex-direction: row;
-               font-size: 12px;
+               font-size: 18px;
                border-bottom: 1px solid black;
             }
             .summaryCell {
