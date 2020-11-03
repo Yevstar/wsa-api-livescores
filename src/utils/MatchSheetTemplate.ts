@@ -525,6 +525,9 @@ const getMatchSheetTemplate = (
 
           ${templateType == 'Scorecard'? (
             `
+            @page {
+               size: A5 landscape;
+            }
             body {
                font-family: Arial
             }
