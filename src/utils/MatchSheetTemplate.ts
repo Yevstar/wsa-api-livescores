@@ -44,7 +44,7 @@ const getMatchSheetTemplate = (
              .no-break {
                page-break-inside: avoid;
              }
-             ${templateType !== 'Simple' ? (
+             ${templateType !== 'Simple' && templateType !== 'Scorecard' ? (
              `.page {
                 width: 100%;
                 max-width: 800px;
@@ -588,7 +588,8 @@ const getMatchSheetTemplate = (
        </head>
        <body>
           <div class="page no-break">
-            <div class="header no-break">
+          ${templateType !== 'Scorecard' ? (
+            `<div class="header no-break">
                 <div class="title">
                     <div class="associationName">${organisation.name || 'Association'}</div>
                     <div class="templateType">${templateType} Scoresheet</div>
@@ -606,7 +607,21 @@ const getMatchSheetTemplate = (
                     <div class="infodiv">Time: ${matchStartTime}</div>
                     <div class="infodiv">${match.team2 ? match.team2.name : ''}</div>
                 </div>
-            </div>
+            </div>`
+            ) : (
+            `<div class="matchInfo no-break">
+               <div class="infoContentLeft">
+                  <div class="infodiv">${match.round ? match.round.name : ''} - Court ${match.venueCourt?match.venueCourt.courtNumber:""} - ${match.division?match.division.divisionName:""}</div>
+                  <div class="infodiv">${match.venueCourt && match.venueCourt.venue ? match.venueCourt.venue.name : ''}</div>
+                  <div class="infodiv">${match.team1 ? match.team1.name : ''}</div>
+               </div>
+               <div class="infoContentRight">
+                  <div class="infodiv">Date: ${matchDate}</div>
+                  <div class="infodiv">Time: ${matchStartTime}</div>
+                  <div class="infodiv">${match.team2 ? match.team2.name : ''}</div>
+               </div>
+            </div>`
+            )}
             ${templateType !== 'Carnival' ? (
                 `<div class="tableContent">
                     <div class="signTable" id="attendance1">
@@ -724,7 +739,7 @@ const getMatchSheetTemplate = (
                     </div>
                 </div>`
             ) }
-            ${templateType !== 'Social' && templateType !== 'Simple'  ? (
+            ${templateType !== 'Social' && templateType !== 'Simple' && templateType !== 'Scorecard' ? (
                 `<div>
                     <div class="subTitle">Goal Statistics</div>
                     <div class="tableContent">
@@ -791,7 +806,8 @@ const getMatchSheetTemplate = (
                     </div>
                 </div>`
             ) : ''}
-            <div class="tableContent">
+            ${templateType !== 'Scorecard' ? (
+            `<div class="tableContent">
                 <div class="summaryTable">
                     <div class="table">
                         <div class="summaryRow" id="scorers">
@@ -821,7 +837,34 @@ const getMatchSheetTemplate = (
                         </div>
                     </div>
                 </div>
-            </div>
+            </div>`
+            ) :  (
+            `<div class="tableContent">
+               <div class="summaryTable">
+                   <div class="table">
+                     <div class="summaryRow" id="scorers">
+                        <div class="summaryCell">
+                           Final Score
+                        </div>
+                        <div class="signatureCell"></div>
+                        <div class="gapCell"></div>
+                        <div class="summaryCell">
+                           Final Score
+                        </div>
+                        <div class="signatureCell"></div>
+                     </div>
+                     <div class="summaryRow">
+                        <div class="summaryCell">Referee</div>
+                        <div class="signatureCell"></div>
+                        <div class="gapCell"></div>
+                        <div class="summaryCell"></div>
+                        <div class="signatureCell"></div>
+                     </div>
+                   </div>
+               </div>
+           </div>
+           <hr/>`
+            )}
         </div>
        </body>
     </html>
