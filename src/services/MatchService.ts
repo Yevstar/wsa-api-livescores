@@ -544,8 +544,10 @@ export default class MatchService extends BaseService<Match> {
                     competitionTimezone
                 );
 
-                const options = { width: '595px', height: '842px', format: 'A4' };
-                
+                let options = { width: '595px', height: '842px'};
+                if (templateType == 'Scorecard') {
+                    options = { width: '595px', height: '555px' }
+                }
 
                 await createPDF(htmlTmpl, options).then((newBuffer) => {
                     if (pdfBuf) {
