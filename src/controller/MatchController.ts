@@ -1834,7 +1834,7 @@ export class MatchController extends BaseController {
                 e['Start Time'] = e.startTime;
                 e['Home'] = e.team1.name;
                 e['Away'] = e.team2.name;
-                e['Venue'] = e.venueCourt.venue.name;
+                e['Venue'] = e.venueCourt.venue.name + ' - ' + e.venueCourt.courtNumber;
                 e['Division'] = e.division.name;
                 e['Type'] = e.type === 'TWO_HALVES' ? 'Halves' : (e.type === 'SINGLE' ? 'Single' : (e.type === 'FOUR_QUARTERS' ? 'Quarters' : ''));
                 e['Score'] = e.team1Score + ':' + e.team2Score;
