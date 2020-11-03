@@ -591,7 +591,7 @@ const getMatchSheetTemplate = (
                box-sizing: border-box;
             }
             .infodiv {
-                  font-size: 18px;
+                  font-size: 15px;
                   margin-bottom: 4px;
             }
             .tableContent {
@@ -679,7 +679,7 @@ const getMatchSheetTemplate = (
                display: flex;
                flex-wrap: wrap;
                flex-direction: row;
-               font-size: 18px;
+               font-size: 15px;
                border-bottom: 1px solid black;
             }
             .summaryCell {
@@ -724,7 +724,7 @@ const getMatchSheetTemplate = (
                box-sizing: border-box;
             }
             .scoreCell {
-               width: 10%;
+               width: 13%;
                text-align: center;
                border: 1px solid black;
             }
