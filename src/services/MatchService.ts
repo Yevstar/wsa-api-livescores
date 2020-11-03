@@ -545,9 +545,7 @@ export default class MatchService extends BaseService<Match> {
                 );
 
                 let options = { width: '595px', height: '842px', format: 'A4' };
-                if (templateType == 'ScoreCard') {
-                    options = { width: '210mm', height: '148mm', format: 'A5'};
-                }
+                
 
                 await createPDF(htmlTmpl, options).then((newBuffer) => {
                     if (pdfBuf) {

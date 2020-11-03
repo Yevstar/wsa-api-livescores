@@ -525,16 +525,13 @@ const getMatchSheetTemplate = (
 
           ${templateType == 'Scorecard'? (
             `
-            @page {
-               size: A5 landscape;
-            }
             body {
                font-family: Arial
             }
             .page {
                width: 100%;
                max-width: 800px;
-               max-height:350px;
+               max-height:800px;
                padding: 40px 2px 2px 2px;
                background-color: #FFFFFF;
                box-sizing: border-box;
@@ -718,13 +715,12 @@ const getMatchSheetTemplate = (
             }
             .scoreTableRight {
                width: 50%;
-               padding: 4px 24px 4px 8px;
+               padding: 4px 24px 4px 0px;
                box-sizing: border-box;
             }
             .scoreTableLeft {
                width: 50%;
                padding: 4px 8px 4px 16px;
-               border-right: 1px solid black;
                box-sizing: border-box;
             }
             .scoreCell {
@@ -904,7 +900,6 @@ const getMatchSheetTemplate = (
             ${templateType == 'Scorecard' ? (
                `<div class="tableContent">
                    <div class="scoreTableLeft">
-                       <div class="tableTitle">Team 1</div>
                        ${[...Array(4).keys()].map((rowIndex) => (
                            `<div class="scoreRow">
                              ${[...Array(7).keys()].map((cellIndex) => (
@@ -914,7 +909,6 @@ const getMatchSheetTemplate = (
                        )).join('')}
                    </div>
                    <div class="scoreTableRight">
-                       <div class="tableTitle">Team 2</div>
                        ${[...Array(4).keys()].map((rowIndex) => (
                            `<div class="scoreRow">
                                ${[...Array(7).keys()].map((cellIndex) => (
