@@ -541,7 +541,7 @@ const getMatchSheetTemplate = (
                width: 100%;
             }
             .header {
-               padding: 0 16px;
+               padding: 0px;
                margin-bottom: 8px;
                width: 100%;
                display: -webkit-box;
@@ -572,7 +572,7 @@ const getMatchSheetTemplate = (
                margin-right: 16px;
             }
             .matchInfo {
-               padding: 8px 16px;
+               padding: 8px 0px;
                display: -webkit-box;
                display: -webkit-flex;
                -webkit-flex-wrap: wrap;
@@ -587,7 +587,7 @@ const getMatchSheetTemplate = (
             }
             .infoContentRight {
                width: 50%;
-               padding-left: 8px;
+               padding-left: 0px;
                box-sizing: border-box;
             }
             .infodiv {
@@ -629,12 +629,12 @@ const getMatchSheetTemplate = (
             }
             .largeCell {
                padding-top: 2px;
-               padding-left: 2px;
+               padding-left: 0px;
                border-right: 1px solid black;
                text-align: left;
             }
             .subTitle {
-               padding: 10px 9px 4px 16px;
+               padding: 10px 0px 4px;
                font-size: 12px;
                box-sizing: border-box;
             }
@@ -673,7 +673,7 @@ const getMatchSheetTemplate = (
             }
             .teamCell {
                width: 40%;
-               padding-left: 12px;
+               padding-left: 0px;
                padding-top: 2px;
                border-right: 1px solid black;
                box-sizing: border-box;
@@ -685,7 +685,7 @@ const getMatchSheetTemplate = (
             }
             .scoreTableLeft {
                width: 50%;
-               padding: 4px 8px 4px 16px;
+               padding: 4px 0px 4px;
                box-sizing: border-box;
             }
             .scoreCell {
