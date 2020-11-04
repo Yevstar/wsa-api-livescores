@@ -531,7 +531,7 @@ const getMatchSheetTemplate = (
             .page {
                width: 100%;
                max-width: 400px;
-               max-height:377px;
+               max-height:400px;
                padding: 0px;
                background-color: #FFFFFF;
                box-sizing: border-box;
@@ -669,6 +669,7 @@ const getMatchSheetTemplate = (
                width: 100%;
                padding: 16px 16px 4px 16px;
                box-sizing: border-box;
+               border-right: 1px solid black;
             }
             .summaryRow {
                width: 100%;
@@ -680,15 +681,16 @@ const getMatchSheetTemplate = (
                flex-wrap: wrap;
                flex-direction: row;
                font-size: 13px;
+               border-bottom: 1px solid black;
             }
             .summaryCell {
-               width: 49.5%;
+               width: 49%;
                padding-left: 0px;
                padding-top: 2px;
                box-sizing: border-box;
             }
             .gapCell {
-               width: 0.8%;
+               width: 1.2%;
                text-align: center;
             }
             .signatureCell {
@@ -1034,8 +1036,7 @@ const getMatchSheetTemplate = (
                      </div>
                    </div>
                </div>
-           </div>
-           <hr/>`
+           </div>`
             )}
         </div>
        </body>
