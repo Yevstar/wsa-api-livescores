@@ -604,16 +604,6 @@ const getMatchSheetTemplate = (
                flex-direction: row;
                box-sizing: border-box;
             }
-            #attendance1 {
-               width: 49%;
-               padding: 0 0 0 16px;
-               box-sizing: border-box;
-            }
-            #attendance2 {
-                  width: 49%;
-                  padding: 0 16px 0 4px;
-                  box-sizing: border-box;
-            }
             .table {
                border: 1px solid black;
                border-right: 0;
@@ -632,9 +622,6 @@ const getMatchSheetTemplate = (
                border-bottom: 1px solid black;
                border-right: 1px solid black;
             }
-            #quarter1 {
-               border-right: 1px solid black;
-            }
             .cell {
                width: 8.54%;
                padding-top: 2px;
@@ -645,16 +632,6 @@ const getMatchSheetTemplate = (
                padding-left: 2px;
                border-right: 1px solid black;
                text-align: left;
-            }
-            #signature {
-                  width: 20%;
-            }
-            #player {
-                  width: 60%;
-            }
-            #playerid, #quarter3, #quarter4 {
-                  display: none;
-                  width: 0%;
             }
             .subTitle {
                padding: 10px 9px 4px 16px;
@@ -667,9 +644,11 @@ const getMatchSheetTemplate = (
             }
             .summaryTable {
                width: 100%;
-               padding: 16px 16px 4px 16px;
+               padding: 16px 0;
                box-sizing: border-box;
-               border-right: 1px solid black;
+            }
+            .summaryTable .table  {
+               border: 0px solid black;
             }
             .summaryRow {
                width: 100%;
@@ -681,30 +660,16 @@ const getMatchSheetTemplate = (
                flex-wrap: wrap;
                flex-direction: row;
                font-size: 13px;
-               border-bottom: 1px solid black;
             }
             .summaryCell {
-               width: 49%;
+               width: 48%;
                padding-left: 0px;
                padding-top: 2px;
                box-sizing: border-box;
             }
             .gapCell {
-               width: 1.2%;
+               width: 1.6%;
                text-align: center;
-            }
-            .signatureCell {
-               width: 21%;
-               padding-top: 2px;
-               border-right: 1px solid black;
-               box-sizing: border-box;
-            }
-            .voteCell {
-               width: 20%;
-               padding-left: 12px;
-               padding-top: 2px;
-               border-right: 1px solid black;
-               box-sizing: border-box;
             }
             .teamCell {
                width: 40%;
@@ -715,7 +680,7 @@ const getMatchSheetTemplate = (
             }
             .scoreTableRight {
                width: 50%;
-               padding: 4px 8px 4px 8px;
+               padding: 4px 0px;
                box-sizing: border-box;
             }
             .scoreTableLeft {
