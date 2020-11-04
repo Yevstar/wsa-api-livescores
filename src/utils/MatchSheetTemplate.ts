@@ -680,7 +680,7 @@ const getMatchSheetTemplate = (
             }
             .scoreTableRight {
                width: 50%;
-               padding: 4px 0px;
+               padding: 4px 4px 4px 0;
                box-sizing: border-box;
             }
             .scoreTableLeft {
