@@ -667,7 +667,7 @@ const getMatchSheetTemplate = (
             }
             .summaryTable {
                width: 100%;
-               padding: 16px 24px 4px 16px;
+               padding: 16px 16px 4px 16px;
                box-sizing: border-box;
             }
             .summaryRow {
@@ -680,17 +680,15 @@ const getMatchSheetTemplate = (
                flex-wrap: wrap;
                flex-direction: row;
                font-size: 13px;
-               border-bottom: 1px solid black;
             }
             .summaryCell {
                width: 49.5%;
-               padding-left: 2px;
+               padding-left: 0px;
                padding-top: 2px;
                box-sizing: border-box;
             }
             .gapCell {
                width: 0.8%;
-               border-right: 1px solid black;
                text-align: center;
             }
             .signatureCell {
@@ -715,7 +713,7 @@ const getMatchSheetTemplate = (
             }
             .scoreTableRight {
                width: 50%;
-               padding: 4px 24px 4px 0px;
+               padding: 4px 8px 4px 8px;
                box-sizing: border-box;
             }
             .scoreTableLeft {
@@ -1026,6 +1024,7 @@ const getMatchSheetTemplate = (
                         <div class="summaryCell">
                            Final Score:
                         </div>
+                        <div class="gapCell"></div>
                         <div class="summaryCell">
                            Final Score:
                         </div>
