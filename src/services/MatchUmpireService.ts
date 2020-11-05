@@ -111,10 +111,12 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
 
     public async getUmpirePayments(competitionId: number, requestFilter: RequestFilter, search: string, sortBy: string, orderBy: "ASC"|"DESC"): Promise<any> {
         const matchStatus = 'ENDED';
+        const umpireType = 'USERS';
         let query = this.entityManager.createQueryBuilder(MatchUmpire, 'matchUmpire');
         query.leftJoinAndSelect('matchUmpire.match', 'match')
             .leftJoinAndSelect('matchUmpire.user', 'user')
             .where('match.competitionId = :competitionId', { competitionId })
+            .andWhere('matchUmpire.umpireType = :umpireType', { umpireType })
             .andWhere('match.matchStatus = :matchStatus', { matchStatus });
 
         if (search !== null && search !== undefined && search !== '') {
