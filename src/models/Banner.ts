@@ -13,12 +13,32 @@ export class Banner extends BaseEntity {
     id: number;
 
     @IsString()
-    @Column()
+    @Column({ nullable: true })
     bannerUrl: string;
 
     @IsString()
-    @Column()
+    @Column({ nullable: true })
     bannerLink: string;
+
+    @IsString()
+    @Column({ nullable: true })
+    sponsorName: string;
+
+    @IsString()
+    @Column({ nullable: true })
+    horizontalBannerUrl: string;
+
+    @IsString()
+    @Column({ nullable: true })
+    horizontalBannerLink: string;
+
+    @IsString()
+    @Column({ nullable: true })
+    squareBannerUrl: string;
+
+    @IsString()
+    @Column({ nullable: true })
+    squareBannerLink: string;
 
     @IsBoolean()
     @Column()
@@ -51,4 +71,12 @@ export class Banner extends BaseEntity {
     @IsNumber()
     @Column()
     sequence: number;
+
+    @IsString()
+    @Column()
+    bannerDeletUrl: string;
+
+    @IsNumber()
+    @Column()
+    organisationId: number;
 }
