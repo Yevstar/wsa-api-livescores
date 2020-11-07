@@ -94,4 +94,9 @@ export class User extends BaseEntity {
     @IsString()
     @Column()
     stripeCustomerAccountId: string;
+
+    @IsString()
+    @Column()
+    stripeAccountId: string;
+
 }
