@@ -20,8 +20,10 @@ export default class BannerService extends BaseService<Banner> {
             query = this.entityManager
                 .createQueryBuilder(Banner, "banner")
                 .select('distinct banner.*')
-                .where("banner.competitionId in (:competitionIds)", { competitionIds })
-                .andWhere("banner.organisationId = :organisationId", { organisationId });
+                .where("banner.competitionId in (:competitionIds)", { competitionIds });
+                if (organisationId) {
+                    query.andWhere("banner.organisationId = :organisationId", { organisationId });
+                }
         } else {
             query = this.entityManager
                 .createQueryBuilder(Banner, "banner")

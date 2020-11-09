@@ -23,10 +23,11 @@ export class BannerController extends BaseController {
     @Get("/")
     async find(
         @QueryParam("competitionIds", { required: false }) competitionIds: number[],
-        @QueryParam("organisationId", { required: true }) organisationId: number,
+        @QueryParam("organisationId", { required: false }) organisationId: number,
         // @QueryParam("pageType") pageType: "HOME" | "DRAWS" | "LADDER" | "CHAT" | "NEWS",
         @QueryParam("format") format: "Horizontal" | "Square"
     ): Promise<Banner[]> {
+        
         return await this.bannerService.findByParams(organisationId, competitionIds, /* pageType, */ format);
     }
 
