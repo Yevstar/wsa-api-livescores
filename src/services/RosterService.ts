@@ -226,6 +226,13 @@ export default class RosterService extends BaseService<Roster> {
               .getOne();
     }
 
+    public async findAllRostersByParams(roleId: number, matchId: number): Promise<Roster[]> {
+        return this.entityManager.createQueryBuilder(Roster, 'r')
+              .andWhere("r.roleId = :roleId", {roleId})
+              .andWhere("r.matchId = :matchId", {matchId})
+              .getMany();
+    }
+
     public async getRosterStatus(roleId: number, teamId: number, matchId: number): Promise<Roster> {
         return this.entityManager.createQueryBuilder(Roster, 'r')
                 .andWhere("r.roleId = :roleId", {roleId})

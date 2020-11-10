@@ -141,7 +141,7 @@ export class MatchUmpireController extends BaseController {
                     updatedUmpire.verifiedBy = umpire.verifiedBy;
 
                     let savedUmpire = await this.matchUmpireService.createOrUpdate(updatedUmpire);
-                    this.updateUmpireRosters(existingUmpire, savedUmpire, rosterLocked);
+                    await this.updateUmpireRosters(existingUmpire, savedUmpire, rosterLocked);
                     return savedUmpire;
                 } else {
                     return await this.createUmpire(umpire, rosterLocked, response);
@@ -152,8 +152,16 @@ export class MatchUmpireController extends BaseController {
         });
 
         const promisedUmpires = await Promise.all(promises);
+        const rosters = await this.rosterService.findAllRostersByParams(
+            Role.UMPIRE,
+            matchId
+        );
 
-        return response.status(200).send({ success: true, data: promisedUmpires });
+        return response.status(200).send({
+            success: true,
+            umpires: promisedUmpires,
+            rosters: rosters
+        });
     }
 
     private async createUmpire(
@@ -172,7 +180,7 @@ export class MatchUmpireController extends BaseController {
         newUmpire.verifiedBy = umpire.verifiedBy;
 
         let savedUmpire = await this.matchUmpireService.createOrUpdate(newUmpire);
-        this.createUmpireRosters(savedUmpire, rosterLocked);
+        await this.createUmpireRosters(savedUmpire, rosterLocked);
 
         let tokens = (await this.deviceService.findScorerDeviceFromRoster(umpire.matchId)).map(device => device.deviceId);
         if (tokens && tokens.length > 0) {
@@ -209,7 +217,7 @@ export class MatchUmpireController extends BaseController {
 
         if (oldUmpire.userId == null && newUmpire.umpireType == 'USERS') {
             // Creating new roster for umpire as new user assigned
-            this.umpireAddRoster(
+            await this.umpireAddRoster(
                 Role.UMPIRE,
                 newUmpire.matchId,
                 newUmpire.userId,
@@ -219,13 +227,13 @@ export class MatchUmpireController extends BaseController {
         } else if (oldUmpire.userId && newUmpire.userId && oldUmpire.userId != newUmpire.userId) {
             // A umpire slot got updated to a new user
             // Removing old roster
-            this.umpireRemoveRoster(
+            await this.umpireRemoveRoster(
                 Role.UMPIRE,
                 oldUmpire.userId,
                 oldUmpire.matchId
             );
             // Creating new roster
-            this.umpireAddRoster(
+            await this.umpireAddRoster(
                 Role.UMPIRE,
                 newUmpire.matchId,
                 newUmpire.userId,
@@ -234,7 +242,7 @@ export class MatchUmpireController extends BaseController {
             );
         } else if (oldUmpire.userId && newUmpire.userId == null) {
             // A umpire got removed
-            this.umpireRemoveRoster(
+            await this.umpireRemoveRoster(
                 Role.UMPIRE,
                 oldUmpire.userId,
                 oldUmpire.matchId
