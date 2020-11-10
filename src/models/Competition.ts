@@ -181,4 +181,8 @@ export class Competition extends BaseEntity {
     @IsNumber()
     @Column()
     gameTimeTrackingType: number;
+
+    @IsNumber()
+    @Column()
+    sourceId: number;
 }
