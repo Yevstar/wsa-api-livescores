@@ -1,7 +1,6 @@
 import {Service} from "typedi";
 import {User} from "../models/User";
 import BaseService from "./BaseService";
-import {Brackets} from "typeorm-plus";
 import {Event} from "../models/Event";
 import {EventInvitee} from "../models/EventInvitee";
 import {EventOccurrence} from "../models/EventOccurrence";

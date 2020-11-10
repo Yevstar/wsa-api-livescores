@@ -13,20 +13,30 @@ export default class BookingService extends BaseService<Booking> {
 
     public async findByParams(
         userId: number,
-        byDate: Date
+        fromTime: Date = undefined,
+        endTime: Date = undefined
     ): Promise<Booking[]> {
         let query = this.entityManager
             .createQueryBuilder(Booking, "booking")
             .where("booking.userId = :userId", {userId});
-
-        if (isNotNullAndUndefined(byDate)) {
-            let fromDate = new Date(byDate);
-            let toDate = new Date(byDate);
-            toDate.setHours(toDate.getHours() + 24);
+            
+        if (isNotNullAndUndefined(fromTime) &&
+              isNotNullAndUndefined(endTime)) {
+            let startDate = new Date(fromTime);
+            let endDate = new Date(endTime);
             query.andWhere(
                 "booking.startTime >= :fromDate " +
                 "and booking.startTime <= :toDate",
-                { fromDate: fromDate, toDate: toDate }
+                { fromDate: startDate, toDate: endDate }
+            );
+        } else if (isNotNullAndUndefined(fromTime)) {
+            let startDate = new Date(fromTime);
+            let endDate = new Date(fromTime);
+            endDate.setHours(endDate.getHours() + 24);
+            query.andWhere(
+                "booking.startTime >= :fromDate " +
+                "and booking.startTime <= :toDate",
+                { fromDate: startDate, toDate: endDate }
             );
         }
 
