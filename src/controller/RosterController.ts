@@ -155,7 +155,7 @@ export class RosterController extends BaseController {
                         break;
                 }
 
-                return response.status(200).send({ delete: true });
+                return response.status(200).send({ delete: true, data: result });
             } else {
                 return response.status(404).send({
                     name: 'delete_error',

@@ -151,9 +151,9 @@ export class MatchUmpireController extends BaseController {
             }
         });
 
-        await Promise.all(promises);
+        const promisedUmpires = await Promise.all(promises);
 
-        return response.status(200).send({ success: true });
+        return response.status(200).send({ success: true, data: promisedUmpires });
     }
 
     private async createUmpire(
