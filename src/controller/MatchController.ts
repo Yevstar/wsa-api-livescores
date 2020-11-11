@@ -306,9 +306,8 @@ export class MatchController extends BaseController {
           //  logger.debug(`competition::` + JSON.stringify(competition));
 
             // Updating umpires
+            let oldUmpires = await this.matchUmpireService.findByMatchIds([match.id]);
             if (competition.recordUmpireType == "NAMES") {
-
-                let oldUmpires = await this.matchUmpireService.findByMatchIds([match.id]);
                 let newUmpires = match.matchUmpires;
                 // logger.debug(`newUmpires::` + JSON.stringify(newUmpires));
                 // logger.debug(`oldUmpires::` + JSON.stringify(oldUmpires));
@@ -391,12 +390,13 @@ export class MatchController extends BaseController {
                         ++umpireSequence;
                     }
                     if (newRoster.roleId == Role.UMPIRE && competition.recordUmpireType == "USERS") {
-                        this.addUmpireTypeRoster(
+                        await this.addUmpireTypeRoster(
                             match.id,
                             Role.UMPIRE,
                             oldRosters,
                             newRoster,
-                            umpireSequence
+                            umpireSequence,
+                            oldUmpires
                         );
                         if (isNotNullAndUndefined(newRoster.userId)) {
                             mandatorySilentNotifyUserIds.push(newRoster.userId);
@@ -411,10 +411,10 @@ export class MatchController extends BaseController {
                                     roster.teamId == newRoster.teamId)
                         );
                         if (matchedOldRosters.length == 0 && newRoster.userId) {
-                            this.addScorerRoster(newRoster, user);
+                            await this.addScorerRoster(newRoster, user);
                         }
                     } else if (newRoster.roleId == Role.UMPIRE_RESERVE) {
-                        this.addUmpireTypeRoster(
+                        await this.addUmpireTypeRoster(
                             match.id,
                             Role.UMPIRE_RESERVE,
                             oldRosters,
@@ -424,7 +424,7 @@ export class MatchController extends BaseController {
                             mandatorySilentNotifyUserIds.push(newRoster.userId);
                         }
                     } else if (newRoster.roleId == Role.UMPIRE_COACH) {
-                        this.addUmpireTypeRoster(
+                        await this.addUmpireTypeRoster(
                             match.id,
                             Role.UMPIRE_COACH,
                             oldRosters,
@@ -471,7 +471,8 @@ export class MatchController extends BaseController {
         roleId: number,
         oldRosters: Roster[],
         newRoster: Roster,
-        umpireSequence: number = undefined
+        umpireSequence: number = undefined,
+        oldUmpires: MatchUmpire[] = undefined
     ) {
       // add new umpire or umpire reserve or umpire coach only if it doesn't match old role, user
       let matchedOldRosters = oldRosters.filter(
@@ -480,7 +481,29 @@ export class MatchController extends BaseController {
                   roster.userId &&
                   roster.userId == newRoster.userId)
       );
+
+      let createUmpire = false;
       if (matchedOldRosters.length == 0 && newRoster.userId) {
+          createUmpire = true;
+      } else {
+          /// Here we will be checking the existing umpire and the
+          /// new rosters we get, If we have umpire sequence change
+          /// then we need to clear umpire and its roster.
+          if (roleId == Role.UMPIRE && isNotNullAndUndefined(oldUmpires) && oldUmpires.length > 0) {
+              let oldMU = oldUmpires.filter((umpire) => (umpire.userId == newRoster.userId))[0];
+              if (isNotNullAndUndefined(oldMU) && oldMU.sequence != umpireSequence) {
+                  // Here old match umpire sequence didn't match
+                  // to the current rosters of umpires
+                  let oldRoster = oldRosters.filter((r) => (r.roleId == Role.UMPIRE && r.userId == newRoster.userId))[0];
+                  if (isNotNullAndUndefined(oldRoster)) {
+                      await this.deleteRoster(oldRoster);
+                      createUmpire = true;
+                  }
+              }
+          }
+      }
+
+      if (createUmpire) {
           let user = await this.userService.findById(newRoster.userId);
           this.umpireAddRoster(
               roleId,
@@ -555,7 +578,7 @@ export class MatchController extends BaseController {
             } else {
                 if (roster.userId) {
                     /// For users umpire type need to delete matchUmpire data as well
-                    this.matchUmpireService.deleteByParms(
+                    await this.matchUmpireService.deleteByParms(
                         roster.matchId,
                         roster.userId
                     );

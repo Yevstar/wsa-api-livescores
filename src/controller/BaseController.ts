@@ -401,7 +401,8 @@ export class BaseController {
 
       let roster = await this.rosterService.findByParams(roleId, userId, matchId);
       if (roster) {
-          let result = await this.rosterService.delete(roster);
+          const rosterId = roster.id;
+          let result = await this.rosterService.deleteById(rosterId);
           if (result) {
               let tokens = (await this.deviceService.getUserDevices(userId)).map(device => device.deviceId);
               if (tokens && tokens.length > 0) {
@@ -409,7 +410,7 @@ export class BaseController {
                       tokens: tokens,
                       data: {
                           type: 'remove_umpire_match',
-                          rosterId: roster.id.toString(),
+                          rosterId: rosterId.toString(),
                           matchId: roster.matchId.toString()
                       }
                   })

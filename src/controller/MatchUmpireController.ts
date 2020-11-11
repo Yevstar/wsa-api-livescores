@@ -157,10 +157,20 @@ export class MatchUmpireController extends BaseController {
             matchId
         );
 
+        if (isArrayPopulated(promisedUmpires) && isArrayPopulated(rosters)) {
+            for (const roster of rosters) {
+                let mu = promisedUmpires.filter((matchUmpire) => (
+                    matchUmpire.userId == roster.userId
+                ))[0];
+                if (isNotNullAndUndefined(mu)) {
+                    mu.roster = roster;
+                }
+            }
+        }
+
         return response.status(200).send({
             success: true,
-            umpires: promisedUmpires,
-            rosters: rosters
+            umpires: promisedUmpires
         });
     }
 

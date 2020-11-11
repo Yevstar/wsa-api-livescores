@@ -3,6 +3,7 @@ import {Match} from "./Match";
 import {IsNumber, IsString, ValidateNested, IsDate} from "class-validator";
 import {User} from "./User";
 import {LinkedCompetitionOrganisation} from './LinkedCompetitionOrganisation';
+import {Roster} from "./security/Roster";
 
 @Entity('matchUmpire')
 @Unique(['matchId'])
@@ -70,4 +71,6 @@ export class MatchUmpire extends BaseEntity {
     @IsDate()
     @Column()
     updated_at: Date;
+
+    roster: Roster;
 }
