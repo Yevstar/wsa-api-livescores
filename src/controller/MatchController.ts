@@ -251,6 +251,22 @@ export class MatchController extends BaseController {
         @Res() response: Response
     ) {
         try{
+            /// Pre-checks for mandatory data
+            if (!isNotNullAndUndefined(match.competitionId)) {
+                throw `Missing competitionId for match with id - ${match.id}`;
+            }
+            // Getting match competition
+            const competition = await this.competitionService.findById(match.competitionId);
+
+            if (competition.recordUmpireType == "USERS") {
+                for (let newRoster of match.rosters) {
+                    if (newRoster.roleId == Role.UMPIRE &&
+                        !isNotNullAndUndefined(newRoster.sequence)) {
+                          throw `Missing sequence for umpire with user id - ${newRoster.userId}`;
+                    }
+                }
+            }
+
            // logger.debug(`Inside the Create Match::` + JSON.stringify(match));
             let isNewMatch = false;
             let nonSilentNotify = false;
@@ -300,10 +316,6 @@ export class MatchController extends BaseController {
             if (isNewMatch) {
                 match.id = saved.id;
             }
-
-            // Getting match competition and rosters existing for the match
-            const competition = await this.competitionService.findById(match.competitionId);
-          //  logger.debug(`competition::` + JSON.stringify(competition));
 
             // Updating umpires
             let oldUmpires = await this.matchUmpireService.findByMatchIds([match.id]);
@@ -381,13 +393,13 @@ export class MatchController extends BaseController {
                 }
                 await Promise.all(deleteRosterPromises);
 
-                let umpireSequence = 0;
+                let umpireSequence = 1;
                // logger.debug("Match Create Rosters" + JSON.stringify(match.rosters));
                 for (let newRoster of match.rosters) {
                     newRoster.matchId = saved.id;
-                    if (newRoster.roleId == Role.UMPIRE) {
+                    if (newRoster.roleId == Role.UMPIRE && isNotNullAndUndefined(newRoster.sequence)) {
                         // Increment the umpire sequence if the roster role is umpire
-                        ++umpireSequence;
+                        umpireSequence = newRoster.sequence;
                     }
                     if (newRoster.roleId == Role.UMPIRE && competition.recordUmpireType == "USERS") {
                         await this.addUmpireTypeRoster(
@@ -462,8 +474,12 @@ export class MatchController extends BaseController {
         }
         catch(error){
             logger.error(`Exception occurred in create Match ${error}`);
+            return response.status(400).send({
+                name: 'error',
+                message: `An error occurred while creating/editing match with id ${match.id}`,
+                error: error
+            });
         }
-
     }
 
     private async addUmpireTypeRoster(

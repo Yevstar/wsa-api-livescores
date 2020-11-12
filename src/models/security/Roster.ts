@@ -63,4 +63,8 @@ export class Roster extends BaseEntity {
     @IsBoolean()
     @Column()
     locked: boolean;
+
+    /// We will be using this parameter for umpire sequence while creating or
+    /// editing a match.
+    sequence: number;
 }
