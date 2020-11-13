@@ -110,6 +110,14 @@ export class RosterController extends BaseController {
     ) {
         let roster = await this.rosterService.findById(id);
         if (roster) {
+            /// Delete necessary dependencies before deleting roster
+            switch (category) {
+              case "Umpiring":
+                  await this.matchUmpireService.deleteByParms(roster.matchId, roster.userId);
+                  break;
+              default:
+                  break;
+            }
             let result = await this.rosterService.delete(roster);
             if (result) {
                 switch (category) {

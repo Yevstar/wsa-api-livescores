@@ -125,7 +125,7 @@ export class MatchUmpireController extends BaseController {
 
         let umpireWithDetailsList = await this.matchUmpireService.findByMatchIds([matchId]);
         const promises = umpires.map(async umpire => {
-            if (umpire.id != null || umpire.id != undefined) {
+            if (isNotNullAndUndefined(umpire.id)) {
                 if (isArrayPopulated(umpireWithDetailsList)) {
                     let existingUmpire = umpireWithDetailsList.find(u => (u.sequence == umpire.sequence));
 
@@ -144,10 +144,10 @@ export class MatchUmpireController extends BaseController {
                     await this.updateUmpireRosters(existingUmpire, savedUmpire, rosterLocked);
                     return savedUmpire;
                 } else {
-                    return await this.createUmpire(umpire, rosterLocked, response);
+                    return await this.createUmpire(umpire, rosterLocked, umpireWithDetailsList, response);
                 }
             } else {
-                return await this.createUmpire(umpire, rosterLocked, response);
+                return await this.createUmpire(umpire, rosterLocked, umpireWithDetailsList, response);
             }
         });
 
@@ -177,8 +177,26 @@ export class MatchUmpireController extends BaseController {
     private async createUmpire(
         umpire: MatchUmpire,
         rosterLocked: boolean,
+        exisitngUmpires: MatchUmpire[],
         response: Response
     ): Promise<MatchUmpire> {
+        /// While creating umpire we will be checking if we already have one
+        /// existing umpire with same userId for the match. If we found one
+        /// then we will remove that first and then create a new one with the
+        /// data provided.
+        if (isNotNullAndUndefined(exisitngUmpires)) {
+            for (let mu of exisitngUmpires) {
+                if (mu.userId == umpire.userId && isNotNullAndUndefined(mu.id)) {
+                    await this.matchUmpireService.deleteById(mu.id);
+                    await this.rosterService.deleteByParams(
+                        Role.UMPIRE,
+                        mu.userId,
+                        mu.matchId
+                    );
+                }
+            }
+        }
+
         let newUmpire = new MatchUmpire();
         newUmpire.matchId = umpire.matchId;
         newUmpire.userId = umpire.userId;

@@ -226,6 +226,16 @@ export default class RosterService extends BaseService<Roster> {
               .getOne();
     }
 
+    public async deleteByParams(roleId: number, userId: number, matchId: number): Promise<DeleteResult> {
+      return this.entityManager.createQueryBuilder()
+              .delete()
+              .from(Roster, 'r')
+              .andWhere("roleId = :roleId", {roleId})
+              .andWhere("userId = :userId", {userId})
+              .andWhere("matchId = :matchId", {matchId})
+              .execute();
+    }
+
     public async findAllRostersByParams(roleId: number, matchId: number): Promise<Roster[]> {
         return this.entityManager.createQueryBuilder(Roster, 'r')
               .andWhere("r.roleId = :roleId", {roleId})

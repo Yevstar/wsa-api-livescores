@@ -521,17 +521,19 @@ export class MatchController extends BaseController {
 
       if (createUmpire) {
           let user = await this.userService.findById(newRoster.userId);
-          this.umpireAddRoster(
-              roleId,
-              matchId,
-              newRoster.userId,
-              `${user.firstName} ${user.lastName}`,
-              false
-          );
+          if (isNotNullAndUndefined(user)) {
+              await this.umpireAddRoster(
+                  roleId,
+                  matchId,
+                  newRoster.userId,
+                  `${user.firstName} ${user.lastName}`,
+                  false
+              );
 
-          /// If umpire role then create match umpire
-          if (roleId == Role.UMPIRE && umpireSequence) {
-              this.createMatchUmpireFromRoster(newRoster, user.id, umpireSequence);
+              /// If umpire role then create match umpire
+              if (roleId == Role.UMPIRE && umpireSequence) {
+                  await this.createMatchUmpireFromRoster(newRoster, user.id, umpireSequence);
+              }
           }
       }
     }
@@ -557,16 +559,18 @@ export class MatchController extends BaseController {
     private async createMatchUmpireFromRoster(roster: Roster, createdBy: number, sequence: number) {
         if (roster.userId) {
             let umpireUser = await this.userService.findById(roster.userId);
-            var newMatchUmpire = new MatchUmpire();
+            if (isNotNullAndUndefined(umpireUser)) {
+                var newMatchUmpire = new MatchUmpire();
 
-            newMatchUmpire.matchId = roster.matchId;
-            newMatchUmpire.userId = roster.userId;
-            newMatchUmpire.umpireName = `${umpireUser.firstName} ${umpireUser.lastName}`;
-            newMatchUmpire.umpireType = "USERS";
-            newMatchUmpire.sequence = sequence;
-            newMatchUmpire.createdBy = createdBy;
+                newMatchUmpire.matchId = roster.matchId;
+                newMatchUmpire.userId = roster.userId;
+                newMatchUmpire.umpireName = `${umpireUser.firstName} ${umpireUser.lastName}`;
+                newMatchUmpire.umpireType = "USERS";
+                newMatchUmpire.sequence = sequence;
+                newMatchUmpire.createdBy = createdBy;
 
-            await this.matchUmpireService.createOrUpdate(newMatchUmpire);
+                await this.matchUmpireService.createOrUpdate(newMatchUmpire);
+            }
         }
     }
 
