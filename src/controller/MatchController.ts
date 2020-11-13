@@ -258,7 +258,7 @@ export class MatchController extends BaseController {
             // Getting match competition
             const competition = await this.competitionService.findById(match.competitionId);
 
-            if (competition.recordUmpireType == "USERS") {
+            if (competition.recordUmpireType == "USERS" && isArrayPopulated(match.rosters)) {
                 for (let newRoster of match.rosters) {
                     if (newRoster.roleId == Role.UMPIRE &&
                         !isNotNullAndUndefined(newRoster.sequence)) {
@@ -351,7 +351,7 @@ export class MatchController extends BaseController {
                                 if (oldUmpire.organisationId != newUmpire.organisationId ||
                                     oldUmpire.umpireName != newUmpire.umpireName ||
                                     oldUmpire.umpireType != newUmpire.umpireType) {
-                                    this.createUmpire(newUmpire, user.id, oldUmpire);
+                                      this.createUmpire(newUmpire, user.id, oldUmpire);
                                 }
                             } else {
                                 this.createUmpire(newUmpire, user.id);
