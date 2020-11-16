@@ -33,7 +33,7 @@ import CompetitionOrganisationService from "../services/CompetitionOrganisationS
 import LineupService from "../services/LineupService";
 import LadderFormatService from '../services/LadderFormatService';
 import LadderFormatDivisionService from '../services/LadderFormatDivisionService';
-import {isNullOrEmpty} from "../utils/Utils";
+import {isNullOrEmpty, isNotNullAndUndefined} from "../utils/Utils";
 import TeamLadderService from '../services/TeamLadderService';
 import MatchSheetService from "../services/MatchSheetService";
 import {getMatchUmpireNotificationMessage} from "../utils/NotificationMessageUtils";
@@ -339,7 +339,8 @@ export class BaseController {
         matchId: number,
         userId: number,
         userName: String,
-        rosterLocked: boolean
+        rosterLocked: boolean,
+        rosterStatus: "YES" | "NO" | "LATER" | "MAYBE" = undefined
     ) {
       if (roleId != Role.UMPIRE &&
           roleId != Role.UMPIRE_RESERVE &&
@@ -353,9 +354,13 @@ export class BaseController {
       umpireRoster.roleId = roleId;
       umpireRoster.matchId = matchId;
       umpireRoster.userId = userId;
-      if ((rosterLocked != null || rosterLocked != undefined) && rosterLocked) {
+      if (isNotNullAndUndefined(rosterLocked) && rosterLocked) {
           umpireRoster.locked = rosterLocked;
           umpireRoster.status = "YES";
+      } else if (isNotNullAndUndefined(rosterStatus) && (
+          rosterStatus == "YES" ||  rosterStatus == "NO"
+      )) {
+          umpireRoster.status = rosterStatus;
       }
       let savedRoster = await this.rosterService.createOrUpdate(umpireRoster);
       if (savedRoster) {

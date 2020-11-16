@@ -368,7 +368,7 @@ export class MatchUmpireController extends BaseController {
             });
         } else {
             dict.results.push({
-                ['Match Id']: '',
+                ['Match ID']: '',
                 ['Start Time']: '',
                 ['Home']: '',
                 ['Away']: '',
@@ -402,7 +402,7 @@ export class MatchUmpireController extends BaseController {
     ) {
         const requiredField = [
             'competitionId',
-            'Match Id',
+            'Match ID'
         ];
 
         const bufferString = file.buffer.toString('utf8');
@@ -423,7 +423,7 @@ export class MatchUmpireController extends BaseController {
         const competitions = {};
         for (let i of importArr) {
             let competition;
-            if (isNotNullAndUndefined(competitions[i['competitionId']])) {
+            if (!isNotNullAndUndefined(competitions[i['competitionId']])) {
                 competition = await this.competitionService.findById(i['competitionId']);
             } else {
                 competition = competitions[i['competitionId']];
@@ -431,75 +431,251 @@ export class MatchUmpireController extends BaseController {
 
             if (isNotNullAndUndefined(competition)) {
                 competitions[i['competitionId']] = competition;
+                let umpire1Imported = false;
+                let umpire2Imported = false;
 
-                if (i['Umpire 1 Id']) {
-                    const matchUmpire = new MatchUmpire();
-                    matchUmpire.matchId = i['Match ID'];
-                    matchUmpire.userId = i['Umpire 1 Id'];
-                    await this.umpireAddRoster(
-                        Role.UMPIRE,
-                        matchUmpire.matchId,
-                        matchUmpire.userId,
-                        matchUmpire.umpireName,
-                        false
-                    );
-                    queryArr.push(matchUmpire);
-                } else if (i['Umpire 1']) {
-                    if (i['Umpire 1 Organisation']) {
-                        let org = await this.organisationService.findByNameAndCompetitionId(i['Umpire 1 Organisation'], competitionId);
-                        if (isArrayPopulated(org)) {
-                            let fullName = i['Umpire 1'];
-                            let userResults = await this.userService.getUserIdBySecurity(EntityType.ORGANISATION, [org[0].id], fullName, { roleId: Role.UMPIRE });
-                            if (isArrayPopulated(userResults)) {
-                                const matchUmpire = new MatchUmpire();
-                                matchUmpire.matchId = i['Match ID'];
-                                matchUmpire.userId = userResults[0].id;
-                                await this.umpireAddRoster(
-                                    Role.UMPIRE,
-                                    matchUmpire.matchId,
-                                    matchUmpire.userId,
-                                    matchUmpire.umpireName,
-                                    false
+                if (isNotNullAndUndefined(i['Umpire 1 Organisation']) &&
+                    ((isNotNullAndUndefined(i['Umpire 1 Id']) && i['Umpire 1 Id'].length > 0) ||
+                      (isNotNullAndUndefined(i['Umpire 1']) && i['Umpire 1'].length > 0))) {
+
+                        if (i['Umpire 1 Organisation'].length > 0) {
+                          let org = await this.organisationService
+                              .findByNameAndCompetitionId(
+                                  i['Umpire 1 Organisation'],
+                                  competitionId
+                              );
+
+                          if (isArrayPopulated(org)) {
+                              const matchUmpire = new MatchUmpire();
+                              matchUmpire.matchId = i['Match ID'];
+                              matchUmpire.organisationId = org[0].id;
+                              matchUmpire.umpireType = 'USERS';
+                              matchUmpire.sequence = 1;
+                              matchUmpire.createdBy = user.id;
+
+                              var rosterStatus;
+                              if (isNotNullAndUndefined(i['Umpire 1 Response']) && i['Umpire 1 Response'].length > 0) {
+                                  if (i['Umpire 1 Response'] == 1 ||
+                                      i['Umpire 1 Response'] == true ||
+                                      i['Umpire 1 Response'].toLowerCase() == 'true' ||
+                                      i['Umpire 1 Response'].toLowerCase() == 'yes') {
+                                        rosterStatus = "YES";
+                                  } else if (i['Umpire 1 Response'] == 0 ||
+                                      i['Umpire 1 Response'] == false ||
+                                      i['Umpire 1 Response'].toLowerCase() == 'false' ||
+                                      i['Umpire 1 Response'].toLowerCase() == 'no') {
+                                        rosterStatus = "NO";
+                                  }
+                              }
+
+                              if (isNotNullAndUndefined(i['Umpire 1 Id']) && i['Umpire 1 Id'].length > 0) {
+                                  let umpireUser = await this.userService.findById(i['Umpire 1 Id']);
+                                  if (isNotNullAndUndefined(umpireUser)) {
+                                      matchUmpire.userId = i['Umpire 1 Id'];
+                                      matchUmpire.umpireName = `${umpireUser.firstName} ${umpireUser.lastName}`;
+                                      await this.matchUmpireService.createOrUpdate(matchUmpire);
+                                      await this.umpireAddRoster(
+                                          Role.UMPIRE,
+                                          matchUmpire.matchId,
+                                          matchUmpire.userId,
+                                          matchUmpire.umpireName,
+                                          false,
+                                          rosterStatus
+                                      );
+                                      queryArr.push(matchUmpire);
+                                      umpire1Imported = true;
+                                  } else {
+                                    if (message[`Line ${i.line}`]) {
+                                        if (!message[`Line ${i.line}`].message) {
+                                            message[`Line ${i.line}`].message = [];
+                                        }
+                                    } else {
+                                        message[`Line ${i.line}`] = {
+                                            message: [],
+                                        };
+                                    }
+
+                                    message[`Line ${i.line}`].message.push('Could not find a matching Umpire 1 Id.');
+                                  }
+                              } else if (isNotNullAndUndefined(i['Umpire 1']) && i['Umpire 1'].length > 0) {
+                                let fullName = i['Umpire 1'];
+                                let userResults = await this.userService.getUserIdBySecurity(
+                                    EntityType.COMPETITION_ORGANISATION,
+                                    [org[0].id],
+                                    fullName,
+                                    { roleId: Role.UMPIRE }
                                 );
-                                queryArr.push(matchUmpire);
+                                if (isArrayPopulated(userResults)) {
+                                  matchUmpire.userId = userResults[0].id;
+                                  matchUmpire.umpireName = `${userResults[0].firstName} ${userResults[0].lastName}`;
+                                  await this.matchUmpireService.createOrUpdate(matchUmpire);
+                                  await this.umpireAddRoster(
+                                      Role.UMPIRE,
+                                      matchUmpire.matchId,
+                                      matchUmpire.userId,
+                                      matchUmpire.umpireName,
+                                      false,
+                                      rosterStatus
+                                  );
+                                  queryArr.push(matchUmpire);
+                                  umpire1Imported = true;
+                                } else {
+                                  if (message[`Line ${i.line}`]) {
+                                      if (!message[`Line ${i.line}`].message) {
+                                          message[`Line ${i.line}`].message = [];
+                                      }
+                                  } else {
+                                      message[`Line ${i.line}`] = {
+                                          message: [],
+                                      };
+                                  }
+
+                                  message[`Line ${i.line}`].message.push('Could not find a matching Umpire 1.');
+                                }
+                              }
+                          }
+                        } else {
+                            if (message[`Line ${i.line}`]) {
+                                if (!message[`Line ${i.line}`].message) {
+                                    message[`Line ${i.line}`].message = [];
+                                }
+                            } else {
+                                message[`Line ${i.line}`] = {
+                                    message: [],
+                                };
                             }
+
+                            message[`Line ${i.line}`].message.push('Could not find a matching Umpire 1 Organisation.');
                         }
-                    }
                 }
 
-                if (i['Umpire 2 Id']) {
-                    const matchUmpire = new MatchUmpire();
-                    matchUmpire.matchId = i['Match ID'];
-                    matchUmpire.userId = i['Umpire 2 Id'];
-                    await this.umpireAddRoster(
-                        Role.UMPIRE,
-                        matchUmpire.matchId,
-                        matchUmpire.userId,
-                        matchUmpire.umpireName,
-                        false
-                    );
-                    queryArr.push(matchUmpire);
-                } else if (i['Umpire 2']) {
-                    if (i['Umpire 2 Organisation']) {
-                        let org = await this.organisationService.findByNameAndCompetitionId(i['Umpire 2 Organisation'], competitionId);
-                        if (isArrayPopulated(org)) {
-                            let fullName = i['Umpire 2'];
-                            let userResults = await this.userService.getUserIdBySecurity(EntityType.ORGANISATION, [org[0].id], fullName, { roleId: Role.UMPIRE });
-                            if (isArrayPopulated(userResults)) {
-                                const matchUmpire = new MatchUmpire();
-                                matchUmpire.matchId = i['Match ID'];
-                                matchUmpire.userId = userResults[0].id;
-                                await this.umpireAddRoster(
-                                    Role.UMPIRE,
-                                    matchUmpire.matchId,
-                                    matchUmpire.userId,
-                                    matchUmpire.umpireName,
-                                    false
+                if (isNotNullAndUndefined(i['Umpire 2 Organisation']) &&
+                    ((isNotNullAndUndefined(i['Umpire 2 Id']) && i['Umpire 2 Id'].length > 0) ||
+                      (isNotNullAndUndefined(i['Umpire 2']) && i['Umpire 2'].length > 0))) {
+
+                        if (i['Umpire 2 Organisation'].length > 0) {
+                          let org = await this.organisationService
+                              .findByNameAndCompetitionId(
+                                  i['Umpire 2 Organisation'],
+                                  competitionId
+                              );
+
+                          if (isArrayPopulated(org)) {
+                              const matchUmpire = new MatchUmpire();
+                              matchUmpire.matchId = i['Match ID'];
+                              matchUmpire.organisationId = org[0].id;
+                              matchUmpire.umpireType = 'USERS';
+                              matchUmpire.sequence = 2;
+                              matchUmpire.createdBy = user.id;
+
+                              var rosterStatus;
+                              if (isNotNullAndUndefined(i['Umpire 2 Response'])  && i['Umpire 2 Response'].length > 0) {
+                                  if (i['Umpire 2 Response'] == 1 ||
+                                      i['Umpire 2 Response'] == true ||
+                                      i['Umpire 2 Response'].toLowerCase() == 'true' ||
+                                      i['Umpire 2 Response'].toLowerCase() == 'yes') {
+                                        rosterStatus = "YES";
+                                  } else if (i['Umpire 2 Response'] == 0 ||
+                                      i['Umpire 2 Response'] == false ||
+                                      i['Umpire 2 Response'].toLowerCase() == 'false' ||
+                                      i['Umpire 2 Response'].toLowerCase() == 'no') {
+                                        rosterStatus = "NO";
+                                  }
+                              }
+
+                              if (isNotNullAndUndefined(i['Umpire 2 Id']) && i['Umpire 2 Id'].length > 0) {
+                                  let umpireUser = await this.userService.findById(i['Umpire 2 Id']);
+                                  if (isNotNullAndUndefined(umpireUser)) {
+                                      matchUmpire.userId = i['Umpire 2 Id'];
+                                      matchUmpire.umpireName = `${umpireUser.firstName} ${umpireUser.lastName}`;
+                                      await this.matchUmpireService.createOrUpdate(matchUmpire);
+                                      await this.umpireAddRoster(
+                                          Role.UMPIRE,
+                                          matchUmpire.matchId,
+                                          matchUmpire.userId,
+                                          matchUmpire.umpireName,
+                                          false,
+                                          rosterStatus
+                                      );
+                                      queryArr.push(matchUmpire);
+                                      umpire2Imported = true;
+                                  } else {
+                                    if (message[`Line ${i.line}`]) {
+                                        if (!message[`Line ${i.line}`].message) {
+                                            message[`Line ${i.line}`].message = [];
+                                        }
+                                    } else {
+                                        message[`Line ${i.line}`] = {
+                                            message: [],
+                                        };
+                                    }
+
+                                    message[`Line ${i.line}`].message.push('Could not find a matching Umpire 2 Id.');
+                                  }
+                              } else if (isNotNullAndUndefined(i['Umpire 2']) && i['Umpire 2'].length > 0) {
+                                let fullName = i['Umpire 2'];
+                                let userResults = await this.userService.getUserIdBySecurity(
+                                    EntityType.COMPETITION_ORGANISATION,
+                                    [org[0].id],
+                                    fullName,
+                                    { roleId: Role.UMPIRE }
                                 );
-                                queryArr.push(matchUmpire);
+                                if (isArrayPopulated(userResults)) {
+                                  matchUmpire.userId = userResults[0].id;
+                                  matchUmpire.umpireName = `${userResults[0].firstName} ${userResults[0].lastName}`;
+                                  await this.matchUmpireService.createOrUpdate(matchUmpire);
+                                  await this.umpireAddRoster(
+                                      Role.UMPIRE,
+                                      matchUmpire.matchId,
+                                      matchUmpire.userId,
+                                      matchUmpire.umpireName,
+                                      false,
+                                      rosterStatus
+                                  );
+                                  queryArr.push(matchUmpire);
+                                  umpire2Imported = true;
+                                } else {
+                                  if (message[`Line ${i.line}`]) {
+                                      if (!message[`Line ${i.line}`].message) {
+                                          message[`Line ${i.line}`].message = [];
+                                      }
+                                  } else {
+                                      message[`Line ${i.line}`] = {
+                                          message: [],
+                                      };
+                                  }
+
+                                  message[`Line ${i.line}`].message.push('Could not find a matching Umpire 2.');
+                                }
+                              }
+                          }
+                        } else {
+                            if (message[`Line ${i.line}`]) {
+                                if (!message[`Line ${i.line}`].message) {
+                                    message[`Line ${i.line}`].message = [];
+                                }
+                            } else {
+                                message[`Line ${i.line}`] = {
+                                    message: [],
+                                };
                             }
+
+                            message[`Line ${i.line}`].message.push('Could not find a matching Umpire 2 Organisation.');
                         }
-                    }
+                }
+
+                if (!umpire1Imported && !umpire2Imported) {
+                  if (message[`Line ${i.line}`]) {
+                      if (!message[`Line ${i.line}`].message) {
+                          message[`Line ${i.line}`].message = [];
+                      }
+                  } else {
+                      message[`Line ${i.line}`] = {
+                          message: [],
+                      };
+                  }
+
+                  message[`Line ${i.line}`].message.push('Missing umpires information/Some information provided is wrong.');
                 }
             } else {
                 competitions[i['competitionId']] = false;
