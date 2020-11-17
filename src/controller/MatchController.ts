@@ -188,6 +188,7 @@ export class MatchController extends BaseController {
         @QueryParam('competitionId') competitionId: number,
         @QueryParam('teamId') teamId: number,
         @QueryParam('roleId') roleId: number,
+        @QueryParam('userId') userId: number,
         @Body() requestFilter: RequestFilter,
         @Res() response: Response
     ): Promise<any> {
@@ -196,7 +197,13 @@ export class MatchController extends BaseController {
             if (!roleId) {
                 roleId = 4; // TODO - remove once front end is caught up
             }
-            return this.matchService.loadAdmin(competitionId, teamId, roleId, requestFilter);
+            return this.matchService.loadAdmin(
+                competitionId,
+                teamId,
+                roleId,
+                userId,
+                requestFilter
+            );
         } else {
             return response.status(200).send({
                 name: 'search_error',

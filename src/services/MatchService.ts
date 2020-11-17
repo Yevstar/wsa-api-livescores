@@ -240,9 +240,15 @@ export default class MatchService extends BaseService<Match> {
         return query.getMany()
     }
 
-    public async loadAdmin(competitionId: number, teamId: number, roleId: number, requestFilter: RequestFilter): Promise<any> {
-        let result = await this.entityManager.query("call wsa.usp_get_matches(?,?,?,?,?)",
-            [competitionId, teamId, roleId, requestFilter.paging.offset, requestFilter.paging.limit]);
+    public async loadAdmin(
+        competitionId: number,
+        teamId: number,
+        roleId: number,
+        userId: number,
+        requestFilter: RequestFilter
+    ): Promise<any> {
+        let result = await this.entityManager.query("call wsa.usp_get_matches(?,?,?,?,?,?)",
+            [competitionId, teamId, roleId, userId, requestFilter.paging.offset, requestFilter.paging.limit]);
 
         if (result != null) {
             let totalCount = (result[1] && result[1].find(x => x)) ? result[1].find(x => x).totalCount : 0;
