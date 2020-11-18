@@ -35,11 +35,12 @@ const getMatchSheetTemplate = (
        <head>
           <meta charset="utf-8">
           <title>PDF Template</title>
-          <style>
+          <link href='http://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>
+          <style type=">
           @media print {
              body {
                 width: 100%;
-                font-family: Arial;
+                font-family: Roboto, Arial;
              }
              .no-break {
                page-break-inside: avoid;
