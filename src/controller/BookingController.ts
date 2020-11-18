@@ -12,6 +12,7 @@ import {
 import { BaseController } from "./BaseController";
 import { Booking } from "../models/Booking";
 import { isArrayPopulated, isNotNullAndUndefined } from "../utils/Utils";
+import AppConstants from "../utils/AppConstants";
 
 @JsonController("/booking")
 export class BookingController extends BaseController {
@@ -83,17 +84,40 @@ export class BookingController extends BaseController {
                     bookingsData.push(data);
                 }
 
-                await this.bookingService.batchCreateOrUpdate(bookingsData);
+                const saved = await this.bookingService.batchCreateOrUpdate(bookingsData);
 
                 return response.status(200).send({
-                    success: true
+                    success: true,
+                    data: saved
                 });
             } catch (error) {
                 return response.status(212).send({
                     success: false,
-                    message: `Bookings failed to save due to ${error}`
+                    message: process.env.NODE_ENV == AppConstants.development ?
+                      `Bookings failed to save due to ${error}` :
+                      'Bookings saving failed'
                 });
             }
+        } else if (isNotNullAndUndefined(fromTime) &&
+              isNotNullAndUndefined(endTime)) {
+                  try {
+                    await this.deleteBookings(
+                        userId,
+                        fromTime,
+                        endTime
+                    );
+                    return response.status(200).send({
+                        success: true,
+                        message: 'Bookings have been removed'
+                    });
+                  } catch (error) {
+                    return response.status(212).send({
+                        success: false,
+                        message: process.env.NODE_ENV == AppConstants.development ?
+                          `Bookings failed to save due to ${error}` :
+                          'Bookings saving failed'
+                    });
+                  }
         } else {
             return response.status(400).send({
                 name: 'save_error',
