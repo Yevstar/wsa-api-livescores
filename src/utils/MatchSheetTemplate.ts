@@ -47,7 +47,7 @@ const getMatchSheetTemplate = (
           @media print {
              body {
                 width: 100%;
-                font-family: latoregular, Arial;
+                font-family: latoregular, Helvetica, Arial;
              }
              .no-break {
                page-break-inside: avoid;
