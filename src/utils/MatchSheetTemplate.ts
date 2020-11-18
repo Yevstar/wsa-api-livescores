@@ -36,7 +36,7 @@ const getMatchSheetTemplate = (
           <meta charset="utf-8">
           <title>PDF Template</title>
           <link href='http://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>
-          <style type=">
+          <style type="text/css">
           @media print {
              body {
                 width: 100%;
