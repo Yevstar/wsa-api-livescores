@@ -726,4 +726,73 @@ export class MatchUmpireController extends BaseController {
             return { page: {}, umpireData: paymentsData.result };
         }
     }
+
+    @Authorized()
+    @Get('/payments/export')
+    async exportUmpirePayments(
+        @QueryParam('competitionId') competitionId: number,
+        @QueryParam('search') search: string,
+        @QueryParam('sortBy') sortBy: string,
+        @QueryParam('sortOrder') orderBy: "ASC" | "DESC",
+        @Res() response: Response
+    ) {
+        if (!competitionId) {
+            return response.status(200).send({ name: 'search_error', message: 'Required fields are missing' });
+        }
+
+        let requestFilter = Object.assign({});
+        let paging = Object.assign({});
+        paging.offset = null;
+        paging.limit = null;
+        requestFilter.paging = paging;
+
+        let paymentsData = await this.matchUmpireService.getUmpirePayments(competitionId, requestFilter, search, sortBy, orderBy);
+        let paymentResult = [];
+        const paymentsDup = [...paymentsData.result];
+        if (isArrayPopulated(paymentsDup)) {
+            paymentResult = paymentsDup.map(e => {
+                e['First Name'] = e.user.firstName
+                e['Last Name'] = e.user.lastName;
+                e['Match ID'] = e.matchId;
+                e['Verified By'] = e.verifiedBy;
+                e['Status'] = e.paymentStatus;
+                e['Time/Date Paid'] = e.approved_at;
+                e['Authoriser'] = (e.approvedByUser !== null ? e.approvedByUser.firstName : '') + ' ' + (e.approvedByUser !== null ? e.approvedByUser.lastName : '');
+
+                delete e.id;
+                delete e.matchId;
+                delete e.userId;
+                delete e.organisationId;
+                delete e.umpireName;
+                delete e.umpireType;
+                delete e.sequence;
+                delete e.createdBy;
+                delete e.verifiedBy;
+                delete e.paymentStatus;
+                delete e.created_at;
+                delete e.paidByOrgId;
+                delete e.approved_at;
+                delete e.approvedByUserId;
+                delete e.updated_at;
+                delete e.match;
+                delete e.user;
+                delete e.approvedByUser;
+                return e;
+            });
+        } else {
+            paymentResult.push({
+                ['First Name']: 'N/A',
+                ['Last Name']: 'N/A',
+                ['Match ID']: 'N/A',
+                ['Verified By']: 'N/A',
+                ['Status']: 'N/A',
+                ['Time/Date Paid']: 'N/A',
+                ['Authoriser']: 'N/A'
+            });
+        }
+
+        response.setHeader('Content-disposition', 'attachment; filename=umpirePayments.csv');
+        response.setHeader('content-type', 'text/csv');
+        fastcsv.write(paymentResult, { headers: true }).on("finish", function () { }).pipe(response);
+    }
 }

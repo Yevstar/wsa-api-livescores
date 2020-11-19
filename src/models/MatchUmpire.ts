@@ -68,6 +68,23 @@ export class MatchUmpire extends BaseEntity {
     @Column()
     created_at: Date;
 
+    @IsNumber()
+    @Column()
+    paidByOrgId: number;
+
+    @IsDate()
+    @Column()
+    approved_at: Date;
+
+    @IsNumber()
+    @Column()
+    approvedByUserId: number;
+
+    @ValidateNested()
+    @OneToOne(type => User)
+    @JoinColumn()
+    approvedByUser: User;
+
     @IsDate()
     @Column()
     updated_at: Date;

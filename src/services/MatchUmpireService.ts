@@ -115,6 +115,7 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
         let query = this.entityManager.createQueryBuilder(MatchUmpire, 'matchUmpire');
         query.leftJoinAndSelect('matchUmpire.match', 'match')
             .leftJoinAndSelect('matchUmpire.user', 'user')
+            .leftJoinAndSelect('matchUmpire.approvedByUser', 'approvedByUser')
             .where('match.competitionId = :competitionId', { competitionId })
             .andWhere('matchUmpire.umpireType = :umpireType', { umpireType })
             .andWhere('match.matchStatus = :matchStatus', { matchStatus });
@@ -134,11 +135,20 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
                 query.orderBy('matchUmpire.verifiedBy', orderBy)
             }else if(sortBy == 'makePayment') {
                 query.orderBy('matchUmpire.paymentStatus', orderBy)
+            }else if(sortBy == 'approved_at') {
+                query.orderBy('matchUmpire.approved_at', orderBy)
+            }else if(sortBy == 'approvedByUser') {
+                query.orderBy('approvedByUser.firstName', orderBy)
             }
         }
 
         const matchCount = await query.getCount();
-        const result = await query.skip(requestFilter.paging.offset).take(requestFilter.paging.limit).getMany();
+        let result = [];
+        if (isNotNullAndUndefined(requestFilter.paging.offset) && isNotNullAndUndefined(requestFilter.paging.limit)) {
+            result = await query.skip(requestFilter.paging.offset).take(requestFilter.paging.limit).getMany();
+        } else {
+            result = await query.getMany();
+        }
         return { matchCount, result }
     }
 }
