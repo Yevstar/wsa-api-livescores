@@ -751,8 +751,8 @@ export class MatchUmpireController extends BaseController {
         const paymentsDup = [...paymentsData.result];
         if (isArrayPopulated(paymentsDup)) {
             paymentResult = paymentsDup.map(e => {
-                e['First Name'] = e.user.firstName
-                e['Last Name'] = e.user.lastName;
+                e['First Name'] = e.user!==null?e.user.firstName:'';
+                e['Last Name'] = e.user!==null?e.user.lastName:'';
                 e['Match ID'] = e.matchId;
                 e['Verified By'] = e.verifiedBy;
                 e['Status'] = e.paymentStatus;
