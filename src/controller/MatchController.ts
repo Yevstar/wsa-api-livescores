@@ -42,6 +42,8 @@ import {Roster} from "../models/security/Roster";
 import {Role} from "../models/security/Role";
 import {GamePosition} from "../models/GamePosition";
 import {Competition} from '../models/Competition';
+import {getMatchUpdatedNonSilentNotificationMessage} from "../utils/NotificationMessageUtils";
+import {StateTimezone} from "../models/StateTimezone";
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
@@ -409,7 +411,7 @@ export class MatchController extends BaseController {
                         umpireSequence = newRoster.sequence;
                     }
                     if (newRoster.roleId == Role.UMPIRE && competition.recordUmpireType == "USERS") {
-                        await this.addUmpireTypeRoster(
+                        const createdUmpireRoster = await this.addUmpireTypeRoster(
                             match.id,
                             Role.UMPIRE,
                             oldRosters,
@@ -417,7 +419,7 @@ export class MatchController extends BaseController {
                             umpireSequence,
                             oldUmpires
                         );
-                        if (isNotNullAndUndefined(newRoster.userId)) {
+                        if (createdUmpireRoster && isNotNullAndUndefined(newRoster.userId)) {
                             mandatorySilentNotifyUserIds.push(newRoster.userId);
                         }
                     } else if (newRoster.roleId == Role.SCORER) {
@@ -433,23 +435,23 @@ export class MatchController extends BaseController {
                             await this.addScorerRoster(newRoster, user);
                         }
                     } else if (newRoster.roleId == Role.UMPIRE_RESERVE) {
-                        await this.addUmpireTypeRoster(
+                        const createdUmpireRoster = await this.addUmpireTypeRoster(
                             match.id,
                             Role.UMPIRE_RESERVE,
                             oldRosters,
                             newRoster
                         );
-                        if (isNotNullAndUndefined(newRoster.userId)) {
+                        if (createdUmpireRoster && isNotNullAndUndefined(newRoster.userId)) {
                             mandatorySilentNotifyUserIds.push(newRoster.userId);
                         }
                     } else if (newRoster.roleId == Role.UMPIRE_COACH) {
-                        await this.addUmpireTypeRoster(
+                        const createdUmpireRoster = await this.addUmpireTypeRoster(
                             match.id,
                             Role.UMPIRE_COACH,
                             oldRosters,
                             newRoster
                         );
-                        if (isNotNullAndUndefined(newRoster.userId)) {
+                        if (createdUmpireRoster && isNotNullAndUndefined(newRoster.userId)) {
                             mandatorySilentNotifyUserIds.push(newRoster.userId);
                         }
                     }
@@ -496,7 +498,7 @@ export class MatchController extends BaseController {
         newRoster: Roster,
         umpireSequence: number = undefined,
         oldUmpires: MatchUmpire[] = undefined
-    ) {
+    ): Promise<boolean> {
       // add new umpire or umpire reserve or umpire coach only if it doesn't match old role, user
       let matchedOldRosters = oldRosters.filter(
           roster =>
@@ -541,8 +543,12 @@ export class MatchController extends BaseController {
               if (roleId == Role.UMPIRE && umpireSequence) {
                   await this.createMatchUmpireFromRoster(newRoster, user.id, umpireSequence);
               }
+
+              return true;
           }
       }
+
+      return false;
     }
 
     private async createUmpire(umpire: MatchUmpire, createdBy: number, existingUmpire: MatchUmpire = null) {
@@ -1050,7 +1056,14 @@ export class MatchController extends BaseController {
                 if (isNotNullAndUndefined(optionals) &&
                     (isNotNullAndUndefined(optionals.nonSilentNotify)) &&
                     optionals.nonSilentNotify == true) {
-                        messageBody = 'A change has been made to your match. Please check match details.';
+                      let dbMatch = await this.matchService.findMatchById(match.id);
+                      let stateTimezone: StateTimezone = await this.matchService.getMatchTimezone(dbMatch.competition.locationId);
+                      let venueDetails = await this.getMatchVenueDetails(dbMatch);
+                      messageBody = getMatchUpdatedNonSilentNotificationMessage(
+                          dbMatch.startTime,
+                          venueDetails,
+                          stateTimezone
+                      );
                 }
                 const dataDict = {};
                 dataDict["type"] = "match_updated";
@@ -1120,7 +1133,7 @@ export class MatchController extends BaseController {
                 logger.debug(`Cannot send message for empty match`);
             }
         } catch (e) {
-            logger.error(`Failed send message for match ${match.id}`, e);
+            logger.error(`Failed send message for match ${match.id} `, e);
         }
     }
 
@@ -2119,5 +2132,25 @@ export class MatchController extends BaseController {
             user.id
         );
         return match;
+    }
+
+    private async getMatchVenueDetails(match: Match): Promise<string> {
+      if (isNotNullAndUndefined(match.venueCourt)) {
+          if (isNotNullAndUndefined(match.venueCourt.venue)) {
+            if (isNotNullAndUndefined(match.venueCourt.venue.shortName) &&
+                  match.venueCourt.venue.shortName.length > 0) {
+
+                    return `${match.venueCourt.venue.shortName} - ${match.venueCourt.courtNumber}`;
+            } else if (isNotNullAndUndefined(match.venueCourt.venue.name) &&
+                  match.venueCourt.venue.name.length > 0) {
+
+                    return `${match.venueCourt.venue.name} - ${match.venueCourt.courtNumber}`;
+            }
+          }
+
+          return `${match.venueCourt.courtNumber}`;
+      }
+
+      return '';
     }
 }
