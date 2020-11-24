@@ -71,6 +71,7 @@ export default class TeamService extends BaseService<Team> {
 
     public async findTeamsWithUsers(
         competitionId: number,
+        organisationId: number,
         divisionId: number,
         includeBye: number,
         search: string,
@@ -80,8 +81,8 @@ export default class TeamService extends BaseService<Team> {
         sortOrder: "ASC" | "DESC" = undefined,
     ): Promise<any> {
         let result = await this.entityManager.query(
-            "call wsa.usp_get_teams(?,?,?,?,?,?,?,?)",
-            [competitionId, search, limit, offset, divisionId, includeBye, sortBy, sortOrder]
+            "call wsa.usp_get_teams(?,?,?,?,?,?,?,?,?)",
+            [competitionId, organisationId, search, limit, offset, divisionId, includeBye, sortBy, sortOrder]
         );
         if (isArrayPopulated(result)) {
             return { teamCount: result[1][0]['totalCount'], teams: result[0] };
@@ -380,10 +381,10 @@ export default class TeamService extends BaseService<Team> {
             transporter.close();
             return Promise.resolve();
         });
-        
+
 
         }catch(error){
-            
+
          }
     }
 

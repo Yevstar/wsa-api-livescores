@@ -88,13 +88,15 @@ export class TeamController extends BaseController {
     @Get('/list')
     async listCompetitionTeams(
         @QueryParam('competitionId') competitionId: number,
+        @QueryParam('organisationId') organisationId: number,
         @QueryParam('divisionId') divisionId: number,
         @QueryParam('includeBye') includeBye: number = 0,
         @QueryParam('search') search: string,
         @QueryParam('sortBy') sortBy: string = undefined,
         @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined,
         @QueryParam('offset') offset: number,
-        @QueryParam('limit') limit: number): Promise<any> {
+        @QueryParam('limit') limit: number
+    ): Promise<any> {
 
         if (search === undefined || search === null) search = '';
         if (offset === undefined || offset === null || limit === undefined || limit === null) {
@@ -102,7 +104,17 @@ export class TeamController extends BaseController {
             offset = 0;
         }
 
-        const teamData = await this.teamService.findTeamsWithUsers(competitionId, divisionId, includeBye, search, offset, limit, sortBy, sortOrder);
+        const teamData = await this.teamService.findTeamsWithUsers(
+            competitionId,
+            organisationId,
+            divisionId,
+            includeBye,
+            search,
+            offset,
+            limit,
+            sortBy,
+            sortOrder
+        );
 
         if (offset === 0 && limit === 0) {
             return teamData.teams;
@@ -231,7 +243,7 @@ export class TeamController extends BaseController {
                 }
             }
         }
-        
+
         this.teamService.sendInviteMail(user, player, isInviteToParents, existingUser);
         player.inviteStatus = "INVITED";
         this.notifyInvite(player.email);
@@ -385,7 +397,7 @@ export class TeamController extends BaseController {
 
         if (savedUser) {
             let competitionData = await this.competitionService.findById(savedTeam.competitionId)
-            
+
             this.userService.sentMail(user, [savedTeam], competitionData, Role.MANAGER, savedUser, password);
         }
 
@@ -564,10 +576,21 @@ export class TeamController extends BaseController {
     @Get('/export')
     async exportTeams(
         @QueryParam('competitionId') competitionId: number,
+        @QueryParam('organisationId') organisationId: number,
         @QueryParam('divisionId') divisionId: number,
         @Res() response: Response
     ): Promise<any> {
-        const getTeamsData = await this.listCompetitionTeams(competitionId, divisionId, null, null, null, null, null, null);
+        const getTeamsData = await this.listCompetitionTeams(
+            competitionId,
+            organisationId,
+            divisionId,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
         if (isArrayPopulated(getTeamsData)) {
             getTeamsData.map(e => {
                 e['Logo'] = e['logoUrl']
