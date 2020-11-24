@@ -1256,7 +1256,7 @@ export class MatchController extends BaseController {
                 }
                 let tokens = (await this.deviceService.findScorerDeviceFromRoster(matchId)).map(device => device.deviceId);
                 if (tokens && tokens.length > 0) {
-                    this.firebaseService.sendMessage({
+                    this.firebaseService.sendMessageChunked({
                         tokens: tokens,
                         data: {
                             type: 'attendance_added',
@@ -1317,7 +1317,7 @@ export class MatchController extends BaseController {
             }
             let tokens = (await this.deviceService.findScorerDeviceFromRoster(lineup.matchId)).map(device => device.deviceId);
             if (tokens && tokens.length > 0) {
-                this.firebaseService.sendMessage({
+                this.firebaseService.sendMessageChunked({
                     tokens: tokens,
                     data: {
                         type: 'attendance_added',

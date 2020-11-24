@@ -655,7 +655,7 @@ export class UserController extends BaseController {
         if (user.id) {
             let tokens = (await this.deviceService.getUserDevices(user.id)).map(device => device.deviceId);
             if (tokens && tokens.length > 0) {
-                this.firebaseService.sendMessage({
+                this.firebaseService.sendMessageChunked({
                     tokens: tokens,
                     data: {
                         type: 'user_roster_updated'
@@ -1092,7 +1092,7 @@ export class UserController extends BaseController {
             }
 
             if (notifyUser && deviceId) {
-              this.firebaseService.sendMessage({
+              this.firebaseService.sendMessageChunked({
                   tokens: [deviceId],
                   data: {
                       type: 'watchlist_updated'

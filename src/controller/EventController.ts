@@ -390,7 +390,7 @@ export class EventController  extends BaseController {
         let tokens = (await this.deviceService.getUserTokens(userIdList)).map(device => device.deviceId);
         if (tokens && tokens.length > 0) {
             let uniqTokens = new Set(tokens);
-            this.firebaseService.sendMessage({
+            this.firebaseService.sendMessageChunked({
                 tokens: Array.from(uniqTokens),
                 data: {
                     type: notifyType,
@@ -439,7 +439,7 @@ export class EventController  extends BaseController {
 
         if (isArrayPopulated(tokens)) {
             let uniqTokens = new Set(tokens);
-            this.firebaseService.sendMessage({
+            this.firebaseService.sendMessageChunked({
                 tokens: Array.from(uniqTokens),
                 data: {
                     type: 'event_occurrence_removed',

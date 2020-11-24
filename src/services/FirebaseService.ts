@@ -81,7 +81,7 @@ export default class FirebaseService {
         }
     }
 
-    public async sendMessage({ tokens, title = undefined, body = undefined, data = undefined }) {
+    private async sendMessage({ tokens, title = undefined, body = undefined, data = undefined }) {
         let message = {
             tokens: tokens
         };

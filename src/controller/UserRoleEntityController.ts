@@ -358,7 +358,7 @@ export class UserRoleEntityController extends BaseController {
             this.notifyChangeRole(userId);
         }
 
-        this.firebaseService.sendMessage({
+        this.firebaseService.sendMessageChunked({
             tokens: deviceIds,
             data: {
                 type: 'watchlist_updated'

@@ -139,7 +139,7 @@ export class RosterController extends BaseController {
                     case "UmpireCoach":
                         let umpireDeviceTokens = (await this.deviceService.getUserDevices(roster.userId)).map(device => device.deviceId);
                         if (umpireDeviceTokens && umpireDeviceTokens.length > 0) {
-                            this.firebaseService.sendMessage({
+                            this.firebaseService.sendMessageChunked({
                                 tokens: umpireDeviceTokens,
                                 data: {
                                     type: 'remove_umpire_match',
@@ -152,7 +152,7 @@ export class RosterController extends BaseController {
                     default:
                         let tokens = (await this.deviceService.getUserDevices(roster.userId)).map(device => device.deviceId);
                         if (tokens && tokens.length > 0) {
-                            this.firebaseService.sendMessage({
+                            this.firebaseService.sendMessageChunked({
                                 tokens: tokens,
                                 data: {
                                     type: 'user_roster_removed',
@@ -269,7 +269,7 @@ export class RosterController extends BaseController {
                     let scoringDeviceTokens = (await this.deviceService.findManagerDevice(result.teamId)).map(device => device.deviceId);
                     if (scoringDeviceTokens && scoringDeviceTokens.length > 0) {
                         if (status == "NO") {
-                            this.firebaseService.sendMessage({
+                            this.firebaseService.sendMessageChunked({
                                 tokens: scoringDeviceTokens,
                                 title: `Scorer declined match: ${roster.match.team1.name} vs ${roster.match.team2.name}`,
                                 body: 'Assign someone else to score',
@@ -281,7 +281,7 @@ export class RosterController extends BaseController {
                                 }
                             });
                         } else if (status == "YES") {
-                            this.firebaseService.sendMessage({
+                            this.firebaseService.sendMessageChunked({
                                 tokens: scoringDeviceTokens,
                                 data: {
                                     type: 'scorer_accept_match',
@@ -296,7 +296,7 @@ export class RosterController extends BaseController {
                 case "Playing":
                     let managerAndCoachDeviceTokens = (await this.deviceService.findManagerAndCoachDevices(roster.teamId)).map(device => device.deviceId);
                     if (managerAndCoachDeviceTokens && managerAndCoachDeviceTokens.length > 0) {
-                        this.firebaseService.sendMessage({
+                        this.firebaseService.sendMessageChunked({
                             tokens: managerAndCoachDeviceTokens,
                             data: {
                                 type: 'player_status_update',
@@ -310,7 +310,7 @@ export class RosterController extends BaseController {
                 case "Event":
                     let eventDeviceTokens = (await this.deviceService.getUserDevices(roster.eventOccurrence.created_by)).map(device => device.deviceId);
                     if (eventDeviceTokens && eventDeviceTokens.length > 0) {
-                        this.firebaseService.sendMessage({
+                        this.firebaseService.sendMessageChunked({
                             tokens: eventDeviceTokens,
                             data: {
                                 type: 'event_invitee_update',
@@ -327,7 +327,7 @@ export class RosterController extends BaseController {
                     let umpireDeviceTokens = (await this.deviceService.findManagerDevice(result.teamId)).map(device => device.deviceId);
                     if (umpireDeviceTokens && umpireDeviceTokens.length > 0) {
                         if (status == "NO") {
-                            this.firebaseService.sendMessage({
+                            this.firebaseService.sendMessageChunked({
                                 tokens: umpireDeviceTokens,
                                 data: {
                                     type: 'umpire_decline_match',
@@ -337,7 +337,7 @@ export class RosterController extends BaseController {
                                 }
                             });
                         } else if (status == "YES") {
-                            this.firebaseService.sendMessage({
+                            this.firebaseService.sendMessageChunked({
                                 tokens: umpireDeviceTokens,
                                 data: {
                                     type: 'umpire_accept_match',
@@ -354,7 +354,7 @@ export class RosterController extends BaseController {
             if (callViaWeb) {
                 let tokens = (await this.deviceService.getUserDevices(roster.userId)).map(device => device.deviceId);
                 if (tokens && tokens.length > 0) {
-                    this.firebaseService.sendMessage({
+                    this.firebaseService.sendMessageChunked({
                         tokens: tokens,
                         data: {
                             type: 'user_roster_updated',
@@ -380,7 +380,7 @@ export class RosterController extends BaseController {
     ) {
         let tokens = (await this.deviceService.getUserDevices(userId)).map(device => device.deviceId);
         if (tokens && tokens.length > 0) {
-            this.firebaseService.sendMessage({
+            this.firebaseService.sendMessageChunked({
                 tokens: tokens,
                 data: {
                     type: 'update_scorer_roster'
@@ -420,7 +420,7 @@ export class RosterController extends BaseController {
         if (existingRoster) {
             let tokens = (await this.deviceService.getUserDevices(existingRoster.userId)).map(device => device.deviceId);
             if (tokens && tokens.length > 0) {
-                this.firebaseService.sendMessage({
+                this.firebaseService.sendMessageChunked({
                     tokens: tokens,
                     data: {
                         type: 'add_scorer_match',
@@ -657,7 +657,7 @@ export class RosterController extends BaseController {
             this.notifyChangeRole(userId);
         }
 
-        this.firebaseService.sendMessage({
+        this.firebaseService.sendMessageChunked({
             tokens: deviceIds,
             data: {
                 type: 'watchlist_updated'

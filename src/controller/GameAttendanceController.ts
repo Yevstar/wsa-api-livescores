@@ -72,7 +72,7 @@ export class GameAttendanceController extends BaseController {
                 await this.gameTimeAttendanceService.batchUpdate(attendance);
                 let tokens = (await this.deviceService.findScorerDeviceFromRoster(matchId)).map(device => device.deviceId);
                 if (tokens && tokens.length > 0) {
-                    this.firebaseService.sendMessage({
+                    this.firebaseService.sendMessageChunked({
                         tokens: tokens,
                         data: {
                             type: 'attendance_added',
@@ -192,7 +192,7 @@ export class GameAttendanceController extends BaseController {
         }
         let tokens = (await this.deviceService.findScorerDeviceFromRoster(match.id)).map(device => device.deviceId);
         if (tokens && tokens.length > 0) {
-            this.firebaseService.sendMessage({
+            this.firebaseService.sendMessageChunked({
                 tokens: tokens,
                 data: {
                     type: 'attendance_added',

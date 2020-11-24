@@ -242,7 +242,7 @@ export class BaseController {
         if (userId) {
             let tokens = (await this.deviceService.getUserDevices(userId)).map(device => device.deviceId);
             if (tokens && tokens.length > 0) {
-                this.firebaseService.sendMessage({
+                this.firebaseService.sendMessageChunked({
                     tokens: tokens,
                     data: {
                         type: 'user_role_updated'
@@ -302,7 +302,7 @@ export class BaseController {
 
               if (tokens && tokens.length > 0) {
                   let uniqTokens = new Set(tokens);
-                  this.firebaseService.sendMessage({
+                  this.firebaseService.sendMessageChunked({
                     tokens: Array.from(uniqTokens),
                     data: {type: 'add_scorer_match', rosterId: roster.id.toString(),
                       matchId: roster.matchId.toString()}
@@ -312,7 +312,7 @@ export class BaseController {
             case "Playing":
               let managerAndCoachDeviceTokens = (await this.deviceService.findManagerAndCoachDevices(roster.teamId)).map(device => device.deviceId);
               if (managerAndCoachDeviceTokens && managerAndCoachDeviceTokens.length > 0) {
-                  this.firebaseService.sendMessage({
+                  this.firebaseService.sendMessageChunked({
                     tokens: managerAndCoachDeviceTokens,
                     data: {type: 'player_status_update', entityTypeId: EntityType.USER.toString(),
                     entityId: user.id.toString(), matchId: roster.matchId.toString()}
@@ -322,7 +322,7 @@ export class BaseController {
             case "Event":
               let eventDeviceTokens = (await this.deviceService.getUserDevices(roster.eventOccurrence.created_by)).map(device => device.deviceId);
               if (eventDeviceTokens && eventDeviceTokens.length > 0) {
-                  this.firebaseService.sendMessage({
+                  this.firebaseService.sendMessageChunked({
                     tokens: eventDeviceTokens,
                     data: {
                       type: 'event_invitee_update', entityTypeId: EntityType.USER.toString(),

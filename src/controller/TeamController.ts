@@ -243,7 +243,7 @@ export class TeamController extends BaseController {
         if (invitedUser) {
             let tokens = (await this.deviceService.getUserDevices(invitedUser.id)).map(device => device.deviceId);
             if (tokens && tokens.length > 0) {
-                this.firebaseService.sendMessage({
+                this.firebaseService.sendMessageChunked({
                     tokens: tokens,
                     data: {
                         type: 'player_invite_update'
