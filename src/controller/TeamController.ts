@@ -420,7 +420,8 @@ export class TeamController extends BaseController {
             }
         } else if (isNullOrEmpty(teamData.logoUrl) && savedTeam.organisationId) {
             let competitionOrganisation = await this.organisationService.findById(stringTONumber(savedTeam.organisationId));
-            if (competitionOrganisation.logoUrl) {
+            if (isNotNullAndUndefined(competitionOrganisation) &&
+                isNotNullAndUndefined(competitionOrganisation.logoUrl)) {
                 savedTeam.logoUrl = competitionOrganisation.logoUrl;
                 savedTeam = await this.teamService.createOrUpdate(savedTeam);
             }
