@@ -329,19 +329,26 @@ export default class MatchService extends BaseService<Match> {
         me.userId = userId;
         me.source = 'app';
 
+        /// ----
+        // *****
+        // Following s3 upload is creating issue InvalidAccessKeyId: The AWS Access Key Id you provided does not exist in our records.
+        // and making server to restart due to it match update score service is facing issue.
+        // So commenting out the code for now
+        // *****
         // To convert into avro format
-        let inferredType = avro.Type.forValue(me); // Infer the type of a `me`.
-        let buf = inferredType.toBuffer(me);
-        const params = {
-            Bucket: process.env.EVENT_STORE_BUCKET, // pass your bucket name
-            Key: Date.now() + ".avro",
-            Body: buf
-        };
-        s3.upload(params, function (s3Err, data) {
-            if (s3Err) throw s3Err;
-
-            console.log("File uploaded successfully");
-        });
+        // let inferredType = avro.Type.forValue(me); // Infer the type of a `me`.
+        // let buf = inferredType.toBuffer(me);
+        // const params = {
+        //     Bucket: process.env.EVENT_STORE_BUCKET, // pass your bucket name
+        //     Key: Date.now() + ".avro",
+        //     Body: buf
+        // };
+        // s3.upload(params, function (s3Err, data) {
+        //     if (s3Err) throw s3Err;
+        //
+        //     console.log("File uploaded successfully");
+        // });
+        /// ----
 
         return this.entityManager.insert(MatchEvent, me);
     }
