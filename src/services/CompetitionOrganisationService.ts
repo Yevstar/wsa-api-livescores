@@ -1,6 +1,7 @@
 import { Service } from "typedi";
 import BaseService from "./BaseService";
 import { CompetitionOrganisation } from "../models/CompetitionOrganisation";
+import {LinkedCompetitionOrganisation} from '../models/LinkedCompetitionOrganisation';
 
 @Service()
 export default class CompetitionOrganisationService extends BaseService<CompetitionOrganisation> {
@@ -19,5 +20,15 @@ export default class CompetitionOrganisationService extends BaseService<Competit
         let query = this.entityManager.createQueryBuilder(CompetitionOrganisation, 'competitionOrganisation');
         query.where("competitionOrganisation.orgId = :compOrgId and competitionOrganisation.competitionId = :compId", { compOrgId, compId });
         return await query.softDelete().execute();
+    }
+
+    public async findLinkedCompetitionOrganisation(id: number): Promise<LinkedCompetitionOrganisation> {
+        let query = this.entityManager.createQueryBuilder(LinkedCompetitionOrganisation, 'linkedCompetitionOrganisation')
+            .innerJoin(CompetitionOrganisation, 'competitionOrganisation',
+              'linkedCompetitionOrganisation.organisationId = competitionOrganisation.orgId and ' +
+              'linkedCompetitionOrganisation.competitionId = competitionOrganisation.competitionId and ' +
+              'competitionOrganisation.id = :id', {id: id});
+
+        return query.getOne();
     }
 }
