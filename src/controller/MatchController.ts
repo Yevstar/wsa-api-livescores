@@ -99,8 +99,8 @@ export class MatchController extends BaseController {
         @QueryParam('teamIds') teamIds: number[] = [],
         @QueryParam('playerIds') playerIds: number[],
         @QueryParam('competitionId') competitionId: number,
+        @QueryParam('competitionOrganisationId') competitionOrganisationId: number,
         @QueryParam('divisionIds') divisionIds: number[],
-        @QueryParam('organisationIds') organisationIds: number[],
         @QueryParam('matchEnded') matchEnded: boolean,
         @QueryParam('matchStatus') matchStatus: ("STARTED" | "PAUSED" | "ENDED")[],
         @QueryParam('roundName') roundName: string,
@@ -124,7 +124,23 @@ export class MatchController extends BaseController {
 
         if (search === null || search === undefined) search = '';
 
-        const matchFound = await this.matchService.findByParam(from, to, teamIds, playerIds, competitionId, divisionIds, organisationIds, matchEnded, matchStatus, roundName, search, offset, limit, sortBy, sortOrder);
+        const matchFound = await this.matchService.findByParam(
+            from,
+            to,
+            teamIds,
+            playerIds,
+            competitionId,
+            competitionOrganisationId,
+            divisionIds,
+            matchEnded,
+            matchStatus,
+            roundName,
+            search,
+            offset,
+            limit,
+            sortBy,
+            sortOrder
+        );
 
         if (isNotNullAndUndefined(matchFound.matchCount) && isNotNullAndUndefined(matchFound.result) && limit) {
             let responseObject = paginationData(stringTONumber(matchFound.matchCount), limit, offset)

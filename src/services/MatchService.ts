@@ -121,18 +121,37 @@ export default class MatchService extends BaseService<Match> {
     }
 
     public async findByParam(
-        from: Date, to: Date,
-        teamIds: number[] = [], playerIds: number[], competitionId: number, divisionIds: number[], organisationIds: number[],
-        matchEnded: boolean, matchStatus: ("STARTED" | "PAUSED" | "ENDED")[], roundName: string,
-        search: string, offset: number = undefined, limit: number = undefined,
-        sortBy: string = undefined, sortOrder: "ASC" | "DESC" = undefined
+        from: Date,
+        to: Date,
+        teamIds: number[] = [],
+        playerIds: number[],
+        competitionId: number,
+        competitionOrganisationId: number,
+        divisionIds: number[],
+        matchEnded: boolean,
+        matchStatus: ("STARTED" | "PAUSED" | "ENDED")[],
+        roundName: string,
+        search: string,
+        offset: number = undefined,
+        limit: number = undefined,
+        sortBy: string = undefined,
+        sortOrder: "ASC" | "DESC" = undefined
     ): Promise<any> {
         let query = await this.entityManager.createQueryBuilder(Match, 'match');
+        this.addDefaultJoin(query);
+
         if (from) query.andWhere("match.startTime >= :from", { from });
         if (to) query.andWhere("match.startTime <= :to", { to });
-
-        this.filterByOrganisationTeam(competitionId, organisationIds, teamIds, query);
-
+        if (isNotNullAndUndefined(competitionId)) {
+            query.andWhere("(match.competitionId = :competitionId)", { competitionId });
+        }
+        if (isNotNullAndUndefined(teamIds) && teamIds.length > 0) {
+            query.andWhere("(match.team1Id in (:teamIds) or match.team2Id in (:teamIds))", { teamIds });
+        }
+        if (isNotNullAndUndefined(competitionOrganisationId)) {
+            query.andWhere("(team1.organisationId = :compOrgId or " +
+                "team2.organisationId = :compOrgId)", { compOrgId: competitionOrganisationId });
+        }
         if (matchEnded != undefined) query.andWhere("match.matchEnded is :matchEnded", { matchEnded });
         if (matchStatus) query.andWhere("match.matchStatus in (:matchStatus)", { matchStatus });
         if (divisionIds != undefined && divisionIds != null) query.andWhere("match.divisionId in (:divisionIds)", { divisionIds });
@@ -510,8 +529,8 @@ export default class MatchService extends BaseService<Match> {
                 teamIds,
                 null,
                 competition.id,
-                divisionIds,
                 null,
+                divisionIds,
                 null,
                 null,
                 null,
