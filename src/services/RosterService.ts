@@ -192,15 +192,27 @@ export default class RosterService extends BaseService<Roster> {
         return query.getRawMany();
     }
 
-    public async findByCompetitionId(
-        competitionId: number,
+    public async findByEntityId(
+        entityTypeId: number,
+        entityId: number,
         roleId: number,
         requestFilter: RequestFilter,
         sortBy?: string,
         sortOrder?: "ASC" | "DESC"
     ): Promise<any> {
-        let result = await this.entityManager.query("call wsa.usp_get_team_rosters(?,?,?,?,?,?,?)",
-            [competitionId, roleId, requestFilter.paging.limit, requestFilter.paging.offset, requestFilter.search, sortBy, sortOrder]
+        let result = await this.entityManager.query("call wsa.usp_get_team_rosters(?,?,?,?,?,?,?,?,?,?)",
+            [
+              entityTypeId,
+              entityId,
+              roleId,
+              requestFilter.paging.limit,
+              requestFilter.paging.offset,
+              requestFilter.search,
+              sortBy,
+              sortOrder,
+              EntityType.COMPETITION,
+              EntityType.COMPETITION_ORGANISATION
+            ]
         );
         if (result != null) {
             let totalCount = result[0].length;

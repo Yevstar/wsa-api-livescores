@@ -24,6 +24,7 @@ import {RequestFilter} from '../models/RequestFilter';
 import {StateTimezone} from '../models/StateTimezone';
 import {UserRoleEntity} from '../models/security/UserRoleEntity';
 import {Role} from '../models/security/Role';
+import { isNotNullAndUndefined } from "../utils/Utils";
 
 @JsonController('/roster')
 export class RosterController extends BaseController {
@@ -84,15 +85,25 @@ export class RosterController extends BaseController {
     @Authorized()
     @Post('/admin')
     async rosterListAdmin(
-        @QueryParam("competitionId") competitionId: number,
-        @QueryParam("roleId") roleId: number,
+        @QueryParam('entityTypeId', { required: true }) entityTypeId: number,
+        @QueryParam('entityId', { required: true }) entityId: number,
+        @QueryParam("roleId", { required: true }) roleId: number,
         @Body() requestFilter: RequestFilter,
         @Res() response: Response,
         @QueryParam('sortBy') sortBy?: string,
         @QueryParam('sortOrder') sortOrder?: "ASC" | "DESC",
     ) {
-        if (competitionId && roleId) {
-            return this.rosterService.findByCompetitionId(competitionId, roleId, requestFilter, sortBy, sortOrder);
+        if (isNotNullAndUndefined(entityTypeId) &&
+            isNotNullAndUndefined(entityId) &&
+            isNotNullAndUndefined(roleId)) {
+                return this.rosterService.findByEntityId(
+                    entityTypeId,
+                    entityId,
+                    roleId,
+                    requestFilter,
+                    sortBy,
+                    sortOrder
+                );
         } else {
             return response.status(200).send({
                 name: 'search_error',
@@ -460,49 +471,58 @@ export class RosterController extends BaseController {
     @Authorized()
     @Get('/exportScorer')
     async exportScorer(
-        @QueryParam('competitionId') competitionId: number,
-        @QueryParam('roleId') roleId: number,
-        @Res() response: Response): Promise<any> {
+        @QueryParam('entityTypeId', { required: true }) entityTypeId: number,
+        @QueryParam('entityId', { required: true }) entityId: number,
+        @QueryParam("roleId", { required: true }) roleId: number,
+        @Res() response: Response
+    ): Promise<any> {
         const requestFilter: RequestFilter = { paging: { offset: null, limit: null }, search: null };
 
-        if (competitionId && roleId) {
-            const getScorersData = await this.rosterService.findByCompetitionId(competitionId, roleId, requestFilter);
+        if (isNotNullAndUndefined(entityTypeId) &&
+            isNotNullAndUndefined(entityId) &&
+            isNotNullAndUndefined(roleId)) {
+                const getScorersData = await this.rosterService.findByEntityId(
+                    entityTypeId,
+                    entityId,
+                    roleId,
+                    requestFilter
+                );
 
-            if (isArrayPopulated(getScorersData.users)) {
-                getScorersData.users.map(e => {
-                    e['Email'] = e['email']
-                    e['First Name'] = e['firstName']
-                    e['Last Name'] = e['lastName']
-                    e['Contact No'] = e['mobileNumber'];
-                    const teamArray = [];
-                    if (isArrayPopulated(e['teams'])) {
-                        for (let i of e['teams']) teamArray.push(i['name']);
-                    }
-                    e['Team'] = teamArray.toString().replace(",", '\n');
-                    delete e['teams']
-                    delete e['email']
-                    delete e['id']
-                    delete e['firstName']
-                    delete e['lastName']
-                    delete e['mobileNumber']
-                    return e;
-                });
-            } else {
-                getScorersData.users.push({
-                    ['Email']: 'N/A',
-                    ['First Name']: 'N/A',
-                    ['Last Name']: 'N/A',
-                    ['Contact No']: 'N/A',
-                    ['Team']: 'N/A',
-                });
-            }
+                if (isArrayPopulated(getScorersData.users)) {
+                    getScorersData.users.map(e => {
+                        e['Email'] = e['email']
+                        e['First Name'] = e['firstName']
+                        e['Last Name'] = e['lastName']
+                        e['Contact No'] = e['mobileNumber'];
+                        const teamArray = [];
+                        if (isArrayPopulated(e['teams'])) {
+                            for (let i of e['teams']) teamArray.push(i['name']);
+                        }
+                        e['Team'] = teamArray.toString().replace(",", '\n');
+                        delete e['teams']
+                        delete e['email']
+                        delete e['id']
+                        delete e['firstName']
+                        delete e['lastName']
+                        delete e['mobileNumber']
+                        return e;
+                    });
+                } else {
+                    getScorersData.users.push({
+                        ['Email']: 'N/A',
+                        ['First Name']: 'N/A',
+                        ['Last Name']: 'N/A',
+                        ['Contact No']: 'N/A',
+                        ['Team']: 'N/A',
+                    });
+                }
 
-            response.setHeader('Content-disposition', 'attachment; filename=scorer.csv');
-            response.setHeader('content-type', 'text/csv');
-            fastcsv.write(getScorersData.users, { headers: true })
-                .on("finish", function () {
-                })
-                .pipe(response);
+                response.setHeader('Content-disposition', 'attachment; filename=scorer.csv');
+                response.setHeader('content-type', 'text/csv');
+                fastcsv.write(getScorersData.users, { headers: true })
+                    .on("finish", function () {
+                    })
+                    .pipe(response);
         } else {
             return response.status(212).send({
                 name: 'parameter_required',
