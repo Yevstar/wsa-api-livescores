@@ -378,11 +378,12 @@ export class UserController extends BaseController {
     @Post('/manager')
     async addManager(
         @HeaderParam("authorization") user: User,
-        @QueryParam('competitionId', { required: true }) competitionId: number,
+        @QueryParam('entityId', { required: true }) entityId: number,
+        @QueryParam('entityTypeId', { required: true }) entityTypeId: number,
         @Body() userData: User,
         @Res() response: Response
     ) {
-        const addManagerResponse = await this.add(user, "MANAGER", competitionId, userData, response);
+        const addManagerResponse = await this.add(user, "MANAGER", entityId, entityTypeId, userData, response);
         if (userData.id) {
             let deviceIds = (await this.deviceService.getUserDevices(userData.id)).map(device => device.deviceId);
             if (isArrayPopulated(deviceIds)) {
@@ -402,11 +403,12 @@ export class UserController extends BaseController {
     @Post('/coach')
     async addCoach(
         @HeaderParam("authorization") user: User,
-        @QueryParam('competitionId', { required: true }) competitionId: number,
+        @QueryParam('entityId', { required: true }) entityId: number,
+        @QueryParam('entityTypeId', { required: true }) entityTypeId: number,
         @Body() userData: User,
         @Res() response: Response
     ) {
-        const addCoachResponse =  await this.add(user, "COACH", competitionId, userData, response);
+        const addCoachResponse =  await this.add(user, "COACH", entityId, entityTypeId, userData, response);
         if (userData.id) {
             let deviceIds = (await this.deviceService.getUserDevices(userData.id)).map(device => device.deviceId);
             if (isArrayPopulated(deviceIds)) {
@@ -435,24 +437,24 @@ export class UserController extends BaseController {
         if (isUmpire && isUmpireCoach) {
           /// If the adding user is both then first create for umpire and
           /// then add a additional URE for coach
-          await this.add(user, "UMPIRE", competitionId, userData, response);
-          await this.add(user, "UMPIRE_COACH", competitionId, userData, response);
+          await this.add(user, "UMPIRE", competitionId, EntityType.COMPETITION, userData, response);
+          await this.add(user, "UMPIRE_COACH", competitionId, EntityType.COMPETITION, userData, response);
 
           return userData;
         } else if (isUmpire) {
             const foundUser = await this.userService.findByEmail(userData.email.toLowerCase());
             if (foundUser) {
               // Delete umpire coach ure
-              await this.deleteRolesNecessary("UMPIRE_COACH", foundUser, competitionId);
+              await this.deleteRolesNecessary("UMPIRE_COACH", foundUser, competitionId, EntityType.COMPETITION);
             }
-            return await this.add(user, "UMPIRE", competitionId, userData, response);
+            return await this.add(user, "UMPIRE", competitionId, EntityType.COMPETITION, userData, response);
         } else if (isUmpireCoach) {
             const foundUser = await this.userService.findByEmail(userData.email.toLowerCase());
             if (foundUser) {
               // Delete umpire coach ure
-              await this.deleteRolesNecessary("UMPIRE", foundUser, competitionId);
+              await this.deleteRolesNecessary("UMPIRE", foundUser, competitionId, EntityType.COMPETITION);
             }
-            return await this.add(user, "UMPIRE_COACH", competitionId, userData, response);
+            return await this.add(user, "UMPIRE_COACH", competitionId, EntityType.COMPETITION, userData, response);
         } else {
           return response.status(400).send({
               name: 'params_error',
@@ -469,7 +471,7 @@ export class UserController extends BaseController {
         @Body() userData: User,
         @Res() response: Response
     ) {
-        return await this.add(user, "MEMBER", competitionId, userData, response);
+        return await this.add(user, "MEMBER", competitionId, EntityType.COMPETITION, userData, response);
     }
 
     @Authorized()
@@ -477,7 +479,8 @@ export class UserController extends BaseController {
     async add(
         @HeaderParam("authorization") user: User,
         @QueryParam("type", { required: true }) type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH",
-        @QueryParam("competitionId", { required: true }) competitionId: number,
+        @QueryParam("entityId", { required: true }) entityId: number,
+        @QueryParam('entityTypeId', { required: true }) entityTypeId: number,
         @Body() userData: User,
         @Res() response: Response
     ) {
@@ -504,6 +507,7 @@ export class UserController extends BaseController {
                         && foundUser.lastName == userData.lastName
                         && foundUser.mobileNumber == userData.mobileNumber) {
                         userData.id = foundUser.id;
+                        userData.firebaseUID = foundUser.firebaseUID;
                     } else {
                         return response.status(400).send({
                             name: 'validation_error',
@@ -519,21 +523,33 @@ export class UserController extends BaseController {
                     await this.updateFirebaseData(userData, userData.password);
                     logger.info(`${type} ${userData.email} signed up.`);
                     userData.id = saved.id;
+                    userData.firebaseUID = saved.firebaseUID;
                 }
             } else if (userData.firstName && userData.lastName && userData.mobileNumber) {
                 let foundUser = await this.userService.findById(userData.id);
                 foundUser.firstName = userData.firstName;
                 foundUser.lastName = userData.lastName;
                 foundUser.mobileNumber = userData.mobileNumber;
-                await this.userService.createOrUpdate(foundUser);
+                const saved = await this.userService.createOrUpdate(foundUser);
+                userData.firebaseUID = saved.firebaseUID;
+            }
+
+            var competitionId;
+            if (entityTypeId == EntityType.COMPETITION_ORGANISATION) {
+                let compOrg = await this.competitionOrganisationService.findById(entityId);
+                competitionId = compOrg.competitionId;
+            } else {
+                competitionId = entityId;
             }
 
             // existing user - delete existing team assignments
-            await this.deleteRolesNecessary(type, userData, competitionId);
+            await this.deleteRolesNecessary(type, userData, entityId, entityTypeId, competitionId);
             // Create necessary URE's and notify
             await this.createUREAndNotify(type, userData, competitionId, user.id);
 
-            if (this.canSendMailForAdd(type, userData)) {
+            if (this.canSendMailForAdd(type, userData) &&
+                (entityTypeId == EntityType.COMPETITION ||
+                  entityTypeId == EntityType.COMPETITION_ORGANISATION)) {
                 let competitionData = await this.competitionService.findById(competitionId)
                 let roleId = await this.getRoleIdForType(type);
                 this.userService.sentMail(user, userData.teams ? userData.teams : null, competitionData, roleId, userData, password);
@@ -594,36 +610,40 @@ export class UserController extends BaseController {
     private async deleteRolesNecessary(
         type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH",
         user: User,
-        competitionId: number
+        entityId: number,
+        entityTypeId: number,
+        memberCompetitionId?: number
     ) {
-        let roleToDelete;
-        let entityType;
+        let roleIdToDelete;
+        let linkedEntityTypeId;
         switch (type) {
             case 'MANAGER':
-                roleToDelete = Role.MANAGER;
-                entityType = EntityType.TEAM;
+                roleIdToDelete = Role.MANAGER;
+                linkedEntityTypeId = EntityType.TEAM;
                 break;
             case 'COACH':
-                roleToDelete = Role.COACH;
-                entityType = EntityType.TEAM;
+                roleIdToDelete = Role.COACH;
+                linkedEntityTypeId = EntityType.TEAM;
                 break;
             case 'UMPIRE':
-                roleToDelete = Role.UMPIRE;
-                entityType = EntityType.COMPETITION_ORGANISATION;
+                roleIdToDelete = Role.UMPIRE;
+                linkedEntityTypeId = EntityType.COMPETITION_ORGANISATION;
                 break;
             case 'UMPIRE_COACH':
-                roleToDelete = Role.UMPIRE_COACH;
-                entityType = EntityType.COMPETITION_ORGANISATION;
+                roleIdToDelete = Role.UMPIRE_COACH;
+                linkedEntityTypeId = EntityType.COMPETITION_ORGANISATION;
                 break;
             default:
                 break;
         }
 
         const promiseList = [];
-        if (roleToDelete && entityType) {
+        if (roleIdToDelete && linkedEntityTypeId) {
             const rosters = await this.rosterService.findFutureUserRostersForRole(
                 user.id,
-                roleToDelete
+                roleIdToDelete,
+                entityId,
+                entityTypeId
             );
             if (isArrayPopulated(rosters)) {
                 rosters.forEach((roster) => {
@@ -635,23 +655,37 @@ export class UserController extends BaseController {
             promiseList.push(
                 this.userService.deleteRolesByUser(
                     user.id,
-                    roleToDelete,
-                    competitionId,
-                    EntityType.COMPETITION,
-                    entityType
+                    roleIdToDelete,
+                    entityId,
+                    entityTypeId,
+                    linkedEntityTypeId
                 )
             );
         }
-        promiseList.push(
-            this.userService.deleteRolesByUser(
-                user.id,
-                Role.MEMBER,
-                competitionId,
-                EntityType.COMPETITION,
-                EntityType.COMPETITION
-            )
-        );
+        if (entityTypeId == EntityType.COMPETITION) {
+            promiseList.push(
+                this.userService.deleteRolesByUser(
+                    user.id,
+                    Role.MEMBER,
+                    entityId,
+                    entityTypeId,
+                    EntityType.COMPETITION
+                )
+            );
+        } else if (entityTypeId == EntityType.COMPETITION_ORGANISATION &&
+                isNotNullAndUndefined(memberCompetitionId)) {
+            promiseList.push(
+                this.userService.deleteRolesByUser(
+                    user.id,
+                    Role.MEMBER,
+                    memberCompetitionId,
+                    EntityType.COMPETITION,
+                    EntityType.COMPETITION
+                )
+            );
+        }
         await Promise.all(promiseList);
+
         if (user.id) {
             let tokens = (await this.deviceService.getUserDevices(user.id)).map(device => device.deviceId);
             if (tokens && tokens.length > 0) {

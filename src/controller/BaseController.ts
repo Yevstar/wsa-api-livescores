@@ -258,7 +258,7 @@ export class BaseController {
         let queryRef = chatsCollectionRef.where('teamId', '==', teamId);
         let querySnapshot = await queryRef.get();
 
-        if (!querySnapshot.empty) {
+        if (!querySnapshot.empty && isNotNullAndUndefined(user.firebaseUID)) {
             let userQueryRef = queryRef.where('uids', 'array-contains', user.firebaseUID);
             let userQuerySnapshot = await userQueryRef.get();
             if (userQuerySnapshot.empty) {

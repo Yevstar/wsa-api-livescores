@@ -289,10 +289,14 @@ export default class RosterService extends BaseService<Roster> {
 
     public async findFutureUserRostersForRole(
         userId: number,
-        roleId: number
+        roleId: number,
+        entityId: number,
+        entityTypeId: number
     ): Promise<Roster[]> {
         let query = this.entityManager.createQueryBuilder(Roster, 'roster')
             .innerJoinAndSelect('roster.match', 'match')
+            .innerJoinAndSelect('match.team1', 'team1')
+            .innerJoinAndSelect('match.team2', 'team2')
             .where('match.deleted_at is null')
             .andWhere('match.startTime > :currentTime', {currentTime: new Date()})
             .andWhere('roster.userId = :userId', {userId})
@@ -301,6 +305,12 @@ export default class RosterService extends BaseService<Roster> {
 
         if (roleId) {
             query.andWhere('roster.roleId = :roleId', {roleId});
+        }
+        if (entityTypeId == EntityType.COMPETITION) {
+            query.andWhere('match.competitionId = :compId', {compId: entityId});
+        } else if (entityTypeId == EntityType.COMPETITION_ORGANISATION) {
+            query.andWhere('team1.organisationId = :compOrgId OR ' +
+              'team2.organisationId = :compOrgId', {compOrgId: entityId});
         }
 
         return query.getMany();

@@ -83,9 +83,22 @@ export default class UserService extends BaseService<User> {
             .getMany();
     }
 
-    public async deleteRolesByUser(userId: number, roleId: number, inputEntityId: number, inputEntityTypeId: number, linkedEntityTypeId: number) {
+    public async deleteRolesByUser(
+        userId: number,
+        roleId: number,
+        inputEntityId: number,
+        inputEntityTypeId: number,
+        linkedEntityTypeId: number
+    ) {
         try {
-            let result = await this.entityManager.query("call wsa_users.usp_delete_entity_roles_by_user(?,?,?,?,?)", [userId, roleId, inputEntityId, inputEntityTypeId, linkedEntityTypeId]);
+            let result = await this.entityManager.query("call " +
+                "wsa_users.usp_delete_entity_roles_by_user(?,?,?,?,?)", [
+                    userId,
+                    roleId,
+                    inputEntityId,
+                    inputEntityTypeId,
+                    linkedEntityTypeId
+            ]);
             return result[0];
         } catch (error) {
             throw error;
