@@ -1897,7 +1897,7 @@ export class MatchController extends BaseController {
         @QueryParam('teamIds') teamIds: number[] = [],
         @QueryParam('playerIds') playerIds: number[],
         @QueryParam('competitionId') competitionId: number,
-        @QueryParam('organisationIds') organisationIds: number[],
+        @QueryParam('competitionOrganisationId') competitionOrganisationId: number,
         @QueryParam('matchEnded') matchEnded: boolean,
         @QueryParam('matchStatus') matchStatus: ("STARTED" | "PAUSED" | "ENDED")[],
         @QueryParam('offset') offset: number = undefined,
@@ -1905,7 +1905,21 @@ export class MatchController extends BaseController {
         @QueryParam('search') search: string,
         @Res() response: Response
     ): Promise<any> {
-        const getMatchesData = await this.find(from, to, teamIds, playerIds, competitionId, null, organisationIds, matchEnded, matchStatus, null, null, null);
+        const getMatchesData = await this.find(
+            from,
+            to,
+            teamIds,
+            playerIds,
+            competitionId,
+            competitionOrganisationId,
+            null,
+            matchEnded,
+            matchStatus,
+            null,
+            search,
+            offset,
+            limit
+        );
 
         if (isArrayPopulated(getMatchesData)) {
             getMatchesData.map(e => {
