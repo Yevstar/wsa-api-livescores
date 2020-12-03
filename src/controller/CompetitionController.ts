@@ -542,14 +542,14 @@ export class CompetitionController extends BaseController {
         @QueryParam('competitionOrganisationIds') competitionOrganisationIds: number[],
         @QueryParam('teamIds') teamIds: number[],
         @QueryParam('playerIds') playerIds: number[]
-    ): Promise<{ competitions: Competition[], competitionOrganisations: LinkedCompetitionOrganisation[], teams: Team[], players: Player[] }> {
+    ): Promise<{ competitions: Competition[], linkedCompetitionOrganisations: LinkedCompetitionOrganisation[], teams: Team[], players: Player[] }> {
 
         const competitions = await this.competitionService.findByIds(competitionIds);
-        const competitionOrganisations = await this.linkedCompetitionOrganisationService.findByIds(competitionOrganisationIds);
+        const linkedCompetitionOrganisations = await this.linkedCompetitionOrganisationService.findByIds(competitionOrganisationIds);
         const teams = await this.teamService.findByIds(teamIds);
         const players = await this.playerService.findByIds(playerIds);
 
-        return {competitions, competitionOrganisations, teams, players};
+        return {competitions, linkedCompetitionOrganisations, teams, players};
     }
 
     @Get('/entities')
@@ -558,14 +558,14 @@ export class CompetitionController extends BaseController {
         @QueryParam('competitionOrganisationIds') competitionOrganisationIds: number[],
         @QueryParam('teamIds') teamIds: number[],
         @QueryParam('playerIds') playerIds: number[]
-    ): Promise<{ competitions: Competition[], competitionOrganisations: LinkedCompetitionOrganisation[], teams: Team[], players: Player[] }> {
+    ): Promise<{ competitions: Competition[], linkedCompetitionOrganisations: LinkedCompetitionOrganisation[], teams: Team[], players: Player[] }> {
 
         const competitions = await this.competitionService.findByIds(competitionIds);
-        const competitionOrganisations = await this.linkedCompetitionOrganisationService.findByIds(competitionOrganisationIds);
+        const linkedCompetitionOrganisations = await this.linkedCompetitionOrganisationService.findByIds(competitionOrganisationIds);
         const teams = await this.teamService.findByTeamIds(teamIds);
         const players = await this.playerService.findByIds(playerIds);
 
-        return {competitions, competitionOrganisations, teams, players};
+        return {competitions, linkedCompetitionOrganisations, teams, players};
     }
 
     @Authorized()
