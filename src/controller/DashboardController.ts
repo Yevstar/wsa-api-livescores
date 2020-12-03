@@ -13,7 +13,8 @@ export class DashboardController extends BaseController {
         @QueryParam("competitionId") competitionId: number,
         @QueryParam("startDay") startDayTime: Date,
         @QueryParam("currentTime") currentDayTime: Date,
-        @Res() response: Response) {
+        @Res() response: Response
+    ) {
         if (competitionId) {
             const responseObject = Object.assign({});
 
@@ -54,7 +55,7 @@ export class DashboardController extends BaseController {
         } else {
             return response.status(200).send({ name: 'search_error', message: `Required parameters not filled` });
         }
-    } 
+    }
 
     async getPlayerAttendanceTeamAndRosterByMatch(matchArray: Match[]) {
         if (isArrayPopulated(matchArray)) {

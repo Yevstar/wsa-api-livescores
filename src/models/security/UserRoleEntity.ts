@@ -76,7 +76,7 @@ export class UserRoleEntity extends BaseEntity {
     @ValidateNested()
     @OneToOne(type => LinkedCompetitionOrganisation)
     @JoinColumn({ name: 'entityId' })
-    competitionOrganisation: LinkedCompetitionOrganisation;
+    linkedCompetitionOrganisation: LinkedCompetitionOrganisation;
 
     @ValidateNested()
     @OneToOne(type => Team)

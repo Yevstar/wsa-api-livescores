@@ -27,8 +27,8 @@ export default class WatchlistService extends BaseService<Watchlist> {
     }
 
     public async findOrganisationByParam(userId: number = undefined, deviceId: string = undefined): Promise<LinkedCompetitionOrganisation[]> {
-        let query = this.entityManager.createQueryBuilder(LinkedCompetitionOrganisation, 'competitionOrganisation');
-        query.andWhere('competitionOrganisation.id in ' + this.watchlistSubQuery(query, 'ORGANISATION', userId, deviceId));
+        let query = this.entityManager.createQueryBuilder(LinkedCompetitionOrganisation, 'linkedCompetitionOrganisation');
+        query.andWhere('linkedCompetitionOrganisation.id in ' + this.watchlistSubQuery(query, 'COMPETITION_ORGANISATION', userId, deviceId));
         return query.getMany();
     }
 
@@ -36,7 +36,7 @@ export default class WatchlistService extends BaseService<Watchlist> {
         let query = this.entityManager.createQueryBuilder(Team, 'team')
             .leftJoinAndSelect('team.division', 'division')
             .leftJoinAndSelect('team.competition', 'competition')
-            .leftJoinAndSelect('team.competitionOrganisation', 'competitionOrganisation');
+            .leftJoinAndSelect('team.linkedCompetitionOrganisation', 'linkedCompetitionOrganisation');
         query.andWhere('team.id in ' + this.watchlistSubQuery(query, 'TEAM', userId, deviceId));
         return query.getMany();
     }

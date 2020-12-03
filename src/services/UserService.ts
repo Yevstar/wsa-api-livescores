@@ -327,7 +327,7 @@ export default class UserService extends BaseService<User> {
                         </head>
                         <body>
                             <p>Hi ${receiverData.firstName} ${receiverData.lastName},
-                            <p>${userData.firstName} ${userData.lastName}, ${competitionData.competitionOrganisation.name} has invited you
+                            <p>${userData.firstName} ${userData.lastName}, ${competitionData.linkedCompetitionOrganisation.name} has invited you
                             to umpire for ${competitionData.name}. Please Download the Netball LiveScores App from the <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
                             <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a> and start umpiring.
                             ${passwordTxt}
@@ -343,7 +343,7 @@ export default class UserService extends BaseService<User> {
                         </head>
                         <body>
                             <p>Hi ${receiverData.firstName} ${receiverData.lastName},
-                            <p>${userData.firstName} ${userData.lastName}, ${competitionData.competitionOrganisation.name} has invited you
+                            <p>${userData.firstName} ${userData.lastName}, ${competitionData.linkedCompetitionOrganisation.name} has invited you
                             to Umpire Coach for ${competitionData.name}. Please Download the Netball LiveScores App from the <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
                             <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a> and start Umpire Coaching.
                             ${passwordTxt}

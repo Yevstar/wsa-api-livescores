@@ -18,7 +18,7 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
 
     public async findByMatchIds(matchIds: number[]): Promise<MatchUmpire[]> {
         return this.entityManager.createQueryBuilder(MatchUmpire, 'matchUmpire')
-            .leftJoinAndSelect('matchUmpire.competitionOrganisation', 'competitionOrganisation')
+            .leftJoinAndSelect('matchUmpire.linkedCompetitionOrganisation', 'linkedCompetitionOrganisation')
             .leftJoinAndSelect('matchUmpire.user', 'user')
             .where('matchUmpire.matchId in (:matchIds)', {matchIds})
             .orderBy('matchUmpire.matchId')
@@ -28,7 +28,7 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
 
     public async findByCompetitionId(competitionid: number, requestFilter: RequestFilter): Promise<any> {
         let query = this.entityManager.createQueryBuilder(MatchUmpire, 'matchUmpire');
-        query.leftJoinAndSelect('matchUmpire.competitionOrganisation', 'competitionOrganisation')
+        query.leftJoinAndSelect('matchUmpire.linkedCompetitionOrganisation', 'linkedCompetitionOrganisation')
             .leftJoinAndSelect('matchUmpire.user', 'user')
             .leftJoinAndSelect('matchUmpire.match', 'match')
             .leftJoinAndSelect('match.team1', 'team1')

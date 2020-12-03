@@ -522,12 +522,12 @@ export class CompetitionController extends BaseController {
     async loadHierarchy(
         @QueryParam('organisationName') organisationName: string,
         @QueryParam('teamName') teamName: string,
-        @QueryParam('competitionId') competitionId: number): Promise<{ competitionOrganisations: LinkedCompetitionOrganisation[], teams: Team[] }> {
+        @QueryParam('competitionId') competitionId: number): Promise<{ linkedCompetitionOrganisations: LinkedCompetitionOrganisation[], teams: Team[] }> {
 
-        const competitionOrganisations = await this.linkedCompetitionOrganisationService.findByNameAndCompetitionId(organisationName, competitionId);
+        const linkedCompetitionOrganisations = await this.linkedCompetitionOrganisationService.findByNameAndCompetitionId(organisationName, competitionId);
         const teams = await this.teamService.findByNameAndCompetition(teamName, competitionId);
 
-        return {competitionOrganisations, teams};
+        return {linkedCompetitionOrganisations, teams};
     }
 
     /**

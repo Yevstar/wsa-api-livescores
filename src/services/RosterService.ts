@@ -98,7 +98,7 @@ export default class RosterService extends BaseService<Roster> {
             .innerJoinAndSelect('roster.user', 'user')
             .innerJoinAndSelect('match.competition', 'competition')
             .innerJoinAndSelect('user.userRoleEntities', 'ure', 'ure.roleId in (:ids)', {ids: ureRoleIds})
-            .innerJoinAndSelect('ure.competitionOrganisation', 'cOrg', 'cOrg.competitionId = :compId', {compId: competitionId})
+            .innerJoinAndSelect('ure.linkedCompetitionOrganisation', 'lco', 'lco.competitionId = :compId', {compId: competitionId})
             .andWhere('match.competitionId = :competitionId', {competitionId})
             .andWhere('roster.roleId in (:roleIds)', {roleIds})
             .andWhere('match.deleted_at is null');
@@ -113,7 +113,7 @@ export default class RosterService extends BaseService<Roster> {
 
         if (sortBy) {
             if (sortBy === 'organisation') {
-                query.orderBy('cOrg.name', sortOrder);
+                query.orderBy('lco.name', sortOrder);
             } else if (sortBy === 'firstName') {
                 query.orderBy('user.firstName', sortOrder);
             } else if (sortBy === 'lastName') {
@@ -326,7 +326,7 @@ export default class RosterService extends BaseService<Roster> {
             .leftJoinAndSelect('match.team1', 'team1')
             .leftJoinAndSelect('match.team2', 'team2')
             .innerJoinAndSelect('user.userRoleEntities', 'ure', 'ure.roleId in (:ids)', { ids: roleIds })
-            .innerJoinAndSelect('ure.competitionOrganisation', 'cOrg')
+            .innerJoinAndSelect('ure.linkedCompetitionOrganisation', 'lco')
             .andWhere('roster.roleId in (:roleIds)', { roleIds })
             .andWhere('user.id = :userId', { userId })
             .andWhere('match.deleted_at is null');
@@ -340,7 +340,7 @@ export default class RosterService extends BaseService<Roster> {
             } else if (sortBy === 'date') {
                 query.orderBy('match.startTime', sortOrder);
             } else if (sortBy === 'affiliate') {
-                query.orderBy('cOrg.name', sortOrder);
+                query.orderBy('lco.name', sortOrder);
             } else if (sortBy === 'home') {
                 query.orderBy('team1.name', sortOrder);
             } else if (sortBy === 'away') {
