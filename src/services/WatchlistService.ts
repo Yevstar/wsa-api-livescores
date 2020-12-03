@@ -70,9 +70,9 @@ export default class WatchlistService extends BaseService<Watchlist> {
             'SELECT wl.deviceId as token\n' +
             'FROM watchlist wl inner join wsa_users.entityType et on (wl.entityTypeId = et.id)\n' +
             'WHERE (et.name = \'TEAM\' AND wl.entityId in (?))\n' +
-            '   OR (et.name = \'ORGANISATION\' AND wl.entityId in (SELECT c.id AS c_id\n' +
+            '   OR (et.name = \'ORGANISATION\' AND wl.entityId in (SELECT lco.id AS competitionOrganisationId\n' +
             '                                               FROM team t\n' +
-            '                                                        INNER JOIN linkedCompetitionOrganisation c ON c.id = t.organisationId\n' +
+            '                                                        INNER JOIN linkedCompetitionOrganisation lco ON lco.id = t.competitionOrganisationId\n' +
             '                                               WHERE t.id in (?)));'
             , [matchId, teamIds, teamIds, teamIds])
     }
@@ -92,15 +92,19 @@ export default class WatchlistService extends BaseService<Watchlist> {
         return query.execute();
     }
 
-    public async save(userId: number = undefined, deviceId: string = undefined, organisationIds: number[] = undefined,
-                      teamIds: number[] = undefined) {
+    public async save(
+        userId: number = undefined,
+        deviceId: string = undefined,
+        competitionOrganisationIds: number[] = undefined,
+        teamIds: number[] = undefined
+    ) {
         let currentData = await this.findByParam(userId, deviceId);
         let records = [];
         if (userId || deviceId) {
-            if (organisationIds) {
-                for (const id of organisationIds) {
-                    if (!currentData.find(y => y.entityTypeId == EntityType.ORGANISATION && y.entityId == id)) {
-                        records.push(WatchlistService.createWatchListItem(deviceId, userId, id, EntityType.ORGANISATION));
+            if (competitionOrganisationIds) {
+                for (const id of competitionOrganisationIds) {
+                    if (!currentData.find(y => y.entityTypeId == EntityType.COMPETITION_ORGANISATION && y.entityId == id)) {
+                        records.push(WatchlistService.createWatchListItem(deviceId, userId, id, EntityType.COMPETITION_ORGANISATION));
                     }
                 }
 
@@ -117,11 +121,11 @@ export default class WatchlistService extends BaseService<Watchlist> {
         await this.batchCreateOrUpdate(records);
     }
 
-    private static createWatchListItem(deviceId: string, userId: number, organisationId, type: number): Watchlist {
+    private static createWatchListItem(deviceId: string, userId: number, entityId, type: number): Watchlist {
         let wl = new Watchlist();
         wl.deviceId = deviceId ? deviceId : null;
         wl.userId = userId ? userId : null;
-        wl.entityId = organisationId;
+        wl.entityId = entityId;
         wl.entityTypeId = type;
         return wl;
     }

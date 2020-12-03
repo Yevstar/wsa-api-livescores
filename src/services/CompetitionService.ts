@@ -70,6 +70,7 @@ export default class CompetitionService extends BaseService<Competition> {
             return [];
         }
     }
+    
     public async softDelete(id: number, userId: number): Promise<DeleteResult> {
         let query = this.entityManager.createQueryBuilder(Competition, 'competition');
         query.andWhere("competition.id = :id", { id });
@@ -86,7 +87,7 @@ export default class CompetitionService extends BaseService<Competition> {
     public async getCompetitionsPublic(organisationId: number, yearRefId: number): Promise<any> {
         const conditionalArray = [];
         conditionalArray.push(organisationId,organisationId);
-        let query = 
+        let query =
             'select distinct c.*\n' +
             'from competition c, competitionOrganisation co\n' +
             'where \n' +
@@ -95,7 +96,7 @@ export default class CompetitionService extends BaseService<Competition> {
             ' and c.deleted_at is null \n' ;
 
             if(yearRefId) {
-                query += ' and c.yearRefId = ? ' 
+                query += ' and c.yearRefId = ? '
                 conditionalArray.push(yearRefId)
             }
 

@@ -4,21 +4,21 @@ import {LinkedCompetitionOrganisation} from "../models/LinkedCompetitionOrganisa
 import { isArrayPopulated } from "../utils/Utils";
 
 @Service()
-export default class OrganisationService extends BaseService<LinkedCompetitionOrganisation> {
+export default class LinkedCompetitionOrganisationService extends BaseService<LinkedCompetitionOrganisation> {
 
     modelName(): string {
         return LinkedCompetitionOrganisation.name;
     }
 
     public async findByNameAndCompetitionId(name: string, competitionId?: number): Promise<LinkedCompetitionOrganisation[]> {
-        let query = this.entityManager.createQueryBuilder(LinkedCompetitionOrganisation, 'competitionOrganisation')
-                        .innerJoinAndSelect("competitionOrganisation.competition", "competition", "competition.deleted_at is null")
+        let query = this.entityManager.createQueryBuilder(LinkedCompetitionOrganisation, 'linkedCompetitionOrganisation')
+                        .innerJoinAndSelect("linkedCompetitionOrganisation.competition", "competition", "competition.deleted_at is null")
         if (name) {
-            query = query.where('LOWER(competitionOrganisation.name) like :name', {name: `${name.toLowerCase()}%`});
+            query = query.where('LOWER(linkedCompetitionOrganisation.name) like :name', {name: `${name.toLowerCase()}%`});
         }
 
         if (competitionId) {
-            query = query.andWhere('competitionOrganisation.competitionId = :competitionId', {competitionId});
+            query = query.andWhere('linkedCompetitionOrganisation.competitionId = :competitionId', {competitionId});
         }
         return query.getMany()
     }
@@ -47,7 +47,7 @@ export default class OrganisationService extends BaseService<LinkedCompetitionOr
 
     public async getOrganisationLogoDetails(organisationId: number): Promise<any> {
         const query = await this.entityManager.query(
-            `select distinct o.id,o.name,ol.logoUrl from wsa_users.organisation o join wsa_users.organisationLogo ol 
+            `select distinct o.id,o.name,ol.logoUrl from wsa_users.organisation o join wsa_users.organisationLogo ol
             on ol.organisationId = o.id and o.isDeleted = 0 where o.id = ? group by o.id` , [organisationId]);
         if (isArrayPopulated(query)) {
             return query[0];
@@ -56,4 +56,9 @@ export default class OrganisationService extends BaseService<LinkedCompetitionOr
         }
     }
 
+    public async findByOrganisationId(organisationId: number): Promise<LinkedCompetitionOrganisation> {
+        let query = this.entityManager.createQueryBuilder(LinkedCompetitionOrganisation, 'linkedCompetitionOrganisation')
+            .andWhere('linkedCompetitionOrganisation.organisationId = :organisationId', {organisationId});
+        return query.getOne();
+    }
 }

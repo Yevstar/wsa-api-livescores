@@ -133,7 +133,7 @@ export class MatchUmpireController extends BaseController {
                     updatedUmpire.id = umpire.id;
                     updatedUmpire.matchId = umpire.matchId;
                     updatedUmpire.userId = umpire.userId;
-                    updatedUmpire.organisationId = umpire.organisationId;
+                    updatedUmpire.competitionOrganisationId = umpire.competitionOrganisationId;
                     updatedUmpire.umpireName = umpire.umpireName;
                     updatedUmpire.umpireType = umpire.umpireType;
                     updatedUmpire.sequence = umpire.sequence;
@@ -200,7 +200,7 @@ export class MatchUmpireController extends BaseController {
         let newUmpire = new MatchUmpire();
         newUmpire.matchId = umpire.matchId;
         newUmpire.userId = umpire.userId;
-        newUmpire.organisationId = umpire.organisationId;
+        newUmpire.competitionOrganisationId = umpire.competitionOrganisationId;
         newUmpire.umpireName = umpire.umpireName;
         newUmpire.umpireType = umpire.umpireType;
         newUmpire.sequence = umpire.sequence;
@@ -439,16 +439,16 @@ export class MatchUmpireController extends BaseController {
                       (isNotNullAndUndefined(i['Umpire 1']) && i['Umpire 1'].length > 0))) {
 
                         if (i['Umpire 1 Organisation'].length > 0) {
-                          let org = await this.organisationService
+                          let linkedCompOrgArray = await this.linkedCompetitionOrganisationService
                               .findByNameAndCompetitionId(
                                   i['Umpire 1 Organisation'],
                                   competitionId
                               );
 
-                          if (isArrayPopulated(org)) {
+                          if (isArrayPopulated(linkedCompOrgArray)) {
                               const matchUmpire = new MatchUmpire();
                               matchUmpire.matchId = i['Match ID'];
-                              matchUmpire.organisationId = org[0].id;
+                              matchUmpire.competitionOrganisationId = linkedCompOrgArray[0].id;
                               matchUmpire.umpireType = 'USERS';
                               matchUmpire.sequence = 1;
                               matchUmpire.createdBy = user.id;
@@ -501,7 +501,7 @@ export class MatchUmpireController extends BaseController {
                                 let fullName = i['Umpire 1'];
                                 let userResults = await this.userService.getUserIdBySecurity(
                                     EntityType.COMPETITION_ORGANISATION,
-                                    [org[0].id],
+                                    [linkedCompOrgArray[0].id],
                                     fullName,
                                     { roleId: Role.UMPIRE }
                                 );
@@ -554,16 +554,16 @@ export class MatchUmpireController extends BaseController {
                       (isNotNullAndUndefined(i['Umpire 2']) && i['Umpire 2'].length > 0))) {
 
                         if (i['Umpire 2 Organisation'].length > 0) {
-                          let org = await this.organisationService
+                          let linkedCompOrgArray = await this.linkedCompetitionOrganisationService
                               .findByNameAndCompetitionId(
                                   i['Umpire 2 Organisation'],
                                   competitionId
                               );
 
-                          if (isArrayPopulated(org)) {
+                          if (isArrayPopulated(linkedCompOrgArray)) {
                               const matchUmpire = new MatchUmpire();
                               matchUmpire.matchId = i['Match ID'];
-                              matchUmpire.organisationId = org[0].id;
+                              matchUmpire.competitionOrganisationId = linkedCompOrgArray[0].id;
                               matchUmpire.umpireType = 'USERS';
                               matchUmpire.sequence = 2;
                               matchUmpire.createdBy = user.id;
@@ -616,7 +616,7 @@ export class MatchUmpireController extends BaseController {
                                 let fullName = i['Umpire 2'];
                                 let userResults = await this.userService.getUserIdBySecurity(
                                     EntityType.COMPETITION_ORGANISATION,
-                                    [org[0].id],
+                                    [linkedCompOrgArray[0].id],
                                     fullName,
                                     { roleId: Role.UMPIRE }
                                 );
@@ -762,7 +762,7 @@ export class MatchUmpireController extends BaseController {
                 delete e.id;
                 delete e.matchId;
                 delete e.userId;
-                delete e.organisationId;
+                delete e.competitionOrganisationId;
                 delete e.umpireName;
                 delete e.umpireType;
                 delete e.sequence;

@@ -13,7 +13,14 @@ import {
 } from "routing-controllers";
 
 import {Division} from "../models/Division";
-import {stringTONumber, paginationData, isNotNullAndUndefined, validationForField, arrangeCSVToJson} from "../utils/Utils";
+import {
+    stringTONumber,
+    paginationData,
+    isNotNullAndUndefined,
+    validationForField,
+    arrangeCSVToJson,
+    isArrayPopulated
+} from "../utils/Utils";
 import {BaseController} from "./BaseController";
 
 @JsonController('/division')
@@ -34,7 +41,7 @@ export class DivisionController extends BaseController {
     async find(
         @QueryParam('competitionId') competitionId: number,
         @QueryParam('teamIds') teamIds: number[] = [],
-        @QueryParam('organisationIds') organisationIds: number[],
+        @QueryParam('competitionOrganisationIds') competitionOrganisationIds: number[],
         @QueryParam('offset') offset: number,
         @QueryParam('limit') limit: number,
         @QueryParam('competitionKey') competitionUniqueKey: string,
@@ -48,10 +55,10 @@ export class DivisionController extends BaseController {
             competitionId = getCompetitions.id;
         }
 
-        if (organisationIds && !Array.isArray(organisationIds)) organisationIds = [organisationIds];
+        if (competitionOrganisationIds && !Array.isArray(competitionOrganisationIds)) competitionOrganisationIds = [competitionOrganisationIds];
         if (teamIds && !Array.isArray(teamIds)) teamIds = [teamIds];
-        if (competitionId || teamIds && teamIds.length > 0 || organisationIds && organisationIds.length > 0) {
-            const resultsFound = await this.divisionService.findByParams(competitionId, organisationIds, teamIds, offset, limit, search, sortBy, sortOrder);
+        if (competitionId || isArrayPopulated(teamIds) || isArrayPopulated(competitionOrganisationIds)) {
+            const resultsFound = await this.divisionService.findByParams(competitionId, competitionOrganisationIds, teamIds, offset, limit, search, sortBy, sortOrder);
             if (resultsFound && isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
                 let responseObject = paginationData(stringTONumber(resultsFound.countObj), limit, offset)
                 responseObject["divisions"] = resultsFound.result;

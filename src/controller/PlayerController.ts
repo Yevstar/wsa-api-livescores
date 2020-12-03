@@ -46,7 +46,7 @@ export class PlayerController extends BaseController {
     async find(
         @QueryParam('name') name: string,
         @QueryParam('competitionId') competitionId: number,
-        @QueryParam('organisationId') organisationId: number,
+        @QueryParam('competitionOrganisationId') competitionOrganisationId: number,
         @QueryParam('teamId') teamId: number,
         @QueryParam('playUpFromAge') playUpFromAge: number,
         @QueryParam('playUpFromGrade') playUpFromGrade: string,
@@ -55,18 +55,18 @@ export class PlayerController extends BaseController {
         @QueryParam('includeLinkedCompetition') includeLinkedCompetition: boolean = false
     ): Promise<Player[]> {
         let competition: Competition;
-        let competitionOrganisation: LinkedCompetitionOrganisation
+        let linkedCompetitionOrganisation: LinkedCompetitionOrganisation
         if (competitionId) {
             competition = await this.competitionService.findById(competitionId);
         }
-        if (organisationId) {
-            competitionOrganisation = await this.organisationService.findById(organisationId);
+        if (competitionOrganisationId) {
+            linkedCompetitionOrganisation = await this.linkedCompetitionOrganisationService.findById(competitionOrganisationId);
         }
 
         return this.playerService.findByParam(
             name,
             competition,
-            competitionOrganisation,
+            linkedCompetitionOrganisation,
             teamId,
             playUpFromAge,
             playUpFromGrade,
@@ -334,7 +334,7 @@ export class PlayerController extends BaseController {
     async findPlayers(
         @QueryParam('name') name: string,
         @QueryParam('competitionId') competitionId: number,
-        @QueryParam('organisationId') organisationId: number,
+        @QueryParam('competitionOrganisationId') competitionOrganisationId: number,
         @QueryParam('teamId') teamId: number,
         @QueryParam('playUpFromAge') playUpFromAge: number,
         @QueryParam('playUpFromGrade') playUpFromGrade: string,
@@ -345,18 +345,18 @@ export class PlayerController extends BaseController {
         @QueryParam('sortOrder') sortOrder?: "ASC" | "DESC"
     ): Promise<{ page: {}, players: Player[] }> {
         let competition: Competition;
-        let competitionOrganisation: LinkedCompetitionOrganisation
+        let linkedCompetitionOrganisation: LinkedCompetitionOrganisation
         if (competitionId) {
             competition = await this.competitionService.findById(competitionId);
         }
-        if (organisationId) {
-            competitionOrganisation = await this.organisationService.findById(organisationId);
+        if (competitionOrganisationId) {
+            linkedCompetitionOrganisation = await this.linkedCompetitionOrganisationService.findById(competitionOrganisationId);
         }
 
         const playerData = await this.playerService.findByParam(
             name,
             competition,
-            competitionOrganisation,
+            linkedCompetitionOrganisation,
             teamId,
             playUpFromAge,
             playUpFromGrade,

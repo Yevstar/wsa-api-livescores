@@ -19,7 +19,7 @@ export default class PlayerService extends BaseService<Player> {
     public async findByParam(
         name: string,
         competition: Competition,
-        competitionOrganisation: LinkedCompetitionOrganisation,
+        linkedCompetitionOrganisation: LinkedCompetitionOrganisation,
         teamId: number,
         playUpFromAge: number,
         playUpFromGrade: string,
@@ -55,11 +55,11 @@ export default class PlayerService extends BaseService<Player> {
             }
         }
 
-        if (competitionOrganisation) {
+        if (linkedCompetitionOrganisation) {
             if (includeLinkedCompetition) {
-                query.andWhere('competitionOrganisation.organisationId = :organisationId', {organisationId: competitionOrganisation.organisationId});
+                query.andWhere('competitionOrganisation.orgId = :organisationId', {organisationId: linkedCompetitionOrganisation.organisationId});
             } else {
-                query.andWhere('competitionOrganisation.id = :organisationId', {organisationId: competitionOrganisation.id});
+                query.andWhere('competitionOrganisation.id = :id', {id: linkedCompetitionOrganisation.id});
             }
         }
 

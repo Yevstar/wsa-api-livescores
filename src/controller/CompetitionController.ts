@@ -161,7 +161,7 @@ export class CompetitionController extends BaseController {
                             if (isArrayPopulated(getInviteesDetail)) {
                                 await this.competitionInviteesService.deleteInviteesByCompetitionId(saved.id);
                             }
-                            
+
                             const compInv = new CompetitionInvitees();
                             compInv.id = 0;
                             compInv.inviteesRefId = NOT_APPLICABLE;
@@ -180,7 +180,7 @@ export class CompetitionController extends BaseController {
                                 invitationTo = 3;
                             }
 
-                            const organisationTypeRefId = await this.organisationService.findAffiliateDetailsByOrganisationId(competition.organisationId)
+                            const organisationTypeRefId = await this.linkedCompetitionOrganisationService.findAffiliateDetailsByOrganisationId(competition.organisationId)
                             GET_ORGANISATIONS = await this.competitionService.getAllAffiliatedOrganisations(competition.organisationId, affliliateInvited, organisationTypeRefId);
 
                             if (isArrayPopulated(getInviteesDetail)) {
@@ -240,7 +240,7 @@ export class CompetitionController extends BaseController {
                                 invitationTo = AFFILIATED_CLUB;
                             }
 
-                            const organisationTypeRefId = await this.organisationService.findAffiliateDetailsByOrganisationId(competition.organisationId)
+                            const organisationTypeRefId = await this.linkedCompetitionOrganisationService.findAffiliateDetailsByOrganisationId(competition.organisationId)
                             GET_ORGANISATIONS = await this.competitionService.getAllAffiliatedOrganisations(competition.organisationId, affliliateInvited, organisationTypeRefId);
 
                             if (isArrayPopulated(getInviteesDetail)) {
@@ -292,7 +292,7 @@ export class CompetitionController extends BaseController {
                             if(!((isNotNullAndUndefined(competition.invitedAnyAssoc) && isArrayPopulated(competition.invitedAnyAssoc))
                             && (isNotNullAndUndefined(competition.invitedAnyClub) && isArrayPopulated(competition.invitedAnyClub)))
                             && isArrayPopulated(GET_ORGANISATIONS)) {
-                                
+
                                 for (let i of GET_ORGANISATIONS) {
                                     const compInv = new CompetitionInvitees();
                                     compInv.id = 0;
@@ -323,7 +323,7 @@ export class CompetitionController extends BaseController {
                         compOrg.orgId = i.organisationId;
                         CREATE_COMP_ORG.push(compOrg);
                     }
-                    
+
                     const getExistingOrganisation = await this.competitionOrganisationService.findByCompetitionId(saved.id);
 
                     const ORG_ID_IN_COMP_ORG = []
@@ -402,7 +402,7 @@ export class CompetitionController extends BaseController {
                     }
 
                 } else {
-                    /*let organisation = await this.organisationService.findById(savedTeam.organisationId);
+                    /*let organisation = await this.linkedCompetitionOrganisationService.findById(savedTeam.organisationId);
                     if (organisation.logoUrl) {
                         savedTeam.logoUrl = organisation.logoUrl;
                         savedTeam = await this.teamService.createOrUpdate(savedTeam);
@@ -524,7 +524,7 @@ export class CompetitionController extends BaseController {
         @QueryParam('teamName') teamName: string,
         @QueryParam('competitionId') competitionId: number): Promise<{ competitionOrganisations: LinkedCompetitionOrganisation[], teams: Team[] }> {
 
-        const competitionOrganisations = await this.organisationService.findByNameAndCompetitionId(organisationName, competitionId);
+        const competitionOrganisations = await this.linkedCompetitionOrganisationService.findByNameAndCompetitionId(organisationName, competitionId);
         const teams = await this.teamService.findByNameAndCompetition(teamName, competitionId);
 
         return {competitionOrganisations, teams};
@@ -539,13 +539,13 @@ export class CompetitionController extends BaseController {
     @Get('/watchlist')
     async watchlist(
         @QueryParam('competitionIds') competitionIds: number[],
-        @QueryParam('organisationIds') organisationIds: number[],
+        @QueryParam('competitionOrganisationIds') competitionOrganisationIds: number[],
         @QueryParam('teamIds') teamIds: number[],
         @QueryParam('playerIds') playerIds: number[]
     ): Promise<{ competitions: Competition[], competitionOrganisations: LinkedCompetitionOrganisation[], teams: Team[], players: Player[] }> {
 
         const competitions = await this.competitionService.findByIds(competitionIds);
-        const competitionOrganisations = await this.organisationService.findByIds(organisationIds);
+        const competitionOrganisations = await this.linkedCompetitionOrganisationService.findByIds(competitionOrganisationIds);
         const teams = await this.teamService.findByIds(teamIds);
         const players = await this.playerService.findByIds(playerIds);
 
@@ -555,13 +555,13 @@ export class CompetitionController extends BaseController {
     @Get('/entities')
     async entities(
         @QueryParam('competitionIds') competitionIds: number[],
-        @QueryParam('organisationIds') organisationIds: number[],
+        @QueryParam('competitionOrganisationIds') competitionOrganisationIds: number[],
         @QueryParam('teamIds') teamIds: number[],
         @QueryParam('playerIds') playerIds: number[]
     ): Promise<{ competitions: Competition[], competitionOrganisations: LinkedCompetitionOrganisation[], teams: Team[], players: Player[] }> {
 
         const competitions = await this.competitionService.findByIds(competitionIds);
-        const competitionOrganisations = await this.organisationService.findByIds(organisationIds);
+        const competitionOrganisations = await this.linkedCompetitionOrganisationService.findByIds(competitionOrganisationIds);
         const teams = await this.teamService.findByTeamIds(teamIds);
         const players = await this.playerService.findByIds(playerIds);
 
@@ -757,7 +757,7 @@ export class CompetitionController extends BaseController {
         @QueryParam('yearRefId') yearRefId: number,
         @QueryParam('organisationUniqueKey') organisationUniqueKey: string) {
         if (organisationUniqueKey !== null && organisationUniqueKey !== undefined) {
-            organisationId = await this.organisationService.findByUniqueKey(organisationUniqueKey);
+            organisationId = await this.linkedCompetitionOrganisationService.findByUniqueKey(organisationUniqueKey);
         }
         return await this.competitionService.getCompetitionsPublic(organisationId, yearRefId);
     }

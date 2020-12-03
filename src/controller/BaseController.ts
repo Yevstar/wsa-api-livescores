@@ -28,12 +28,12 @@ import IncidentService from "../services/IncidentService";
 import CompetitionLadderSettingsService from "../services/CompetitionLadderSettingsService";
 import CompetitionVenueService from "../services/CompetitionVenueService";
 import admin from "firebase-admin";
-import OrganisationService from "../services/OrganisationService";
+import LinkedCompetitionOrganisationService from "../services/LinkedCompetitionOrganisationService";
 import CompetitionOrganisationService from "../services/CompetitionOrganisationService";
 import LineupService from "../services/LineupService";
 import LadderFormatService from '../services/LadderFormatService';
 import LadderFormatDivisionService from '../services/LadderFormatDivisionService';
-import {isNullOrEmpty, isNotNullAndUndefined} from "../utils/Utils";
+import {isNullOrEmpty, isNotNullAndUndefined, isArrayPopulated} from "../utils/Utils";
 import TeamLadderService from '../services/TeamLadderService';
 import MatchSheetService from "../services/MatchSheetService";
 import {getMatchUmpireNotificationMessage} from "../utils/NotificationMessageUtils";
@@ -122,7 +122,7 @@ export class BaseController {
     protected competitionVenueService: CompetitionVenueService;
 
     @Inject()
-    protected organisationService: OrganisationService;
+    protected linkedCompetitionOrganisationService: LinkedCompetitionOrganisationService;
 
     @Inject()
     protected lineupService: LineupService;
@@ -424,13 +424,13 @@ export class BaseController {
       }
     }
 
-    protected async loadTopics(teamIds: number[], organisationIds: number[]): Promise<string[]> {
-        if (teamIds || organisationIds) {
+    protected async loadTopics(teamIds: number[], competitionOrganisationIds: number[]): Promise<string[]> {
+        if (teamIds || competitionOrganisationIds) {
             let listIds: number[] = [];
-            if (organisationIds && organisationIds.length > 0) {
-                listIds = ((await this.teamService.teamIdsByOrganisationIds(organisationIds)).map(x => x['id']));
+            if (isArrayPopulated(competitionOrganisationIds)) {
+                listIds = ((await this.teamService.teamIdsByCompetitionOrganisationIds(competitionOrganisationIds)).map(x => x['id']));
             }
-            if (teamIds && teamIds.length > 0) {
+            if (isArrayPopulated(teamIds)) {
                 for (const teamId of teamIds) {
                     listIds.push(teamId);
                 }

@@ -35,16 +35,21 @@ export default class MatchService extends BaseService<Match> {
         return Match.name;
     }
 
-    private filterByOrganisationTeam(competitionId: number = undefined, organisationIds: number[] = [], teamIds: number[] = [], query) {
+    private filterByOrganisationTeam(
+        competitionId: number = undefined,
+        competitionOrganisationIds: number[] = [],
+        teamIds: number[] = [],
+        query
+    ) {
         this.addDefaultJoin(query);
-        if (competitionId || (teamIds && teamIds.length > 0) || (organisationIds && organisationIds.length > 0)) {
+        if (competitionId || (isArrayPopulated(teamIds)) || (isArrayPopulated(competitionOrganisationIds))) {
             query.andWhere(new Brackets(qb => {
                 if (competitionId) qb.orWhere("match.competitionId = :competitionId", { competitionId });
-                if (teamIds && teamIds.length > 0) {
+                if (isArrayPopulated(teamIds)) {
                     qb.orWhere("(match.team1Id in (:teamIds) or match.team2Id in (:teamIds))", { teamIds });
                 }
-                if (organisationIds && organisationIds.length > 0) {
-                    qb.orWhere("(team1.organisationId in (:organisationIds) or team2.organisationId in (:organisationIds))", { organisationIds });
+                if (isArrayPopulated(competitionOrganisationIds)) {
+                    qb.orWhere("(team1.competitionOrganisationId in (:competitionOrganisationIds) or team2.competitionOrganisationId in (:competitionOrganisationIds))", { competitionOrganisationIds });
                 }
             }));
         }
@@ -149,8 +154,8 @@ export default class MatchService extends BaseService<Match> {
             query.andWhere("(match.team1Id in (:teamIds) or match.team2Id in (:teamIds))", { teamIds });
         }
         if (isNotNullAndUndefined(competitionOrganisationId)) {
-            query.andWhere("(team1.organisationId = :compOrgId or " +
-                "team2.organisationId = :compOrgId)", { compOrgId: competitionOrganisationId });
+            query.andWhere("(team1.competitionOrganisationId = :compOrgId or " +
+                "team2.competitionOrganisationId = :compOrgId)", { compOrgId: competitionOrganisationId });
         }
         if (matchEnded != undefined) query.andWhere("match.matchEnded is :matchEnded", { matchEnded });
         if (matchStatus) query.andWhere("match.matchStatus in (:matchStatus)", { matchStatus });
@@ -204,9 +209,9 @@ export default class MatchService extends BaseService<Match> {
             .getMany();
     }
 
-    public async loadHomeLive(organisationIds: number[], teamIds: number[] = []): Promise<Match[]> {
+    public async loadHomeLive(competitionOrganisationIds: number[], teamIds: number[] = []): Promise<Match[]> {
         let query = this.entityManager.createQueryBuilder(Match, 'match');
-        this.filterByOrganisationTeam(undefined, organisationIds, teamIds, query);
+        this.filterByOrganisationTeam(undefined, competitionOrganisationIds, teamIds, query);
         query.andWhere(new Brackets(qb => {
             qb.andWhere("match.matchStatus is null")
                 .andWhere("match.startTime < (now())")
@@ -216,9 +221,9 @@ export default class MatchService extends BaseService<Match> {
         return query.getMany()
     }
 
-    public async loadHomeUpcoming(organisationIds: number[], teamIds: number[], upcomingStartTimeRange: number): Promise<Match[]> {
+    public async loadHomeUpcoming(competitionOrganisationIds: number[], teamIds: number[], upcomingStartTimeRange: number): Promise<Match[]> {
         let query = this.entityManager.createQueryBuilder(Match, 'match');
-        this.filterByOrganisationTeam(undefined, organisationIds, teamIds, query);
+        this.filterByOrganisationTeam(undefined, competitionOrganisationIds, teamIds, query);
         query.andWhere(new Brackets(qb => {
             qb.andWhere("match.startTime > now()");
             if (upcomingStartTimeRange) {
@@ -232,9 +237,9 @@ export default class MatchService extends BaseService<Match> {
         return query.getMany();
     }
 
-    public async loadHomeEnded(organisationIds: number[], teamIds: number[], endTimeRange: number) {
+    public async loadHomeEnded(competitionOrganisationIds: number[], teamIds: number[], endTimeRange: number) {
         let query = this.entityManager.createQueryBuilder(Match, 'match');
-        this.filterByOrganisationTeam(undefined, organisationIds, teamIds, query);
+        this.filterByOrganisationTeam(undefined, competitionOrganisationIds, teamIds, query);
         query.andWhere(new Brackets(qb => {
             qb.andWhere("match.endTime > (now() - interval :endTimeRange minute )", { endTimeRange })
                 .andWhere("match.endTime < (now())")
@@ -404,9 +409,16 @@ export default class MatchService extends BaseService<Match> {
         return query.softDelete().execute();
     }
 
-    public async findTodaysMatchByParam(from: Date, to: Date, teamIds: number[] = [], playerIds: number[],
-                                        competitionId: number, organisationIds: number[], offset: number = undefined, limit: number = undefined): Promise<any> {
-
+    public async findTodaysMatchByParam(
+        from: Date,
+        to: Date,
+        teamIds: number[] = [],
+        playerIds: number[],
+        competitionId: number,
+        competitionOrganisationIds: number[],
+        offset: number = undefined,
+        limit: number = undefined
+    ): Promise<any> {
         let query = await this.entityManager.createQueryBuilder(Match, 'match');
         if (from && to) {
             query.andWhere(`((match.startTime < cast(:from as datetime) and match.matchStatus != 'ENDED') or
@@ -415,7 +427,7 @@ export default class MatchService extends BaseService<Match> {
             )`, { from, to });
         }
 
-        this.filterByOrganisationTeam(competitionId, organisationIds, teamIds, query);
+        this.filterByOrganisationTeam(competitionId, competitionOrganisationIds, teamIds, query);
         query.orderBy('match.startTime', 'ASC');
 
         if (limit) {

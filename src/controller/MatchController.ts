@@ -73,14 +73,12 @@ export class MatchController extends BaseController {
     ) {
         const matchDetails = await this.matchService.findAdminMatchById(id, lineups);
         if (matchDetails && matchDetails.match[0]) {
-            const competitionId = matchDetails.match[0].competitionId;
-            const competition = await this.competitionService.findById(competitionId);
-            const organisationId = competition.organisationId;
-            const competitionOrganisation = await this.organisationService.findById(organisationId);
+            const competition = await this.competitionService.findById(matchDetails.match[0].competitionId);
+            const linkedCompetitionOrganisation = await this.linkedCompetitionOrganisationService.findByOrganisationId(competition.organisationId);
 
             return {
                 ...matchDetails,
-                competitionOrganisation,
+                linkedCompetitionOrganisation,
             }
         }
     }
@@ -153,31 +151,31 @@ export class MatchController extends BaseController {
 
     @Get('/home')
     async loadHomeMatches(
-        @QueryParam('organisationIds') organisationIds: number[],
+        @QueryParam('competitionOrganisationIds') competitionOrganisationIds: number[],
         @QueryParam('teamIds') teamIds: number[] = [],
         @QueryParam('playerIds') playerIds: number[],
         @QueryParam('upcomingCount') upcomingCount: number,
         @QueryParam('upcomingStartTimeRange') upcomingStartTimeRange: number = undefined,
         @QueryParam('endTimeRange') endTimeRange: number
     ): Promise<{ live: Match[], upcoming: Match[], ended: Match[] }> {
-        if (organisationIds && !Array.isArray(organisationIds)) organisationIds = [organisationIds];
+        if (competitionOrganisationIds && !Array.isArray(competitionOrganisationIds)) competitionOrganisationIds = [competitionOrganisationIds];
         if (teamIds && !Array.isArray(teamIds)) teamIds = [teamIds];
         if (playerIds && !Array.isArray(playerIds)) playerIds = [playerIds];
-        if ((playerIds && playerIds.length > 0) || (organisationIds && organisationIds.length > 0) || (teamIds && teamIds.length > 0)) {
+        if (isArrayPopulated(playerIds) || isArrayPopulated(competitionOrganisationIds) || isArrayPopulated(teamIds)) {
             if (playerIds && playerIds.length > 0) {
                 teamIds = _.uniq([
                     ...teamIds,
                     ...(await this.playerService.findByIds(playerIds)).map(player => player.teamId)
                 ]);
             }
-            const live = await this.matchService.loadHomeLive(organisationIds, teamIds);
-            let upcoming = await this.matchService.loadHomeUpcoming(organisationIds, teamIds, upcomingStartTimeRange);
+            const live = await this.matchService.loadHomeLive(competitionOrganisationIds, teamIds);
+            let upcoming = await this.matchService.loadHomeUpcoming(competitionOrganisationIds, teamIds, upcomingStartTimeRange);
             if (upcomingCount != undefined && upcomingCount != 0) {
                 let teams = teamIds;
-                if (organisationIds && organisationIds.length > 0) {
+                if (isArrayPopulated(competitionOrganisationIds)) {
                     teams = _.uniq([
                         ...teamIds,
-                        ...(await this.teamService.teamIdsByOrganisationIds(organisationIds)).map(data => data['id'])
+                        ...(await this.teamService.teamIdsByCompetitionOrganisationIds(competitionOrganisationIds)).map(data => data['id'])
                     ]);
                 }
                 let filtered: Match[] = [];
@@ -194,7 +192,7 @@ export class MatchController extends BaseController {
                 }
                 upcoming = filtered;
             }
-            const ended = endTimeRange ? await this.matchService.loadHomeEnded(organisationIds, teamIds, endTimeRange) : [];
+            const ended = endTimeRange ? await this.matchService.loadHomeEnded(competitionOrganisationIds, teamIds, endTimeRange) : [];
             return { live, upcoming, ended };
         } else {
             return { live: [], upcoming: [], ended: [] };
@@ -373,7 +371,7 @@ export class MatchController extends BaseController {
                             }
                             if (oldMatchingUmpireList.length > 0) {
                                 let oldUmpire = oldMatchingUmpireList[0];
-                                if (oldUmpire.organisationId != newUmpire.organisationId ||
+                                if (oldUmpire.competitionOrganisationId != newUmpire.competitionOrganisationId ||
                                     oldUmpire.umpireName != newUmpire.umpireName ||
                                     oldUmpire.umpireType != newUmpire.umpireType) {
                                       this.createUmpire(newUmpire, user.id, oldUmpire);
@@ -575,7 +573,7 @@ export class MatchController extends BaseController {
         }
         newMatchUmpire.matchId = umpire.matchId;
         newMatchUmpire.userId = umpire.userId;
-        newMatchUmpire.organisationId = umpire.organisationId;
+        newMatchUmpire.competitionOrganisationId = umpire.competitionOrganisationId;
         newMatchUmpire.umpireName = umpire.umpireName;
         newMatchUmpire.umpireType = umpire.umpireType;
         newMatchUmpire.sequence = umpire.sequence;
@@ -2067,7 +2065,7 @@ export class MatchController extends BaseController {
     ): Promise<any> {
         try {
             const competition = await this.competitionService.findById(competitionId);
-            const organisation = await this.organisationService.getOrganisationLogoDetails(competition.organisationId);
+            const organisation = await this.linkedCompetitionOrganisationService.getOrganisationLogoDetails(competition.organisationId);
 
             this.matchService.printMatchSheetTemplate(
                 templateType,

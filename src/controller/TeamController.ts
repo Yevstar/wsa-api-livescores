@@ -51,13 +51,13 @@ export class TeamController extends BaseController {
     @Get('/details')
     async getFullTeamDetail(
         @QueryParam("teamId") teamId: number,
-        @QueryParam("organisationId") organisationId: number,
+        @QueryParam("competitionOrganisationId") competitionOrganisationId: number,
         @QueryParam("competitionId") competitionId: number,
         @QueryParam("teamName") teamName: string,
     ): Promise<Team[]> {
         let teamsList = await this.teamService.findTeams(
             teamId,
-            organisationId,
+            competitionOrganisationId,
             competitionId,
             teamName
         );
@@ -88,7 +88,7 @@ export class TeamController extends BaseController {
     @Get('/list')
     async listCompetitionTeams(
         @QueryParam('competitionId') competitionId: number,
-        @QueryParam('organisationId') organisationId: number,
+        @QueryParam('competitionOrganisationId') competitionOrganisationId: number,
         @QueryParam('divisionId') divisionId: number,
         @QueryParam('includeBye') includeBye: number = 0,
         @QueryParam('search') search: string,
@@ -106,7 +106,7 @@ export class TeamController extends BaseController {
 
         const teamData = await this.teamService.findTeamsWithUsers(
             competitionId,
-            organisationId,
+            competitionOrganisationId,
             divisionId,
             includeBye,
             search,
@@ -302,8 +302,8 @@ export class TeamController extends BaseController {
         team.alias = teamData.alias;
         team.competitionId = stringTONumber(teamData.competitionId);
         team.divisionId = stringTONumber(teamData.divisionId);
-        if (teamData.organisationId) {
-            team.organisationId = stringTONumber(teamData.organisationId);
+        if (teamData.competitionOrganisationId) {
+            team.competitionOrganisationId = stringTONumber(teamData.competitionOrganisationId);
         }
         team.logoUrl = teamData.logoUrl;
         let savedTeam = await this.teamService.createOrUpdate(team);
@@ -418,9 +418,9 @@ export class TeamController extends BaseController {
                     .status(400).send(
                         { name: 'save_error', message: 'Logo not saved, try again later.' });
             }
-        } else if (isNullOrEmpty(teamData.logoUrl) && savedTeam.organisationId) {
+        } else if (isNullOrEmpty(teamData.logoUrl) && savedTeam.competitionOrganisationId) {
             let linkedCompetitionOrganisation = await this.competitionOrganisationService
-                .findLinkedCompetitionOrganisation(stringTONumber(savedTeam.organisationId));
+                .findLinkedCompetitionOrganisation(stringTONumber(savedTeam.competitionOrganisationId));
             if (isNotNullAndUndefined(linkedCompetitionOrganisation) &&
                 isNotNullAndUndefined(linkedCompetitionOrganisation.logoUrl)) {
                   savedTeam.logoUrl = linkedCompetitionOrganisation.logoUrl;
@@ -459,8 +459,8 @@ export class TeamController extends BaseController {
                 let teamData = await this.teamService.findByNameAndCompetition(i["Team Name"], competitionId, i["Division Grade"]);
                 if (!isArrayPopulated(teamData)) {
                     let divisionData = await this.divisionService.findByName(i["Division Grade"], competitionId);
-                    let organisationData = await this.organisationService.findByNameAndCompetitionId(i.Organisation, competitionId);
-                    if (!isArrayPopulated(divisionData) || !isArrayPopulated(organisationData)) {
+                    let linkedCompetitionOrganisationData = await this.linkedCompetitionOrganisationService.findByNameAndCompetitionId(i.Organisation, competitionId);
+                    if (!isArrayPopulated(divisionData) || !isArrayPopulated(linkedCompetitionOrganisationData)) {
                         if (message[`Line ${i.line}`]) {
                             if (!message[`Line ${i.line}`].message) {
                                 message[`Line ${i.line}`].message = [];
@@ -474,7 +474,7 @@ export class TeamController extends BaseController {
                         if (!isArrayPopulated(divisionData)) {
                             message[`Line ${i.line}`].message.push(`Can't find a matching Division Grade "${i['Division Grade']}" related to current competition: ${competition.longName}.`);
                         }
-                        if (!isArrayPopulated(organisationData)) {
+                        if (!isArrayPopulated(linkedCompetitionOrganisationData)) {
                             message[`Line ${i.line}`].message.push(`Can't find a matching organisation "${i.Organisation}" related to current competition: ${competition.longName}.`);
                         }
                     } else {
@@ -482,7 +482,7 @@ export class TeamController extends BaseController {
                         team.name = i["Team Name"];
                         team.competitionId = competitionId;
                         team.divisionId = divisionData[0].id;
-                        team.organisationId = organisationData[0].id;
+                        team.competitionOrganisationId = linkedCompetitionOrganisationData[0].id;
                         queryArr.push(team);
                     }
                 } else {
@@ -578,13 +578,13 @@ export class TeamController extends BaseController {
     @Get('/export')
     async exportTeams(
         @QueryParam('competitionId') competitionId: number,
-        @QueryParam('organisationId') organisationId: number,
+        @QueryParam('competitionOrganisationId') competitionOrganisationId: number,
         @QueryParam('divisionId') divisionId: number,
         @Res() response: Response
     ): Promise<any> {
         const getTeamsData = await this.listCompetitionTeams(
             competitionId,
-            organisationId,
+            competitionOrganisationId,
             divisionId,
             null,
             null,

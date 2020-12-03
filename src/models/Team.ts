@@ -39,7 +39,7 @@ export class Team extends BaseEntity {
 
     @IsNumber()
     @Column()
-    organisationId: number;
+    competitionOrganisationId: number;
 
     @IsBoolean()
     @Column()
@@ -56,8 +56,8 @@ export class Team extends BaseEntity {
 
     @ValidateNested()
     @OneToOne(type => LinkedCompetitionOrganisation)
-    @JoinColumn({name: 'organisationId', referencedColumnName: 'id'})
-    competitionOrganisation: LinkedCompetitionOrganisation;
+    @JoinColumn({name: 'competitionOrganisationId', referencedColumnName: 'id'})
+    linkedCompetitionOrganisation: LinkedCompetitionOrganisation;
 
     @ValidateNested()
     @ManyToOne(type => Division, division => division.teams)

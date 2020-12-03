@@ -177,7 +177,7 @@ export class UserController extends BaseController {
         @HeaderParam("authorization") user: User,
         @QueryParam('deviceId') deviceId: string = undefined,
         @Res() response: Response
-    ): Promise<{ teamIds: number[], organisationIds: number[] }> {
+    ): Promise<{ teamIds: number[], competitionOrganisationIds: number[] }> {
         return this.loadUserWatchlist(user ? user.id : undefined, deviceId);
     }
 
@@ -187,10 +187,10 @@ export class UserController extends BaseController {
         @HeaderParam("authorization") user: User,
         @QueryParam('deviceId') deviceId: string = undefined,
         @QueryParam('teamIds') teamIds: number[] = [],
-        @QueryParam('organisationIds') organisationIds: number[] = [],
+        @QueryParam('competitionOrganisationIds') competitionOrganisationIds: number[] = [],
         @Res() response: Response
-    ): Promise<{ teamIds: number[], organisationIds: number[] }> {
-        await this.createUserWatchlist(user, deviceId, teamIds, organisationIds, false);
+    ): Promise<{ teamIds: number[], competitionOrganisationIds: number[] }> {
+        await this.createUserWatchlist(user, deviceId, teamIds, competitionOrganisationIds, false);
         return this.loadWatchlist(user, deviceId, response);
     }
 
@@ -202,7 +202,7 @@ export class UserController extends BaseController {
         @QueryParam('entityId') entityId: number,
         @QueryParam('entityTypeId') entityTypeId: number,
         @Res() response: Response
-    ): Promise<{ teamIds: number[], organisationIds: number[] }> {
+    ): Promise<{ teamIds: number[], competitionOrganisationIds: number[] }> {
         await this.removeUserWatchlist(user, deviceId, entityId, entityTypeId);
         return this.loadWatchlist(user, deviceId, response);
     }
@@ -290,7 +290,7 @@ export class UserController extends BaseController {
     ) {
         if (oldDeviceId && newDeviceId) {
             let watchlist = await this.loadUserWatchlist(user ? user.id : undefined, oldDeviceId);
-            let topics = await this.loadTopics(watchlist.teamIds, watchlist.organisationIds);
+            let topics = await this.loadTopics(watchlist.teamIds, watchlist.competitionOrganisationIds);
             if (topics.length > 0) {
                 await this.firebaseService.unsubscribeTopic(oldDeviceId, topics);
                 await this.firebaseService.subscribeTopic(newDeviceId, topics);
@@ -321,7 +321,7 @@ export class UserController extends BaseController {
         //Add user to cache
         if (deviceId) {
             let watchlist = await this.loadUserWatchlist(undefined, deviceId);
-            let topics = await this.loadTopics(watchlist.teamIds, watchlist.organisationIds);
+            let topics = await this.loadTopics(watchlist.teamIds, watchlist.competitionOrganisationIds);
             if (topics.length > 0) {
                 await this.firebaseService.unsubscribeTopic(deviceId, topics)
             }
@@ -331,7 +331,7 @@ export class UserController extends BaseController {
 
             if (user) {
                 let watchlist = await this.loadUserWatchlist(user.id, undefined);
-                let topics = await this.loadTopics(watchlist.teamIds, watchlist.organisationIds);
+                let topics = await this.loadTopics(watchlist.teamIds, watchlist.competitionOrganisationIds);
                 if (topics.length > 0) {
                     await this.firebaseService.subscribeTopic(deviceId, topics)
                 }
@@ -342,36 +342,19 @@ export class UserController extends BaseController {
     private async loadUserWatchlist(
         userId: number = undefined,
         deviceId: string = undefined
-    ): Promise<{ teamIds: number[], organisationIds: number[] }> {
+    ): Promise<{ teamIds: number[], competitionOrganisationIds: number[] }> {
         let watchlist = [];
         if (userId) {
             watchlist = await this.watchlistService.findByParam(userId);
         } else if (deviceId) {
             watchlist = await this.watchlistService.findByParam(undefined, deviceId);
         } else {
-            return { organisationIds: [], teamIds: [] }
+            return { competitionOrganisationIds: [], teamIds: [] }
         }
 
-        let organisationIds = watchlist.filter(item => item.entityTypeId == EntityType.ORGANISATION).map(item => item.entityId);
+        let competitionOrganisationIds = watchlist.filter(item => item.entityTypeId == EntityType.COMPETITION_ORGANISATION).map(item => item.entityId);
         let teamIds = watchlist.filter(item => item.entityTypeId == EntityType.TEAM).map(item => item.entityId);
-        return { teamIds, organisationIds }
-    }
-
-    @Authorized()
-    @Get('/byOrgRole')
-    async loadOrgUserByRole(
-        @QueryParam('roleId', { required: true }) roleId: number,
-        @QueryParam('organisationId', { required: true }) organisationId: number,
-        @QueryParam('userName') userName: string,
-        @QueryParam('offset') offset: number,
-        @QueryParam('limit') limit: number,
-        @Res() response: Response
-    ) {
-        let result = await this.userService.getUserIdBySecurity(EntityType.ORGANISATION, [organisationId], userName, { roleId: roleId });
-        // for (let u of result) {
-        //     u['linkedEntity'] = JSON.parse(u['linkedEntity']);
-        // }
-        return result;
+        return { teamIds, competitionOrganisationIds }
     }
 
     @Authorized()
@@ -832,7 +815,7 @@ export class UserController extends BaseController {
             const userDetails = new User();
             let newUser = false;
             let teamDetailArray: any = [];
-            let orgDetailArray: any = [];
+            let linkedOrgDetailArray: any = [];
             let savedUserDetail: User;
             const password = Math.random().toString(36).slice(-8);
 
@@ -897,13 +880,13 @@ export class UserController extends BaseController {
                 } else {
                     const orgArray = i['Organisation'].split(',');
                     for (let org of orgArray) {
-                        const orgDetail: LinkedCompetitionOrganisation[] = await this.organisationService.findByNameAndCompetitionId(org, competitionId);
-                        if (isArrayPopulated(orgDetail)) {
-                            orgDetailArray.push(...orgDetail);
+                        const linkedCompetitionOrganisationArray: LinkedCompetitionOrganisation[] = await this.linkedCompetitionOrganisationService.findByNameAndCompetitionId(org, competitionId);
+                        if (isArrayPopulated(linkedCompetitionOrganisationArray)) {
+                            linkedOrgDetailArray.push(...linkedCompetitionOrganisationArray);
                         }
                     }
 
-                    if (orgDetailArray.length === 0) {
+                    if (linkedOrgDetailArray.length === 0) {
                         error = `No matching organization found for ${i['Organisation']}.`;
                     }
                 }
@@ -943,8 +926,8 @@ export class UserController extends BaseController {
                             );
                         }
                     }
-                } else if (isArrayPopulated(orgDetailArray)) {
-                    for (let org of orgDetailArray) {
+                } else if (isArrayPopulated(linkedOrgDetailArray)) {
+                    for (let org of linkedOrgDetailArray) {
                       if (roleId == Role.UMPIRE) {
                           var createUmpireURE = false;
                           var createUmpireCoachURE = false;
@@ -1017,8 +1000,8 @@ export class UserController extends BaseController {
                     let competitionData = await this.competitionService.findById(competitionId);
                     if (isArrayPopulated(teamDetailArray)) {
                         this.userService.sentMail(user, teamDetailArray, competitionData, roleId, savedUserDetail, password);
-                    } else if (isArrayPopulated(orgDetailArray)) {
-                        this.userService.sentMail(user, orgDetailArray, competitionData, roleId, savedUserDetail, password);
+                    } else if (isArrayPopulated(linkedOrgDetailArray)) {
+                        this.userService.sentMail(user, linkedOrgDetailArray, competitionData, roleId, savedUserDetail, password);
                     }
                 }
                 if (teamChatRequired) {
@@ -1076,16 +1059,16 @@ export class UserController extends BaseController {
         user: User,
         deviceId: string = undefined,
         teamIds: number[] = [],
-        organisationIds: number[] = [],
+        competitionOrganisationIds: number[] = [],
         notifyUser: boolean = true
     ) {
-        if (organisationIds && !Array.isArray(organisationIds)) organisationIds = [organisationIds];
+        if (competitionOrganisationIds && !Array.isArray(competitionOrganisationIds)) competitionOrganisationIds = [competitionOrganisationIds];
         if (teamIds && !Array.isArray(teamIds)) teamIds = [teamIds];
-        let topics = await this.loadTopics(teamIds, organisationIds);
+        let topics = await this.loadTopics(teamIds, competitionOrganisationIds);
         if (topics.length > 0) {
             await this.firebaseService.subscribeTopic(deviceId, topics)
         }
-        await this.watchlistService.save(user ? user.id : undefined, deviceId, organisationIds, teamIds);
+        await this.watchlistService.save(user ? user.id : undefined, deviceId, competitionOrganisationIds, teamIds);
 
         /// On saving of watchlist we will add the user spectator role
         /// to those team's or organisation's
@@ -1097,8 +1080,8 @@ export class UserController extends BaseController {
                     compIds.push(team.competitionId);
                 });
             }
-            if (organisationIds) {
-                const orgList = await this.organisationService.findByIds(organisationIds);
+            if (competitionOrganisationIds) {
+                const orgList = await this.linkedCompetitionOrganisationService.findByIds(competitionOrganisationIds);
                 orgList.forEach((org) => {
                     compIds.push(org.competitionId);
                 });
@@ -1144,8 +1127,8 @@ export class UserController extends BaseController {
     ) {
         if (entityTypeId) {
             let teamIds: number[] = [];
-            if (entityTypeId == EntityType.ORGANISATION) {
-                teamIds = (await this.teamService.teamByOrganisationId(entityId)).map(team => team.id);
+            if (entityTypeId == EntityType.COMPETITION_ORGANISATION) {
+                teamIds = (await this.teamService.teamsByCompetitionOrganisationId(entityId)).map(team => team.id);
             }
             if (entityTypeId == EntityType.TEAM) {
                 teamIds.push(entityId);
@@ -1161,7 +1144,7 @@ export class UserController extends BaseController {
         if (user) {
             let compId;
             if (entityTypeId == EntityType.ORGANISATION) {
-                let org = await this.organisationService.findById(entityId);
+                let org = await this.linkedCompetitionOrganisationService.findById(entityId);
                 compId = org.competitionId;
             } else if (entityTypeId == EntityType.TEAM) {
                 let team = await this.teamService.findById(entityId);
@@ -1177,7 +1160,7 @@ export class UserController extends BaseController {
 
     private async evaluateUserWatchlist(user: User, deviceId: string, notifyAnyChange: boolean) {
         let teamIdSet = new Set();
-        let organisationIdSet = new Set();
+        let competitionOrganisationIdSet = new Set();
 
         let rosters = await this.rosterService.findByUser(user.id);
         if (isArrayPopulated(rosters)) {
@@ -1193,8 +1176,8 @@ export class UserController extends BaseController {
                 if (ure.roleId == Role.MANAGER ||
                       ure.roleId == Role.PLAYER ||
                       ure.roleId == Role.COACH) {
-                          if (ure.entityTypeId == EntityType.ORGANISATION) {
-                              organisationIdSet.add(ure.entityId);
+                          if (ure.entityTypeId == EntityType.COMPETITION_ORGANISATION) {
+                              competitionOrganisationIdSet.add(ure.entityId);
                           } else {
                               teamIdSet.add(ure.entityId);
                           }
@@ -1204,9 +1187,9 @@ export class UserController extends BaseController {
 
         let userWatchlist = await this.watchlistService.findByParam(user.id, deviceId);
         userWatchlist.forEach((watchItem) => {
-            if (watchItem.entityTypeId == EntityType.ORGANISATION &&
-                  organisationIdSet.has(watchItem.entityId)) {
-                      organisationIdSet.delete(watchItem.entityId);
+            if (watchItem.entityTypeId == EntityType.COMPETITION_ORGANISATION &&
+                  competitionOrganisationIdSet.has(watchItem.entityId)) {
+                      competitionOrganisationIdSet.delete(watchItem.entityId);
             } else if (teamIdSet.has(watchItem.entityId)) {
                 teamIdSet.delete(watchItem.entityId);
             }
@@ -1215,12 +1198,12 @@ export class UserController extends BaseController {
         if (user &&
             deviceId &&
             (teamIdSet.size != 0 ||
-              organisationIdSet.size != 0)) {
+              competitionOrganisationIdSet.size != 0)) {
                 await this.createUserWatchlist(
                     user,
                     deviceId,
                     Array.from(teamIdSet),
-                    Array.from(organisationIdSet),
+                    Array.from(competitionOrganisationIdSet),
                     notifyAnyChange
                 );
         }

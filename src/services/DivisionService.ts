@@ -3,6 +3,7 @@ import {Service} from "typedi";
 import BaseService from "./BaseService";
 import {Division} from "../models/Division";
 import {Team} from "../models/Team";
+import { isArrayPopulated } from "../utils/Utils";
 
 @Service()
 export default class DivisionService extends BaseService<Division> {
@@ -13,7 +14,7 @@ export default class DivisionService extends BaseService<Division> {
 
     public async findByParams(
         competitionId: number,
-        organisationIds: number[],
+        competitionOrganisationIds: number[],
         teamIds: number[],
         offset: number,
         limit: number,
@@ -26,12 +27,12 @@ export default class DivisionService extends BaseService<Division> {
             .leftJoin(Team, 'team', 'team.divisionId = d.id');
 
         if (competitionId) query.orWhere("d.competitionId = :competitionId", {competitionId});
-        if ((teamIds && teamIds.length > 0) || (organisationIds && organisationIds.length > 0)) {
-            if (teamIds && teamIds.length > 0) {
+        if ((isArrayPopulated(teamIds)) || (isArrayPopulated(competitionOrganisationIds))) {
+            if (isArrayPopulated(teamIds)) {
                 query.orWhere("team.id in (:teamIds)", {teamIds});
             }
-            if (organisationIds && organisationIds.length > 0) {
-                query.orWhere("team.organisationId in (:organisationIds)", {organisationIds});
+            if (isArrayPopulated(competitionOrganisationIds)) {
+                query.orWhere("team.competitionOrganisationId in (:competitionOrganisationIds)", {competitionOrganisationIds});
             }
         }
 

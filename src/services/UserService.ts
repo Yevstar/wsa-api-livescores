@@ -106,8 +106,6 @@ export default class UserService extends BaseService<User> {
     }
 
     public async getUsersBySecurity(
-        entityTypeId: number,
-        entityId: number,
         userId: number,
         sec: { functionId?: number, roleId?: number },
     ): Promise<User[]> {
@@ -147,11 +145,11 @@ export default class UserService extends BaseService<User> {
                 'u.marketingOptIn as marketingOptIn', 'u.photoUrl as photoUrl',
                 'u.firebaseUID as firebaseUID', 'u.statusRefId as statusRefId'])
             .addSelect('concat(\'[\', group_concat(distinct JSON_OBJECT(\'name\', c.name)),\']\') as competitions')
-            .addSelect('concat(\'[\', group_concat(distinct JSON_OBJECT(\'name\', o.linkedOrganisationName)),\']\') as organisations')
+            .addSelect('concat(\'[\', group_concat(distinct JSON_OBJECT(\'name\', lo.linkedOrganisationName)),\']\') as organisations')
             .innerJoin(UserRoleEntity, 'ure', 'u.id = ure.userId')
-            .innerJoin(LinkedCompetitionOrganisation, 'co', 'co.id = ure.entityId')
-            .innerJoin(Competition, 'c', 'co.competitionid = c.id')
-            .innerJoin(LinkedOrganisations, 'o', 'o.linkedOrganisationId = co.organisationId');
+            .innerJoin(LinkedCompetitionOrganisation, 'lco', 'lco.id = ure.entityId')
+            .innerJoin(Competition, 'c', 'lco.competitionid = c.id')
+            .innerJoin(LinkedOrganisations, 'lo', 'lo.linkedOrganisationId = lco.organisationId');
 
         // if (sec.functionId) {
         // let id = sec.functionId;
@@ -166,7 +164,7 @@ export default class UserService extends BaseService<User> {
 
         let orgEntityId = EntityType.ORGANISATION;
         query.andWhere('ure.entityTypeId = :orgEntityId', { orgEntityId })
-            .andWhere('o.inputOrganisationId = :organisationId', { organisationId });
+            .andWhere('lo.inputOrganisationId = :organisationId', { organisationId });
 
         if (search) {
             query.andWhere(new Brackets(qb => {

@@ -71,7 +71,7 @@ export default class TeamService extends BaseService<Team> {
 
     public async findTeamsWithUsers(
         competitionId: number,
-        organisationId: number,
+        competitionOrganisationId: number,
         divisionId: number,
         includeBye: number,
         search: string,
@@ -82,7 +82,7 @@ export default class TeamService extends BaseService<Team> {
     ): Promise<any> {
         let result = await this.entityManager.query(
             "call wsa.usp_get_teams(?,?,?,?,?,?,?,?,?)",
-            [competitionId, organisationId, search, limit, offset, divisionId, includeBye, sortBy, sortOrder]
+            [competitionId, competitionOrganisationId, search, limit, offset, divisionId, includeBye, sortBy, sortOrder]
         );
         if (isArrayPopulated(result)) {
             return { teamCount: result[1][0]['totalCount'], teams: result[0] };
@@ -174,16 +174,16 @@ export default class TeamService extends BaseService<Team> {
         }
     }
 
-    public async teamIdsByOrganisationIds(organisationIds: number[]): Promise<any[]> {
+    public async teamIdsByCompetitionOrganisationIds(competitionOrganisationIds: number[]): Promise<any[]> {
         return this.entityManager.createQueryBuilder(Team, 'team')
             .select('DISTINCT team.id', 'id')
-            .andWhere('team.organisationId in (:organisationIds)', { organisationIds })
+            .andWhere('team.competitionOrganisationId in (:competitionOrganisationIds)', { competitionOrganisationIds })
             .getRawMany();
     }
 
-    public async teamByOrganisationId(organisationId: number): Promise<Team[]> {
+    public async teamsByCompetitionOrganisationId(competitionOrganisationId: number): Promise<Team[]> {
         return this.entityManager.createQueryBuilder(Team, 'team')
-            .andWhere('team.organisationId = :organisationId', { organisationId })
+            .andWhere('team.competitionOrganisationId = :competitionOrganisationId', { competitionOrganisationId })
             .getMany();
     }
 
@@ -396,7 +396,7 @@ export default class TeamService extends BaseService<Team> {
 
     public async findTeams(
         teamId: number,
-        organisationId: number,
+        competitionOrganisationId: number,
         competitionId: number,
         teamName: string
     ): Promise<Team[]> {
@@ -405,8 +405,8 @@ export default class TeamService extends BaseService<Team> {
         if (teamId) {
             query.andWhere('team.id = :id', { id: teamId });
         }
-        if (organisationId) {
-            query.andWhere('team.organisationId = :id', { id: organisationId });
+        if (competitionOrganisationId) {
+            query.andWhere('team.competitionOrganisationId = :id', { id: competitionOrganisationId });
         }
         if (competitionId) {
             query.andWhere('team.competitionId = :id', { id: competitionId });
