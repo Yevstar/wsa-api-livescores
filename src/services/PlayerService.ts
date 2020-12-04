@@ -35,7 +35,7 @@ export default class PlayerService extends BaseService<Player> {
             .innerJoinAndSelect("team.division", "division")
             .innerJoinAndSelect("player.competition", "competition")
             .leftJoinAndSelect("player.user", "user")
-            .leftJoin("team.competitionOrganisation", "competitionOrganisation")
+            .leftJoin("team.linkedCompetitionOrganisation", "linkedCompetitionOrganisation")
             .andWhere('player.deleted_at is null')
             .andWhere('team.deleted_at is null');
 
@@ -57,9 +57,9 @@ export default class PlayerService extends BaseService<Player> {
 
         if (linkedCompetitionOrganisation) {
             if (includeLinkedCompetition) {
-                query.andWhere('competitionOrganisation.orgId = :organisationId', {organisationId: linkedCompetitionOrganisation.organisationId});
+                query.andWhere('linkedCompetitionOrganisation.organisationId = :organisationId', {organisationId: linkedCompetitionOrganisation.organisationId});
             } else {
-                query.andWhere('competitionOrganisation.id = :id', {id: linkedCompetitionOrganisation.id});
+                query.andWhere('linkedCompetitionOrganisation.id = :id', {id: linkedCompetitionOrganisation.id});
             }
         }
 
