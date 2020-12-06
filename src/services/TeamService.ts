@@ -345,7 +345,7 @@ export default class TeamService extends BaseService<Team> {
         });
         const mailOptions = {
             from: {
-                name: "World Sport Action",
+                name: "NetballConnect",
                 address: process.env.MAIL_USERNAME
             },
             to: player.email,
