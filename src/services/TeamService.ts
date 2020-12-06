@@ -270,6 +270,10 @@ export default class TeamService extends BaseService<Team> {
     }
 
     public async sendInviteMail(user: User, player: Player, isInviteToParents: boolean, isExistingUser: boolean) {
+        var appName = 'NetballConnect';
+        var googlePlayUrl = 'https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU';
+        var appStoreUrl = 'https://itunes.apple.com/au/app/netball-live-scores/id1456225408';
+
         var deepLinkPlayer = new DeepLinkPlayer();
         deepLinkPlayer.id = player.id;
         deepLinkPlayer.userId = player.userId;
@@ -306,11 +310,12 @@ export default class TeamService extends BaseService<Team> {
         }
         logger.info(`TeamService - sendInviteMail : signUpURL ${signUpURL}, loggedInURL ${loggedInURL}`);
         let mailHtml = `${user.firstName} ${user.lastName} would like to invite
-        you to use the Netball LiveScores App so that you can view team news,
+        you to use the ${appName} App so that you can view team news,
         messages and events. Of course, this is in addition to viewing live
         scores, draws and ladders!
-        <br><br> 1. If you don't have the App yet, download it from the <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
-        <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a>.
+        <br><br> 1. If you don't have the App yet, download it from the 
+            <a href='${appStoreUrl}'>App Store</a> or
+            <a href='${googlePlayUrl}'>Google Play</a>.
         <br><br> `;
         if (isExistingUser) {
             mailHtml = mailHtml + `<br><br> 2. If you have already logged into to the app, continue to Step 3, otherwise log in to the app with your email address and password: <b>8kul0zoi</b>. You can change this once you log in if you like.`;

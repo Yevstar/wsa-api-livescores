@@ -219,6 +219,9 @@ export default class UserService extends BaseService<User> {
         let html = ``;
         let subject = 'Invite Mail';
         var passwordTxt = '';
+        var appName = 'NetballConnect';
+        var googlePlayUrl = 'https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU';
+        var appStoreUrl = 'https://itunes.apple.com/au/app/netball-live-scores/id1456225408';
         if (isNotNullAndUndefined(password)) {
             if (toRoleId == Role.UMPIRE ||
                 toRoleId == Role.UMPIRE_COACH
@@ -241,14 +244,14 @@ export default class UserService extends BaseService<User> {
                                 <p> ${userData.firstName} ${userData.lastName} has
                                 advised us that you are the manager of team ${teamData[0].name}.
                                 As ${competitionData.name} are using Live Scoring
-                                for this competition we require you to download the Netball LiveScores App from the
-                                <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
-                                <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a>
+                                for this competition we require you to download the ${appName} App from the
+                                <a href='${appStoreUrl}'>App Store</a> or
+                                <a href='${googlePlayUrl}'>Google Play</a>
                                 and start assigning who  will score your team’s matches. Please note,
                                 you can choose to give this responsibility to someone else or score the games yourself.
                                 ${passwordTxt}
-                                <p> We hope you enjoy using Netball Live Scores.
-                                <p> The Netball Live Scores Team
+                                <p> We hope you enjoy using ${appName}.
+                                <p> The ${appName} Scores Team
                             </body>
                         </html>`
 
@@ -265,13 +268,14 @@ export default class UserService extends BaseService<User> {
                                 us that you are the manager of the following teams:
                                 ${teamNames}. As ${competitionData.name} are using Live
                                 Scoring for this competition we require you to
-                                download the Netball LiveScores App from the <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
-                                <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a>
+                                download the ${appName} App from the
+                                <a href='${appStoreUrl}'>App Store</a> or
+                                <a href='${googlePlayUrl}'>Google Play</a>
                                 and start assigning who  will score your team’s matches. Please note,
                                 you can choose to give this responsibility to someone else or score the games yourself.
                                 ${passwordTxt}
-                                <p> We hope you enjoy using Netball Live Scores.
-                                <p> The Netball Live Scores Team
+                                <p> We hope you enjoy using ${appName}.
+                                <p> The ${appName} Team
                             </body>
                         </html>`
             }
@@ -287,13 +291,14 @@ export default class UserService extends BaseService<User> {
                                 <p> ${userData.firstName} ${userData.lastName} has advised us
                                 that you are the coach of team ${teamData[0].name}. As
                                 ${competitionData.name} are using Live Scoring for this competition
-                                we require you to download the Netball LiveScores App from the <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
-                                <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a>
+                                we require you to download the ${appName} App from the 
+                                <a href='${appStoreUrl}'>App Store</a> or
+                                <a href='${googlePlayUrl}'>Google Play</a>
                                 and start assigning who will score your team’s matches.
                                 Please note, you can choose to give this responsibility to someone else or score the games yourself.
                                 ${passwordTxt}
-                                <p> We hope you enjoy using Netball Live Scores.
-                                <p> The Netball Live Scores Team
+                                <p> We hope you enjoy using ${appName}.
+                                <p> The ${appName} Team
                             </body>
                         </html>`
 
@@ -309,13 +314,14 @@ export default class UserService extends BaseService<User> {
                                 <p> ${userData.firstName} ${userData.lastName} has advised
                                 us that you are the coach of the following teams: ${teamNames}.
                                 As ${competitionData.name} are using Live Scoring for this
-                                competition we require you to download the Netball LiveScores App from the <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
-                                <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a>
+                                competition we require you to download the ${appName} App from the 
+                                <a href='${appStoreUrl}'>App Store</a> or
+                                <a href='${googlePlayUrl}'>Google Play</a>
                                 and start assigning who will score your team’s matches.
                                 Please note, you can choose to give this responsibility to someone else or score the games yourself.
                                 ${passwordTxt}
-                                <p> We hope you enjoy using Netball Live Scores.
-                                <p> The Netball Live Scores Team
+                                <p> We hope you enjoy using ${appName}.
+                                <p> The ${appName} Team
                             </body>
                         </html>`
             }
@@ -328,11 +334,13 @@ export default class UserService extends BaseService<User> {
                         <body>
                             <p>Hi ${receiverData.firstName} ${receiverData.lastName},
                             <p>${userData.firstName} ${userData.lastName}, ${competitionData.linkedCompetitionOrganisation.name} has invited you
-                            to umpire for ${competitionData.name}. Please Download the Netball LiveScores App from the <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
-                            <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a> and start umpiring.
+                            to umpire for ${competitionData.name}. Please Download the ${appName} App from the 
+                            <a href='${appStoreUrl}'>App Store</a> or
+                            <a href='${googlePlayUrl}'>Google Play</a>
+                            and start umpiring.
                             ${passwordTxt}
-                            <p> We hope you enjoy using Netball Live Scores.
-                            <p> The Netball Live Scores Team
+                            <p> We hope you enjoy using ${appName}.
+                            <p> The ${appName} Team
                         </body>
                     </html>`
         } else if (toRoleId == Role.UMPIRE_COACH) {
@@ -344,11 +352,13 @@ export default class UserService extends BaseService<User> {
                         <body>
                             <p>Hi ${receiverData.firstName} ${receiverData.lastName},
                             <p>${userData.firstName} ${userData.lastName}, ${competitionData.linkedCompetitionOrganisation.name} has invited you
-                            to Umpire Coach for ${competitionData.name}. Please Download the Netball LiveScores App from the <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
-                            <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a> and start Umpire Coaching.
+                            to Umpire Coach for ${competitionData.name}. Please Download the ${appName} App from the 
+                            <a href='${appStoreUrl}'>App Store</a> or
+                            <a href='${googlePlayUrl}'>Google Play</a>
+                            and start Umpire Coaching.
                             ${passwordTxt}
-                            <p> We hope you enjoy using Netball Live Scores.
-                            <p> The Netball Live Scores Team
+                            <p> We hope you enjoy using ${appName}.
+                            <p> The ${appName} Team
                         </body>
                     </html>`
         } else if (toRoleId == Role.MEMBER) {
@@ -361,11 +371,13 @@ export default class UserService extends BaseService<User> {
                             <p>Hi ${receiverData.firstName} ${receiverData.lastName},
                             <p>${userData.firstName} ${userData.lastName} has invited you
                             to score for the ${competitionData.name} competition.
-                            Download the Netball LiveScores App from the <a href='https://itunes.apple.com/au/app/netball-live-scores/id1456225408'>App Store</a> or
-                            <a href='https://play.google.com/store/apps/details?id=com.wsa.netball&hl=en_AU'>Google Play</a> and start scoring.
+                            Download the ${appName} App from the 
+                            <a href='${appStoreUrl}'>App Store</a> or
+                            <a href='${googlePlayUrl}'>Google Play</a>
+                            and start scoring.
                             ${passwordTxt}
-                            <p>We hope you enjoy using Netball Live Scores.
-                            <p>The Netball Live Scores Team
+                            <p>We hope you enjoy using ${appName}.
+                            <p>The ${appName} Team
                         </body>
                     </html>`
         }
