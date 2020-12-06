@@ -23,7 +23,7 @@ export function getMatchUmpireNotificationMessage(
     } else {
       messageBody = `${match.competition.name} has sent you a ` +
               `new Umpiring Duty for ${matchTime}. ` +
-              `Please log into your Netball Live Scores ` +
+              `Please log into your NetballConnect ` +
               `App to accept/decline.`;
     }
 

@@ -399,7 +399,7 @@ export default class UserService extends BaseService<User> {
         const mailOptions = {
             from: {
                 name: "NetballConnect",
-                address: process.env.MAIL_USERNAME
+                address: "mail@netballconnect.com"
             },
             to: receiverData.email.toLowerCase(),
             replyTo: "donotreply@worldsportaction.com",
