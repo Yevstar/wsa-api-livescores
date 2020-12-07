@@ -456,7 +456,7 @@ export class TeamController extends BaseController {
 
         if (isNotNullAndUndefined(competition)) {
             for (let i of importArr) {
-                let teamData = await this.teamService.findByNameAndCompetition(i["Team Name"], competitionId, i["Division Grade"]);
+                let teamData = await this.teamService.findByNameAndCompetition(i["Team Name"], competitionId, null, i["Division Grade"]);
                 if (!isArrayPopulated(teamData)) {
                     let divisionData = await this.divisionService.findByName(i["Division Grade"], competitionId);
                     let linkedCompetitionOrganisationData = await this.linkedCompetitionOrganisationService.findByNameAndCompetitionId(i.Organisation, competitionId);

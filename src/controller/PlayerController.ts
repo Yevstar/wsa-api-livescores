@@ -56,10 +56,10 @@ export class PlayerController extends BaseController {
     ): Promise<Player[]> {
         let competition: Competition;
         let linkedCompetitionOrganisation: LinkedCompetitionOrganisation
-        if (competitionId) {
+        if (isNotNullAndUndefined(competitionId)) {
             competition = await this.competitionService.findById(competitionId);
         }
-        if (competitionOrganisationId) {
+        if (isNotNullAndUndefined(competitionOrganisationId) && competitionOrganisationId != 0) {
             linkedCompetitionOrganisation = await this.linkedCompetitionOrganisationService.findById(competitionOrganisationId);
         }
 
@@ -212,17 +212,22 @@ export class PlayerController extends BaseController {
     @Get('/csv')
     async exportCSV(
         @QueryParam('competitionId') competitionId: number,
+        @QueryParam('competitionOrganisationId') competitionOrganisationId: number,
         @Res() response: Response
     ) {
         let competition: Competition;
-        if (competitionId) {
+        let linkedCompetitionOrganisation: LinkedCompetitionOrganisation
+        if (isNotNullAndUndefined(competitionId)) {
             competition = await this.competitionService.findById(competitionId);
+        }
+        if (isNotNullAndUndefined(competitionOrganisationId) && competitionOrganisationId != 0) {
+            linkedCompetitionOrganisation = await this.linkedCompetitionOrganisationService.findById(competitionOrganisationId);
         }
 
         let playerData = await this.playerService.findByParam(
             null,
             competition,
-            null,
+            linkedCompetitionOrganisation,
             null,
             null,
             null,
@@ -244,7 +249,8 @@ export class PlayerController extends BaseController {
     @Post('/import')
     async importCSV(
         @HeaderParam("authorization") user: User,
-        @QueryParam("competitionId", { required: true }) competitionId: number,
+        @QueryParam("competitionId") competitionId: number,
+        @QueryParam("competitionOrganisationId") competitionOrganisationId: number,
         @UploadedFile("file") file: Express.Multer.File,
         @Res() response: Response,
     ) {
@@ -266,7 +272,12 @@ export class PlayerController extends BaseController {
         let queryArr = [];
         for (let i of importArr) {
             const team = i.Team;
-            const teams = await this.teamService.findByNameAndCompetition(team, competitionId, i['Division Grade']);
+            const teams = await this.teamService.findByNameAndCompetition(
+                team,
+                competitionId,
+                competitionOrganisationId,
+                i['Division Grade']
+            );
             if (isArrayPopulated(teams)) {
                 const playerObj = new Player();
                 playerObj.teamId = teams[0].id;
@@ -275,7 +286,11 @@ export class PlayerController extends BaseController {
                 playerObj.mnbPlayerId = i.mnbPlayerId;
                 playerObj.dateOfBirth = i.DOB ? parseDateString(i.DOB) : undefined;
                 playerObj.phoneNumber = formatPhoneNumber(i['Contact No']);
-                playerObj.competitionId = competitionId;
+                if (isNotNullAndUndefined(competitionId)) {
+                    playerObj.competitionId = competitionId;
+                } else if (isNotNullAndUndefined(teams[0].competitionId)) {
+                    playerObj.competitionId = teams[0].competitionId;
+                }
                 queryArr.push(playerObj);
             } else {
                 if (message[`Line ${i.line}`]) {
@@ -346,10 +361,10 @@ export class PlayerController extends BaseController {
     ): Promise<{ page: {}, players: Player[] }> {
         let competition: Competition;
         let linkedCompetitionOrganisation: LinkedCompetitionOrganisation
-        if (competitionId) {
+        if (isNotNullAndUndefined(competitionId)) {
             competition = await this.competitionService.findById(competitionId);
         }
-        if (competitionOrganisationId) {
+        if (isNotNullAndUndefined(competitionOrganisationId) && competitionOrganisationId != 0) {
             linkedCompetitionOrganisation = await this.linkedCompetitionOrganisationService.findById(competitionOrganisationId);
         }
 

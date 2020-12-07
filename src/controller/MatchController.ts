@@ -1758,8 +1758,8 @@ export class MatchController extends BaseController {
             let timeZone = parseDateTimeZoneString(i.Date, i.Time, i["Timezone GMT"]);
             let startTimeInUTC = new Date(timeZone);
             let divisionData = await this.divisionService.findByName(i["Division Grade"], competitionId);
-            let team1Data = await this.teamService.findByNameAndCompetition(i["Home Team"], competitionId, divisionData.length > 0 ? divisionData[0].name : undefined);
-            let team2Data = await this.teamService.findByNameAndCompetition(i["Away Team"], competitionId, divisionData.length > 0 ? divisionData[0].name : undefined);
+            let team1Data = await this.teamService.findByNameAndCompetition(i["Home Team"], competitionId, null, divisionData.length > 0 ? divisionData[0].name : undefined);
+            let team2Data = await this.teamService.findByNameAndCompetition(i["Away Team"], competitionId, null, divisionData.length > 0 ? divisionData[0].name : undefined);
             let venueData = await this.competitionVenueService.findByCourtName(i["Venue"], competitionId);
             let roundData;
             if (!!divisionData[0] && !!team1Data[0] && !!team2Data[0] && !!venueData[0]) {

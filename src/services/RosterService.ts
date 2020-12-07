@@ -308,7 +308,7 @@ export default class RosterService extends BaseService<Roster> {
         }
         if (entityTypeId == EntityType.COMPETITION) {
             query.andWhere('match.competitionId = :compId', {compId: entityId});
-        } else if (entityTypeId == EntityType.COMPETITION_ORGANISATION) {
+        } else if (entityTypeId == EntityType.COMPETITION_ORGANISATION && entityId != 0) {
             query.andWhere('team1.competitionOrganisationId = :compOrgId OR ' +
               'team2.competitionOrganisationId = :compOrgId', {compOrgId: entityId});
         }

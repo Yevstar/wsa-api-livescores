@@ -56,6 +56,7 @@ export default class PlayerService extends BaseService<Player> {
         }
 
         if (linkedCompetitionOrganisation) {
+            query.andWhere('team.competitionOrganisationId = :compOrgId', {compOrgId: linkedCompetitionOrganisation.id});
             if (includeLinkedCompetition) {
                 query.andWhere('linkedCompetitionOrganisation.organisationId = :organisationId', {organisationId: linkedCompetitionOrganisation.organisationId});
             } else {

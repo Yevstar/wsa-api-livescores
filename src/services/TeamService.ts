@@ -31,6 +31,7 @@ export default class TeamService extends BaseService<Team> {
     public async findByNameAndCompetition(
         name: string,
         competitionId: number,
+        competitionOrganisationId?: number,
         divisionName?: string,
         exactlyMatchesName: boolean = false
     ): Promise<Team[]> {
@@ -43,8 +44,11 @@ export default class TeamService extends BaseService<Team> {
               query.andWhere('LOWER(team.name) like :name', { name: `${name.toLowerCase()}` }) :
               query.andWhere('LOWER(team.name) like :name', { name: `${name.toLowerCase()}%` });
         }
-        if (competitionId) query = query.andWhere('team.competitionId = :competitionId', { competitionId });
-        if (divisionName) query = query.andWhere('division.name = :divisionName', { divisionName });
+        if (isNotNullAndUndefined(competitionId)) query = query.andWhere('team.competitionId = :competitionId', { competitionId });
+        if (isNotNullAndUndefined(competitionOrganisationId) && competitionOrganisationId != 0) {
+            query = query.andWhere('team.competitionOrganisationId = :competitionOrganisationId', { competitionOrganisationId });
+        }
+        if (isNotNullAndUndefined(divisionName)) query = query.andWhere('division.name = :divisionName', { divisionName });
         return query.getMany();
     }
 
@@ -407,16 +411,16 @@ export default class TeamService extends BaseService<Team> {
     ): Promise<Team[]> {
         let query = this.entityManager.createQueryBuilder(Team, 'team')
             .leftJoinAndSelect('team.division', 'division');
-        if (teamId) {
+        if (isNotNullAndUndefined(teamId)) {
             query.andWhere('team.id = :id', { id: teamId });
         }
-        if (competitionOrganisationId) {
+        if (isNotNullAndUndefined(competitionOrganisationId) && competitionOrganisationId != 0) {
             query.andWhere('team.competitionOrganisationId = :id', { id: competitionOrganisationId });
         }
-        if (competitionId) {
+        if (isNotNullAndUndefined(competitionId)) {
             query.andWhere('team.competitionId = :id', { id: competitionId });
         }
-        if (teamName) {
+        if (isNotNullAndUndefined(teamName)) {
             query.andWhere('LOWER(team.name) like :query', { query: `${teamName.toLowerCase()}%` });
         }
 

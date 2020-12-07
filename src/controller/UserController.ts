@@ -866,6 +866,7 @@ export class UserController extends BaseController {
                         const teamDetail: Team[] = await this.teamService.findByNameAndCompetition(
                             t,
                             competitionId,
+                            null,
                             i['Division Grade'],
                             true
                         );
@@ -1127,7 +1128,7 @@ export class UserController extends BaseController {
     ) {
         if (entityTypeId) {
             let teamIds: number[] = [];
-            if (entityTypeId == EntityType.COMPETITION_ORGANISATION) {
+            if (entityTypeId == EntityType.COMPETITION_ORGANISATION && entityId != 0) {
                 teamIds = (await this.teamService.teamsByCompetitionOrganisationId(entityId)).map(team => team.id);
             }
             if (entityTypeId == EntityType.TEAM) {

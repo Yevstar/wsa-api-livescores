@@ -153,7 +153,7 @@ export default class MatchService extends BaseService<Match> {
         if (isNotNullAndUndefined(teamIds) && teamIds.length > 0) {
             query.andWhere("(match.team1Id in (:teamIds) or match.team2Id in (:teamIds))", { teamIds });
         }
-        if (isNotNullAndUndefined(competitionOrganisationId)) {
+        if (isNotNullAndUndefined(competitionOrganisationId) && competitionOrganisationId != 0) {
             query.andWhere("(team1.competitionOrganisationId = :compOrgId or " +
                 "team2.competitionOrganisationId = :compOrgId)", { compOrgId: competitionOrganisationId });
         }
