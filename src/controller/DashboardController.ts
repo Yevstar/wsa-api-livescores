@@ -2,7 +2,7 @@ import { Get, JsonController, QueryParam, Authorized, Res } from "routing-contro
 import { BaseController } from "./BaseController";
 import { Response } from "express";
 import { Match } from "../models/Match";
-import { isArrayPopulated } from "../utils/Utils";
+import { isArrayPopulated, isNotNullAndUndefined } from "../utils/Utils";
 
 @JsonController("/dashboard")
 export class DashboardController extends BaseController {
@@ -11,6 +11,7 @@ export class DashboardController extends BaseController {
     @Get("/newsIncidentMatch")
     async getNewsMatchIncidentInDashboard(
         @QueryParam("competitionId") competitionId: number,
+        @QueryParam("competitionOrganisationId") competitionOrganisationId: number,
         @QueryParam("startDay") startDayTime: Date,
         @QueryParam("currentTime") currentDayTime: Date,
         @Res() response: Response
@@ -30,7 +31,12 @@ export class DashboardController extends BaseController {
 
                 const todayMidnightStart = new Date(match_year, match_month, match_day, match_hours, match_minutes, match_seconds);
 
-                responseObject.match = await this.matchService.findTodaysMatchByParam(todayMidnightStart, todayMidnightStart, null, null, competitionId, null, null, null);
+                responseObject.match = await this.matchService.findTodaysMatchByParam(
+                    todayMidnightStart,
+                    todayMidnightStart,
+                    competitionId,
+                    competitionOrganisationId
+                );
                 responseObject.match = await this.getPlayerAttendanceTeamAndRosterByMatch(responseObject.match.result);
             }
 
@@ -50,7 +56,12 @@ export class DashboardController extends BaseController {
 
             const today = new Date();
             const yesterday = (d => new Date(d.setDate(d.getDate() - 1)))(new Date);
-            responseObject.incident = await this.incidentService.getIncidentsForDashBoard(competitionId, yesterday, today);
+            responseObject.incident = await this.incidentService.getIncidentsForDashBoard(
+                competitionId,
+                competitionOrganisationId,
+                yesterday,
+                today
+            );
             return responseObject;
         } else {
             return response.status(200).send({ name: 'search_error', message: `Required parameters not filled` });

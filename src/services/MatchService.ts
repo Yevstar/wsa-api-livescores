@@ -35,26 +35,6 @@ export default class MatchService extends BaseService<Match> {
         return Match.name;
     }
 
-    private filterByOrganisationTeam(
-        competitionId: number = undefined,
-        competitionOrganisationIds: number[] = [],
-        teamIds: number[] = [],
-        query
-    ) {
-        this.addDefaultJoin(query);
-        if (competitionId || (isArrayPopulated(teamIds)) || (isArrayPopulated(competitionOrganisationIds))) {
-            query.andWhere(new Brackets(qb => {
-                if (competitionId) qb.orWhere("match.competitionId = :competitionId", { competitionId });
-                if (isArrayPopulated(teamIds)) {
-                    qb.orWhere("(match.team1Id in (:teamIds) or match.team2Id in (:teamIds))", { teamIds });
-                }
-                if (isArrayPopulated(competitionOrganisationIds)) {
-                    qb.orWhere("(team1.competitionOrganisationId in (:competitionOrganisationIds) or team2.competitionOrganisationId in (:competitionOrganisationIds))", { competitionOrganisationIds });
-                }
-            }));
-        }
-    }
-
     private addDefaultJoin(query) {
         query.innerJoinAndSelect('match.team1', 'team1')
             .innerJoinAndSelect('match.team2', 'team2')
@@ -249,6 +229,26 @@ export default class MatchService extends BaseService<Match> {
         return query.getMany();
     }
 
+    private filterByOrganisationTeam(
+        competitionId: number = undefined,
+        competitionOrganisationIds: number[] = [],
+        teamIds: number[] = [],
+        query
+    ) {
+        this.addDefaultJoin(query);
+        if (competitionId || (isArrayPopulated(teamIds)) || (isArrayPopulated(competitionOrganisationIds))) {
+            query.andWhere(new Brackets(qb => {
+                if (competitionId) qb.orWhere("match.competitionId = :competitionId", { competitionId });
+                if (isArrayPopulated(teamIds)) {
+                    qb.orWhere("(match.team1Id in (:teamIds) or match.team2Id in (:teamIds))", { teamIds });
+                }
+                if (isArrayPopulated(competitionOrganisationIds)) {
+                    qb.orWhere("(team1.competitionOrganisationId in (:competitionOrganisationIds) or team2.competitionOrganisationId in (:competitionOrganisationIds))", { competitionOrganisationIds });
+                }
+            }));
+        }
+    }
+
     public async loadCompetitionAndDate(competitionId: number, start: Date, end: Date, live: boolean): Promise<Match[]> {
         let query = this.entityManager.createQueryBuilder(Match, 'match');
         this.addDefaultJoin(query);
@@ -412,22 +412,31 @@ export default class MatchService extends BaseService<Match> {
     public async findTodaysMatchByParam(
         from: Date,
         to: Date,
-        teamIds: number[] = [],
-        playerIds: number[],
         competitionId: number,
-        competitionOrganisationIds: number[],
+        competitionOrganisationId: number,
         offset: number = undefined,
         limit: number = undefined
     ): Promise<any> {
         let query = await this.entityManager.createQueryBuilder(Match, 'match');
-        if (from && to) {
+        this.addDefaultJoin(query);
+        if (isNotNullAndUndefined(from) && isNotNullAndUndefined(to)) {
             query.andWhere(`((match.startTime < cast(:from as datetime) and match.matchStatus != 'ENDED') or
             (match.startTime > cast(:from as datetime) and match.startTime < ( cast(:to as datetime) + INTERVAL 1 DAY)) or
             (match.startTime > (cast(:to as datetime) + INTERVAL 1 DAY) and (match.matchStatus is not null))
             )`, { from, to });
         }
 
-        this.filterByOrganisationTeam(competitionId, competitionOrganisationIds, teamIds, query);
+        if (isNotNullAndUndefined(competitionId)) {
+            query.andWhere("match.competitionId = :competitionId", { competitionId });
+        }
+
+        if (isNotNullAndUndefined(competitionOrganisationId)) {
+            query.andWhere("(team1.competitionOrganisationId = :compOrgId or " +
+                "team2.competitionOrganisationId = :compOrgId)", {
+                    compOrgId: competitionOrganisationId
+            });
+        }
+
         query.orderBy('match.startTime', 'ASC');
 
         if (limit) {

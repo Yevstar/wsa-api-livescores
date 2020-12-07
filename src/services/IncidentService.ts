@@ -71,19 +71,28 @@ export default class IncidentService extends BaseService<Incident> {
         return query.getMany();
     }
 
-    public async getIncidentsForDashBoard(competitionId: number, from: Date, to: Date): Promise<any> {
+    public async getIncidentsForDashBoard(
+        competitionId: number,
+        competitionOrganisationId: number,
+        from: Date,
+        to: Date
+    ): Promise<any> {
         let query = this.entityManager
             .createQueryBuilder(Incident, "incident")
-            .leftJoinAndSelect('incident.incidentPlayers', 'incidentPlayer')
-            .leftJoinAndSelect('incidentPlayer.player', 'player')
-            .leftJoinAndSelect('incident.incidentMediaList', 'incidentMedia')
             .innerJoinAndSelect('incident.match', 'match')
             .innerJoinAndSelect('match.team1', 'team1')
             .innerJoinAndSelect('match.team2', 'team2')
-            .innerJoinAndSelect('player.team', 'team')
-            .innerJoinAndSelect('team.linkedCompetitionOrganisation', 'linkedCompetitionOrganisation')
-            .innerJoinAndSelect('incident.incidentType', 'incidentType');
+            .innerJoinAndSelect('incident.incidentType', 'incidentType')
+            .leftJoinAndSelect('incident.incidentPlayers', 'incidentPlayer')
+            .leftJoinAndSelect('incidentPlayer.player', 'player')
+            .leftJoinAndSelect('player.team', 'team')
+            .leftJoinAndSelect('incident.incidentMediaList', 'incidentMedia')
+            .leftJoinAndSelect('team.linkedCompetitionOrganisation', 'linkedCompetitionOrganisation');
         if (competitionId) query.andWhere("incident.competitionId = :competitionId", { competitionId });
+        if (isNotNullAndUndefined(competitionOrganisationId)) {
+            query.andWhere("(team1.competitionOrganisationId = :compOrgId or " +
+                "team2.competitionOrganisationId = :compOrgId)", {compOrgId: competitionOrganisationId});
+        }
         if (from) query.andWhere("incident.createdAt >= :from", { from });
         if (to) query.andWhere("incident.createdAt <= :to", { to });
         query.orderBy("incident.createdAt", "DESC");
