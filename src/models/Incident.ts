@@ -4,6 +4,7 @@ import {IncidentType} from './IncidentType';
 import {IncidentPlayer} from './IncidentPlayer';
 import {IncidentMedia} from './IncidentMedia';
 import {Match} from './Match';
+import {Competition} from './Competition';
 
 @Entity("incident")
 export class Incident extends BaseEntity {
@@ -27,6 +28,11 @@ export class Incident extends BaseEntity {
     @IsNumber()
     @Column()
     competitionId: number;
+
+    @ValidateNested()
+    @OneToOne(type => Competition)
+    @JoinColumn()
+    competition: Competition;
 
     @IsNumber()
     @Column()

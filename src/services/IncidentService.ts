@@ -5,6 +5,7 @@ import {IncidentType} from "../models/IncidentType";
 import {IncidentMedia} from "../models/IncidentMedia";
 import {IncidentPlayer} from "../models/IncidentPlayer";
 import { isNotNullAndUndefined } from "../utils/Utils";
+import { EntityType } from "../models/security/EntityType";
 
 @Service()
 export default class IncidentService extends BaseService<Incident> {
@@ -14,24 +15,39 @@ export default class IncidentService extends BaseService<Incident> {
 
     public async findByParams(
         incidentId: number,
-        competitionId: number,
-        offset: number, limit: number, search: string, sortBy:string = undefined, sortOrder:"ASC"|"DESC" = undefined
-    ): Promise<{ count: number, result: Incident[] }> {
+        entityId: number,
+        entityTypeId: number,
+        offset: number,
+        limit: number,
+        search: string,
+        sortBy:string = undefined,
+        sortOrder:"ASC"|"DESC" = undefined
+    ): Promise<any> {
         let query = this.entityManager
             .createQueryBuilder(Incident, "incident")
+            .innerJoinAndSelect('incident.incidentType', 'incidentType')
+            .innerJoinAndSelect('incident.match', 'match')
+            .innerJoinAndSelect('incident.competition', 'competition')
             .leftJoinAndSelect('incident.incidentPlayers', 'incidentPlayer')
             .leftJoinAndSelect('incidentPlayer.player', 'player')
+            .leftJoinAndSelect('player.team', 'team')
             .leftJoinAndSelect('incident.incidentMediaList', 'incidentMedia')
-            .innerJoinAndSelect('incident.match', 'match')
             .leftJoinAndSelect('match.team1', 'team1')
-            .leftJoinAndSelect('match.team2', 'team2')
-            .innerJoinAndSelect('incident.incidentType', 'incidentType');
+            .leftJoinAndSelect('match.team2', 'team2');
+
+        query.andWhere("incident.deleted_at is null");
 
         if (incidentId) {
             query.andWhere("incident.id = :incidentId", { incidentId });
-            query.andWhere("incident.deleted_at is null");
         }
-        if (competitionId) query.andWhere("incident.competitionId = :competitionId", {competitionId});
+
+        if (isNotNullAndUndefined(entityTypeId) && isNotNullAndUndefined(entityId)) {
+            if (entityTypeId == EntityType.COMPETITION) {
+                query.andWhere("incident.competitionId = :entityId", {entityId});
+            } else if (entityTypeId == EntityType.COMPETITION_ORGANISATION) {
+                query.andWhere("team.competitionOrganisationId = :entityId", {entityId});
+            }
+        }
 
         if (isNotNullAndUndefined(search) && search !== '') {
             query.andWhere('(LOWER(concat_ws(" ", player.firstName, player.lastName)) like :search)',
@@ -54,12 +70,12 @@ export default class IncidentService extends BaseService<Incident> {
 
         if (isNotNullAndUndefined(limit) && isNotNullAndUndefined(offset)) {
             const count = await query.getCount()
-            const result = await query.skip(offset).take(limit).getMany();
-            return { count, result }
+            const results = await query.skip(offset).take(limit).getMany();
+            return { count, results }
         } else {
             const count = null;
-            const result = await query.getMany();
-            return { count, result }
+            const results = await query.getMany();
+            return { count, results }
         }
     }
 

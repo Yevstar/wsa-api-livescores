@@ -10,14 +10,27 @@ import {Get,
     UploadedFiles,
     Body
 } from "routing-controllers";
+import * as fastcsv from 'fast-csv';
+import {Response} from "express";
+
 import {BaseController} from "./BaseController";
 import {Incident} from "../models/Incident";
 import {IncidentPlayer} from "../models/IncidentPlayer";
 import {IncidentMedia} from "../models/IncidentMedia";
-import {Response} from "express";
-import {fileExt, isPhoto, isVideo, timestamp, stringTONumber, paginationData, isNotNullAndUndefined} from "../utils/Utils";
+import {
+    fileExt,
+    isPhoto,
+    isVideo,
+    timestamp,
+    stringTONumber,
+    paginationData,
+    isNotNullAndUndefined,
+    isArrayPopulated
+} from "../utils/Utils";
 import {logger} from "../logger";
 import {User} from "../models/User";
+import {Competition} from "../models/Competition";
+import {convertMatchStartTimeByTimezone} from '../utils/TimeFormatterUtils';
 
 @JsonController("/incident")
 export class IncidentController extends BaseController {
@@ -32,7 +45,8 @@ export class IncidentController extends BaseController {
     @Get('/')
     async find(
         @QueryParam("incidentId") incidentId: number,
-        @QueryParam("competitionId") competitionId: number,
+        @QueryParam("entityId") entityId: number,
+        @QueryParam("entityTypeId") entityTypeId: number,
         @QueryParam("offset") offset: number,
         @QueryParam("limit") limit: number,
         @QueryParam("sortBy") sortBy: string = undefined,
@@ -40,15 +54,25 @@ export class IncidentController extends BaseController {
         @QueryParam("search") search: string,
         @Res() response: Response
     ) {
-        if (incidentId || competitionId) {
-            const incidentData = await this.incidentService.findByParams(incidentId, competitionId, offset, limit, search, sortBy, sortOrder);
-            if (incidentData && isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
-                let responseObject = paginationData(stringTONumber(incidentData.count), limit, offset)
-                responseObject["incidents"] = incidentData.result;
-                return responseObject;
-            } else {
-                return incidentData.result;
-            }
+        if (isNotNullAndUndefined(incidentId) ||
+            (isNotNullAndUndefined(entityId) && isNotNullAndUndefined(entityTypeId))) {
+                const incidentData = await this.incidentService.findByParams(
+                    incidentId,
+                    entityId,
+                    entityTypeId,
+                    offset,
+                    limit,
+                    search,
+                    sortBy,
+                    sortOrder
+                );
+                if (incidentData && isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
+                    let responseObject = paginationData(stringTONumber(incidentData.count), limit, offset)
+                    responseObject["incidents"] = incidentData.results;
+                    return responseObject;
+                } else {
+                    return incidentData.results;
+                }
         } else {
             return response.status(200).send(
                 {name: 'search_error', message: `Required parameters not filled`});
@@ -346,4 +370,110 @@ export class IncidentController extends BaseController {
         }
         await this.incidentService.batchSaveIncidentMedia(incidentMediaArray);
     }
+
+    @Authorized()
+    @Get('/export')
+    async exportIncidents(
+        @QueryParam("incidentId") incidentId: number,
+        @QueryParam("entityId") entityId: number,
+        @QueryParam("entityTypeId") entityTypeId: number,
+        @QueryParam("sortBy") sortBy: string = undefined,
+        @QueryParam("sortOrder") sortOrder: "ASC"|"DESC" = undefined,
+        @QueryParam("search") search: string,
+        @Res() response: Response
+    ): Promise<any> {
+      if (isNotNullAndUndefined(incidentId) ||
+          (isNotNullAndUndefined(entityId) && isNotNullAndUndefined(entityTypeId))) {
+            const incidentData = await this.incidentService.findByParams(
+                incidentId,
+                entityId,
+                entityTypeId,
+                null,
+                null,
+                search,
+                sortBy,
+                sortOrder
+            );
+
+            if (isArrayPopulated(incidentData.results)) {
+                let constants = require('../constants/Constants');
+
+                let locationIdsSet = new Set();
+                // Getting all the necessary competition Ids to get the timezones
+                incidentData.results.map(incident => {
+                    locationIdsSet.add(Number(incident['competition']['locationId']));
+                });
+                let locationsTimezoneMap = new Map();
+                let locationIdsArray = Array.from(locationIdsSet);
+                for (var i = 0; i < locationIdsArray.length; i++) {
+                    let locationTimeZone = await this.matchService.getMatchTimezone(locationIdsArray[i]);
+                    locationsTimezoneMap[locationIdsArray[i].toString()] = locationTimeZone;
+                }
+
+                incidentData.results.map(incident => {
+                    incident['Date'] = convertMatchStartTimeByTimezone(
+                        incident['incidentTime'],
+                        locationsTimezoneMap[incident['competition']['locationId']] != null ?
+                        locationsTimezoneMap[incident['competition']['locationId']].timezone : null,
+                        `${constants.DATE_FORMATTER_KEY} ${constants.TIME_FORMATTER_KEY}`
+                    );
+                    incident['Match ID'] = incident['matchId'];
+                    const playerIds = [];
+                    const playerFirstNames = [];
+                    const playerLastNames = [];
+                    if (isArrayPopulated(incident['incidentPlayers'])) {
+                        for (let r of incident['incidentPlayers']) {
+                            playerIds.push(r['playerId']);
+                            playerFirstNames.push(r['player']['firstName']);
+                            playerLastNames.push(r['player']['lastName']);
+                        }
+                    }
+                    incident['Player ID'] = playerIds.toString().replace(",", '\n');
+                    incident['First Name'] = playerFirstNames.toString().replace(",", '\n');
+                    incident['Last Name'] = playerLastNames.toString().replace(",", '\n');
+                    incident['Type'] = incident['incidentType']['name'];
+
+                    delete incident['id'];
+                    delete incident['guid'];
+                    delete incident['matchId'];
+                    delete incident['teamId'];
+                    delete incident['competitionId'];
+                    delete incident['incidentTypeId'];
+                    delete incident['description'];
+                    delete incident['incidentTime'];
+                    delete incident['createdAt'];
+                    delete incident['updated_at'];
+                    delete incident['deleted_at'];
+                    delete incident['incidentType'];
+                    delete incident['match'];
+                    delete incident['competition'];
+                    delete incident['incidentPlayers'];
+                    delete incident['incidentMediaList'];
+
+                    return incident;
+                });
+            } else {
+                incidentData.results.push({
+                    ['Date']: '',
+                    ['Match ID']: '',
+                    ['Player ID']: '',
+                    ['First Name']: '',
+                    ['Last Name']: '',
+                    ['Type']: ''
+                });
+            }
+
+            response.setHeader('Content-disposition', 'attachment; filename=incidents.csv');
+            response.setHeader('content-type', 'text/csv');
+            fastcsv.write(incidentData.results, { headers: true })
+                .on('finish', function () {
+                })
+                .pipe(response);
+      } else {
+        return response.status(400).send({
+            name: 'export_error',
+            message: 'Required fields are missing',
+        });
+      }
+  }
 }
