@@ -109,16 +109,36 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
             .execute();
     }
 
-    public async getUmpirePayments(competitionId: number, requestFilter: RequestFilter, search: string, sortBy: string, orderBy: "ASC"|"DESC"): Promise<any> {
+    public async getUmpirePayments(
+        competitionId: number,
+        competitionOrganisationId: number,
+        requestFilter: RequestFilter,
+        search: string,
+        sortBy: string,
+        orderBy: "ASC"|"DESC"
+    ): Promise<any> {
         const matchStatus = 'ENDED';
         const umpireType = 'USERS';
         let query = this.entityManager.createQueryBuilder(MatchUmpire, 'matchUmpire');
         query.leftJoinAndSelect('matchUmpire.match', 'match')
+            .leftJoinAndSelect('match.competition', 'competition')
             .leftJoinAndSelect('matchUmpire.user', 'user')
             .leftJoinAndSelect('matchUmpire.approvedByUser', 'approvedByUser')
-            .where('match.competitionId = :competitionId', { competitionId })
-            .andWhere('matchUmpire.umpireType = :umpireType', { umpireType })
-            .andWhere('match.matchStatus = :matchStatus', { matchStatus });
+            .leftJoin('competition.linkedCompetitionOrganisation', 'lco');
+
+        if (isNotNullAndUndefined(competitionId)) {
+            query.andWhere('match.competitionId = :competitionId', { competitionId });
+        }
+        if (isNotNullAndUndefined(competitionOrganisationId)) {
+            query.andWhere('(matchUmpire.competitionOrganisationId = :compOrgId or ' +
+                'lco.id = :compOrgId)', {
+                compOrgId: competitionOrganisationId
+            });
+        }
+
+        query.andWhere('matchUmpire.umpireType = :umpireType', { umpireType })
+            .andWhere('match.matchStatus = :matchStatus', { matchStatus })
+            .andWhere('lco.competitionId = competition.id');
 
         if (search !== null && search !== undefined && search !== '') {
             query.andWhere(' lower(concat_ws(" ", user.firstName, user.lastName)) like :search ', { search: `%${search.toLowerCase()}%` });

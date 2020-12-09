@@ -59,6 +59,7 @@ export class RosterController extends BaseController {
     @Post('/list')
     async rosterList(
         @QueryParam("competitionId") competitionId: number,
+        @QueryParam("competitionOrganisationId") competitionOrganisationId: number,
         @QueryParam("roleIds") roleIds: number[],
         @QueryParam("status") status: string,
         @QueryParam('sortBy') sortBy: string = undefined,
@@ -66,15 +67,18 @@ export class RosterController extends BaseController {
         @Body() requestFilter: RequestFilter,
         @Res() response: Response
     ) {
-        if (competitionId && isArrayPopulated(roleIds)) {
-            return this.rosterService.findUserRostersByCompetition(
-                competitionId,
-                roleIds,
-                status,
-                requestFilter,
-                sortBy,
-                sortOrder
-            );
+        if ((isNotNullAndUndefined(competitionId) ||
+              (isNotNullAndUndefined(competitionOrganisationId))) &&
+            isArrayPopulated(roleIds)) {
+                return this.rosterService.findUserRostersByCompetition(
+                    competitionId,
+                    competitionOrganisationId,
+                    roleIds,
+                    status,
+                    requestFilter,
+                    sortBy,
+                    sortOrder
+                );
         } else {
             return response.status(200).send({
                 name: 'search_error', message: `Invalid parameters`
@@ -535,12 +539,21 @@ export class RosterController extends BaseController {
     @Get('/export/umpire')
     async exportUmpire(
         @QueryParam("competitionId") competitionId: number,
+        @QueryParam("competitionOrganisationId") competitionOrganisationId: number,
         @QueryParam("roleId") roleId: number,
         @QueryParam("status") status: string,
         @Res() response: Response
     ): Promise<any> {
-        if (competitionId && roleId) {
-            const dict = await this.rosterService.findUserRostersByCompetition(competitionId, [roleId], status, null);
+      if ((isNotNullAndUndefined(competitionId) ||
+            (isNotNullAndUndefined(competitionOrganisationId))) &&
+          isNotNullAndUndefined(roleId)) {
+            const dict = await this.rosterService.findUserRostersByCompetition(
+                competitionId,
+                competitionOrganisationId,
+                [roleId],
+                status,
+                null
+            );
             let competition: Competition = await this.competitionService.findById(competitionId);
             let competitionTimezone: StateTimezone;
             if (competition && competition.locationId) {

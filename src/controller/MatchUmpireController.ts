@@ -712,12 +712,20 @@ export class MatchUmpireController extends BaseController {
     @Post('/payments')
     async umpirePayments(
         @QueryParam('competitionId') competitionId: number,
+        @QueryParam('competitionOrganisationId') competitionOrganisationId: number,
         @QueryParam('search') search: string,
         @QueryParam('sortBy') sortBy: string,
         @QueryParam('sortOrder') orderBy: "ASC"|"DESC",
         @Body() requestFilter: RequestFilter
     ) {
-        const paymentsData = await this.matchUmpireService.getUmpirePayments(competitionId, requestFilter, search, sortBy, orderBy);
+        const paymentsData = await this.matchUmpireService.getUmpirePayments(
+            competitionId,
+            competitionOrganisationId,
+            requestFilter,
+            search,
+            sortBy,
+            orderBy
+        );
         const OFFSET = requestFilter.paging.offset
         const LIMIT = requestFilter.paging.limit
         if(isNotNullAndUndefined(OFFSET) && isNotNullAndUndefined(LIMIT)) {
@@ -731,12 +739,13 @@ export class MatchUmpireController extends BaseController {
     @Get('/payments/export')
     async exportUmpirePayments(
         @QueryParam('competitionId') competitionId: number,
+        @QueryParam('competitionOrganisationId') competitionOrganisationId: number,
         @QueryParam('search') search: string,
         @QueryParam('sortBy') sortBy: string,
         @QueryParam('sortOrder') orderBy: "ASC" | "DESC",
         @Res() response: Response
     ) {
-        if (!competitionId) {
+        if (!isNotNullAndUndefined(competitionId) || !isNotNullAndUndefined(competitionOrganisationId)) {
             return response.status(200).send({ name: 'search_error', message: 'Required fields are missing' });
         }
 
@@ -746,7 +755,14 @@ export class MatchUmpireController extends BaseController {
         paging.limit = null;
         requestFilter.paging = paging;
 
-        let paymentsData = await this.matchUmpireService.getUmpirePayments(competitionId, requestFilter, search, sortBy, orderBy);
+        let paymentsData = await this.matchUmpireService.getUmpirePayments(
+            competitionId,
+            competitionOrganisationId,
+            requestFilter,
+            search,
+            sortBy,
+            orderBy
+        );
         let paymentResult = [];
         const paymentsDup = [...paymentsData.result];
         if (isArrayPopulated(paymentsDup)) {

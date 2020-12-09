@@ -81,6 +81,7 @@ export default class RosterService extends BaseService<Roster> {
     // keeping the query as light as possible but more fields can be added if needed - used for umpire roster list
     public async findUserRostersByCompetition(
         competitionId: number,
+        competitionOrganisationId: number,
         roleIds: number[],
         status: string,
         requestFilter: RequestFilter,
@@ -97,10 +98,28 @@ export default class RosterService extends BaseService<Roster> {
             .innerJoinAndSelect('roster.match', 'match')
             .innerJoinAndSelect('roster.user', 'user')
             .innerJoinAndSelect('match.competition', 'competition')
-            .innerJoinAndSelect('user.userRoleEntities', 'ure', 'ure.roleId in (:ids)', {ids: ureRoleIds})
-            .innerJoinAndSelect('ure.linkedCompetitionOrganisation', 'lco', 'lco.competitionId = :compId', {compId: competitionId})
-            .andWhere('match.competitionId = :competitionId', {competitionId})
-            .andWhere('roster.roleId in (:roleIds)', {roleIds})
+            .innerJoinAndSelect('user.userRoleEntities', 'ure', 'ure.roleId in (:ids)', {ids: ureRoleIds});
+
+        if (isNotNullAndUndefined(competitionId)) {
+            query.innerJoinAndSelect(
+                'ure.linkedCompetitionOrganisation',
+                'lco',
+                'lco.competitionId = :compId', {
+                  compId: competitionId
+                })
+                .andWhere('match.competitionId = :competitionId', {competitionId});
+        }
+        if (isNotNullAndUndefined(competitionOrganisationId)) {
+            query.innerJoinAndSelect(
+                'ure.linkedCompetitionOrganisation',
+                'lco',
+                'lco.id = :compOrgId', {
+                  compOrgId: competitionOrganisationId
+                })
+                .andWhere('match.competitionId = lco.competitionId');
+        }
+
+        query.andWhere('roster.roleId in (:roleIds)', {roleIds})
             .andWhere('match.deleted_at is null');
 
         if (status) {

@@ -514,8 +514,21 @@ export class CompetitionController extends BaseController {
         @QueryParam('yearRefId') yearRefId?: number,
         @QueryParam('sortBy') sortBy: string = undefined,
         @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined,
+        @QueryParam('umpiredCompsOnly') umpiredCompsOnly: boolean = false,
+        @QueryParam('isParticipatingInCompetition') isParticipatingInCompetition: boolean = false
     ): Promise<any> {
-        return this.competitionService.loadAdmin(user.id, requestFilter, organisationId, recordUmpireType, yearRefId, sortBy, sortOrder);
+        return this.competitionService.loadAdmin(
+            user.id,
+            requestFilter,
+            organisationId,
+            isParticipatingInCompetition,
+            umpiredCompsOnly ?
+                ["NAMES","USERS"] :
+                (isNotNullAndUndefined(recordUmpireType) ? [recordUmpireType] : null),
+            yearRefId,
+            sortBy,
+            sortOrder
+        );
     }
 
     @Get('/hierarchy')
