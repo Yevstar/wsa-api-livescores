@@ -598,7 +598,7 @@ export class TeamController extends BaseController {
                 e['Logo'] = e['logoUrl']
                 e['Team Name'] = e['name']
                 e['Team Alias Name'] = e['alias'];
-                e['Affiliate'] = e['competitionOrganisation']['name']
+                e['Affiliate'] = e['linkedCompetitionOrganisation']['name']
                 e['Division'] = e['division']['name']
                 e['#Players'] = e['playersCount']
                 const managerName = [];
@@ -614,6 +614,7 @@ export class TeamController extends BaseController {
                 e['Manager'] = managerName.toString().replace(",", '\n');
                 e['Contact'] = managerEmail.toString().replace(",", '\n');
                 e['Email'] = managerContact.toString().replace(",", '\n');
+
                 delete e['alias'];
                 delete e['division'];
                 delete e['id'];
@@ -621,7 +622,10 @@ export class TeamController extends BaseController {
                 delete e['managers'];
                 delete e['name'];
                 delete e['playersCount'];
-                delete e['organisation'];
+                delete e['linkedCompetitionOrganisation'];
+                delete e['competitionOrganisationId'];
+                delete e['coaches'];
+
                 return e;
             });
         } else {

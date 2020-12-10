@@ -745,7 +745,7 @@ export class MatchUmpireController extends BaseController {
         @QueryParam('sortOrder') orderBy: "ASC" | "DESC",
         @Res() response: Response
     ) {
-        if (!isNotNullAndUndefined(competitionId) || !isNotNullAndUndefined(competitionOrganisationId)) {
+        if (!isNotNullAndUndefined(competitionId) && !isNotNullAndUndefined(competitionOrganisationId)) {
             return response.status(200).send({ name: 'search_error', message: 'Required fields are missing' });
         }
 
