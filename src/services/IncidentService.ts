@@ -28,12 +28,14 @@ export default class IncidentService extends BaseService<Incident> {
             .innerJoinAndSelect('incident.incidentType', 'incidentType')
             .innerJoinAndSelect('incident.match', 'match')
             .innerJoinAndSelect('incident.competition', 'competition')
+            .innerJoinAndSelect('match.venueCourt', 'venueCourt')
             .leftJoinAndSelect('incident.incidentPlayers', 'incidentPlayer')
             .leftJoinAndSelect('incidentPlayer.player', 'player')
             .leftJoinAndSelect('player.team', 'team')
             .leftJoinAndSelect('incident.incidentMediaList', 'incidentMedia')
             .leftJoinAndSelect('match.team1', 'team1')
-            .leftJoinAndSelect('match.team2', 'team2');
+            .leftJoinAndSelect('match.team2', 'team2')
+            .leftJoinAndSelect('venueCourt.venue', 'venue');
 
         query.andWhere("incident.deleted_at is null");
 

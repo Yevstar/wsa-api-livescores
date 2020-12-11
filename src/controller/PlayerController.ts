@@ -63,7 +63,7 @@ export class PlayerController extends BaseController {
             linkedCompetitionOrganisation = await this.linkedCompetitionOrganisationService.findById(competitionOrganisationId);
         }
 
-        return this.playerService.findByParam(
+        const playerData = await this.playerService.findByParam(
             name,
             competition,
             linkedCompetitionOrganisation,
@@ -75,6 +75,8 @@ export class PlayerController extends BaseController {
             null,
             includeLinkedCompetition
         );
+
+        return playerData.results;
     }
 
     @Authorized()
@@ -215,34 +217,98 @@ export class PlayerController extends BaseController {
         @QueryParam('competitionOrganisationId') competitionOrganisationId: number,
         @Res() response: Response
     ) {
-        let competition: Competition;
-        let linkedCompetitionOrganisation: LinkedCompetitionOrganisation
-        if (isNotNullAndUndefined(competitionId)) {
-            competition = await this.competitionService.findById(competitionId);
-        }
-        if (isNotNullAndUndefined(competitionOrganisationId) && competitionOrganisationId != 0) {
-            linkedCompetitionOrganisation = await this.linkedCompetitionOrganisationService.findById(competitionOrganisationId);
-        }
+        if (isNotNullAndUndefined(competitionId) || isNotNullAndUndefined(competitionOrganisationId)) {
+            let competition: Competition;
+            let linkedCompetitionOrganisation: LinkedCompetitionOrganisation
+            if (isNotNullAndUndefined(competitionId)) {
+                competition = await this.competitionService.findById(competitionId);
+            }
+            if (isNotNullAndUndefined(competitionOrganisationId) && competitionOrganisationId != 0) {
+                linkedCompetitionOrganisation = await this.linkedCompetitionOrganisationService.findById(competitionOrganisationId);
+            }
 
-        let playerData = await this.playerService.findByParam(
-            null,
-            competition,
-            linkedCompetitionOrganisation,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            false
-        );
-        response.setHeader('Content-disposition', 'attachment; filename=player.csv');
-        response.setHeader('content-type', 'text/csv');
-        fastcsv
-            .write(playerData, { headers: true })
-            .on("finish", function () {
-            })
-            .pipe(response);
+            let playerData = await this.playerService.findByParam(
+                null,
+                competition,
+                linkedCompetitionOrganisation,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                false
+            );
+
+            if (isArrayPopulated(playerData.results)) {
+                var dateFormat = require("dateformat");
+
+                playerData.results.map(player => {
+                    player['User ID'] = player['userId'];
+                    player['First Name'] = player['firstName'];
+                    player['Last Name'] = player['lastName'];
+                    player['Email'] = player['email'];
+                    player['Competition'] = isNotNullAndUndefined(player['competition']['longName']) ?
+                        player['competition']['longName'] :
+                        player['competition']['name'];
+                    player['Team'] = player['team']['name'];
+                    player['Date of Birth'] = isNotNullAndUndefined(player['dateOfBirth']) ?
+                        dateFormat(player['dateOfBirth'], "dd/mm/yyyy") :
+                        '';
+                    player['Phone Number'] = player['phoneNumber'];
+                    player['Invite Status'] = player['inviteStatus'];
+
+                    delete player['id'];
+                    delete player['userId'];
+                    delete player['firstName'];
+                    delete player['lastName'];
+                    delete player['photoUrl'];
+                    delete player['email'];
+                    delete player['competitionId'];
+                    delete player['teamId'];
+                    delete player['dateOfBirth'];
+                    delete player['phoneNumber'];
+                    delete player['mnbPlayerId'];
+                    delete player['nameFilter'];
+                    delete player['positionId'];
+                    delete player['shirt'];
+                    delete player['inviteStatus'];
+                    delete player['deleted_at'];
+                    delete player['team'];
+                    delete player['competition'];
+                    delete player['user'];
+
+                    return player;
+                });
+            } else {
+                playerData.results.push({
+                    ['User ID']: '',
+                    ['First Name']: '',
+                    ['Last Name']: '',
+                    ['Photo URL']: '',
+                    ['Email']: '',
+                    ['Competition']: '',
+                    ['Team']: '',
+                    ['Date of Birth']: '',
+                    ['Phone Number']: '',
+                    ['Position ID']: '',
+                    ['Shirt']: '',
+                    ['Invite Status']: ''
+                });
+            }
+
+            response.setHeader('Content-disposition', 'attachment; filename=player.csv');
+            response.setHeader('content-type', 'text/csv');
+            fastcsv.write(playerData.results, { headers: true })
+                .on('finish', function () {
+                })
+                .pipe(response);
+        } else {
+            return response.status(400).send({
+                name: 'export_error',
+                message: 'Required fields are missing',
+            });
+        }
     }
 
     @Authorized()
@@ -383,9 +449,9 @@ export class PlayerController extends BaseController {
             sortOrder
         );
         if (offset !== null && offset !== undefined && limit !== null && limit !== undefined) {
-            return { page: paginationData(playerData.matchCount, limit, offset).page, players: playerData.result };
+            return { page: paginationData(playerData.matchCount, limit, offset).page, players: playerData.results };
         } else {
-            return { page: {}, players: playerData };
+            return { page: {}, players: playerData.results };
         }
     }
 

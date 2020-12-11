@@ -44,6 +44,7 @@ import {GamePosition} from "../models/GamePosition";
 import {Competition} from '../models/Competition';
 import {getMatchUpdatedNonSilentNotificationMessage} from "../utils/NotificationMessageUtils";
 import {StateTimezone} from "../models/StateTimezone";
+import {convertMatchStartTimeByTimezone} from '../utils/TimeFormatterUtils';
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
@@ -1920,9 +1921,37 @@ export class MatchController extends BaseController {
         );
 
         if (isArrayPopulated(getMatchesData)) {
+            let constants = require('../constants/Constants');
+
+            let locationIdsSet = new Set();
+            // Getting all the necessary competition Ids to get the timezones
             getMatchesData.map(e => {
-                e['Match Id'] = e.id;
-                e['Start Time'] = e.startTime;
+                if (isNotNullAndUndefined(e['venueCourt']['venue']['stateRefId'])) {
+                    locationIdsSet.add(Number(e['venueCourt']['venue']['stateRefId']));
+                } else {
+                    locationIdsSet.add(Number(e['competition']['locationId']));
+                }
+            });
+            let locationsTimezoneMap = new Map();
+            let locationIdsArray = Array.from(locationIdsSet);
+            for (var i = 0; i < locationIdsArray.length; i++) {
+                let locationTimeZone = await this.matchService.getMatchTimezone(locationIdsArray[i]);
+                locationsTimezoneMap[locationIdsArray[i].toString()] = locationTimeZone;
+            }
+            getMatchesData.map(e => {
+                var locationId;
+                if (isNotNullAndUndefined(e['venueCourt']['venue']['stateRefId'])) {
+                    locationId = Number(e['venueCourt']['venue']['stateRefId']);
+                } else {
+                    locationId = Number(e['competition']['locationId']);
+                }
+                e['Match ID'] = e.id;
+                e['Start Time'] = convertMatchStartTimeByTimezone(
+                    e.startTime,
+                    locationId != null ?
+                    locationsTimezoneMap[locationId].timezone : null,
+                    `${constants.DATE_FORMATTER_KEY} ${constants.TIME_FORMATTER_KEY}`
+                );
                 e['Home'] = e.team1.name;
                 e['Away'] = e.team2.name;
                 e['Venue'] = e.venueCourt.venue.name + ' - ' + e.venueCourt.courtNumber;
@@ -1932,6 +1961,7 @@ export class MatchController extends BaseController {
                 e['Match Duration'] = e.matchDuration;
                 e['Main Break'] = e.mainBreakDuration;
                 e['Quarter Break'] = e.breakDuration;
+
                 delete e.breakDuration
                 delete e.centrePassStatus
                 delete e.centrePassWonBy
@@ -1969,11 +1999,22 @@ export class MatchController extends BaseController {
                 delete e.updated_at
                 delete e.venueCourt
                 delete e.venueCourtId
+                delete e.livestreamURL
+                delete e.resultStatus
+                delete e.extraStartTime
+                delete e.extraExtraStartTime
+                delete e.extraTimeBreak
+                delete e.extraTimeMainBreak
+                delete e.extraTimeType
+                delete e.isFinals
+                delete e.extraTimeWinByGoals
+                delete e.matchPausedTimes
+
                 return e;
             });
         } else {
             getMatchesData.push({
-                'Match Id': 'N/A',
+                'Match ID': 'N/A',
                 'Start Time': 'N/A',
                 'Home': 'N/A',
                 'Away': 'N/A',

@@ -56,7 +56,8 @@
     "winston": "^3.2.1",
     "winston-cloudwatch": "^2.3.0",
     "ws": "^7.2.0",
-    "email-validator": "^2.0.4"
+    "email-validator": "^2.0.4",
+    "dateformat": "^4.3.1"
   },
   "devDependencies": {
     "@types/bunyan": "^1.8.5",

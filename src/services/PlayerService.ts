@@ -99,10 +99,12 @@ export default class PlayerService extends BaseService<Player> {
             // switched to skip and limit function as with paginate(offset,limit) with offset 0, typeorm-plus gives the value
             // in negative as offset creating an error within query
             const matchCount = await query.getCount()
-            const result = await query.skip(offset).take(limit).getMany();
-            return { matchCount, result }
+            const results = await query.skip(offset).take(limit).getMany();
+            return { matchCount, results }
         } else {
-            return query.getMany();
+          const matchCount = null;
+          const results = await query.getMany();
+          return { matchCount, results }
         }
     }
 

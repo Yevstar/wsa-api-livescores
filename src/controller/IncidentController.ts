@@ -401,7 +401,11 @@ export class IncidentController extends BaseController {
                 let locationIdsSet = new Set();
                 // Getting all the necessary competition Ids to get the timezones
                 incidentData.results.map(incident => {
-                    locationIdsSet.add(Number(incident['competition']['locationId']));
+                    if (isNotNullAndUndefined(incident['match']['venueCourt']['venue']['stateRefId'])) {
+                        locationIdsSet.add(Number(incident['match']['venueCourt']['venue']['stateRefId']));
+                    } else {
+                        locationIdsSet.add(Number(incident['competition']['locationId']));
+                    }
                 });
                 let locationsTimezoneMap = new Map();
                 let locationIdsArray = Array.from(locationIdsSet);
@@ -411,10 +415,16 @@ export class IncidentController extends BaseController {
                 }
 
                 incidentData.results.map(incident => {
+                    var locationId;
+                    if (isNotNullAndUndefined(incident['match']['venueCourt']['venue']['stateRefId'])) {
+                        locationId = Number(incident['match']['venueCourt']['venue']['stateRefId']);
+                    } else {
+                        locationId = Number(incident['competition']['locationId']);
+                    }
                     incident['Date'] = convertMatchStartTimeByTimezone(
                         incident['incidentTime'],
-                        locationsTimezoneMap[incident['competition']['locationId']] != null ?
-                        locationsTimezoneMap[incident['competition']['locationId']].timezone : null,
+                        locationId != null ?
+                        locationsTimezoneMap[locationId].timezone : null,
                         `${constants.DATE_FORMATTER_KEY} ${constants.TIME_FORMATTER_KEY}`
                     );
                     incident['Match ID'] = incident['matchId'];
