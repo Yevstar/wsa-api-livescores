@@ -363,10 +363,19 @@ export class UserController extends BaseController {
         @HeaderParam("authorization") user: User,
         @QueryParam('entityId', { required: true }) entityId: number,
         @QueryParam('entityTypeId', { required: true }) entityTypeId: number,
+        @QueryParam('competitionId') competitionId: number,
         @Body() userData: User,
         @Res() response: Response
     ) {
-        const addManagerResponse = await this.add(user, "MANAGER", entityId, entityTypeId, userData, response);
+        const addManagerResponse = await this.add(
+            user,
+            "MANAGER",
+            entityId,
+            entityTypeId,
+            competitionId,
+            userData,
+            response
+        );
         if (userData.id) {
             let deviceIds = (await this.deviceService.getUserDevices(userData.id)).map(device => device.deviceId);
             if (isArrayPopulated(deviceIds)) {
@@ -388,10 +397,19 @@ export class UserController extends BaseController {
         @HeaderParam("authorization") user: User,
         @QueryParam('entityId', { required: true }) entityId: number,
         @QueryParam('entityTypeId', { required: true }) entityTypeId: number,
+        @QueryParam('competitionId') competitionId: number,
         @Body() userData: User,
         @Res() response: Response
     ) {
-        const addCoachResponse =  await this.add(user, "COACH", entityId, entityTypeId, userData, response);
+        const addCoachResponse =  await this.add(
+            user,
+            "COACH",
+            entityId,
+            entityTypeId,
+            competitionId,
+            userData,
+            response
+        );
         if (userData.id) {
             let deviceIds = (await this.deviceService.getUserDevices(userData.id)).map(device => device.deviceId);
             if (isArrayPopulated(deviceIds)) {
@@ -411,33 +429,55 @@ export class UserController extends BaseController {
     @Post('/umpire')
     async addUmpire(
         @HeaderParam("authorization") user: User,
-        @QueryParam('competitionId', { required: true }) competitionId: number,
+        @QueryParam('entityId', { required: true }) entityId: number,
+        @QueryParam('entityTypeId', { required: true }) entityTypeId: number,
         @QueryParam('isUmpire', { required: true }) isUmpire: boolean,
         @QueryParam('isUmpireCoach', { required: true }) isUmpireCoach: boolean,
+        @QueryParam('competitionId') competitionId: number,
         @Body() userData: User,
         @Res() response: Response
     ) {
+        if (entityTypeId == EntityType.COMPETITION_ORGANISATION &&
+            !isNotNullAndUndefined(competitionId)) {
+                return response.status(400).send({
+                    name: 'params_error',
+                    message: 'Missing mandatory data'
+                });
+        }
+
         if (isUmpire && isUmpireCoach) {
           /// If the adding user is both then first create for umpire and
           /// then add a additional URE for coach
-          await this.add(user, "UMPIRE", competitionId, EntityType.COMPETITION, userData, response);
-          await this.add(user, "UMPIRE_COACH", competitionId, EntityType.COMPETITION, userData, response);
+          await this.add(user, "UMPIRE", entityId, entityTypeId, competitionId, userData, response);
+          await this.add(user, "UMPIRE_COACH", entityId, entityTypeId, competitionId, userData, response);
 
           return userData;
         } else if (isUmpire) {
             const foundUser = await this.userService.findByEmail(userData.email.toLowerCase());
             if (foundUser) {
+              var compId;
+              if (entityTypeId == EntityType.COMPETITION_ORGANISATION) {
+                  compId = competitionId;
+              } else {
+                  compId = entityId;
+              }
               // Delete umpire coach ure
-              await this.deleteRolesNecessary("UMPIRE_COACH", foundUser, competitionId, EntityType.COMPETITION);
+              await this.deleteRolesNecessary("UMPIRE_COACH", foundUser, entityId, entityTypeId, compId);
             }
-            return await this.add(user, "UMPIRE", competitionId, EntityType.COMPETITION, userData, response);
+            return await this.add(user, "UMPIRE", entityId, entityTypeId, competitionId, userData, response);
         } else if (isUmpireCoach) {
             const foundUser = await this.userService.findByEmail(userData.email.toLowerCase());
             if (foundUser) {
+              var compId;
+              if (entityTypeId == EntityType.COMPETITION_ORGANISATION) {
+                  compId = competitionId;
+              } else {
+                  compId = entityId;
+              }
               // Delete umpire coach ure
-              await this.deleteRolesNecessary("UMPIRE", foundUser, competitionId, EntityType.COMPETITION);
+              await this.deleteRolesNecessary("UMPIRE", foundUser, entityId, entityTypeId, compId);
             }
-            return await this.add(user, "UMPIRE_COACH", competitionId, EntityType.COMPETITION, userData, response);
+            return await this.add(user, "UMPIRE_COACH", entityId, entityTypeId, competitionId, userData, response);
         } else {
           return response.status(400).send({
               name: 'params_error',
@@ -454,7 +494,15 @@ export class UserController extends BaseController {
         @Body() userData: User,
         @Res() response: Response
     ) {
-        return await this.add(user, "MEMBER", competitionId, EntityType.COMPETITION, userData, response);
+        return await this.add(
+            user,
+            "MEMBER",
+            competitionId,
+            EntityType.COMPETITION,
+            competitionId,
+            userData,
+            response
+        );
     }
 
     @Authorized()
@@ -464,9 +512,18 @@ export class UserController extends BaseController {
         @QueryParam("type", { required: true }) type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH",
         @QueryParam("entityId", { required: true }) entityId: number,
         @QueryParam('entityTypeId', { required: true }) entityTypeId: number,
+        @QueryParam('competitionId') competitionId: number,
         @Body() userData: User,
         @Res() response: Response
     ) {
+        if (entityTypeId == EntityType.COMPETITION_ORGANISATION &&
+            !isNotNullAndUndefined(competitionId)) {
+                return response.status(400).send({
+                    name: 'params_error',
+                    message: 'Missing mandatory data'
+                });
+        }
+
         try {
             var password;
             // if existing user wasn't provided, search for the user
@@ -517,23 +574,22 @@ export class UserController extends BaseController {
                 userData.firebaseUID = saved.firebaseUID;
             }
 
-            var competitionId;
+            var compId;
             if (entityTypeId == EntityType.COMPETITION_ORGANISATION) {
-                let compOrg = await this.competitionOrganisationService.findById(entityId);
-                competitionId = compOrg.competitionId;
+                compId = competitionId;
             } else {
-                competitionId = entityId;
+                compId = entityId;
             }
 
             // existing user - delete existing team assignments
-            await this.deleteRolesNecessary(type, userData, entityId, entityTypeId, competitionId);
+            await this.deleteRolesNecessary(type, userData, entityId, entityTypeId, compId);
             // Create necessary URE's and notify
-            await this.createUREAndNotify(type, userData, competitionId, user.id);
+            await this.createUREAndNotify(type, userData, compId, user.id);
 
             if (this.canSendMailForAdd(type, userData) &&
                 (entityTypeId == EntityType.COMPETITION ||
                   entityTypeId == EntityType.COMPETITION_ORGANISATION)) {
-                let competitionData = await this.competitionService.findById(competitionId)
+                let competitionData = await this.competitionService.findById(compId)
                 let roleId = await this.getRoleIdForType(type);
                 this.userService.sentMail(user, userData.teams ? userData.teams : null, competitionData, roleId, userData, password);
             }
