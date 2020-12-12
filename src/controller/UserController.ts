@@ -805,8 +805,8 @@ export class UserController extends BaseController {
         ure1.createdBy = createdBy;
         ureArray.push(ure1);
         await this.ureService.batchCreateOrUpdate(ureArray);
-        await this.notifyChangeRole(user.id);
         Promise.all(teamChatPromiseArray);
+        this.notifyChangeRole(user.id);
     }
 
     @Authorized()
