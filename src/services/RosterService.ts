@@ -80,8 +80,8 @@ export default class RosterService extends BaseService<Roster> {
 
     // keeping the query as light as possible but more fields can be added if needed - used for umpire roster list
     public async findUserRostersByCompetition(
-        competitionId: number,
-        competitionOrganisationId: number,
+        entityId: number,
+        entityTypeId: number,
         roleIds: number[],
         status: string,
         requestFilter: RequestFilter,
@@ -96,27 +96,30 @@ export default class RosterService extends BaseService<Roster> {
 
         let query = this.entityManager.createQueryBuilder(Roster, 'roster')
             .innerJoinAndSelect('roster.match', 'match')
+            .innerJoinAndSelect('match.venueCourt', 'venueCourt')
             .innerJoinAndSelect('roster.user', 'user')
             .innerJoinAndSelect('match.competition', 'competition')
-            .innerJoinAndSelect('user.userRoleEntities', 'ure', 'ure.roleId in (:ids)', {ids: ureRoleIds});
+            .innerJoinAndSelect('user.userRoleEntities', 'ure', 'ure.roleId in (:ids)', {ids: ureRoleIds})
+            .leftJoinAndSelect('venueCourt.venue', 'venue');
 
-        if (isNotNullAndUndefined(competitionId)) {
-            query.innerJoinAndSelect(
-                'ure.linkedCompetitionOrganisation',
-                'lco',
-                'lco.competitionId = :compId', {
-                  compId: competitionId
-                })
-                .andWhere('match.competitionId = :competitionId', {competitionId});
-        }
-        if (isNotNullAndUndefined(competitionOrganisationId)) {
+        if (entityTypeId == EntityType.COMPETITION_ORGANISATION) {
             query.innerJoinAndSelect(
                 'ure.linkedCompetitionOrganisation',
                 'lco',
                 'lco.id = :compOrgId', {
-                  compOrgId: competitionOrganisationId
+                  compOrgId: entityId
                 })
                 .andWhere('match.competitionId = lco.competitionId');
+        } else if (entityTypeId == EntityType.COMPETITION) {
+            query.innerJoinAndSelect(
+                'ure.linkedCompetitionOrganisation',
+                'lco',
+                'lco.competitionId = :compId', {
+                  compId: entityId
+                })
+                .andWhere('match.competitionId = :competitionId', {
+                    competitionId: entityId
+                });
         }
 
         query.andWhere('roster.roleId in (:roleIds)', {roleIds})

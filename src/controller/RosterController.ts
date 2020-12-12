@@ -58,8 +58,8 @@ export class RosterController extends BaseController {
     @Authorized()
     @Post('/list')
     async rosterList(
-        @QueryParam("competitionId") competitionId: number,
-        @QueryParam("competitionOrganisationId") competitionOrganisationId: number,
+        @QueryParam("entityId") entityId: number,
+        @QueryParam("entityTypeId") entityTypeId: number,
         @QueryParam("roleIds") roleIds: number[],
         @QueryParam("status") status: string,
         @QueryParam('sortBy') sortBy: string = undefined,
@@ -67,12 +67,12 @@ export class RosterController extends BaseController {
         @Body() requestFilter: RequestFilter,
         @Res() response: Response
     ) {
-        if ((isNotNullAndUndefined(competitionId) ||
-              (isNotNullAndUndefined(competitionOrganisationId))) &&
+        if ((isNotNullAndUndefined(entityId) &&
+              (isNotNullAndUndefined(entityTypeId))) &&
             isArrayPopulated(roleIds)) {
                 return this.rosterService.findUserRostersByCompetition(
-                    competitionId,
-                    competitionOrganisationId,
+                    entityId,
+                    entityTypeId,
                     roleIds,
                     status,
                     requestFilter,
@@ -538,31 +538,51 @@ export class RosterController extends BaseController {
     @Authorized()
     @Get('/export/umpire')
     async exportUmpire(
-        @QueryParam("competitionId") competitionId: number,
-        @QueryParam("competitionOrganisationId") competitionOrganisationId: number,
+        @QueryParam("entityId") entityId: number,
+        @QueryParam("entityTypeId") entityTypeId: number,
         @QueryParam("roleId") roleId: number,
         @QueryParam("status") status: string,
         @Res() response: Response
     ): Promise<any> {
-      if ((isNotNullAndUndefined(competitionId) ||
-            (isNotNullAndUndefined(competitionOrganisationId))) &&
+      if ((isNotNullAndUndefined(entityId) &&
+            (isNotNullAndUndefined(entityTypeId))) &&
           isNotNullAndUndefined(roleId)) {
             const dict = await this.rosterService.findUserRostersByCompetition(
-                competitionId,
-                competitionOrganisationId,
+                entityId,
+                entityTypeId,
                 [roleId],
                 status,
                 null
             );
-            let competition: Competition = await this.competitionService.findById(competitionId);
-            let competitionTimezone: StateTimezone;
-            if (competition && competition.locationId) {
-                competitionTimezone = await this.matchService.getMatchTimezone(competition.locationId);
-            }
+
 
             if (isArrayPopulated(dict.results)) {
                 let constants = require('../constants/Constants');
+
+                let locationIdsSet = new Set();
+                // Getting all the necessary competition Ids to get the timezones
+                dict.results.map(roster => {
+                    if (isNotNullAndUndefined(roster['match']['venueCourt']['venue']['stateRefId'])) {
+                        locationIdsSet.add(Number(roster['match']['venueCourt']['venue']['stateRefId']));
+                    } else {
+                        locationIdsSet.add(Number(roster['match']['competition']['locationId']));
+                    }
+                });
+                let locationsTimezoneMap = new Map();
+                let locationIdsArray = Array.from(locationIdsSet);
+                for (var i = 0; i < locationIdsArray.length; i++) {
+                    let locationTimeZone = await this.matchService.getMatchTimezone(locationIdsArray[i]);
+                    locationsTimezoneMap[locationIdsArray[i].toString()] = locationTimeZone;
+                }
+
                 dict.results.map(e => {
+                    var locationId;
+                    if (isNotNullAndUndefined(e['match']['venueCourt']['venue']['stateRefId'])) {
+                        locationId = Number(e['match']['venueCourt']['venue']['stateRefId']);
+                    } else {
+                        locationId = Number(e['match']['competition']['locationId']);
+                    }
+
                     e['First Name'] = e['user']['firstName']
                     e['Last Name'] = e['user']['lastName']
                     const orgArray = [];
@@ -575,9 +595,10 @@ export class RosterController extends BaseController {
                     e['Match Id'] = e['matchId'];
                     e['Start Time'] = convertMatchStartTimeByTimezone(
                         e['match']['startTime'],
-                        competitionTimezone != null ? competitionTimezone.timezone : null,
+                        locationId != null ?
+                        locationsTimezoneMap[locationId].timezone : null,
                         `${constants.DATE_FORMATTER_KEY} ${constants.TIME_FORMATTER_KEY}`
-                    );
+                    )
                     e['Status'] = e['status'];
 
                     delete e['id'];
