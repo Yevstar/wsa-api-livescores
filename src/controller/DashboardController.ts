@@ -16,7 +16,8 @@ export class DashboardController extends BaseController {
         @QueryParam("currentTime") currentDayTime: Date,
         @Res() response: Response
     ) {
-        if (competitionId) {
+        if (isNotNullAndUndefined(competitionId) ||
+          isNotNullAndUndefined(competitionOrganisationId)) {
             const responseObject = Object.assign({});
 
             if (startDayTime) {

@@ -106,14 +106,22 @@ export default class IncidentService extends BaseService<Incident> {
             .leftJoinAndSelect('player.team', 'team')
             .leftJoinAndSelect('incident.incidentMediaList', 'incidentMedia')
             .leftJoinAndSelect('team.linkedCompetitionOrganisation', 'linkedCompetitionOrganisation');
-        if (competitionId) query.andWhere("incident.competitionId = :competitionId", { competitionId });
+
         if (isNotNullAndUndefined(competitionOrganisationId)) {
-            query.andWhere("(team1.competitionOrganisationId = :compOrgId or " +
-                "team2.competitionOrganisationId = :compOrgId)", {compOrgId: competitionOrganisationId});
+            query.andWhere("team.competitionOrganisationId = :compOrgId", {
+                compOrgId: competitionOrganisationId
+            });
+        } else if (isNotNullAndUndefined(competitionId)) {
+            query.andWhere("incident.competitionId = :competitionId", {
+              competitionId
+            });
         }
+
         if (from) query.andWhere("incident.createdAt >= :from", { from });
         if (to) query.andWhere("incident.createdAt <= :to", { to });
+
         query.orderBy("incident.createdAt", "DESC");
+
         return query.getMany();
     }
 

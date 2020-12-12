@@ -426,15 +426,13 @@ export default class MatchService extends BaseService<Match> {
             )`, { from, to });
         }
 
-        if (isNotNullAndUndefined(competitionId)) {
-            query.andWhere("match.competitionId = :competitionId", { competitionId });
-        }
-
         if (isNotNullAndUndefined(competitionOrganisationId)) {
             query.andWhere("(team1.competitionOrganisationId = :compOrgId or " +
                 "team2.competitionOrganisationId = :compOrgId)", {
                     compOrgId: competitionOrganisationId
             });
+        } else if (isNotNullAndUndefined(competitionId)) {
+            query.andWhere("match.competitionId = :competitionId", { competitionId });
         }
 
         query.orderBy('match.startTime', 'ASC');
