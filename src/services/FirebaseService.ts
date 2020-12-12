@@ -190,7 +190,7 @@ export default class FirebaseService {
                 return userRecord;
             })
             .catch(function (error) {
-                logger.error(`Firebase load user by email - ${email} not found due to `, error);
+                logger.error('Error load user by email ${email}:', error);
                 return undefined;
             });
     }
