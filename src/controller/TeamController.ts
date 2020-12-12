@@ -612,8 +612,8 @@ export class TeamController extends BaseController {
                     }
                 }
                 e['Manager'] = managerName.toString().replace(",", '\n');
-                e['Contact'] = managerEmail.toString().replace(",", '\n');
-                e['Email'] = managerContact.toString().replace(",", '\n');
+                e['Contact'] = managerContact.toString().replace(",", '\n');
+                e['Email'] = managerEmail.toString().replace(",", '\n');
 
                 delete e['alias'];
                 delete e['division'];
