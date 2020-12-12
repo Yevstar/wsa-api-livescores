@@ -377,18 +377,22 @@ export class UserController extends BaseController {
             response
         );
         if (userData.id) {
-            let deviceIds = (await this.deviceService.getUserDevices(userData.id)).map(device => device.deviceId);
-            if (isArrayPopulated(deviceIds)) {
-                deviceIds.forEach((deviceId) => {
-                    this.evaluateUserWatchlist(
-                        userData,
-                        deviceId,
-                        true
-                    );
-                });
-            }
+            this.checkUserWatchlist(userData);
         }
         return addManagerResponse;
+    }
+
+    private async checkUserWatchlist(userData: User) {
+        let deviceIds = (await this.deviceService.getUserDevices(userData.id)).map(device => device.deviceId);
+        if (isArrayPopulated(deviceIds)) {
+            deviceIds.forEach((deviceId) => {
+                this.evaluateUserWatchlist(
+                    userData,
+                    deviceId,
+                    true
+                );
+            });
+        }
     }
 
     @Authorized()
@@ -411,16 +415,7 @@ export class UserController extends BaseController {
             response
         );
         if (userData.id) {
-            let deviceIds = (await this.deviceService.getUserDevices(userData.id)).map(device => device.deviceId);
-            if (isArrayPopulated(deviceIds)) {
-                deviceIds.forEach((deviceId) => {
-                    this.evaluateUserWatchlist(
-                        userData,
-                        deviceId,
-                        true
-                    );
-                });
-            }
+            this.checkUserWatchlist(userData);
         }
         return addCoachResponse;
     }
@@ -805,9 +800,9 @@ export class UserController extends BaseController {
         ure1.createdBy = createdBy;
         ureArray.push(ure1);
         await this.ureService.batchCreateOrUpdate(ureArray);
-        Promise.all(teamChatPromiseArray);
         // Not keeping await for notifyChangeRole as its having wait times.
         this.notifyChangeRole(user.id);
+        Promise.all(teamChatPromiseArray);
     }
 
     @Authorized()
