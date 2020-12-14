@@ -350,7 +350,7 @@ export default class TeamService extends BaseService<Team> {
         const mailOptions = {
             from: {
                 name: "NetballConnect",
-                address: process.env.MAIL_USERNAME
+                address: "mail@netballconnect.com"
             },
             to: player.email,
             replyTo: "donotreply@worldsportaction.com",
