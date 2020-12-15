@@ -521,6 +521,7 @@ export class UserController extends BaseController {
 
         try {
             var password;
+            let isNewUser = false;
             // if existing user wasn't provided, search for the user
             if (!userData.id) {
                 if (
@@ -559,6 +560,7 @@ export class UserController extends BaseController {
                     logger.info(`${type} ${userData.email} signed up.`);
                     userData.id = saved.id;
                     userData.firebaseUID = saved.firebaseUID;
+                    isNewUser = true;
                 }
             } else if (userData.firstName && userData.lastName && userData.mobileNumber) {
                 let foundUser = await this.userService.findById(userData.id);
@@ -576,18 +578,22 @@ export class UserController extends BaseController {
                 compId = entityId;
             }
 
-            // existing user - delete existing team assignments
-            await this.deleteRolesNecessary(type, userData, entityId, entityTypeId, compId);
+            // If not a new user then we will check for roles necessary to be deleted
+            if (!isNewUser) {
+                // existing user - delete existing team assignments
+                await this.deleteRolesNecessary(type, userData, entityId, entityTypeId, compId);
+            }
             // Create necessary URE's and notify
             await this.createUREAndNotify(type, userData, compId, user.id);
 
-            if (this.canSendMailForAdd(type, userData) &&
-                (entityTypeId == EntityType.COMPETITION ||
-                  entityTypeId == EntityType.COMPETITION_ORGANISATION)) {
-                let competitionData = await this.competitionService.findById(compId)
-                let roleId = await this.getRoleIdForType(type);
-                this.userService.sentMail(user, userData.teams ? userData.teams : null, competitionData, roleId, userData, password);
-            }
+            this.processSendMail(
+                type,
+                userData,
+                password,
+                entityTypeId,
+                compId,
+                user
+            );
 
             return userData;
         } catch (error) {
@@ -596,6 +602,30 @@ export class UserController extends BaseController {
                 name: 'validation_error',
                 message: 'Failed to add user'
             });
+        }
+    }
+
+    private async processSendMail(
+        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH",
+        userData: User,
+        password: string,
+        entityTypeId: number,
+        competitionId: number,
+        user: User
+    ) {
+        if (this.canSendMailForAdd(type, userData) &&
+          (entityTypeId == EntityType.COMPETITION ||
+            entityTypeId == EntityType.COMPETITION_ORGANISATION)) {
+                let competitionData = await this.competitionService.findById(competitionId)
+                let roleId = await this.getRoleIdForType(type);
+                this.userService.sentMail(
+                    user,
+                    userData.teams ? userData.teams : null,
+                    competitionData,
+                    roleId,
+                    userData,
+                    password
+                );
         }
     }
 
@@ -720,6 +750,10 @@ export class UserController extends BaseController {
         }
         await Promise.all(promiseList);
 
+        this.sendUserRosterUpdateNotification(user);
+    }
+
+    private async sendUserRosterUpdateNotification(user: User) {
         if (user.id) {
             let tokens = (await this.deviceService.getUserDevices(user.id)).map(device => device.deviceId);
             if (tokens && tokens.length > 0) {
