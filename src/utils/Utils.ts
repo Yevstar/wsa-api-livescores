@@ -36,7 +36,7 @@ export function timestamp(): number {
 }
 
 export function isPhoto(mimetype: string): boolean {
-    return mimetype && mimetype == 'image/jpeg' || mimetype == 'image/jpg' || mimetype == 'image/png' || mimetype == 'image/webp';
+    return mimetype && mimetype == 'image/jpeg' || mimetype == 'image/jpg' || mimetype == 'image/png' || mimetype == 'image/gif' || mimetype == 'image/webp';
 }
 
 export function fileExt(fileName: string): string {
