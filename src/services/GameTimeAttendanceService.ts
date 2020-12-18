@@ -111,12 +111,39 @@ export default class GameTimeAttendanceService extends BaseService<GameTimeAtten
                 .getCount();
     }
 
-    public async loadPositionTrackingStats(aggregate: ("MATCH" | "TOTAL"), reporting: ("PERIOD" | "MINUTE"),
-    competitionId: number, teamId: number, matchId: number, search: string, requestFilter: RequestFilter,
-    sortBy: string = undefined, sortOrder: "ASC" | "DESC" = undefined): Promise<any> {
+    public async loadPositionTrackingStats(
+        aggregate: ("MATCH" | "TOTAL"),
+        reporting: ("PERIOD" | "MINUTE"),
+        competitionId: number,
+        competitionOrganisationId: number,
+        teamId: number,
+        matchId: number,
+        search: string,
+        requestFilter: RequestFilter,
+        sortBy: string = undefined,
+        sortOrder: "ASC" | "DESC" = undefined
+    ): Promise<any> {
         let queryFields = `SELECT
-            json_object('id', pc.teamId, 'name', t.name) as team,
-            json_object('id', pc.playerId, 'firstName', p.firstName, 'lastName', p.lastName, 'photoUrl', ifnull(u.photoUrl, p.photoUrl), 'userId', p.userId) as player,
+            json_object(
+              'id', pc.teamId,
+              'name', t.name,
+              'competitionId',t.competitionId,
+              'competitionOrganisationId',t.competitionOrganisationId
+            ) as team,
+            (
+              case when pc.playerId is not null
+                then
+                  json_object(
+                    'id', pc.playerId,
+                    'firstName', p.firstName,
+                    'lastName', p.lastName,
+                    'photoUrl', ifnull(u.photoUrl, p.photoUrl),
+                    'userId', p.userId
+                  )
+                else
+                  null
+              end
+            ) as player,
             sum(m.matchDuration) as playDuration,
             IFNULL(SUM(pc.gs + 0), 0) AS gs,
             IFNULL(SUM(pc.ga), 0) AS ga,
@@ -143,7 +170,19 @@ export default class GameTimeAttendanceService extends BaseService<GameTimeAtten
             'left join wsa_users.`user` u on p.userId = u.id \n' +
             'left join `match` m on pc.matchId = m.id \n' +
             'left join team t on pc.teamId = t.id \n';
-        query = query + 'where t.competitionId =' + competitionId;
+
+        if (isNotNullAndUndefined(competitionId) && competitionId != 0 &&
+            isNotNullAndUndefined(competitionOrganisationId) && competitionOrganisationId != 0) {
+                query = query + 'where t.competitionId =' + competitionId;
+                query = query + ' and t.competitionOrganisationId =' + competitionOrganisationId;
+        } else if (isNotNullAndUndefined(competitionId) && competitionId != 0) {
+            query = query + 'where t.competitionId =' + competitionId;
+        } else if (isNotNullAndUndefined(competitionOrganisationId) && competitionOrganisationId != 0) {
+            query = query + 'where t.competitionOrganisationId =' + competitionOrganisationId;
+        } else {
+            query = query + 'where t.competitionId =' + competitionId;
+        }
+
         if (teamId) {
             query = query + ' and pc.teamId =' + teamId;
         }

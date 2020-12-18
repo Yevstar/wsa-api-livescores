@@ -313,26 +313,50 @@ export class StatController extends BaseController {
     async positionTracking(
         @QueryParam('aggregate') aggregate: ("MATCH" | "TOTAL"),
         @QueryParam('reporting') reporting: ("PERIOD" | "MINUTE"),
-        @QueryParam('competitionId', {required: true}) competitionId: number = undefined,
+        @QueryParam('competitionId', { required: true }) competitionId: number,
+        @QueryParam('competitionOrganisationId') competitionOrganisationId: number,
         @QueryParam('teamId') teamId: number = undefined,
         @QueryParam('matchId') matchId: number = undefined,
         @QueryParam('search') search: string = undefined,
         @Body() requestFilter: RequestFilter,
         @QueryParam('sortBy') sortBy: string = undefined,
         @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined,
-        @Res() response: Response) {
-        if (competitionId) {
+        @Res() response: Response
+    ) {
+        if (isNotNullAndUndefined(competitionId)) {
             let competition = await this.competitionService.findById(competitionId);
-            if (competition.positionTracking == true) {
-                return this.gameTimeAttendanceService.loadPositionTrackingStats(aggregate, reporting, competitionId, teamId, matchId, search, requestFilter, sortBy, sortOrder);
+            if (isNotNullAndUndefined(competition) && competition.positionTracking == true) {
+                return this.gameTimeAttendanceService.loadPositionTrackingStats(
+                    aggregate,
+                    reporting,
+                    competitionId,
+                    competitionOrganisationId,
+                    teamId,
+                    matchId,
+                    search,
+                    requestFilter,
+                    sortBy,
+                    sortOrder
+                );
             } else {
                 // temporarily return blank rows till front end sorts it out
-                return this.gameTimeAttendanceService.loadPositionTrackingStats(aggregate, reporting, 0, teamId, matchId, search, requestFilter, sortBy, sortOrder);
+                return this.gameTimeAttendanceService.loadPositionTrackingStats(
+                    aggregate,
+                    reporting,
+                    0,
+                    0,
+                    teamId,
+                    matchId,
+                    search,
+                    requestFilter,
+                    sortBy,
+                    sortOrder
+                );
                 //return response.status(200).send( {name: 'search_error', message: `Position tracking is not enabled for this competition`});
             }
-        } else { 
+        } else {
             return response.status(200).send(
-                {name: 'search_error', message: `Competition id required field`});
+                {name: 'search_error', message: `Missing required parameters`});
         }
     }
 }
