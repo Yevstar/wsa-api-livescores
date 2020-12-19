@@ -10,13 +10,25 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
 
     async createOne(competitionId: number, body: UmpirePool): Promise<UmpirePool> {
         body.competition = await this.entityManager.findOneOrFail(Competition, competitionId);
-        body.umpires = await Promise.all(
-            body.umpires.map(async umpireId => {
-                return this.entityManager.findOneOrFail(Umpire, umpireId);
-            })
-        );
+        body.umpires = await this.setUmpires(body.umpires);
 
         return await this.createOrUpdate(body);
+    }
+
+    async updateMany(competitionId: number, body: UmpirePool[]): Promise<UmpirePool[]> {
+        const updatedPools = [];
+
+        for (const updateData of body) {
+            const pool = await this.entityManager.findOneOrFail(UmpirePool, updateData.id, {
+                relations: ["competition","umpires"]
+            });
+
+            pool.umpires = await this.setUmpires(updateData.umpires);
+
+            updatedPools.push(await this.entityManager.save(pool));
+        }
+
+        return updatedPools;
     }
 
     async getByCompetitionId(competitionId: number): Promise<UmpirePool[]> {
@@ -26,5 +38,13 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
             },
             relations: ["competition","umpires"]
         });
+    }
+
+    async setUmpires(umpireIds: Umpire[]): Promise<Umpire[]> {
+        return await Promise.all(
+            umpireIds.map(async umpireId => {
+                return this.entityManager.findOneOrFail(Umpire, umpireId);
+            })
+        );
     }
 }

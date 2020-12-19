@@ -1,4 +1,4 @@
-import {Body, Get, JsonController, Param, Post} from "routing-controllers";
+import {Body, Get, HttpCode, JsonController, Param, Patch, Post} from "routing-controllers";
 import {BaseController} from "./BaseController";
 import {UmpirePool} from "../models/UmpirePool";
 
@@ -13,10 +13,19 @@ export class UmpirePoolsController extends BaseController {
     }
 
     @Post()
+    @HttpCode(201)
     async createOne(
         @Param('competitionId') competitionId: number,
         @Body() body: UmpirePool,
     ): Promise<UmpirePool> {
         return this.umpirePoolService.createOne(competitionId, body);
+    }
+
+    @Patch('/batch')
+    async updateMany(
+        @Param('competitionId') competitionId: number,
+        @Body() body: UmpirePool[]
+    ): Promise<UmpirePool[]> {
+        return this.umpirePoolService.updateMany(competitionId, body);
     }
 }
