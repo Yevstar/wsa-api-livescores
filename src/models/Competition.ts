@@ -5,6 +5,7 @@ import {LinkedCompetitionOrganisation} from "./LinkedCompetitionOrganisation";
 import {IsBoolean, IsNumber, IsString, ValidateNested} from "class-validator";
 import { CompetitionInvitees } from "./CompetitionInvitees";
 import {UmpireCompetitionRank} from "./UmpireCompetitionRank";
+import {UmpirePool} from "./UmpirePool";
 
 @Entity()
 export class Competition extends BaseEntity {
@@ -189,4 +190,7 @@ export class Competition extends BaseEntity {
 
     @OneToMany(type => UmpireCompetitionRank, umpireRank => umpireRank.competition)
     umpireRanks: UmpireCompetitionRank[];
+
+    @OneToMany(type => UmpirePool, umpirePool => umpirePool.competition)
+    umpirePools: UmpirePool[];
 }

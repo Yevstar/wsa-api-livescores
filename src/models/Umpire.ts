@@ -1,7 +1,17 @@
-import {BaseEntity, Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn} from "typeorm-plus";
+import {
+    BaseEntity,
+    Column,
+    Entity,
+    JoinColumn,
+    ManyToMany,
+    OneToMany,
+    OneToOne,
+    PrimaryGeneratedColumn
+} from "typeorm-plus";
 import {User} from "./User";
 import {IsNumber} from "class-validator";
 import {UmpireCompetitionRank} from "./UmpireCompetitionRank";
+import {UmpirePool} from "./UmpirePool";
 
 @Entity()
 export class Umpire extends BaseEntity {
@@ -31,4 +41,7 @@ export class Umpire extends BaseEntity {
 
     @OneToMany(type => UmpireCompetitionRank, competitionRank => competitionRank.umpire)
     competitionRanks: UmpireCompetitionRank[];
+
+    @ManyToMany(type => UmpirePool, umpirePool => umpirePool.umpires)
+    umpirePools: UmpirePool[];
 }
