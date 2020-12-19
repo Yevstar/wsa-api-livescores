@@ -1,8 +1,9 @@
-import {Body, Get, HttpCode, JsonController, Param, Patch, Post} from "routing-controllers";
+import {Authorized, Body, Get, HttpCode, JsonController, Param, Patch, Post} from "routing-controllers";
 import {BaseController} from "./BaseController";
 import {UmpirePool} from "../models/UmpirePool";
 
 @JsonController('/competitions/:competitionId/umpires/pools')
+@Authorized()
 export class UmpirePoolsController extends BaseController {
 
     @Get()
