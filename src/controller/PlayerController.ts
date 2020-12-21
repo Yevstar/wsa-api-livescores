@@ -398,6 +398,7 @@ export class PlayerController extends BaseController {
     @Post('/activity')
     async listTeamPlayerActivity(
         @QueryParam('competitionId') competitionId: number,
+        @QueryParam('competitionOrganisationId') competitionOrganisationId: number,
         @QueryParam('divisionId') divisionId: string = undefined,
         @QueryParam('roundIds') roundIds: string = undefined,
         @QueryParam('status') status: string,
@@ -408,7 +409,16 @@ export class PlayerController extends BaseController {
         if (status === undefined || status === '') status = null;
         if (requestFilter.search === undefined || requestFilter.search === '') requestFilter.search = null;
 
-        return this.playerService.listTeamPlayerActivity(competitionId, requestFilter, divisionId, roundIds, status, sortBy, sortOrder);
+        return this.playerService.listTeamPlayerActivity(
+            competitionId,
+            competitionOrganisationId,
+            requestFilter,
+            status,
+            divisionId,
+            roundIds,
+            sortBy,
+            sortOrder
+        );
     }
 
     @Get('/admin')
@@ -459,16 +469,22 @@ export class PlayerController extends BaseController {
     @Get('/export/teamattendance')
     async exportTeamAttendance(
         @QueryParam('competitionId') competitionId: number,
+        @QueryParam('competitionOrganisationId') competitionOrganisationId: number,
         @QueryParam('status') status: string,
         @Res() response: Response) {
 
-        let teamAttendanceData = await this.playerService.listTeamPlayerActivity(competitionId, {
-            paging: {
-                offset: null,
-                limit: null
+        let teamAttendanceData = await this.playerService.listTeamPlayerActivity(
+            competitionId,
+            competitionOrganisationId,
+            {
+              paging: {
+                  offset: null,
+                  limit: null
+              },
+              search: ''
             },
-            search: ''
-        }, status, null, null);
+            status
+        );
         if (isArrayPopulated(teamAttendanceData)) {
             teamAttendanceData.map(e => {
                 e['Match Id'] = e.matchId;

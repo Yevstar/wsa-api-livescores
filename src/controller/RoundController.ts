@@ -22,14 +22,22 @@ export class RoundController extends BaseController {
     @Get('/')
     async find(
         @QueryParam('competitionId') competitionId: number,
+        @QueryParam('competitionOrganisationIds') competitionOrganisationIds: number[],
         @QueryParam('divisionId') divisionId: number,
         @QueryParam('sequence') sequence: number,
         @QueryParam('teamIds') teamIds: number[] = [],
-        @QueryParam('competitionOrganisationIds') competitionOrganisationIds: number[],
-        @QueryParam('search') search: string,
+        @QueryParam('search') search: string
     ): Promise<Round[]> {
         if(search === null || search === undefined) search = '';
-        return this.roundService.findByParam(competitionId, divisionId, sequence, teamIds, competitionOrganisationIds, search);
+
+        return this.roundService.findByParam(
+            competitionId,
+            competitionOrganisationIds,
+            divisionId,
+            sequence,
+            teamIds,
+            search
+        );
     }
 
     @Authorized()

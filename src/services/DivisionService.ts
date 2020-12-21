@@ -26,20 +26,22 @@ export default class DivisionService extends BaseService<Division> {
             .innerJoinAndSelect('d.competition', 'competition')
             .leftJoin(Team, 'team', 'team.divisionId = d.id');
 
-        if (competitionId) query.orWhere("d.competitionId = :competitionId", {competitionId});
-        if ((isArrayPopulated(teamIds)) || (isArrayPopulated(competitionOrganisationIds))) {
-            if (isArrayPopulated(teamIds)) {
-                query.orWhere("team.id in (:teamIds)", {teamIds});
-            }
-            if (isArrayPopulated(competitionOrganisationIds)) {
-                query.orWhere("team.competitionOrganisationId in (:competitionOrganisationIds)", {competitionOrganisationIds});
-            }
+        if (competitionId) {
+            query.andWhere("d.competitionId = :competitionId", {
+                competitionId
+            });
+        }
+        if (isArrayPopulated(competitionOrganisationIds)) {
+            query.andWhere("team.competitionOrganisationId in " +
+              "(:competitionOrganisationIds)", {competitionOrganisationIds});
+        }
+        if (isArrayPopulated(teamIds)) {
+            query.andWhere("team.id in (:teamIds)", {teamIds});
         }
 
         if (search!==null && search!==undefined && search !== '') {
             query.andWhere('(LOWER(d.name) like :search)', { search: `%${search.toLowerCase()}%` });
         }
-
         if (sortBy) {
             query.orderBy(`d.${sortBy}`, sortOrder);
         }
