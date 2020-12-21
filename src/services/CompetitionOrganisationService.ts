@@ -2,6 +2,9 @@ import { Service } from "typedi";
 import BaseService from "./BaseService";
 import { CompetitionOrganisation } from "../models/CompetitionOrganisation";
 import {LinkedCompetitionOrganisation} from '../models/LinkedCompetitionOrganisation';
+import {CompetitionParticipatingTypeEnum} from "../models/enums/CompetitionParticipatingTypeEnum";
+import {Competition} from "../models/Competition";
+import {logger} from "../logger";
 
 @Service()
 export default class CompetitionOrganisationService extends BaseService<CompetitionOrganisation> {
@@ -30,5 +33,15 @@ export default class CompetitionOrganisationService extends BaseService<Competit
               'competitionOrganisation.id = :id', {id: id});
 
         return query.getOne();
+    }
+
+    async getCompetitionParticipatingType(competitionId: number, organisationId: number): Promise<CompetitionParticipatingTypeEnum> {
+        const competition = await this.entityManager.findOneOrFail(Competition, competitionId);
+
+        if (competition.organisationId === organisationId && "USERS" === competition.recordUmpireType) {
+            return CompetitionParticipatingTypeEnum.OWNED;
+        } else {
+            return CompetitionParticipatingTypeEnum.PARTICIPATED_IN;
+        }
     }
 }
