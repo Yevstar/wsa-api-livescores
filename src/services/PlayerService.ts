@@ -187,6 +187,7 @@ export default class PlayerService extends BaseService<Player> {
 
     public async loadGameTime(
         competitionId: number,
+        competitionOrganisationId: number,
         aggregate: ("MINUTE" | "PERIOD" | "MATCH"),
         teamId: number,
         matchId: number,
@@ -206,8 +207,9 @@ export default class PlayerService extends BaseService<Player> {
               search = requestFilter.search;
           }
         }
-        let result = await this.entityManager.query("call wsa.usp_get_gametime(?,?,?,?,?,?,?,?,?)",
+        let result = await this.entityManager.query("call wsa.usp_get_gametime(?,?,?,?,?,?,?,?,?,?)",
           [competitionId,
+            competitionOrganisationId,
             aggregate,
             teamId,
             matchId,
