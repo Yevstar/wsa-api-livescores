@@ -241,6 +241,7 @@ export default class TeamService extends BaseService<Team> {
 
     public async scoringStatsByPlayer(
         competitionId: number,
+        competitionOrganisationId: number,
         playerId: number,
         aggregate: ("ALL" | "MATCH"),
         offset: number,
@@ -252,8 +253,20 @@ export default class TeamService extends BaseService<Team> {
         sortOrder:"ASC"|"DESC" = undefined
     ): Promise<any> {
         let result = await this.entityManager.query(
-            "call wsa.usp_get_scoring_stats_by_player(?,?,?,?,?,?,?,?,?,?)",
-            [competitionId, playerId, aggregate, limit, offset, search, divisionId, noOfTeams, sortBy, sortOrder]
+            "call wsa.usp_get_scoring_stats_by_player(?,?,?,?,?,?,?,?,?,?,?)",
+            [
+              competitionId,
+              competitionOrganisationId,
+              playerId,
+              aggregate,
+              limit,
+              offset,
+              search,
+              divisionId,
+              noOfTeams,
+              sortBy,
+              sortOrder
+            ]
         );
 
         if (isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
@@ -317,7 +330,7 @@ export default class TeamService extends BaseService<Team> {
         you to use the ${appName} App so that you can view team news,
         messages and events. Of course, this is in addition to viewing live
         scores, draws and ladders!
-        <br><br> 1. If you don't have the App yet, download it from the 
+        <br><br> 1. If you don't have the App yet, download it from the
             <a href='${appStoreUrl}'>App Store</a> or
             <a href='${googlePlayUrl}'>Google Play</a>.
         <br><br> `;

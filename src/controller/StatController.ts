@@ -100,6 +100,7 @@ export class StatController extends BaseController {
     @Get('/scoringByPlayer')
     async scoringStatsByPlayer(
         @QueryParam('competitionId', { required: true }) competitionId: number,
+        @QueryParam('competitionOrganisationId') competitionOrganisationId: number,
         @QueryParam('divisionId') divisionId: number,
         @QueryParam('playerId') playerId: number,
         @QueryParam('aggregate') aggregate: ("ALL" | "MATCH"),
@@ -125,6 +126,7 @@ export class StatController extends BaseController {
         }
         const getScoringData = await this.teamService.scoringStatsByPlayer(
             competitionId,
+            competitionOrganisationId,
             playerId,
             aggregate,
             offset,
@@ -231,6 +233,7 @@ export class StatController extends BaseController {
     @Get('/export/scoringByPlayer')
     async exportScoringStatsByPlayer(
         @QueryParam('competitionId', { required: true }) competitionId: number,
+        @QueryParam('competitionOrganisationId') competitionOrganisationId: number,
         @QueryParam('playerId') playerId: number,
         @QueryParam('divisionId') divisionId: number,
         @QueryParam('aggregate') aggregate: ("ALL" | "MATCH"),
@@ -254,6 +257,7 @@ export class StatController extends BaseController {
         if (search === null || search === undefined) search = '';
         let playerScoreData = await this.teamService.scoringStatsByPlayer(
             competitionId,
+            competitionOrganisationId,
             playerId,
             aggregate,
             null,
