@@ -344,4 +344,13 @@ export default class PlayerService extends BaseService<Player> {
           .where('userId = :userId', { userId: prevUser.id })
           .execute();
     }
+
+    public async updatePlayerId(prevUserId: number, newUserId: number) {
+      return this.entityManager
+          .createQueryBuilder(Player, 'player')
+          .update()
+          .set({userId: newUserId})
+          .where('userId = :userId', { userId: prevUserId })
+          .execute();
+    }
 }
