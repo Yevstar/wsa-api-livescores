@@ -7,9 +7,9 @@ import {
     ManyToOne,
     PrimaryGeneratedColumn
 } from "typeorm-plus";
-import {Umpire} from "./Umpire";
 import {Competition} from "./Competition";
 import {IsNumber, IsString} from "class-validator";
+import {User} from "./User";
 
 @Entity()
 export class UmpirePool extends BaseEntity {
@@ -20,9 +20,9 @@ export class UmpirePool extends BaseEntity {
     @IsString()
     name!: string;
 
-    @ManyToMany(type => Umpire, umpire => umpire.umpirePools)
+    @ManyToMany(type => User)
     @JoinTable()
-    umpires: Umpire[];
+    umpires: User[];
 
     @Column()
     @IsNumber()

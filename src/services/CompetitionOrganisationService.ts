@@ -44,4 +44,11 @@ export default class CompetitionOrganisationService extends BaseService<Competit
             return CompetitionParticipatingTypeEnum.PARTICIPATED_IN;
         }
     }
+
+    async getByCompetitionOrganisation(competitionId: number, organisationId: number): Promise<CompetitionOrganisation> {
+        return this.entityManager.findOneOrFail(CompetitionOrganisation, {
+            competitionId: competitionId,
+            orgId: organisationId,
+        });
+    }
 }

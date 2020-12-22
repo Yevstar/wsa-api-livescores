@@ -1,14 +1,17 @@
 import {IsBoolean, IsDate, IsNumber, IsString, IsArray} from "class-validator";
-import {BaseEntity, Column, Entity, PrimaryGeneratedColumn, OneToMany} from "typeorm-plus";
+import {BaseEntity, Column, Entity, PrimaryGeneratedColumn, OneToMany, ManyToMany} from "typeorm-plus";
 
 import {Team} from './Team';
 import {LinkedCompetitionOrganisation} from './LinkedCompetitionOrganisation';
 import {UserRoleEntity} from './security/UserRoleEntity';
+import {UmpirePool} from "./UmpirePool";
 
 /// For referring the data model of another db we are giving the
 /// name as below wsa_users.<name>.
 /// https://github.com/typeorm/typeorm/issues/323 as Goodmain commented on 2 Mar 2017
-@Entity('wsa_users.user')
+@Entity({
+    database: 'wsa_users'
+})
 export class User extends BaseEntity {
 
     @IsNumber()
@@ -99,4 +102,6 @@ export class User extends BaseEntity {
     @Column()
     stripeAccountId: string;
 
+    @ManyToMany(type => UmpirePool, umpirePool => umpirePool)
+    umpirePools: UmpirePool[];
 }

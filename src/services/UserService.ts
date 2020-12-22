@@ -17,6 +17,8 @@ import {LinkedOrganisations} from "../models/views/LinkedOrganisations";
 import AppConstants from "../utils/AppConstants";
 import {CommunicationTrack} from "../models/CommunicationTrack";
 import { isNotNullAndUndefined } from "../utils/Utils";
+import {In} from "typeorm-plus";
+import {CompetitionOrganisation} from "../models/CompetitionOrganisation";
 
 @Service()
 export default class UserService extends BaseService<User> {
@@ -542,5 +544,28 @@ export default class UserService extends BaseService<User> {
             `insert into wsa_common.communicationTrack(id, emailId,content,subject,contactNumber,userId,entityId,communicationType,statusRefId,deliveryChannelRefId,createdBy) values(?,?,?,?,?,?,?,?,?,?,?)`,
             [ctrack.id, ctrack.emailId, ctrack.content, ctrack.subject, ctrack.contactNumber, ctrack.userId, ctrack.entityId, ctrack.communicationType, ctrack.statusRefId, ctrack.deliveryChannelRefId, ctrack.createdBy]
         );
+    }
+
+    async findByRoles(roles: number[], entityType: number, entityId: number): Promise<User[]>;
+    async findByRoles(role: number, entityType: number, entityId: number): Promise<User[]>;
+    async findByRoles(roles: number|number[], entityType: number, entityId: number): Promise<User[]> {
+        if (!Array.isArray(roles)) {
+            roles = [roles];
+        }
+
+        return this.entityManager.createQueryBuilder(User, "u")
+            .innerJoin("u.userRoleEntities",
+                "ure",
+                "ure.entityTypeId=:entityType AND ure.entityId=:entityId AND roleId IN (:roles)", {
+                    entityType: entityType,
+                    entityId: entityId,
+                    roles: roles,
+                })
+            .getMany();
+    };
+
+    async isCompetitionOrganisationUmpire(competitionOrganisationId: number, userId: number): Promise<boolean> {
+        const competitionUmpires = await this.findByRoles([15,20], 6, competitionOrganisationId);
+        return competitionUmpires.filter(umpire => userId === umpire.id).length > 0;
     }
 }

@@ -12,7 +12,6 @@ import {
 } from "routing-controllers";
 import {BaseController} from "./BaseController";
 import {UmpirePool} from "../models/UmpirePool";
-import {CompetitionParticipatingTypeEnum} from "../models/enums/CompetitionParticipatingTypeEnum";
 import {RequiredQueryParam} from "../decorators/RequiredQueryParamDecorator";
 
 @JsonController('/competitions/:competitionId/umpires/pools')
@@ -22,8 +21,9 @@ export class UmpirePoolsController extends BaseController {
     @Get()
     async index(
         @Param('competitionId') competitionId: number,
+        @RequiredQueryParam('organisationId') organisationId: number,
     ): Promise<UmpirePool[]> {
-        return this.umpirePoolService.getByCompetitionId(competitionId);
+        return this.umpirePoolService.getByCompetitionOrganisation(competitionId, organisationId);
     }
 
     @Post()
