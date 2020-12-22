@@ -17,7 +17,8 @@ import {
     paginationData,
     isNotNullAndUndefined,
     isArrayPopulated,
-    arrangeCSVToJson, validationForField
+    arrangeCSVToJson,
+    validationForField
 } from '../utils/Utils';
 import {convertMatchStartTimeByTimezone} from '../utils/TimeFormatterUtils';
 import {BaseController} from './BaseController';
@@ -314,13 +315,35 @@ export class MatchUmpireController extends BaseController {
         if (isArrayPopulated(dict.results)) {
             let constants = require('../constants/Constants');
 
+            let venueStateRefIdSet = new Set();
+            // Getting all the necessary venue stateRef Ids to get the timezones
+            dict.results.map(e => {
+                if (isNotNullAndUndefined(e['venueStateRefId'])) {
+                    venueStateRefIdSet.add(Number(e['venueStateRefId']));
+                }
+            });
+            let venueTimezoneMap = new Map();
+            let venueStateRefIdArray = Array.from(venueStateRefIdSet);
+            for (var i = 0; i < venueStateRefIdArray.length; i++) {
+                let venueTimeZone = await this.matchService.getMatchTimezone(venueStateRefIdArray[i]);
+                venueTimezoneMap[venueStateRefIdArray[i]] = venueTimeZone;
+            }
+
             dict.results.map(e => {
                 e['Match ID'] = e['id'];
-                e['Start Time'] = convertMatchStartTimeByTimezone(
-                    e['startTime'],
-                    competitionTimezone != null ? competitionTimezone.timezone : null,
-                    `${constants.DATE_FORMATTER_KEY} ${constants.TIME_FORMATTER_KEY}`
-                );
+                if (isNotNullAndUndefined(e['venueStateRefId'])) {
+                    e['Start Time'] = convertMatchStartTimeByTimezone(
+                        e['startTime'],
+                        venueTimezoneMap[Number(e['venueStateRefId'])] != null ? venueTimezoneMap[Number(e['venueStateRefId'])].timezone : null,
+                        `${constants.DATE_FORMATTER_KEY} ${constants.TIME_FORMATTER_KEY}`
+                    );
+                } else {
+                    e['Start Time'] = convertMatchStartTimeByTimezone(
+                        e['startTime'],
+                        competitionTimezone != null ? competitionTimezone.timezone : null,
+                        `${constants.DATE_FORMATTER_KEY} ${constants.TIME_FORMATTER_KEY}`
+                    );
+                }
                 e['Home'] = e['team1']['name'];
                 e['Away'] = e['team2']['name'];
                 e['Round'] = e['round']['name'];

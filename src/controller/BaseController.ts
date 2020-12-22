@@ -371,8 +371,20 @@ export class BaseController {
         let tokens = (await this.deviceService.getUserDevices(umpireRoster.userId)).map(device => device.deviceId);
         if (tokens && tokens.length > 0) {
           try {
-            if (match.competition && match.competition.location && match.competition.location.id) {
-              let stateTimezone: StateTimezone = await this.matchService.getMatchTimezone(match.competition.locationId);
+            var locationRefId;
+            if (isNotNullAndUndefined(match) &&
+                isNotNullAndUndefined(match.venueCourt) &&
+                isNotNullAndUndefined(match.venueCourt.venue) &&
+                isNotNullAndUndefined(match.venueCourt.venue.stateRefId)) {
+                  locationRefId = match.venueCourt.venue.stateRefId;
+            } else if (isNotNullAndUndefined(match.competition) &&
+                isNotNullAndUndefined(match.competition.location) &&
+                isNotNullAndUndefined(match.competition.location.id)) {
+                  locationRefId = match.competition.location.id;
+            }
+
+            if (isNotNullAndUndefined(locationRefId)) {
+              let stateTimezone: StateTimezone = await this.matchService.getMatchTimezone(locationRefId);
               let messageBody: String = getMatchUmpireNotificationMessage(
                   match,
                   stateTimezone,
