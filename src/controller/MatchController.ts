@@ -1072,7 +1072,18 @@ export class MatchController extends BaseController {
                     (isNotNullAndUndefined(optionals.nonSilentNotify)) &&
                     optionals.nonSilentNotify == true) {
                       let dbMatch = await this.matchService.findMatchById(match.id);
-                      let stateTimezone: StateTimezone = await this.matchService.getMatchTimezone(dbMatch.competition.locationId);
+                      var locationRefId;
+                      if (isNotNullAndUndefined(dbMatch) &&
+                          isNotNullAndUndefined(dbMatch.venueCourt) &&
+                          isNotNullAndUndefined(dbMatch.venueCourt.venue) &&
+                          isNotNullAndUndefined(dbMatch.venueCourt.venue.stateRefId)) {
+                            locationRefId = dbMatch.venueCourt.venue.stateRefId;
+                      } else if (isNotNullAndUndefined(dbMatch.competition) &&
+                          isNotNullAndUndefined(dbMatch.competition.location) &&
+                          isNotNullAndUndefined(dbMatch.competition.location.id)) {
+                            locationRefId = dbMatch.competition.location.id;
+                      }
+                      let stateTimezone: StateTimezone = await this.matchService.getMatchTimezone(locationRefId);
                       let venueDetails = await this.getMatchVenueDetails(dbMatch);
                       messageBody = getMatchUpdatedNonSilentNotificationMessage(
                           dbMatch.startTime,
@@ -1924,7 +1935,7 @@ export class MatchController extends BaseController {
             let constants = require('../constants/Constants');
 
             let locationIdsSet = new Set();
-            // Getting all the necessary competition Ids to get the timezones
+            // Getting all the necessary venue stateRef Ids to get the timezones
             getMatchesData.map(e => {
                 if (isNotNullAndUndefined(e['venueCourt']['venue']['stateRefId'])) {
                     locationIdsSet.add(Number(e['venueCourt']['venue']['stateRefId']));
@@ -1936,7 +1947,7 @@ export class MatchController extends BaseController {
             let locationIdsArray = Array.from(locationIdsSet);
             for (var i = 0; i < locationIdsArray.length; i++) {
                 let locationTimeZone = await this.matchService.getMatchTimezone(locationIdsArray[i]);
-                locationsTimezoneMap[locationIdsArray[i].toString()] = locationTimeZone;
+                locationsTimezoneMap[locationIdsArray[i]] = locationTimeZone;
             }
             getMatchesData.map(e => {
                 var locationId;

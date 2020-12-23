@@ -411,7 +411,7 @@ export class IncidentController extends BaseController {
                 let locationIdsArray = Array.from(locationIdsSet);
                 for (var i = 0; i < locationIdsArray.length; i++) {
                     let locationTimeZone = await this.matchService.getMatchTimezone(locationIdsArray[i]);
-                    locationsTimezoneMap[locationIdsArray[i].toString()] = locationTimeZone;
+                    locationsTimezoneMap[locationIdsArray[i]] = locationTimeZone;
                 }
 
                 incidentData.results.map(incident => {

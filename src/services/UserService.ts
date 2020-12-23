@@ -253,7 +253,7 @@ export default class UserService extends BaseService<User> {
                                 you can choose to give this responsibility to someone else or score the games yourself.
                                 ${passwordTxt}
                                 <p> We hope you enjoy using ${appName}.
-                                <p> The ${appName} Scores Team
+                                <p> The ${appName} Team
                             </body>
                         </html>`
 

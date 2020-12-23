@@ -4,7 +4,6 @@ import { CompetitionOrganisation } from "../models/CompetitionOrganisation";
 import {LinkedCompetitionOrganisation} from '../models/LinkedCompetitionOrganisation';
 import {CompetitionParticipatingTypeEnum} from "../models/enums/CompetitionParticipatingTypeEnum";
 import {Competition} from "../models/Competition";
-import {logger} from "../logger";
 
 @Service()
 export default class CompetitionOrganisationService extends BaseService<CompetitionOrganisation> {

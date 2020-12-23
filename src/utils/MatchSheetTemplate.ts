@@ -12,7 +12,7 @@ const getMatchSheetTemplate = (
   team2players: any[],
   umpires: MatchUmpire[],
   match: Match,
-  competitionTimezone: StateTimezone
+  matchTimezone: StateTimezone
 ) => {
   const team1PlayersRef = team1players.length < 15
     ? [...team1players, ...Array(15 - team1players.length).fill(null)]
@@ -22,11 +22,11 @@ const getMatchSheetTemplate = (
     : team2players;
 
   const matchDate = convertMatchStartTimeByTimezone(
-            match.startTime, competitionTimezone != null ? competitionTimezone.timezone : null,
+            match.startTime, matchTimezone != null ? matchTimezone.timezone : null,
             `${constants.DATE_FORMATTER_KEY}`);
 
   const matchStartTime = convertMatchStartTimeByTimezone(
-        match.startTime, competitionTimezone != null ? competitionTimezone.timezone : null,
+        match.startTime, matchTimezone != null ? matchTimezone.timezone : null,
         `${constants.TIME_FORMATTER_KEY}`);
 
   return `
@@ -47,7 +47,7 @@ const getMatchSheetTemplate = (
           @media print {
              body {
                 width: 100%;
-                font-family: latoregular, Helvetica, Arial;
+                font-family: latoregular, Helvetica, Arial, sans-serif;
              }
              .no-break {
                page-break-inside: avoid;

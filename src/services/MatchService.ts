@@ -582,9 +582,34 @@ export default class MatchService extends BaseService<Match> {
                 });
             }));
 
+            let locationIdsSet = new Set();
+            // Getting all the necessary venue stateRef Ids to get the timezones
+            filteredMatches.map(e => {
+                if (isNotNullAndUndefined(e) &&
+                    isNotNullAndUndefined(e.venueCourt) &&
+                    isNotNullAndUndefined(e.venueCourt.venue) &&
+                    isNotNullAndUndefined(e.venueCourt.venue.stateRefId)) {
+                      locationIdsSet.add(e.venueCourt.venue.stateRefId);
+                }
+            });
+            let locationsTimezoneMap = new Map();
+            let locationIdsArray = Array.from(locationIdsSet);
+            for (var i = 0; i < locationIdsArray.length; i++) {
+                let locationTimeZone = await this.getMatchTimezone(locationIdsArray[i]);
+                locationsTimezoneMap[locationIdsArray[i]] = locationTimeZone;
+            }
+
             for (let i = 0; i < filteredMatches.length; i++) {
                 const matchDetail = await this.findAdminMatchById(filteredMatches[i].id, 2);
                 const { team1players, team2players, umpires } = matchDetail;
+                const currentMatch = filteredMatches[i];
+                let matchVenueTimezone;
+                if (isNotNullAndUndefined(currentMatch) &&
+                    isNotNullAndUndefined(currentMatch.venueCourt) &&
+                    isNotNullAndUndefined(currentMatch.venueCourt.venue) &&
+                    isNotNullAndUndefined(currentMatch.venueCourt.venue.stateRefId)) {
+                      matchVenueTimezone = locationsTimezoneMap[currentMatch.venueCourt.venue.stateRefId];
+                }
                 const htmlTmpl = getMatchSheetTemplate(
                     templateType,
                     organisation,
@@ -592,7 +617,7 @@ export default class MatchService extends BaseService<Match> {
                     team2players,
                     umpires,
                     filteredMatches[i],
-                    competitionTimezone
+                    isNotNullAndUndefined(matchVenueTimezone) ? matchVenueTimezone : competitionTimezone
                 );
 
                 let options = { width: '595px', height: '842px'};

@@ -13,10 +13,10 @@ export default class RoundService extends BaseService<Round> {
 
     public async findByParam(
         competitionId: number,
+        competitionOrganisationIds: number[],
         divisionId: number,
         sequence: number,
         teamIds: number[] = [],
-        competitionOrganisationIds: number[],
         search: string
     ): Promise<Round[]> {
         let query = this.entityManager.createQueryBuilder(Round, 'r')
@@ -29,20 +29,21 @@ export default class RoundService extends BaseService<Round> {
             .andWhere('match.deleted_at is null');
 
         if (competitionId) query.andWhere("r.competitionId = :competitionId", {competitionId});
+        if (isArrayPopulated(competitionOrganisationIds)) {
+            query.andWhere("(team1.competitionOrganisationId in " +
+              "(:competitionOrganisationIds) or team2.competitionOrganisationId " +
+              "in (:competitionOrganisationIds))", {competitionOrganisationIds});
+        }
         if (divisionId) query.andWhere("r.divisionId = :divisionId", {divisionId});
         if (sequence) query.andWhere("r.sequence = :sequence", {sequence});
-        if (search!==null && search!==undefined && search!=='') query.andWhere('(LOWER(r.name) like :search)', { search: `%${search.toLowerCase()}%` });
-
-        if ((isArrayPopulated(teamIds)) || (isArrayPopulated(competitionOrganisationIds))) {
-            query.andWhere(new Brackets(qb => {
-                if (isArrayPopulated(teamIds)) {
-                    qb.orWhere("(match.team1Id in (:teamIds) or match.team2Id in (:teamIds))", {teamIds});
-                }
-                if (isArrayPopulated(competitionOrganisationIds)) {
-                    qb.orWhere("(team1.competitionOrganisationId in (:competitionOrganisationIds) or team2.competitionOrganisationId in (:competitionOrganisationIds))", {competitionOrganisationIds});
-                }
-            }))
+        if (search!==null && search!==undefined && search!=='') {
+          query.andWhere('(LOWER(r.name) like :search)', { search: `%${search.toLowerCase()}%` });
         }
+        if (isArrayPopulated(teamIds)) {
+            query.andWhere("(match.team1Id in (:teamIds) or match.team2Id in " +
+              "(:teamIds))", {teamIds});
+        }
+
         query.orderBy('match.startTime');
         return query.getMany()
     }

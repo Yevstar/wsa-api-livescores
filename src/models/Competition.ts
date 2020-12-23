@@ -7,6 +7,8 @@ import { CompetitionInvitees } from "./CompetitionInvitees";
 import {UmpireCompetitionRank} from "./UmpireCompetitionRank";
 import {UmpirePool} from "./UmpirePool";
 import {CompetitionOrganisation} from "./CompetitionOrganisation";
+import {UmpireAllocationSetting} from "./UmpireAllocationSetting";
+import {NoUmpiresUmpireAllocationSetting} from "./NoUmpiresUmpireAllocationSetting";
 
 @Entity()
 export class Competition extends BaseEntity {
@@ -112,6 +114,16 @@ export class Competition extends BaseEntity {
     @OneToMany(type => CompetitionVenue, competitionVenue => competitionVenue.competition)
     @JoinColumn()
     competitionVenues: CompetitionVenue[];
+
+    @OneToMany(type => UmpireAllocationSetting, umpireAllocationSetting => umpireAllocationSetting.competition)
+    @JoinColumn()
+    umpireAllocationSettings: UmpireAllocationSetting[];
+
+    @OneToOne(
+        type => NoUmpiresUmpireAllocationSetting,
+        noUmpiresUmpireAllocationSetting => noUmpiresUmpireAllocationSetting.competition
+    )
+    noUmpiresUmpireAllocationSetting: NoUmpiresUmpireAllocationSetting;
 
     @IsString()
     @Column()
