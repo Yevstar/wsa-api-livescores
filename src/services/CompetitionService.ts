@@ -188,6 +188,16 @@ export default class CompetitionService extends BaseService<Competition> {
             return [];
         }
     }
+
+    async isCompetitionAffiliate(organisationId: number, competitionId: number): Promise<boolean> {
+        //TODO: Implement logics
+        return true;
+    }
+
+    async isCompetitionOrganiser(organisationId: number, competitionId: number): Promise<boolean> {
+        //TODO: Implement logics
+        return true;
+    }
 }
 
 export interface RequestFilterCompetitionDashboard {

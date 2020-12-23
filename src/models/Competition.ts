@@ -1,4 +1,14 @@
-import {BaseEntity, Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn, OneToMany, DeleteDateColumn} from "typeorm-plus";
+import {
+    BaseEntity,
+    Column,
+    Entity,
+    JoinColumn,
+    OneToOne,
+    PrimaryGeneratedColumn,
+    OneToMany,
+    DeleteDateColumn,
+    ManyToOne
+} from "typeorm-plus";
 import {Location} from "./Location";
 import {CompetitionVenue} from "./CompetitionVenue";
 import {LinkedCompetitionOrganisation} from "./LinkedCompetitionOrganisation";
@@ -9,6 +19,7 @@ import {UmpirePool} from "./UmpirePool";
 import {CompetitionOrganisation} from "./CompetitionOrganisation";
 import {UmpireAllocationSetting} from "./UmpireAllocationSetting";
 import {NoUmpiresUmpireAllocationSetting} from "./NoUmpiresUmpireAllocationSetting";
+import {UmpirePaymentAllowedDivisionsSetting} from "./UmpirePaymentAllowedDivisionsSetting";
 
 @Entity()
 export class Competition extends BaseEntity {
@@ -210,4 +221,7 @@ export class Competition extends BaseEntity {
     @OneToMany(type => CompetitionOrganisation, competitionOrganization => competitionOrganization.competition)
     @JoinColumn()
     competitionOrganizations: CompetitionOrganisation[];
+
+    @OneToOne(type => UmpirePaymentAllowedDivisionsSetting, allowedDivisionsSetting => allowedDivisionsSetting.competition)
+    umpirePaymentAllowedDivisionsSetting: UmpirePaymentAllowedDivisionsSetting;
 }
