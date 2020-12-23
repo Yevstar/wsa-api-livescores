@@ -681,4 +681,11 @@ export class PlayerController extends BaseController {
         @HeaderParam("authorization") user: User) {
         return this.playerService.softDeleteBy(id);
     }
+
+    @Post("/merge")
+    async merge(
+        @Body() payload: any
+    ): Promise<any> {
+        return await this.playerService.updatePlayerId(payload.oldUserId, payload.newUserId);
+    }
 }
