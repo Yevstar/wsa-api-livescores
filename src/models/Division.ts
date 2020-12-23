@@ -12,6 +12,7 @@ import {
 import {Competition} from "./Competition";
 import {IsNumber, IsString, IsBoolean, ValidateNested} from "class-validator";
 import {UmpireAllocationSetting} from "./UmpireAllocationSetting";
+import {UmpirePool} from "./UmpirePool";
 
 @Entity()
 export class Division extends BaseEntity {
@@ -58,4 +59,7 @@ export class Division extends BaseEntity {
 
     @ManyToMany(type => UmpireAllocationSetting, umpireAllocationSetting => umpireAllocationSetting.divisions)
     umpireAllocationSettings: UmpireAllocationSetting[];
+
+    @ManyToMany(type => UmpirePool, umpirePool => umpirePool.divisions)
+    umpirePools: UmpirePool[];
 }

@@ -7,6 +7,8 @@ import {CompetitionParticipatingTypeEnum} from "../models/enums/CompetitionParti
 import {ForbiddenError} from "routing-controllers";
 import {User} from "../models/User";
 import UserService from "./UserService";
+import {UmpirePoolsAllocationUpdateDto} from "../models/dto/UmpirePoolsAllocationUpdateDto";
+import {Division} from "../models/Division";
 
 export class UmpirePoolService extends BaseService<UmpirePool> {
     modelName(): string {
@@ -61,7 +63,7 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
             where: {
                 competitionId: competitionId,
             },
-            relations: ["competition","umpires"]
+            relations: ["competition","umpires","divisions"]
         });
 
         if (CompetitionParticipatingTypeEnum.PARTICIPATED_IN === await this.competitionOrganisationService.getCompetitionParticipatingType(competitionId, organisationId)) {
@@ -82,7 +84,29 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
 
     protected async setUmpires(competitionOrganisationId: number, umpireIds: User[]): Promise<User[]> {
         return await Promise.all(
-            umpireIds.map(async umpireId => await this.entityManager.findOneOrFail(User, umpireId))
+            umpireIds.map(umpireId => this.entityManager.findOneOrFail(User, umpireId))
         );
+    }
+
+    async updateUmpireAllocation(competitionId: number, body: UmpirePoolsAllocationUpdateDto): Promise<UmpirePool[]> {
+        const umpirePools = [];
+        for (const umpirePoolId in body.umpirePools) {
+            const divisions = body.umpirePools[umpirePoolId];
+
+            const umpirePool = await this.entityManager.findOneOrFail(UmpirePool, {
+                where: {
+                    id: umpirePoolId,
+                    competitionId: competitionId,
+                }
+            });
+
+            umpirePool.divisions = await Promise.all(
+                divisions.map(divisionId => this.entityManager.findOneOrFail(Division, divisionId))
+            );
+
+            umpirePools.push(await this.entityManager.save(umpirePool))
+        }
+
+        return umpirePools;
     }
 }

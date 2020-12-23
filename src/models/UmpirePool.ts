@@ -10,6 +10,7 @@ import {
 import {Competition} from "./Competition";
 import {IsNumber, IsString} from "class-validator";
 import {User} from "./User";
+import {Division} from "./Division";
 
 @Entity()
 export class UmpirePool extends BaseEntity {
@@ -31,4 +32,8 @@ export class UmpirePool extends BaseEntity {
     @ManyToOne(type => Competition, competition => competition.umpirePools)
     @JoinColumn()
     competition: Competition;
+
+    @ManyToMany(type => Division, division => division.umpirePools)
+    @JoinTable()
+    divisions: Division[];
 }
