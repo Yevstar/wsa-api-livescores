@@ -1,7 +1,7 @@
-import {BaseEntity, Column, Entity, ManyToOne, PrimaryGeneratedColumn} from "typeorm-plus";
+import {BaseEntity, Column, Entity, ManyToMany, ManyToOne, PrimaryGeneratedColumn} from "typeorm-plus";
 import {IsBoolean, IsNumber} from "class-validator";
-import {UmpirePayerTypeEnum} from "./enums/UmpirePayerTypeEnum";
 import {Competition} from "./Competition";
+import {Division} from "./Division";
 
 @Entity()
 export class UmpirePaymentSetting extends BaseEntity {
@@ -16,10 +16,9 @@ export class UmpirePaymentSetting extends BaseEntity {
     competition: Competition;
 
     @Column()
-    @IsNumber()
-    umpirePayerTypeRefId: UmpirePayerTypeEnum;
-
-    @Column()
     @IsBoolean()
     allDivisions: boolean;
+
+    @ManyToMany(type => Division)
+    divisions: Division[]
 }

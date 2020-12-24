@@ -20,6 +20,8 @@ import {CompetitionOrganisation} from "./CompetitionOrganisation";
 import {UmpireAllocationSetting} from "./UmpireAllocationSetting";
 import {NoUmpiresUmpireAllocationSetting} from "./NoUmpiresUmpireAllocationSetting";
 import {UmpirePaymentAllowedDivisionsSetting} from "./UmpirePaymentAllowedDivisionsSetting";
+import {UmpirePayerTypeEnum} from "./enums/UmpirePayerTypeEnum";
+import {UmpirePaymentSetting} from "./UmpirePaymentSetting";
 
 @Entity()
 export class Competition extends BaseEntity {
@@ -224,4 +226,11 @@ export class Competition extends BaseEntity {
 
     @OneToOne(type => UmpirePaymentAllowedDivisionsSetting, allowedDivisionsSetting => allowedDivisionsSetting.competition)
     umpirePaymentAllowedDivisionsSetting: UmpirePaymentAllowedDivisionsSetting;
+
+    @OneToMany(type => UmpirePaymentSetting, umpirePaymentSetting => umpirePaymentSetting.competition)
+    umpirePaymentSettings: UmpirePaymentSetting[];
+
+    @Column()
+    @IsNumber()
+    umpirePayerTypeRefId: UmpirePayerTypeEnum;
 }

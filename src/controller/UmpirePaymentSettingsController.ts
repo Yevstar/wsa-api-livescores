@@ -12,7 +12,7 @@ export class UmpirePaymentSettingsController extends BaseController {
         @Param('competitionId') competitionId: number,
         @RequiredQueryParam('organisationId') organisationId: number,
         @Body() body: UmpirePaymentOrganiserSettingsDto
-    ) {
+    ): Promise<void> {
         return this.umpirePaymentSettingsService.saveOrganiserSettings(organisationId, competitionId, body)
     }
 
@@ -21,7 +21,7 @@ export class UmpirePaymentSettingsController extends BaseController {
         @Param('competitionId') competitionId: number,
         @RequiredQueryParam('organisationId') organisationId: number,
         @Body() body: UmpirePaymentSetting[]
-    ) {
+    ): Promise<void> {
         return this.umpirePaymentSettingsService.saveAffiliateSettings(organisationId, competitionId, body)
     }
 }
