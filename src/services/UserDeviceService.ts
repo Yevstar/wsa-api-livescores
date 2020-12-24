@@ -9,6 +9,7 @@ import { EntityType } from "../models/security/EntityType";
 import { News } from "../models/News";
 import { isNullOrUndefined } from "util";
 import { testForBuffer } from "class-transformer/TransformOperationExecutor";
+import {Communication} from "../models/Communication";
 
 @Service()
 export default class UserDeviceService extends BaseService<UserDevice> {
@@ -229,6 +230,52 @@ export default class UserDeviceService extends BaseService<UserDevice> {
                 }
             } else {
                 let data = await this.findDeviceForNewsById(news.id);
+                result = new Set(data.map(device => device.deviceId));
+            }
+        }
+        return [...result];
+    }
+
+    public async findDeviceForCommunication(communication: Communication): Promise<any[]> {
+        let result = new Set();
+        if (communication) {
+            if (communication.toUserIds) {
+                let ids = this.parseIds(communication.toUserIds);
+                if (ids.length > 0) {
+                    let data = await this.getUserTokens(ids);
+                    result = new Set(data.map(device => device.deviceId));
+                }
+            } else if (communication.toUserRoleIds && communication.toRosterRoleIds) {
+                let ure = this.parseIds(communication.toUserRoleIds);
+                let roster = this.parseIds(communication.toRosterRoleIds);
+                if (ure.length > 0 && roster.length > 0) {
+                    let data = await this.findDeviceForUreAndRoster(communication.id, ure, roster);
+                    result = new Set(data.map(device => device.deviceId));
+                } else {
+                    if (ure.length > 0) {
+                        let data = await this.findDeviceForNewsByRoleIds(communication.id, ure);
+                        result = new Set(data.map(device => device.deviceId));
+                    }
+                    if (roster.length > 0) {
+                        let data = await this.findDeviceForRoster(communication.id, roster);
+                        let list = new Set(data.map(device => device.deviceId));
+                        for (const token of list) if (!result.has(token)) result.add(token);
+                    }
+                }
+            } else if (communication.toUserRoleIds) {
+                let ids = this.parseIds(communication.toUserRoleIds);
+                if (ids.length > 0) {
+                    let data = await this.findDeviceForNewsByRoleIds(communication.id, ids);
+                    result = new Set(data.map(device => device.deviceId));
+                }
+            } else if (communication.toRosterRoleIds) {
+                let ids = this.parseIds(communication.toRosterRoleIds);
+                if (ids.length > 0) {
+                    let data = await this.findDeviceForRoster(communication.id, ids);
+                    result = new Set(data.map(device => device.deviceId));
+                }
+            } else {
+                let data = await this.findDeviceForNewsById(communication.id);
                 result = new Set(data.map(device => device.deviceId));
             }
         }

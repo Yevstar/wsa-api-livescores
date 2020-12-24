@@ -43,6 +43,7 @@ import {Role} from "../models/security/Role";
 import CompetitionInviteesService from "../services/CompetitionInviteesService";
 import PlayerMinuteTrackingService from "../services/PlayerMinuteTrackingService";
 import BookingService from "../services/BookingService";
+import CommunicationService from "../services/CommunicationService";
 
 export class BaseController {
 
@@ -150,6 +151,9 @@ export class BaseController {
 
     @Inject()
     protected bookingService: BookingService;
+
+    @Inject()
+    protected communicationService: CommunicationService;
 
     protected async updateFirebaseData(user: User, password: string) {
         user.password = password;
