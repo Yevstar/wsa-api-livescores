@@ -7,7 +7,7 @@ import {UmpirePaymentSetting} from "../models/UmpirePaymentSetting";
 @JsonController('/competitions/:competitionId/umpires/payment/settings')
 export class UmpirePaymentSettingsController extends BaseController {
 
-    @Post('organiser')
+    @Post('/organiser')
     saveOrganiserSettings(
         @Param('competitionId') competitionId: number,
         @RequiredQueryParam('organisationId') organisationId: number,
@@ -16,7 +16,7 @@ export class UmpirePaymentSettingsController extends BaseController {
         return this.umpirePaymentSettingsService.saveOrganiserSettings(organisationId, competitionId, body)
     }
 
-    @Post('affiliate')
+    @Post('/affiliate')
     saveAffiliateSettings(
         @Param('competitionId') competitionId: number,
         @RequiredQueryParam('organisationId') organisationId: number,

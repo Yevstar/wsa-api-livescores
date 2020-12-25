@@ -3,7 +3,7 @@ import {
     BaseEntity,
     Column,
     Entity,
-    JoinColumn,
+    JoinColumn, JoinTable,
     ManyToMany,
     OneToMany,
     OneToOne,
@@ -13,6 +13,7 @@ import {Competition} from "./Competition";
 import {IsNumber, IsString, IsBoolean, ValidateNested} from "class-validator";
 import {UmpireAllocationSetting} from "./UmpireAllocationSetting";
 import {UmpirePool} from "./UmpirePool";
+import {UmpirePaymentSetting} from "./UmpirePaymentSetting";
 
 @Entity()
 export class Division extends BaseEntity {
@@ -62,4 +63,8 @@ export class Division extends BaseEntity {
 
     @ManyToMany(type => UmpirePool, umpirePool => umpirePool.divisions)
     umpirePools: UmpirePool[];
+
+    @ManyToMany(type => UmpirePaymentSetting, umpirePaymentSetting => umpirePaymentSetting.divisions)
+    @JoinTable()
+    umpirePaymentSettings: UmpirePaymentSetting[];
 }

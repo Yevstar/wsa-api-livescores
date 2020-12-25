@@ -48,6 +48,6 @@ export default class CompetitionOrganisationService extends BaseService<Competit
         return this.entityManager.findOneOrFail(CompetitionOrganisation, {
             competitionId: competitionId,
             orgId: organisationId,
-        });
+        }, {relations: ["competition"]});
     }
 }

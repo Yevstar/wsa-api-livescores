@@ -1,4 +1,4 @@
 export enum UmpirePayerTypeEnum {
-    ORGANISER,
-    AFFILIATE
+    ORGANISER = 1,
+    AFFILIATE = 2
 }
