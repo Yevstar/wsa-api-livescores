@@ -10,6 +10,7 @@ import {UmpirePayerTypeEnum} from "../models/enums/UmpirePayerTypeEnum";
 import {UmpirePaymentAllowedDivisionsSetting} from "../models/UmpirePaymentAllowedDivisionsSetting";
 import {DeepPartial} from "typeorm-plus";
 import {Competition} from "../models/Competition";
+import {UmpirePaymentSettingsResponseDto} from "../models/dto/UmpirePaymentSettingsResponseDto";
 
 export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetting> {
     modelName(): string {
@@ -22,7 +23,11 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
     @Inject()
     private readonly competitionOrganisationService: CompetitionOrganisationService;
 
-    async saveOrganiserSettings(organisationId: number, competitionId: number, body: UmpirePaymentOrganiserSettingsDto): Promise<void> {
+    //async getPaymentSettings(organisationId: number, competitionId: number): Promise<UmpirePaymentSettingsResponseDto> {
+//
+   // }
+
+    async saveOrganiserSettings(organisationId: number, competitionId: number, body: UmpirePaymentOrganiserSettingsDto): Promise<UmpirePaymentSettingsResponseDto> {
         if (!this.competitionService.isCompetitionOrganiser(organisationId, competitionId)) {
             throw new ForbiddenError("Only competition organiser can save this setting");
         }
@@ -30,6 +35,7 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
         const competition = await this.entityManager.findOneOrFail(Competition, competitionId);
         competition.umpirePayerTypeRefId = body.umpirePayerTypeRefId;
 
+        const response = new UmpirePaymentSettingsResponseDto(body.umpirePayerTypeRefId);
         if (UmpirePayerTypeEnum.ORGANISER === body.umpirePayerTypeRefId) {
 
             await this.entityManager.delete(UmpirePaymentSetting, {
@@ -37,16 +43,22 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
             });
 
             for (const paymentSettingData of body.umpirePaymentSettings) {
-                await this.setPaymentSetting(paymentSettingData, competitionId);
+                response.umpirePaymentSettings.push(await this.setPaymentSetting(paymentSettingData, competitionId));
             }
         } else {
             const allowedDivisionsSetting = new UmpirePaymentAllowedDivisionsSetting;
 
-            if (body.allowedDivisionsSetting.divisions) {
+            allowedDivisionsSetting.allDivisions = body.allowedDivisionsSetting.allDivisions;
+            if (!body.allowedDivisionsSetting.allDivisions && body.allowedDivisionsSetting.divisions) {
                 allowedDivisionsSetting.divisions = await Promise.all(body.allowedDivisionsSetting.divisions.map(divisionId => this.entityManager.findOneOrFail(Division, divisionId)));
             }
-            competition.umpirePaymentAllowedDivisionsSetting = allowedDivisionsSetting;
+
+            allowedDivisionsSetting.competitionId = competitionId;
+
+            response.allowedDivisionsSetting = await this.entityManager.save(allowedDivisionsSetting)
         }
+
+        return response;
     }
 
     async saveAffiliateSettings(organisationId: number, competitionId: number, body: UmpirePaymentSetting[]) {
@@ -71,8 +83,7 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
 
     protected async setPaymentSetting(paymentSettingData: DeepPartial<UmpirePaymentSetting>, competitionId: number): Promise<UmpirePaymentSetting> {
         const paymentSetting = new UmpirePaymentSetting;
-        Object.assign(paymentSetting, paymentSettingData);
-
+        paymentSetting.allDivisions = paymentSettingData.allDivisions;
         paymentSetting.competitionId = competitionId;
 
         if (!paymentSettingData.allDivisions && paymentSettingData.divisions) {

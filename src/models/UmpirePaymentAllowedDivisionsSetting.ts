@@ -15,6 +15,6 @@ export class UmpirePaymentAllowedDivisionsSetting extends BaseEntity {
     @JoinColumn()
     competition: Competition;
 
-    @ManyToMany(type => Division)
+    @ManyToMany(type => Division, division => division.umpirePaymentAllowedDivisionsSettings)
     divisions: Division[];
 }

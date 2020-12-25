@@ -14,6 +14,7 @@ import {IsNumber, IsString, IsBoolean, ValidateNested} from "class-validator";
 import {UmpireAllocationSetting} from "./UmpireAllocationSetting";
 import {UmpirePool} from "./UmpirePool";
 import {UmpirePaymentSetting} from "./UmpirePaymentSetting";
+import {UmpirePaymentAllowedDivisionsSetting} from "./UmpirePaymentAllowedDivisionsSetting";
 
 @Entity()
 export class Division extends BaseEntity {
@@ -67,4 +68,8 @@ export class Division extends BaseEntity {
     @ManyToMany(type => UmpirePaymentSetting, umpirePaymentSetting => umpirePaymentSetting.divisions)
     @JoinTable()
     umpirePaymentSettings: UmpirePaymentSetting[];
+
+    @ManyToMany(type => UmpirePaymentAllowedDivisionsSetting, setting => setting.divisions)
+    @JoinTable()
+    umpirePaymentAllowedDivisionsSettings: UmpirePaymentAllowedDivisionsSetting[];
 }
