@@ -2,6 +2,7 @@ import {Service} from "typedi";
 import pdf from "html-pdf";
 import hummus from "hummus";
 import memoryStreams from "memory-streams";
+import path from 'path';
 import avro from "avsc";
 import {Brackets, DeleteResult} from "typeorm-plus";
 
@@ -620,10 +621,11 @@ export default class MatchService extends BaseService<Match> {
                     isNotNullAndUndefined(matchVenueTimezone) ? matchVenueTimezone : competitionTimezone
                 );
 
-                let options = { width: '595px', height: '842px'};
+                let options = { width: '595px', height: '842px', base: '' };
                 if (templateType == 'Scorecard') {
-                    options = { width: '400px', height: '350px' }
+                    options = { width: '400px', height: '350px', base: '' }
                 }
+                options.base = 'file://' + path.resolve('./public/assets');
 
                 await createPDF(htmlTmpl, options).then((newBuffer) => {
                     if (pdfBuf) {
