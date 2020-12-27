@@ -1,7 +1,18 @@
 import {Team} from './Team';
-import {BaseEntity, Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn} from 'typeorm-plus';
+import {
+    BaseEntity,
+    Column,
+    Entity,
+    JoinColumn,
+    ManyToMany,
+    OneToMany,
+    OneToOne,
+    PrimaryGeneratedColumn
+} from 'typeorm-plus';
 import {Competition} from "./Competition";
 import {IsNumber, IsString, IsBoolean, ValidateNested} from "class-validator";
+import {UmpireAllocationSetting} from "./UmpireAllocationSetting";
+import {UmpirePool} from "./UmpirePool";
 
 @Entity()
 export class Division extends BaseEntity {
@@ -45,4 +56,10 @@ export class Division extends BaseEntity {
 
     @OneToMany(type => Team, team => team.division)
     teams: Promise<Team[]>;
+
+    @ManyToMany(type => UmpireAllocationSetting, umpireAllocationSetting => umpireAllocationSetting.divisions)
+    umpireAllocationSettings: UmpireAllocationSetting[];
+
+    @ManyToMany(type => UmpirePool, umpirePool => umpirePool.divisions)
+    umpirePools: UmpirePool[];
 }

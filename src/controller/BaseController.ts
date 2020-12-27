@@ -43,6 +43,8 @@ import {Role} from "../models/security/Role";
 import CompetitionInviteesService from "../services/CompetitionInviteesService";
 import PlayerMinuteTrackingService from "../services/PlayerMinuteTrackingService";
 import BookingService from "../services/BookingService";
+import {UmpirePoolService} from "../services/UmpirePoolService";
+import {UmpireSettingsService} from "../services/UmpireSettingsService";
 import CommunicationService from "../services/CommunicationService";
 
 export class BaseController {
@@ -151,6 +153,12 @@ export class BaseController {
 
     @Inject()
     protected bookingService: BookingService;
+
+    @Inject()
+    protected umpireSettingsService: UmpireSettingsService;
+
+    @Inject()
+    protected umpirePoolService: UmpirePoolService;
 
     @Inject()
     protected communicationService: CommunicationService;
@@ -371,8 +379,20 @@ export class BaseController {
         let tokens = (await this.deviceService.getUserDevices(umpireRoster.userId)).map(device => device.deviceId);
         if (tokens && tokens.length > 0) {
           try {
-            if (match.competition && match.competition.location && match.competition.location.id) {
-              let stateTimezone: StateTimezone = await this.matchService.getMatchTimezone(match.competition.locationId);
+            var locationRefId;
+            if (isNotNullAndUndefined(match) &&
+                isNotNullAndUndefined(match.venueCourt) &&
+                isNotNullAndUndefined(match.venueCourt.venue) &&
+                isNotNullAndUndefined(match.venueCourt.venue.stateRefId)) {
+                  locationRefId = match.venueCourt.venue.stateRefId;
+            } else if (isNotNullAndUndefined(match.competition) &&
+                isNotNullAndUndefined(match.competition.location) &&
+                isNotNullAndUndefined(match.competition.location.id)) {
+                  locationRefId = match.competition.location.id;
+            }
+
+            if (isNotNullAndUndefined(locationRefId)) {
+              let stateTimezone: StateTimezone = await this.matchService.getMatchTimezone(locationRefId);
               let messageBody: String = getMatchUmpireNotificationMessage(
                   match,
                   stateTimezone,

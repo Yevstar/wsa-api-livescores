@@ -26,7 +26,7 @@ export class StatController extends BaseController {
             }
         } else {
 
-            return response.status(200).send(
+            return response.status(400).send(
                 {name: 'search_error', message: `Team id required field`});
         }
     }
@@ -34,18 +34,29 @@ export class StatController extends BaseController {
     @Authorized()
     @Post('/gametime')
     async gametime(
-        @QueryParam('competitionId', {required: true}) competitionId: number = undefined,
+        @QueryParam('competitionId', {required: true}) competitionId: number,
+        @QueryParam('competitionOrganisationId') competitionOrganisationId: number,
         @QueryParam('aggregate', {required: true}) aggregate: ("MINUTE" | "PERIOD" | "MATCH"),
         @QueryParam('teamId') teamId: number = undefined,
         @QueryParam('matchId') matchId: number = undefined,
         @Body() requestFilter: RequestFilter,
         @QueryParam('sortBy') sortBy: string = undefined,
         @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined,
-        @Res() response: Response) {
+        @Res() response: Response
+    ) {
         if (competitionId && aggregate && requestFilter) {
-                return this.playerService.loadGameTime(competitionId, aggregate, teamId, matchId, requestFilter, sortBy, sortOrder);
+            return this.playerService.loadGameTime(
+                competitionId,
+                competitionOrganisationId,
+                aggregate,
+                teamId,
+                matchId,
+                requestFilter,
+                sortBy,
+                sortOrder
+            );
         } else {
-            return response.status(200).send(
+            return response.status(400).send(
                 {name: 'search_error', message: `Required fields are missing`});
         }
     }
@@ -62,7 +73,7 @@ export class StatController extends BaseController {
             const noOfTeams = await this.teamService.findNumberOfTeams(divisionId);
             return this.teamService.summaryScoringStat(competitionId, teamId, divisionId, noOfTeams);
         } else {
-            return response.status(200).send(
+            return response.status(400).send(
                 {name: 'search_error', message: `Required fields not filled`});
         }
     }
@@ -80,7 +91,7 @@ export class StatController extends BaseController {
             const noOfMatches = await this.matchService.findNumberOfMatches(divisionId);
             return this.teamService.scoringStatsByMatch(competitionId, teamId, matchId, divisionId, noOfMatches);
         } else {
-            return response.status(200).send(
+            return response.status(400).send(
                 {name: 'search_error', message: `Required fields not filled`});
         }
     }
@@ -89,6 +100,7 @@ export class StatController extends BaseController {
     @Get('/scoringByPlayer')
     async scoringStatsByPlayer(
         @QueryParam('competitionId', { required: true }) competitionId: number,
+        @QueryParam('competitionOrganisationId') competitionOrganisationId: number,
         @QueryParam('divisionId') divisionId: number,
         @QueryParam('playerId') playerId: number,
         @QueryParam('aggregate') aggregate: ("ALL" | "MATCH"),
@@ -114,6 +126,7 @@ export class StatController extends BaseController {
         }
         const getScoringData = await this.teamService.scoringStatsByPlayer(
             competitionId,
+            competitionOrganisationId,
             playerId,
             aggregate,
             offset,
@@ -140,7 +153,7 @@ export class StatController extends BaseController {
         if (competitionId && teamId) {
             return this.teamService.incidentsByTeam(competitionId, teamId);
         } else {
-            return response.status(200).send(
+            return response.status(400).send(
                 {name: 'search_error', message: `Required fields not filled`});
         }
     }
@@ -155,7 +168,7 @@ export class StatController extends BaseController {
         if (competitionId && teamId) {
             return this.playerService.loadPlayersBorrows(competitionId, teamId);
         } else {
-            return response.status(200).send(
+            return response.status(400).send(
                 {name: 'search_error', message: `Required fields not filled`});
         }
     }
@@ -163,11 +176,19 @@ export class StatController extends BaseController {
     @Authorized()
     @Get('/export/gametime')
     async exportTeamAttendance(
-        @QueryParam('competitionId', { required: true }) competitionId: number = undefined,
+        @QueryParam('competitionId', { required: true }) competitionId: number,
+        @QueryParam('competitionOrganisationId') competitionOrganisationId: number,
         @QueryParam('aggregate', { required: true }) aggregate: ("MINUTE" | "PERIOD" | "MATCH"),
-        @Res() response: Response) {
-
-        let gameTimeData = await this.playerService.loadGameTime(competitionId, aggregate, null, null, { paging: { offset: null, limit: null }, search: '' });
+        @Res() response: Response
+    ) {
+        let gameTimeData = await this.playerService.loadGameTime(
+            competitionId,
+            competitionOrganisationId,
+            aggregate,
+            null,
+            null,
+            { paging: { offset: null, limit: null }, search: '' }
+        );
 
         if (isArrayPopulated(gameTimeData)) {
             gameTimeData.map(e => {
@@ -177,7 +198,9 @@ export class StatController extends BaseController {
                 e['Team'] = e.team.name;
                 e['DIV'] = e.division.name;
                 e['Play Time'] = e.playTime;
-                e['Play %'] = (e.playTimeTeamMatches == 0 || e.playTimeTeamMatches == null) ? ("") : ((100 * (e.playTime / e.playTimeTeamMatches)).toFixed(2) + '%');
+                e['Play %'] = (e.playTimeTeamMatches == 0 || e.playTimeTeamMatches == null) ?
+                  ("") :
+                  ((100 * (e.playTime / e.playTimeTeamMatches)).toFixed(2) + '%');
                 delete e.division;
                 delete e.player;
                 delete e.team;
@@ -210,6 +233,7 @@ export class StatController extends BaseController {
     @Get('/export/scoringByPlayer')
     async exportScoringStatsByPlayer(
         @QueryParam('competitionId', { required: true }) competitionId: number,
+        @QueryParam('competitionOrganisationId') competitionOrganisationId: number,
         @QueryParam('playerId') playerId: number,
         @QueryParam('divisionId') divisionId: number,
         @QueryParam('aggregate') aggregate: ("ALL" | "MATCH"),
@@ -233,6 +257,7 @@ export class StatController extends BaseController {
         if (search === null || search === undefined) search = '';
         let playerScoreData = await this.teamService.scoringStatsByPlayer(
             competitionId,
+            competitionOrganisationId,
             playerId,
             aggregate,
             null,
@@ -303,7 +328,7 @@ export class StatController extends BaseController {
         if (playerId) {
             return this.playerService.loadBorrowsForPlayer(playerId);
         } else {
-            return response.status(200).send(
+            return response.status(400).send(
                 {name: 'search_error', message: `CompetitionId, teamId & playerId are mandatory fields`});
         }
     }
@@ -313,26 +338,158 @@ export class StatController extends BaseController {
     async positionTracking(
         @QueryParam('aggregate') aggregate: ("MATCH" | "TOTAL"),
         @QueryParam('reporting') reporting: ("PERIOD" | "MINUTE"),
-        @QueryParam('competitionId', {required: true}) competitionId: number = undefined,
+        @QueryParam('competitionId', { required: true }) competitionId: number,
+        @QueryParam('competitionOrganisationId') competitionOrganisationId: number,
         @QueryParam('teamId') teamId: number = undefined,
         @QueryParam('matchId') matchId: number = undefined,
         @QueryParam('search') search: string = undefined,
         @Body() requestFilter: RequestFilter,
         @QueryParam('sortBy') sortBy: string = undefined,
         @QueryParam('sortOrder') sortOrder: "ASC" | "DESC" = undefined,
-        @Res() response: Response) {
-        if (competitionId) {
+        @Res() response: Response
+    ) {
+        if (isNotNullAndUndefined(competitionId)) {
             let competition = await this.competitionService.findById(competitionId);
-            if (competition.positionTracking == true) {
-                return this.gameTimeAttendanceService.loadPositionTrackingStats(aggregate, reporting, competitionId, teamId, matchId, search, requestFilter, sortBy, sortOrder);
+            if (isNotNullAndUndefined(competition) && competition.positionTracking == true) {
+                return this.gameTimeAttendanceService.loadPositionTrackingStats(
+                    aggregate,
+                    reporting,
+                    competitionId,
+                    competitionOrganisationId,
+                    teamId,
+                    matchId,
+                    search,
+                    requestFilter,
+                    sortBy,
+                    sortOrder
+                );
             } else {
                 // temporarily return blank rows till front end sorts it out
-                return this.gameTimeAttendanceService.loadPositionTrackingStats(aggregate, reporting, 0, teamId, matchId, search, requestFilter, sortBy, sortOrder);
+                return this.gameTimeAttendanceService.loadPositionTrackingStats(
+                    aggregate,
+                    reporting,
+                    0,
+                    0,
+                    teamId,
+                    matchId,
+                    search,
+                    requestFilter,
+                    sortBy,
+                    sortOrder
+                );
                 //return response.status(200).send( {name: 'search_error', message: `Position tracking is not enabled for this competition`});
             }
-        } else { 
-            return response.status(200).send(
-                {name: 'search_error', message: `Competition id required field`});
+        } else {
+            return response.status(400).send(
+                {name: 'search_error', message: `Missing required parameters`});
+        }
+    }
+
+    @Authorized()
+    @Get('/positionTracking/export')
+    async positionTrackingExport(
+        @QueryParam('aggregate') aggregate: ("MATCH" | "TOTAL"),
+        @QueryParam('reporting') reporting: ("PERIOD" | "MINUTE"),
+        @QueryParam('competitionId', { required: true }) competitionId: number,
+        @QueryParam('competitionOrganisationId') competitionOrganisationId: number,
+        @Res() response: Response
+    ) {
+        if (isNotNullAndUndefined(competitionId)) {
+            var gameTimeAttendanceData;
+            let competition = await this.competitionService.findById(competitionId);
+            if (isNotNullAndUndefined(competition) && competition.positionTracking == true) {
+                gameTimeAttendanceData = await this.gameTimeAttendanceService.loadPositionTrackingStats(
+                    aggregate,
+                    reporting,
+                    competitionId,
+                    competitionOrganisationId,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+                );
+            } else {
+                // temporarily return blank rows till front end sorts it out
+                gameTimeAttendanceData = await this.gameTimeAttendanceService.loadPositionTrackingStats(
+                    aggregate,
+                    reporting,
+                    0,
+                    0,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+                );
+            }
+
+            gameTimeAttendanceData.map(gta => {
+                gta['Match ID'] = gta['match']['id'];
+                gta['Team'] = gta['team']['name'];
+                gta['First Name'] = gta['player']['firstName'];
+                gta['Last Name'] = gta['player']['lastName'];
+                gta['GS'] = gta['gs'];
+                gta['GA'] = gta['ga'];
+                gta['WA'] = gta['wa'];
+                gta['C'] = gta['c'];
+                gta['WD'] = gta['wd'];
+                gta['GD'] = gta['gd'];
+                gta['GK'] = gta['gk'];
+                gta['Played'] = gta['play'];
+                gta['Bench'] = gta['bench'];
+                gta['No Play'] = gta['noplay'];
+
+                delete gta['team'];
+                delete gta['player'];
+                delete gta['playDuration'];
+                delete gta['gs'];
+                delete gta['ga'];
+                delete gta['wa'];
+                delete gta['c'];
+                delete gta['wd'];
+                delete gta['gd'];
+                delete gta['gk'];
+                delete gta['i'];
+                delete gta['play'];
+                delete gta['bench'];
+                delete gta['noplay'];
+                delete gta['match'];
+
+                return gta;
+            });
+
+            if (!isNotNullAndUndefined(gameTimeAttendanceData) ||
+                gameTimeAttendanceData.length == 0) {
+                      gameTimeAttendanceData.push({
+                          ['Match ID']: '',
+                          ['Team']: '',
+                          ['First Name']: '',
+                          ['Last Name']: '',
+                          ['GS']: '',
+                          ['GA']: '',
+                          ['WA']: '',
+                          ['C']: '',
+                          ['WD']: '',
+                          ['GD']: '',
+                          ['GK']: '',
+                          ['Played']: '',
+                          ['Bench']: '',
+                          ['No Play']: ''
+                    });
+            }
+
+            response.setHeader('Content-disposition', 'attachment; filename=positionTrackingReport.csv');
+            response.setHeader('content-type', 'text/csv');
+            fastcsv.write(gameTimeAttendanceData, { headers: true })
+                .on('finish', function () {
+                })
+                .pipe(response);
+        } else {
+            return response.status(400).send(
+                {name: 'search_error', message: `Missing required parameters`});
         }
     }
 }

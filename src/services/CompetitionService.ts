@@ -14,7 +14,12 @@ export default class CompetitionService extends BaseService<Competition> {
 
     public async findById(id: number): Promise<Competition> {
         let query = this.entityManager.createQueryBuilder(Competition, 'competition')
-            .leftJoinAndSelect('competition.linkedCompetitionOrganisation', 'linkedCompetitionOrganisation')
+            .leftJoinAndSelect(
+                'competition.linkedCompetitionOrganisation',
+                'linkedCompetitionOrganisation',
+                'linkedCompetitionOrganisation.competitionId = competition.id and ' +
+                'linkedCompetitionOrganisation.organisationId = competition.organisationId'
+            )
             .leftJoinAndSelect('competition.competitionVenues', 'competitionVenue')
             .leftJoinAndSelect('competition.competitionInvitees', 'competitionInvitee')
             .leftJoinAndSelect('competitionVenue.venue', 'venue');

@@ -4,6 +4,11 @@ import {CompetitionVenue} from "./CompetitionVenue";
 import {LinkedCompetitionOrganisation} from "./LinkedCompetitionOrganisation";
 import {IsBoolean, IsNumber, IsString, ValidateNested} from "class-validator";
 import { CompetitionInvitees } from "./CompetitionInvitees";
+import {UmpireCompetitionRank} from "./UmpireCompetitionRank";
+import {UmpirePool} from "./UmpirePool";
+import {CompetitionOrganisation} from "./CompetitionOrganisation";
+import {UmpireAllocationSetting} from "./UmpireAllocationSetting";
+import {NoUmpiresUmpireAllocationSetting} from "./NoUmpiresUmpireAllocationSetting";
 
 @Entity()
 export class Competition extends BaseEntity {
@@ -110,6 +115,16 @@ export class Competition extends BaseEntity {
     @JoinColumn()
     competitionVenues: CompetitionVenue[];
 
+    @OneToMany(type => UmpireAllocationSetting, umpireAllocationSetting => umpireAllocationSetting.competition)
+    @JoinColumn()
+    umpireAllocationSettings: UmpireAllocationSetting[];
+
+    @OneToOne(
+        type => NoUmpiresUmpireAllocationSetting,
+        noUmpiresUmpireAllocationSetting => noUmpiresUmpireAllocationSetting.competition
+    )
+    noUmpiresUmpireAllocationSetting: NoUmpiresUmpireAllocationSetting;
+
     @IsString()
     @Column()
     softBuzzerUrl: string;
@@ -185,4 +200,14 @@ export class Competition extends BaseEntity {
     @IsNumber()
     @Column()
     sourceId: number;
+
+    @OneToMany(type => UmpireCompetitionRank, umpireRank => umpireRank.competition)
+    umpireRanks: UmpireCompetitionRank[];
+
+    @OneToMany(type => UmpirePool, umpirePool => umpirePool.competition)
+    umpirePools: UmpirePool[];
+
+    @OneToMany(type => CompetitionOrganisation, competitionOrganization => competitionOrganization.competition)
+    @JoinColumn()
+    competitionOrganizations: CompetitionOrganisation[];
 }

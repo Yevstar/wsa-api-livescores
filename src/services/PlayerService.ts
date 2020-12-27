@@ -187,6 +187,7 @@ export default class PlayerService extends BaseService<Player> {
 
     public async loadGameTime(
         competitionId: number,
+        competitionOrganisationId: number,
         aggregate: ("MINUTE" | "PERIOD" | "MATCH"),
         teamId: number,
         matchId: number,
@@ -206,8 +207,9 @@ export default class PlayerService extends BaseService<Player> {
               search = requestFilter.search;
           }
         }
-        let result = await this.entityManager.query("call wsa.usp_get_gametime(?,?,?,?,?,?,?,?,?)",
+        let result = await this.entityManager.query("call wsa.usp_get_gametime(?,?,?,?,?,?,?,?,?,?)",
           [competitionId,
+            competitionOrganisationId,
             aggregate,
             teamId,
             matchId,
@@ -250,9 +252,29 @@ export default class PlayerService extends BaseService<Player> {
             'group by playerId', [competitionId, teamId]);
     }
 
-    public async listTeamPlayerActivity(competitionId: number, requestFilter: RequestFilter, divisionId: string = undefined, roundIds: string = undefined, status: string, sortBy:string = undefined, sortOrder:"ASC"|"DESC" = undefined): Promise<any> {
-        let result = await this.entityManager.query("call wsa.usp_get_team_player_activity(?,?,?,?,?,?,?,?,?)",
-        [competitionId, divisionId, roundIds, status, requestFilter.paging.offset, requestFilter.paging.limit, requestFilter.search, sortBy, sortOrder]);
+    public async listTeamPlayerActivity(
+        competitionId: number,
+        competitionOrganisationId: number,
+        requestFilter: RequestFilter,
+        status: string,
+        divisionId: string = undefined,
+        roundIds: string = undefined,
+        sortBy:string = undefined,
+        sortOrder:"ASC"|"DESC" = undefined
+    ): Promise<any> {
+        let result = await this.entityManager.query("call wsa.usp_get_team_player_activity(?,?,?,?,?,?,?,?,?,?)",
+        [
+          competitionId,
+          competitionOrganisationId,
+          divisionId,
+          roundIds,
+          status,
+          requestFilter.paging.offset,
+          requestFilter.paging.limit,
+          requestFilter.search,
+          sortBy,
+          sortOrder
+        ]);
 
         if (isNotNullAndUndefined(requestFilter.paging.offset) && isNotNullAndUndefined(requestFilter.paging.limit)) {
             if (result != null) {
@@ -320,6 +342,15 @@ export default class PlayerService extends BaseService<Player> {
           .update()
           .set({userId: newUser.id, email: newUser.email})
           .where('userId = :userId', { userId: prevUser.id })
+          .execute();
+    }
+
+    public async updatePlayerId(prevUserId: number, newUserId: number) {
+      return this.entityManager
+          .createQueryBuilder(Player, 'player')
+          .update()
+          .set({userId: newUserId})
+          .where('userId = :userId', { userId: prevUserId })
           .execute();
     }
 }
