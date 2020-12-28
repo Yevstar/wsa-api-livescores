@@ -59,8 +59,6 @@ export class CommunicationController extends BaseController {
             let n = new Communication();
             n.title = body.title;
             n.body = body.body;
-            n.entityId = body.entityId;
-            n.entityTypeId = body.entityTypeId;
             n.author = body.author;
             n.recipients = body.recipients;
             n.communication_expire_date = body.communication_expire_date;
@@ -73,7 +71,7 @@ export class CommunicationController extends BaseController {
             if (n.id) {
                 communication = await this.communicationService.findById(n.id);
             }
-            if (n.entityId && n.title) {
+            if (n.title) {
                 if (body.communicationImage) {
                     n.communicationImage = body.communicationImage;
                 }
@@ -87,7 +85,7 @@ export class CommunicationController extends BaseController {
                         }
                         if (isPhoto(i.mimetype)) {
                             imageFilePopulated = true;
-                            let filename = `/media/communication/${n.entityTypeId}_${n.entityId}_${n.title}_${timestamp()}.${fileExt(i.originalname)}`;
+                            let filename = `/media/communication/${n.title}_${timestamp()}.${fileExt(i.originalname)}`;
                             let fileUploaded = await this.firebaseService.upload(filename, i);
                             if (fileUploaded) {
                                 n.communicationImage = fileUploaded.url;
@@ -102,7 +100,7 @@ export class CommunicationController extends BaseController {
                         }
                         if (isVideo(i.mimetype)) {
                             videoFilePopulated = true;
-                            let filename = `/media/communication/${n.entityTypeId}_${n.entityId}_${n.title}_${timestamp()}.${fileExt(i.originalname)}`;
+                            let filename = `/media/communication/${n.title}_${timestamp()}.${fileExt(i.originalname)}`;
                             let fileUploaded = await this.firebaseService.upload(filename, i);
                             if (fileUploaded) {
                                 n.communicationVideo = fileUploaded.url;

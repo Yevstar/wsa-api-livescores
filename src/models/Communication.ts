@@ -59,14 +59,6 @@ export class Communication extends BaseEntity {
     @DeleteDateColumn({ nullable:true, default:null, name: 'deleted_at' })
     deleted_at: Date;
 
-    @IsNumber()
-    @Column()
-    entityId: number;
-
-    @IsNumber()
-    @Column()
-    entityTypeId: number;
-
     @IsDate()
     @Column()
     communication_expire_date: Date;
@@ -80,7 +72,7 @@ export class Communication extends BaseEntity {
     toRosterRoleIds: string;
 
     @IsString()
-    @Column()
+    @Column({nullable:true,default:null})
     toOrganizationIds: string;
 
     @IsString()
