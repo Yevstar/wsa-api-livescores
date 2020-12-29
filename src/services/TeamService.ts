@@ -11,6 +11,7 @@ import nodeMailer from "nodemailer";
 import {DeleteResult} from "typeorm-plus";
 import AppConstants from "../utils/AppConstants";
 import { CommunicationTrack } from "../models/CommunicationTrack";
+import {LinkedCompetitionOrganisation} from "../models/LinkedCompetitionOrganisation";
 
 "use strict";
 
@@ -418,12 +419,21 @@ export default class TeamService extends BaseService<Team> {
 
     public async findTeams(
         teamId: number,
+        organisationId: number,
         competitionOrganisationId: number,
         competitionId: number,
         teamName: string
     ): Promise<Team[]> {
         let query = this.entityManager.createQueryBuilder(Team, 'team')
             .leftJoinAndSelect('team.division', 'division');
+
+        if (isNotNullAndUndefined(organisationId) && organisationId != 0) {
+            query.innerJoin(LinkedCompetitionOrganisation,
+                'lco',
+                '(lco.competitionId = team.competitionId and lco.organisationId = :id)', {id: organisationId}
+            );
+            query.andWhere('team.competitionOrganisationId = lco.id');
+        }
         if (isNotNullAndUndefined(teamId)) {
             query.andWhere('team.id = :id', { id: teamId });
         }
