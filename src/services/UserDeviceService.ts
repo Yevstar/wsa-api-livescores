@@ -187,14 +187,22 @@ export default class UserDeviceService extends BaseService<UserDevice> {
         return query.getMany();
     }
 
-    private async findDeviceForCommunicationById(communicationId: number): Promise<any[]> {
-        let query = this.entityManager.createQueryBuilder(UserDevice, 'ud');
+    private async findAllDeviceForCommunication(): Promise<any[]> {
+        let query = this.entityManager.createQueryBuilder(UserDevice, 'ud')
         return query.getMany();
     }
 
     private async findDeviceForCommunicationByOrgIds(orgIds: number[]): Promise<any[]> {
-        let query = this.entityManager.createQueryBuilder(UserDevice, 'ud');
-        return query.getMany();
+        return this.entityManager.query(
+            'select ure.userId as user_id, ud.deviceId as deviceId\n' +
+            'FROM wsa_users.linked_entities le\n' +
+            '         inner join wsa_users.organisation org\n' +
+            '                    on (le.inputEntityId = org.id and le.linkedEntityTypeId = ?)\n' +
+            '         inner join wsa_users.userRoleEntity ure\n' +
+            '                    on (le.linkedEntityId = ure.entityId and le.linkedEntityTypeId = ure.entityTypeId)\n' +
+            '         inner join userDevice ud on ure.userId = ud.userId\n' +
+            'where org.id in (?);'
+            , [EntityType.ORGANISATION, orgIds])
     }
 
     private async findDeviceForRoster(newsId: number, ids: number[]): Promise<any[]> {
@@ -274,7 +282,7 @@ export default class UserDeviceService extends BaseService<UserDevice> {
                 let data = await this.findDeviceForCommunicationByOrgIds(ids);
                 result = new Set(data.map(device => device.deviceId));
             } else {
-                let data = await this.findDeviceForCommunicationById(communication.id);
+                let data = await this.findAllDeviceForCommunication();
                 result = new Set(data.map(device => device.deviceId));
             }
         }
