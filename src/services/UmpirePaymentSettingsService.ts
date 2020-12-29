@@ -85,7 +85,11 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
 
         const settings = [];
         for (const paymentSettingData of body) {
-            paymentSettingData.divisions.filter(divisionId => -1 !== allowedDivisions.indexOf(divisionId as unknown as number))
+            paymentSettingData.divisions.forEach(divisionId => {
+                if (-1 === allowedDivisions.indexOf(divisionId as unknown as number)) {
+                    throw new ForbiddenError(`Payment settings for division ${divisionId} is forbidden for affiliate`)
+                }
+            });
 
             settings.push(await this.setPaymentSetting(paymentSettingData, competitionId));
         }
