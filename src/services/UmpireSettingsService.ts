@@ -9,6 +9,7 @@ import {BadRequestError, ForbiddenError} from "routing-controllers";
 import {Inject} from "typedi";
 import CompetitionOrganisationService from "./CompetitionOrganisationService";
 import {CompetitionParticipatingTypeEnum} from "../models/enums/CompetitionParticipatingTypeEnum";
+import {EmptyDivisionsError} from "../exceptions/EmptyDivisionsError";
 
 export class UmpireSettingsService extends BaseService<UmpireAllocationSetting> {
     modelName(): string {
@@ -65,7 +66,7 @@ export class UmpireSettingsService extends BaseService<UmpireAllocationSetting> 
                         setting.divisions.push(division);
                     }
                 } else if (!settingData.allDivisions && !(settingData.divisions||[]).length) {
-                    throw new BadRequestError("Divisions should not be empty!")
+                    throw new EmptyDivisionsError
                 }
 
                 response.umpireAllocationSettings.push(
@@ -86,7 +87,7 @@ export class UmpireSettingsService extends BaseService<UmpireAllocationSetting> 
                     setting.divisions.push(division);
                 }
             } else if (!settings.noUmpiresSetting.allDivisions && !(settings.noUmpiresSetting.divisions||[]).length) {
-                throw new BadRequestError("Divisions should not be empty!")
+                throw new EmptyDivisionsError
             }
 
             response.noUmpiresUmpireAllocationSetting = await this.entityManager.save(setting);
