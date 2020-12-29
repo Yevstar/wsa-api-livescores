@@ -51,12 +51,14 @@ export class TeamController extends BaseController {
     @Get('/details')
     async getFullTeamDetail(
         @QueryParam("teamId") teamId: number,
+        @QueryParam("organisationId") organisationId: number,
         @QueryParam("competitionOrganisationId") competitionOrganisationId: number,
         @QueryParam("competitionId") competitionId: number,
         @QueryParam("teamName") teamName: string,
     ): Promise<Team[]> {
         let teamsList = await this.teamService.findTeams(
             teamId,
+            organisationId,
             competitionOrganisationId,
             competitionId,
             teamName
