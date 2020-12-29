@@ -1,4 +1,4 @@
-import {Body, JsonController, Param, Post} from "routing-controllers";
+import {Body, Get, JsonController, Param, Post} from "routing-controllers";
 import {BaseController} from "./BaseController";
 import {RequiredQueryParam} from "../decorators/RequiredQueryParamDecorator";
 import {UmpirePaymentOrganiserSettingsDto} from "../models/dto/UmpirePaymentOrganiserSettingsDto";
@@ -7,6 +7,13 @@ import {UmpirePaymentSettingsResponseDto} from "../models/dto/UmpirePaymentSetti
 
 @JsonController('/competitions/:competitionId/umpires/payment/settings')
 export class UmpirePaymentSettingsController extends BaseController {
+
+    @Get()
+    index(
+        @Param('competitionId') competitionId: number,
+    ): Promise<UmpirePaymentSettingsResponseDto> {
+        return this.umpirePaymentSettingsService.getPaymentSettings(competitionId)
+    }
 
     @Post('/organiser')
     saveOrganiserSettings(

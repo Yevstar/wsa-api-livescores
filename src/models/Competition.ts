@@ -228,6 +228,7 @@ export class Competition extends BaseEntity {
     umpirePaymentAllowedDivisionsSetting: UmpirePaymentAllowedDivisionsSetting;
 
     @OneToMany(type => UmpirePaymentSetting, umpirePaymentSetting => umpirePaymentSetting.competition)
+    @JoinColumn()
     umpirePaymentSettings: UmpirePaymentSetting[];
 
     @Column()

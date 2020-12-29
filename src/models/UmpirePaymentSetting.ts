@@ -1,4 +1,4 @@
-import {BaseEntity, Column, Entity, ManyToMany, ManyToOne, PrimaryGeneratedColumn} from "typeorm-plus";
+import {BaseEntity, Column, Entity, JoinColumn, ManyToMany, ManyToOne, PrimaryGeneratedColumn} from "typeorm-plus";
 import {IsBoolean, IsNumber} from "class-validator";
 import {Competition} from "./Competition";
 import {Division} from "./Division";
@@ -19,6 +19,6 @@ export class UmpirePaymentSetting extends BaseEntity {
     @IsBoolean()
     allDivisions: boolean;
 
-    @ManyToMany(type => Division)
+    @ManyToMany(type => Division, division => division.umpirePaymentSettings)
     divisions: Division[]
 }

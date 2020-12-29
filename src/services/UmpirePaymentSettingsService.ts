@@ -24,9 +24,13 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
     @Inject()
     private readonly competitionOrganisationService: CompetitionOrganisationService;
 
-    //async getPaymentSettings(organisationId: number, competitionId: number): Promise<UmpirePaymentSettingsResponseDto> {
-//
-   // }
+    async getPaymentSettings(competitionId: number): Promise<UmpirePaymentSettingsResponseDto> {
+        const competition = await this.entityManager.findOneOrFail(Competition, competitionId, {
+            relations: ["umpirePaymentAllowedDivisionsSetting", "umpirePaymentSettings", "umpirePaymentSettings.divisions", "umpirePaymentAllowedDivisionsSetting.divisions"]
+        });
+
+        return new UmpirePaymentSettingsResponseDto(competition.umpirePayerTypeRefId, competition.umpirePaymentSettings, competition.umpirePaymentAllowedDivisionsSetting)
+    }
 
     async saveOrganiserSettings(organisationId: number, competitionId: number, body: UmpirePaymentOrganiserSettingsDto): Promise<UmpirePaymentSettingsResponseDto> {
         if (! await this.competitionService.isCompetitionOrganiser(organisationId, competitionId)) {
