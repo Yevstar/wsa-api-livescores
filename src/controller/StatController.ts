@@ -201,6 +201,8 @@ export class StatController extends BaseController {
                 e['Play %'] = (e.playTimeTeamMatches == 0 || e.playTimeTeamMatches == null) ?
                   ("") :
                   ((100 * (e.playTime / e.playTimeTeamMatches)).toFixed(2) + '%');
+                delete e.id;
+                delete e.teamId;
                 delete e.division;
                 delete e.player;
                 delete e.team;
