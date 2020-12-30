@@ -5,13 +5,19 @@ import {
 import {IsBoolean, IsNumber} from "class-validator";
 import {Competition} from "./Competition";
 import {BaseUmpireAllocationSetting} from "./BaseUmpireAllocationSetting";
+import {UmpireAllocatorTypeEnum} from "./enums/UmpireAllocatorTypeEnum";
+import {UmpireAllocationTypeEnum} from "./enums/UmpireAllocationTypeEnum";
 
-@Entity({ synchronize: true, name: "UmpireAllocationSettings" })
+@Entity({ name: "UmpireAllocationSettings" })
 export class UmpireAllocationSetting extends BaseUmpireAllocationSetting {
 
     @Column()
     @IsNumber()
-    umpireAllocationTypeRefId: number;
+    umpireAllocationTypeRefId: UmpireAllocationTypeEnum;
+
+    @Column()
+    @IsNumber()
+    umpireAllocatorTypeRefId: UmpireAllocatorTypeEnum;
 
     @Column({default: false})
     @IsBoolean()
