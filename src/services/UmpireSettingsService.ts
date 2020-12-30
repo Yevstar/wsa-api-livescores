@@ -9,6 +9,7 @@ import {BadRequestError, ForbiddenError} from "routing-controllers";
 import {Inject} from "typedi";
 import CompetitionOrganisationService from "./CompetitionOrganisationService";
 import {CompetitionParticipatingTypeEnum} from "../models/enums/CompetitionParticipatingTypeEnum";
+import {logger} from "../logger";
 
 export class UmpireSettingsService extends BaseService<UmpireAllocationSetting> {
     modelName(): string {
@@ -111,14 +112,14 @@ export class UmpireSettingsService extends BaseService<UmpireAllocationSetting> 
     private checkDivisionsOverlapping(settings: UmpireAllocationSettingsStoreDto): void {
         const dto = (settings.umpireAllocationSettings||[]).map(setting => {
             return {
-                divisions: setting.divisions||[],
+                divisions: [...setting.divisions],
                 allDivisions: !!setting.allDivisions
             }
         });
 
         if (settings.noUmpiresSetting) {
             dto.push({
-                divisions: settings.noUmpiresSetting.divisions||[],
+                divisions: [...settings.noUmpiresSetting.divisions],
                 allDivisions: !!settings.noUmpiresSetting.allDivisions
             })
         }
