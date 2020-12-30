@@ -583,7 +583,7 @@ export default class MatchService extends BaseService<Match> {
                 });
             }));
 
-            let locationIdsSet = new Set();
+            let locationIdsSet = new Set<number>();
             // Getting all the necessary venue stateRef Ids to get the timezones
             filteredMatches.map(e => {
                 if (isNotNullAndUndefined(e) &&

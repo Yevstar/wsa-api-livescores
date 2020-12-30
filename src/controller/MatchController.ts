@@ -1934,7 +1934,7 @@ export class MatchController extends BaseController {
         if (isArrayPopulated(getMatchesData)) {
             let constants = require('../constants/Constants');
 
-            let locationIdsSet = new Set();
+            let locationIdsSet = new Set<number>();
             // Getting all the necessary venue stateRef Ids to get the timezones
             getMatchesData.map(e => {
                 if (isNotNullAndUndefined(e['venueCourt']['venue']['stateRefId'])) {

@@ -9,6 +9,7 @@ import { EntityType } from "../models/security/EntityType";
 import { News } from "../models/News";
 import { isNullOrUndefined } from "util";
 import { testForBuffer } from "class-transformer/TransformOperationExecutor";
+import {Communication} from "../models/Communication";
 
 @Service()
 export default class UserDeviceService extends BaseService<UserDevice> {
@@ -178,6 +179,32 @@ export default class UserDeviceService extends BaseService<UserDevice> {
             , [newsId, roleIds])
     }
 
+    private async findDeviceForCommunicationByRoleIds(roleIds: number[]): Promise<any[]> {
+        let query = this.entityManager.createQueryBuilder(UserDevice, 'ud')
+            .innerJoin(UserRoleEntity, 'ure', 'ure.userId = ud.userId')
+        if (roleIds) query.andWhere("ure.id in :roleIds", { roleIds });
+
+        return query.getMany();
+    }
+
+    private async findAllDeviceForCommunication(): Promise<any[]> {
+        let query = this.entityManager.createQueryBuilder(UserDevice, 'ud')
+        return query.getMany();
+    }
+
+    private async findDeviceForCommunicationByOrgIds(orgIds: number[]): Promise<any[]> {
+        return this.entityManager.query(
+            'select ure.userId as user_id, ud.deviceId as deviceId\n' +
+            'FROM wsa_users.linked_entities le\n' +
+            '         inner join wsa_users.organisation org\n' +
+            '                    on (le.inputEntityId = org.id and le.linkedEntityTypeId = ?)\n' +
+            '         inner join wsa_users.userRoleEntity ure\n' +
+            '                    on (le.linkedEntityId = ure.entityId and le.linkedEntityTypeId = ure.entityTypeId)\n' +
+            '         inner join userDevice ud on ure.userId = ud.userId\n' +
+            'where org.id in (?);'
+            , [EntityType.ORGANISATION, orgIds])
+    }
+
     private async findDeviceForRoster(newsId: number, ids: number[]): Promise<any[]> {
         return this.entityManager.query(
             'select distinct ud.deviceId as deviceId\n' +
@@ -229,6 +256,33 @@ export default class UserDeviceService extends BaseService<UserDevice> {
                 }
             } else {
                 let data = await this.findDeviceForNewsById(news.id);
+                result = new Set(data.map(device => device.deviceId));
+            }
+        }
+        return [...result];
+    }
+
+    public async findDeviceForCommunication(communication: Communication): Promise<any[]> {
+        let result = new Set();
+        if (communication) {
+            if (communication.toUserIds) {
+                let ids = this.parseIds(communication.toUserIds);
+                if (ids.length > 0) {
+                    let data = await this.getUserTokens(ids);
+                    result = new Set(data.map(device => device.deviceId));
+                }
+            } else if (communication.toUserRoleIds) {
+                let ids = this.parseIds(communication.toUserRoleIds);
+                if (ids.length > 0) {
+                    let data = await this.findDeviceForCommunicationByRoleIds(ids);
+                    result = new Set(data.map(device => device.deviceId));
+                }
+            } else if (communication.toOrganizationIds) {
+                let ids = this.parseIds(communication.toOrganizationIds);
+                let data = await this.findDeviceForCommunicationByOrgIds(ids);
+                result = new Set(data.map(device => device.deviceId));
+            } else {
+                let data = await this.findAllDeviceForCommunication();
                 result = new Set(data.map(device => device.deviceId));
             }
         }

@@ -559,7 +559,7 @@ export class RosterController extends BaseController {
             if (isArrayPopulated(dict.results)) {
                 let constants = require('../constants/Constants');
 
-                let locationIdsSet = new Set();
+                let locationIdsSet = new Set<number>();
                 // Getting all the necessary competition Ids to get the timezones
                 dict.results.map(roster => {
                     if (isNotNullAndUndefined(roster['match']['venueCourt']['venue']['stateRefId'])) {

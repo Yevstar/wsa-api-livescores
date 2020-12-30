@@ -45,6 +45,7 @@ import PlayerMinuteTrackingService from "../services/PlayerMinuteTrackingService
 import BookingService from "../services/BookingService";
 import {UmpirePoolService} from "../services/UmpirePoolService";
 import {UmpireSettingsService} from "../services/UmpireSettingsService";
+import CommunicationService from "../services/CommunicationService";
 
 export class BaseController {
 
@@ -158,6 +159,9 @@ export class BaseController {
 
     @Inject()
     protected umpirePoolService: UmpirePoolService;
+
+    @Inject()
+    protected communicationService: CommunicationService;
 
     protected async updateFirebaseData(user: User, password: string) {
         user.password = password;

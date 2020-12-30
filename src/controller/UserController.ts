@@ -1246,8 +1246,8 @@ export class UserController extends BaseController {
     }
 
     private async evaluateUserWatchlist(user: User, deviceId: string, notifyAnyChange: boolean) {
-        let teamIdSet = new Set();
-        let competitionOrganisationIdSet = new Set();
+        let teamIdSet = new Set<number>();
+        let competitionOrganisationIdSet = new Set<number>();
 
         let rosters = await this.rosterService.findByUser(user.id);
         if (isArrayPopulated(rosters)) {

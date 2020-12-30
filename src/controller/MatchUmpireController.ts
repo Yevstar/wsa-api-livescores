@@ -315,7 +315,7 @@ export class MatchUmpireController extends BaseController {
         if (isArrayPopulated(dict.results)) {
             let constants = require('../constants/Constants');
 
-            let venueStateRefIdSet = new Set();
+            let venueStateRefIdSet = new Set<number>();
             // Getting all the necessary venue stateRef Ids to get the timezones
             dict.results.map(e => {
                 if (isNotNullAndUndefined(e['venueStateRefId'])) {
