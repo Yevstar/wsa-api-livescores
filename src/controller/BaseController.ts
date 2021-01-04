@@ -46,6 +46,7 @@ import BookingService from "../services/BookingService";
 import {UmpirePoolService} from "../services/UmpirePoolService";
 import {UmpireSettingsService} from "../services/UmpireSettingsService";
 import CommunicationService from "../services/CommunicationService";
+import {UmpireService} from "../services/UmpireService";
 
 export class BaseController {
 
@@ -153,6 +154,9 @@ export class BaseController {
 
     @Inject()
     protected bookingService: BookingService;
+
+    @Inject()
+    protected umpireService: UmpireService;
 
     @Inject()
     protected umpireSettingsService: UmpireSettingsService;

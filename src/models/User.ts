@@ -5,6 +5,9 @@ import {Team} from './Team';
 import {LinkedCompetitionOrganisation} from './LinkedCompetitionOrganisation';
 import {UserRoleEntity} from './security/UserRoleEntity';
 import {UmpirePool} from "./UmpirePool";
+import {LinkedEntities} from "./views/LinkedEntities";
+import {Expose} from "class-transformer";
+import {UmpireCompetitionRank} from "./UmpireCompetitionRank";
 
 /// For referring the data model of another db we are giving the
 /// name as below wsa_users.<name>.
@@ -104,4 +107,7 @@ export class User extends BaseEntity {
 
     @ManyToMany(type => UmpirePool, umpirePool => umpirePool)
     umpirePools: UmpirePool[];
+
+    @OneToMany(type => UmpireCompetitionRank, umpireCompetitionRank => umpireCompetitionRank.umpire)
+    umpireCompetitionRank: UmpireCompetitionRank[];
 }
