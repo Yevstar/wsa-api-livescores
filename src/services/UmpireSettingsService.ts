@@ -65,8 +65,6 @@ export class UmpireSettingsService extends BaseService<UmpireAllocationSetting> 
 
                         setting.divisions.push(division);
                     }
-                } else if (!settingData.allDivisions && !(settingData.divisions||[]).length) {
-                    throw new BadRequestError("Divisions should not be empty!")
                 }
 
                 response.umpireAllocationSettings.push(
@@ -86,8 +84,6 @@ export class UmpireSettingsService extends BaseService<UmpireAllocationSetting> 
 
                     setting.divisions.push(division);
                 }
-            } else if (!settings.noUmpiresSetting.allDivisions && !(settings.noUmpiresSetting.divisions||[]).length) {
-                throw new BadRequestError("Divisions should not be empty!")
             }
 
             response.noUmpiresUmpireAllocationSetting = await this.entityManager.save(setting);
