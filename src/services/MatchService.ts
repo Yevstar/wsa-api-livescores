@@ -2,6 +2,7 @@ import {Service} from "typedi";
 import pdf from "html-pdf";
 import hummus from "hummus";
 import memoryStreams from "memory-streams";
+import path from 'path';
 import avro from "avsc";
 import {Brackets, DeleteResult} from "typeorm-plus";
 
@@ -582,7 +583,7 @@ export default class MatchService extends BaseService<Match> {
                 });
             }));
 
-            let locationIdsSet = new Set();
+            let locationIdsSet = new Set<number>();
             // Getting all the necessary venue stateRef Ids to get the timezones
             filteredMatches.map(e => {
                 if (isNotNullAndUndefined(e) &&
@@ -620,10 +621,11 @@ export default class MatchService extends BaseService<Match> {
                     isNotNullAndUndefined(matchVenueTimezone) ? matchVenueTimezone : competitionTimezone
                 );
 
-                let options = { width: '595px', height: '842px'};
+                let options = { width: '595px', height: '842px', base: '' };
                 if (templateType == 'Scorecard') {
-                    options = { width: '400px', height: '350px' }
+                    options = { width: '400px', height: '350px', base: '' }
                 }
+                options.base = 'file://' + path.resolve('./public/assets');
 
                 await createPDF(htmlTmpl, options).then((newBuffer) => {
                     if (pdfBuf) {
@@ -689,5 +691,106 @@ export default class MatchService extends BaseService<Match> {
             .set({livestreamURL: livestreamURL})
             .where("id = :matchId", {matchId})
             .execute();
+    }
+
+    public async deleteByIds(ids: number[]): Promise<DeleteResult> {
+        return this.entityManager.createQueryBuilder().delete().from(MatchEvent)
+            .andWhere("id in (:ids)", {ids: ids}).execute();
+    }
+
+    public async findByParams(
+        matchId: number,
+        gameStatCode: string,
+        periodNumber: number,
+        teamSequence: number,
+        playerId: number,
+        team1Score: number,
+        team2Score: number,
+        positionId: number,
+        recordPoints: boolean,
+        points: number
+    ): Promise<MatchEvent[]> {
+        let query = this.entityManager.createQueryBuilder(MatchEvent, 'matchEvent')
+            .andWhere('matchEvent.matchId = :matchId', {matchId: matchId})
+            .andWhere('matchEvent.period = :period', {period: periodNumber});
+
+        if (gameStatCode == 'G') {
+            query.andWhere('(matchEvent.eventCategory = :scoreEventCategory or ' +
+                  'matchEvent.eventCategory = :statEventCategory)', {
+                    scoreEventCategory: 'score',
+                    statEventCategory: 'stat'
+                })
+                .andWhere('(matchEvent.type = :scoreEventType or ' +
+                  'matchEvent.type = :statEventType)', {
+                    scoreEventType: 'update',
+                    statEventType: recordPoints ? 'Points' : gameStatCode
+                });
+
+            if (teamSequence == 1) {
+                query.andWhere('(matchEvent.attribute1Key = :scoreAttribute1Key ' +
+                    'or matchEvent.attribute1Key = :statAttribute1Key)', {
+                      scoreAttribute1Key: 'team1score',
+                      statAttribute1Key: 'team1'
+                    });
+            } else {
+              query.andWhere('(matchEvent.attribute1Key = :scoreAttribute1Key ' +
+                  'or matchEvent.attribute1Key = :statAttribute1Key)', {
+                    scoreAttribute1Key: 'team1score',
+                    statAttribute1Key: 'team2'
+                  });
+            }
+
+            query.andWhere('(matchEvent.attribute1Value = :scoreAttribute1Value ' +
+              'or matchEvent.attribute1Value = :statAttribute1Value)', {
+                  scoreAttribute1Value: team1Score,
+                  statAttribute1Value: recordPoints ? points: positionId
+              })
+              .andWhere('(matchEvent.attribute2Key = :scoreAttribute2Key ' +
+              'or matchEvent.attribute2Key = :statAttribute2Key)', {
+                  scoreAttribute2Key: 'team2score',
+                  statAttribute2Key: 'playerId'
+              })
+              .andWhere('(matchEvent.attribute2Value = :scoreAttribute2Value ' +
+              'or matchEvent.attribute2Value = :statAttribute2Value)', {
+                  scoreAttribute2Value: team2Score,
+                  statAttribute2Value: playerId
+              });
+        } else if (gameStatCode == 'M') {
+            query.andWhere('matchEvent.eventCategory = :eventCategory', {
+                  eventCategory: 'stat'
+                })
+                .andWhere('matchEvent.type = :type', {
+                  type: recordPoints ? 'MissedPoints' : gameStatCode
+                });
+
+            if (teamSequence == 1) {
+                query.andWhere('matchEvent.attribute1Key = :attribute1Key', {
+                    attribute1Key: 'team1',
+                  });
+            } else {
+                query.andWhere('matchEvent.attribute1Key = :attribute1Key', {
+                    attribute1Key: 'team2',
+                  });
+            }
+
+            query.andWhere('matchEvent.attribute1Value = :attribute1Value', {
+                  attribute1Value: recordPoints ? points: positionId
+              })
+              .andWhere('matchEvent.attribute2Key = :attribute2Key', {
+                  attribute2Key: 'playerId'
+              })
+              .andWhere('matchEvent.attribute2Value = :attribute2Value', {
+                  attribute2Value: playerId
+              });
+        }
+
+        query.orderBy('matchEvent.id', 'DESC');
+        if (gameStatCode == 'G') {
+          query.limit(2);
+        } else {
+          query.limit(1);
+        }
+
+        return query.getMany();
     }
 }

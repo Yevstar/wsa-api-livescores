@@ -1,4 +1,4 @@
-import {BaseEntity, Column, Entity, ManyToOne, PrimaryColumn} from "typeorm-plus";
+import {BaseEntity, Column, Entity, JoinColumn, ManyToOne, PrimaryColumn} from "typeorm-plus";
 import {IsNumber} from "class-validator";
 import {Competition} from "./Competition";
 import {User} from "./User";
@@ -12,7 +12,8 @@ export class UmpireCompetitionRank extends BaseEntity {
     @PrimaryColumn()
     competitionId!: number;
 
-    @ManyToOne(type => User)
+    @ManyToOne(type => User, user => user.umpireCompetitionRank)
+    @JoinColumn()
     umpire: User;
 
     @ManyToOne(type => Competition)

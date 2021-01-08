@@ -765,8 +765,17 @@ export class MatchController extends BaseController {
         @QueryParam('playerId') playerId: number,
         @QueryParam('gameStatCode') gameStatCode: string,
         @QueryParam('centrePassStatus') centrePassStatus: "TEAM1" | "TEAM2",
+        @QueryParam('recordPoints') recordPoints: boolean = false,
+        @QueryParam('points') points: number,
         @Res() response: Response
     ) {
+        if (recordPoints && !isNotNullAndUndefined(points)) {
+            return response.status(400).send({
+                name: 'validation_error',
+                message: `Points can not be empty while recording points`
+            });
+        }
+
         let match = await this.matchService.findById(matchId);
         match.team1Score = team1Score;
         match.team2Score = team2Score;
@@ -783,9 +792,15 @@ export class MatchController extends BaseController {
             eventTimestamp, user.id, 'team1score', team1Score.toString(),
             'team2score', team2Score.toString());
         if (gameStatCode) {
-            this.matchService.logMatchEvent(matchId, 'stat', gameStatCode, periodNumber,
-                eventTimestamp, user.id, 'team' + teamSequence, positionId.toString(),
-                'playerId', playerId ? playerId.toString() : '');
+            if (recordPoints) {
+                this.matchService.logMatchEvent(matchId, 'stat', 'Points', periodNumber,
+                    eventTimestamp, user.id, 'team' + teamSequence, points.toString(),
+                    'playerId', playerId ? playerId.toString() : '');
+            } else {
+                this.matchService.logMatchEvent(matchId, 'stat', gameStatCode, periodNumber,
+                    eventTimestamp, user.id, 'team' + teamSequence, positionId.toString(),
+                    'playerId', playerId ? playerId.toString() : '');
+            }
         }
         return match;
     }
@@ -801,16 +816,33 @@ export class MatchController extends BaseController {
         @QueryParam('positionId') positionId: number,
         @QueryParam('playerId') playerId: number,
         @QueryParam('gameStatCode') gameStatCode: string,
+        @QueryParam('recordPoints') recordPoints: boolean = false,
+        @QueryParam('points') points: number,
         @Res() response: Response
     ) {
+        if (recordPoints && !isNotNullAndUndefined(points)) {
+            return response.status(400).send({
+                name: 'validation_error',
+                message: `Points can not be empty while recording points`
+            });
+        }
+
         let match = await this.matchService.findById(matchId);
 
         let eventTimestamp = msFromStart
             ? new Date(match.startTime.getTime() + msFromStart)
             : new Date(Date.now());
-        this.matchService.logMatchEvent(matchId, 'stat', gameStatCode, periodNumber,
-            eventTimestamp, user.id, 'team' + teamSequence, positionId.toString(),
-            'playerId', playerId ? playerId.toString() : '');
+
+        if (recordPoints) {
+            this.matchService.logMatchEvent(matchId, 'stat', gameStatCode == "M" ? "MissedPoints" : gameStatCode, periodNumber,
+                eventTimestamp, user.id, 'team' + teamSequence, points.toString(),
+                'playerId', playerId ? playerId.toString() : '');
+        } else {
+            this.matchService.logMatchEvent(matchId, 'stat', gameStatCode, periodNumber,
+                eventTimestamp, user.id, 'team' + teamSequence, positionId.toString(),
+                'playerId', playerId ? playerId.toString() : '');
+        }
+
         return match;
     }
 
@@ -1934,7 +1966,7 @@ export class MatchController extends BaseController {
         if (isArrayPopulated(getMatchesData)) {
             let constants = require('../constants/Constants');
 
-            let locationIdsSet = new Set();
+            let locationIdsSet = new Set<number>();
             // Getting all the necessary venue stateRef Ids to get the timezones
             getMatchesData.map(e => {
                 if (isNotNullAndUndefined(e['venueCourt']['venue']['stateRefId'])) {
@@ -2232,5 +2264,91 @@ export class MatchController extends BaseController {
       }
 
       return '';
+    }
+
+    @Authorized()
+    @Delete('/deleteMatchEvent')
+    async deleteMatchEvent(
+        @HeaderParam("authorization") user: User,
+        @QueryParam('matchId', { required: true }) matchId: number,
+        @QueryParam('gameStatCode', { required: true }) gameStatCode: string,
+        @QueryParam('periodNumber', { required: true }) periodNumber: number,
+        @QueryParam('teamSequence', { required: true }) teamSequence: number,
+        @QueryParam('playerId') playerId: number,
+        @QueryParam('team1Score') team1Score: number,
+        @QueryParam('team2Score') team2Score: number,
+        @QueryParam('positionId') positionId: number,
+        @QueryParam('recordPoints') recordPoints: boolean = false,
+        @QueryParam('points') points: number,
+        @Res() response: Response
+    ) {
+        if (gameStatCode == 'G' &&
+          (!isNotNullAndUndefined(team1Score) || !isNotNullAndUndefined(team2Score))) {
+              return response.status(400).send({
+                  name: 'validation_error',
+                  message: `Team score required when deleting a score match event`
+              });
+        } else if (recordPoints &&
+            (!isNotNullAndUndefined(points) || !isNotNullAndUndefined(playerId))) {
+              return response.status(400).send({
+                  name: 'validation_error',
+                  message: `Points and playerId can not be empty while removing record points`
+              });
+        } else if (!recordPoints &&
+            gameStatCode == 'M' &&
+            (!isNotNullAndUndefined(positionId) || !isNotNullAndUndefined(playerId))) {
+              return response.status(400).send({
+                  name: 'validation_error',
+                  message: `PositionId and playerId can not be empty while deleting a miss match event`
+              });
+        }
+
+        let matchEvents = await this.matchService.findByParams(
+            matchId,
+            gameStatCode,
+            periodNumber,
+            teamSequence,
+            playerId,
+            team1Score,
+            team2Score,
+            positionId,
+            recordPoints,
+            points
+        );
+
+        try {
+            if (isArrayPopulated(matchEvents)) {
+                const existingMatchEventIds = matchEvents.map(function(matchEvent){
+                    return matchEvent.id;
+                });
+                await this.matchService.deleteByIds(existingMatchEventIds);
+
+                if (gameStatCode == 'G') {
+                    let match = await this.matchService.findById(matchId);
+                    if (recordPoints) {
+                      teamSequence == 1 ?
+                        match.team1Score = team1Score - points :
+                        match.team2Score = team2Score - points;
+                    } else {
+                        teamSequence == 1 ?
+                          match.team1Score = team1Score - 1 :
+                          match.team2Score = team2Score - 1;
+                    }
+                    this.matchService.createOrUpdate(match);
+                    this.sendMatchEvent(match, true, {user: user});
+                }
+            }
+
+            return response.status(200).send({
+                success: true,
+                message: 'Successfully deleted match events',
+                data: matchEvents
+            });
+        } catch (error) {
+            return response.status(400).send({
+                name: 'delete_error',
+                message: `Unable to delete match events`
+            });
+        }
     }
 }

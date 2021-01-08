@@ -38,9 +38,9 @@ export class UmpirePoolsController extends BaseController {
     @Patch('/batch')
     async updateMany(
         @Param('competitionId') competitionId: number,
-        @QueryParam('organizationId') organizationId: number,
+        @QueryParam('organisationId') organisationId: number,
         @Body() body: UmpirePool[]
     ): Promise<UmpirePool[]> {
-        return this.umpirePoolService.updateMany(organizationId, competitionId, body);
+        return this.umpirePoolService.updateMany(organisationId, competitionId, body);
     }
 }

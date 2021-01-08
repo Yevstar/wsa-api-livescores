@@ -4,15 +4,14 @@ import {UmpireAllocationSettingsStoreDto} from "../models/dto/UmpireAllocationSe
 import {UmpireAllocationSettingsResponseDto} from "../models/dto/UmpireAllocationSettingsResponseDto";
 
 @JsonController('/competitions/:competitionId/umpires/settings/allocation')
+@Authorized()
 export class UmpireAllocationSettingsController extends BaseController {
 
-    @Authorized()
     @Get()
     async index(@Param('competitionId') competitionId: number): Promise<UmpireAllocationSettingsResponseDto> {
         return this.umpireSettingsService.getAllocationSettings(competitionId);
     }
 
-    @Authorized()
     @Post()
     async save(
         @Param('competitionId') competitionId: number,

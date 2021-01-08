@@ -398,7 +398,7 @@ export class IncidentController extends BaseController {
             if (isArrayPopulated(incidentData.results)) {
                 let constants = require('../constants/Constants');
 
-                let locationIdsSet = new Set();
+                let locationIdsSet = new Set<number>();
                 // Getting all the necessary competition Ids to get the timezones
                 incidentData.results.map(incident => {
                     if (isNotNullAndUndefined(incident['match']['venueCourt']['venue']['stateRefId'])) {
