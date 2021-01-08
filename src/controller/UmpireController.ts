@@ -1,10 +1,11 @@
-import {BodyParam, Get, JsonController, Param, Patch, QueryParam} from "routing-controllers";
+import {Authorized, BodyParam, Get, JsonController, Param, Patch, QueryParam} from "routing-controllers";
 import {BaseController} from "./BaseController";
 import {UmpireCompetitionRank} from "../models/UmpireCompetitionRank";
 import {CrudResponse} from "./dto/CrudResponse";
 import {User} from "../models/User";
 
 @JsonController('/competitions/:competitionId/umpires')
+@Authorized()
 export class UmpireController extends BaseController {
 
     @Get()
