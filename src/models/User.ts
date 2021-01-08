@@ -5,8 +5,6 @@ import {Team} from './Team';
 import {LinkedCompetitionOrganisation} from './LinkedCompetitionOrganisation';
 import {UserRoleEntity} from './security/UserRoleEntity';
 import {UmpirePool} from "./UmpirePool";
-import {LinkedEntities} from "./views/LinkedEntities";
-import {Expose} from "class-transformer";
 import {UmpireCompetitionRank} from "./UmpireCompetitionRank";
 
 /// For referring the data model of another db we are giving the
@@ -110,4 +108,17 @@ export class User extends BaseEntity {
 
     @OneToMany(type => UmpireCompetitionRank, umpireCompetitionRank => umpireCompetitionRank.umpire)
     umpireCompetitionRank: UmpireCompetitionRank[];
+
+    @Column()
+    accreditationCoachExpiryDate?: Date;
+
+    @Column()
+    accreditationLevelCoachRefId?: number;
+
+    @Column()
+    accreditationLevelUmpireRefId?: number;
+
+    @Column()
+    accreditationUmpireExpiryDate?: Date;
+
 }
