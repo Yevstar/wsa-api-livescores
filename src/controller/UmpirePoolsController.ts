@@ -14,7 +14,7 @@ import {UmpirePool} from "../models/UmpirePool";
 import {RequiredQueryParam} from "../decorators/RequiredQueryParamDecorator";
 
 @JsonController('/competitions/:competitionId/umpires/pools')
-@Authorized()
+//@Authorized()
 export class UmpirePoolsController extends BaseController {
 
     @Get()

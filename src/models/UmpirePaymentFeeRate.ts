@@ -1,13 +1,22 @@
-import {BaseEntity, Column, JoinColumn, ManyToOne} from "typeorm-plus";
+import {BaseEntity, Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn} from "typeorm";
+import {ByPoolUmpirePaymentFee} from "./ByPoolUmpirePaymentFee";
+import {ByBadgeUmpirePaymentFee} from "./ByBadgeUmpirePaymentFee";
 import {Role} from "./security/Role";
-import {UmpirePaymentFee} from "./UmpirePaymentFee";
+import {BeforeInsert, BeforeUpdate} from "typeorm-plus";
+import {BadRoleInsertError} from "../exceptions/BadRoleInsertError";
 
+@Entity()
 export class UmpirePaymentFeeRate extends BaseEntity {
+
+    @PrimaryGeneratedColumn()
+    id: number;
 
     @Column()
     roleId!: number;
 
-    @ManyToOne(type => Role)
+    @ManyToOne(type => Role, {
+        eager: true
+    })
     @JoinColumn()
     role: Role;
 
@@ -16,6 +25,23 @@ export class UmpirePaymentFeeRate extends BaseEntity {
     })
     rate: number;
 
-    @ManyToOne(type => UmpirePaymentFee, umpirePaymentFee => umpirePaymentFee.rates)
-    umpirePaymentFee: UmpirePaymentFee;
+    @Column()
+    umpirePaymentFeeByPoolId: number;
+
+    @Column()
+    umpirePaymentFeeByBadgeId: number;
+
+    @ManyToOne(type => ByPoolUmpirePaymentFee, umpirePaymentFee => umpirePaymentFee.rates)
+    umpirePaymentFeeByPool: ByPoolUmpirePaymentFee;
+
+    @ManyToOne(type => ByBadgeUmpirePaymentFee, umpirePaymentFee => umpirePaymentFee.rates)
+    umpirePaymentFeeByBadge: ByBadgeUmpirePaymentFee;
+
+    @BeforeInsert()
+    @BeforeUpdate()
+    checkRole() {
+        if (Role.UMPIRE_COACH !== this.roleId && Role.UMPIRE !== this.roleId && Role.UMPIRE_RESERVE !== this.roleId) {
+            throw new BadRoleInsertError;
+        }
+    }
 }

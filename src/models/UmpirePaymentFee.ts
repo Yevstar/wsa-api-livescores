@@ -1,16 +1,15 @@
-import {BaseEntity, Column, JoinColumn, ManyToOne, OneToMany} from "typeorm-plus";
+import {BaseEntity, Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn} from "typeorm";
 import {UmpirePaymentFeeRate} from "./UmpirePaymentFeeRate";
 import {UmpirePaymentSetting} from "./UmpirePaymentSetting";
 
 export abstract class UmpirePaymentFee extends BaseEntity {
-
-    @OneToMany(type => UmpirePaymentFeeRate, rate => rate.umpirePaymentFee)
-    @JoinColumn()
-    rates: UmpirePaymentFeeRate[];
+    @PrimaryGeneratedColumn()
+    id: number;
 
     @Column()
     umpirePaymentSettingId!: number;
 
-    @ManyToOne(type => UmpirePaymentSetting)
-    umpirePaymentSetting: UmpirePaymentSetting;
+    // @ManyToOne(type => UmpirePaymentSetting)
+    // @JoinColumn()
+    // umpirePaymentSetting: UmpirePaymentSetting;
 }

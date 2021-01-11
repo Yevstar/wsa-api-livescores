@@ -1,4 +1,4 @@
-import {BaseEntity, Column, Entity, JoinColumn, ManyToMany, OneToMany, OneToOne, PrimaryColumn} from "typeorm-plus";
+import {BaseEntity, Column, Entity, JoinColumn, ManyToMany, OneToMany, OneToOne, PrimaryColumn} from "typeorm";
 import {Competition} from "./Competition";
 import {Division} from "./Division";
 
@@ -11,7 +11,7 @@ export class UmpirePaymentAllowedDivisionsSetting extends BaseEntity {
     @PrimaryColumn()
     competitionId: number;
 
-    @OneToOne(type => Competition, competition => competition.umpirePaymentAllowedDivisionsSetting)
+    @OneToOne(type => Competition)
     @JoinColumn()
     competition: Competition;
 

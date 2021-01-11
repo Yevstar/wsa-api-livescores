@@ -24,24 +24,30 @@ export class UmpirePaymentSetting extends BaseEntity {
     @IsNumber()
     competitionId: number;
 
-    @ManyToOne(type => Competition)
+    @ManyToOne(type => Competition, competition => competition.umpirePaymentSettings)
     competition: Competition;
 
     @Column()
     @IsBoolean()
     allDivisions: boolean;
 
-    @ManyToMany(type => Division, division => division.umpirePaymentSettings)
+    @ManyToMany(type => Division, division => division.umpirePaymentSettings, {
+        eager: true
+    })
     divisions: Division[];
 
     @Column()
     UmpirePaymentFeeType: UmpirePaymentFeeTypeEnum;
 
-    @OneToMany(type => ByBadgeUmpirePaymentFee, fee => fee.umpirePaymentSetting)
+    @OneToMany(type => ByBadgeUmpirePaymentFee, fee => fee.umpirePaymentSetting, {
+        eager: true
+    })
     @JoinColumn()
     byBadge: ByBadgeUmpirePaymentFee[];
 
-    @OneToMany(type => ByPoolUmpirePaymentFee, fee => fee.umpirePaymentSetting)
+    @OneToMany(type => ByPoolUmpirePaymentFee, fee => fee.umpirePaymentSetting, {
+        eager: true
+    })
     @JoinColumn()
     byPool: ByPoolUmpirePaymentFee[];
 }

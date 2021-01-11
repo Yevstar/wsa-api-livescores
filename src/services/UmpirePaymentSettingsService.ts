@@ -2,7 +2,7 @@ import BaseService from "./BaseService";
 import {UmpirePaymentSetting} from "../models/UmpirePaymentSetting";
 import {Inject} from "typedi";
 import CompetitionService from "./CompetitionService";
-import {ForbiddenError} from "routing-controllers";
+import {BadRequestError, ForbiddenError} from "routing-controllers";
 import {UmpirePaymentOrganiserSettingsDto} from "../models/dto/UmpirePaymentOrganiserSettingsDto";
 import CompetitionOrganisationService from "./CompetitionOrganisationService";
 import {Division} from "../models/Division";
@@ -12,6 +12,12 @@ import {DeepPartial} from "typeorm-plus";
 import {Competition} from "../models/Competition";
 import {UmpirePaymentSettingsResponseDto} from "../models/dto/UmpirePaymentSettingsResponseDto";
 import {EmptyDivisionsError} from "../exceptions/EmptyDivisionsError";
+import {logger} from "../logger";
+import {ByBadgeUmpirePaymentFee} from "../models/ByBadgeUmpirePaymentFee";
+import {UmpirePaymentFeeRate} from "../models/UmpirePaymentFeeRate";
+import {UmpirePaymentFeeTypeEnum} from "../models/enums/UmpirePaymentFeeTypeEnum";
+import {ByPoolUmpirePaymentFee} from "../models/ByPoolUmpirePaymentFee";
+import {BadRoleInsertError} from "../exceptions/BadRoleInsertError";
 
 export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetting> {
     modelName(): string {
@@ -26,10 +32,21 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
 
     async getPaymentSettings(competitionId: number): Promise<UmpirePaymentSettingsResponseDto> {
         const competition = await this.entityManager.findOneOrFail(Competition, competitionId, {
-            relations: ["umpirePaymentAllowedDivisionsSetting", "umpirePaymentSettings", "umpirePaymentSettings.divisions", "umpirePaymentAllowedDivisionsSetting.divisions"]
+            relations: ["umpirePaymentAllowedDivisionsSetting", "umpirePaymentAllowedDivisionsSetting.divisions"]
         });
 
-        return new UmpirePaymentSettingsResponseDto(competition.umpirePayerTypeRefId, competition.umpirePaymentSettings, competition.umpirePaymentAllowedDivisionsSetting)
+        const umpirePaymentSettings = await this.entityManager.find(UmpirePaymentSetting, {
+            where: {
+                competitionId: competition.id,
+            },
+            relations: [
+                "divisions",
+                "byBadge",
+                "byPool",
+            ]
+        });
+
+        return new UmpirePaymentSettingsResponseDto(competition.umpirePayerTypeRefId, umpirePaymentSettings, competition.umpirePaymentAllowedDivisionsSetting)
     }
 
     async saveOrganiserSettings(organisationId: number, competitionId: number, body: UmpirePaymentOrganiserSettingsDto): Promise<UmpirePaymentSettingsResponseDto> {
@@ -99,8 +116,9 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
 
     protected async setPaymentSetting(paymentSettingData: DeepPartial<UmpirePaymentSetting>, competitionId: number): Promise<UmpirePaymentSetting> {
         const paymentSetting = new UmpirePaymentSetting;
-        paymentSetting.allDivisions = paymentSettingData.allDivisions;
         paymentSetting.competitionId = competitionId;
+
+        Object.assign(paymentSetting, paymentSettingData)
 
         if (!paymentSettingData.allDivisions && (paymentSettingData.divisions||[]).length) {
             paymentSetting.divisions = await Promise.all(paymentSettingData.divisions.map(divisionId => this.entityManager.findOneOrFail(Division, divisionId)));
@@ -108,6 +126,46 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
             throw new EmptyDivisionsError;
         }
 
-        return await this.entityManager.save(paymentSetting);
+        const savedSetting = await this.entityManager.save(paymentSetting);
+
+        if (UmpirePaymentFeeTypeEnum.BY_BADGE === savedSetting.UmpirePaymentFeeType) {
+            for (let byBadgePaymentFee of savedSetting.byBadge) {
+                byBadgePaymentFee.umpirePaymentSettingId = savedSetting.id
+                byBadgePaymentFee = this.entityManager.create(ByBadgeUmpirePaymentFee, byBadgePaymentFee);
+
+                const savedPaymentFee = await this.entityManager.save(ByBadgeUmpirePaymentFee, byBadgePaymentFee);
+
+                for (let rate of byBadgePaymentFee.rates) {
+                    rate.umpirePaymentFeeByBadgeId = savedPaymentFee.id
+                    rate = this.entityManager.create(UmpirePaymentFeeRate, rate)
+
+                    try {
+                        await this.entityManager.save(UmpirePaymentFeeRate, rate)
+                    } catch (BadRoleInsertError) {
+                        throw new BadRequestError("Wrong role provided!")
+                    }
+                }
+            }
+        } else if (UmpirePaymentFeeTypeEnum.BY_POOL === savedSetting.UmpirePaymentFeeType) {
+            for (let byPoolPaymentFee of savedSetting.byPool) {
+                byPoolPaymentFee.umpirePaymentSettingId = savedSetting.id
+                byPoolPaymentFee = this.entityManager.create(ByPoolUmpirePaymentFee, byPoolPaymentFee);
+
+                const savedPaymentFee = await this.entityManager.save(ByPoolUmpirePaymentFee, byPoolPaymentFee);
+
+                for (let rate of byPoolPaymentFee.rates) {
+                    rate.umpirePaymentFeeByPoolId = savedPaymentFee.id
+                    rate = this.entityManager.create(UmpirePaymentFeeRate, rate)
+
+                    try {
+                        await this.entityManager.save(UmpirePaymentFeeRate, rate)
+                    } catch (BadRoleInsertError) {
+                        throw new BadRequestError("Wrong role provided!")
+                    }
+                }
+            }
+        }
+
+        return await this.entityManager.findOne(UmpirePaymentSetting, savedSetting);
     }
 }
