@@ -9,6 +9,7 @@ import {User} from "../models/User";
 import UserService from "./UserService";
 import {UmpirePoolsAllocationUpdateDto} from "../models/dto/UmpirePoolsAllocationUpdateDto";
 import {Division} from "../models/Division";
+import {UmpireService} from "./UmpireService";
 
 export class UmpirePoolService extends BaseService<UmpirePool> {
     modelName(): string {
@@ -20,6 +21,9 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
 
     @Inject()
     private readonly userService: UserService;
+
+    @Inject()
+    private readonly umpireService: UmpireService;
 
     async createOne(organisationId: number, competitionId: number, body: UmpirePool): Promise<UmpirePool> {
 
@@ -108,5 +112,20 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
         }
 
         return umpirePools;
+    }
+
+    async addUmpireToPool(organisationId: number, competitionId: number, umpirePoolId: number, umpireId: number): Promise<UmpirePool> {
+        if (CompetitionParticipatingTypeEnum.PARTICIPATED_IN === await this.competitionOrganisationService.getCompetitionParticipatingType(competitionId, organisationId)) {
+            throw new ForbiddenError("Participated-in organization can't update pools!")
+        }
+
+        const umpirePool = await this.entityManager.findOneOrFail(UmpirePool, umpirePoolId);
+        const umpire = await this.umpireService.findOneByUserId(umpireId);
+
+        if (!umpirePool.umpires.filter(item => umpire.id === item.id).length) {
+            umpirePool.umpires.push(umpire);
+        }
+
+        return await this.entityManager.save(umpirePool);
     }
 }
