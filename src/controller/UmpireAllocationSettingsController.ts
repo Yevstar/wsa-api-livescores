@@ -15,7 +15,7 @@ export class UmpireAllocationSettingsController extends BaseController {
     @Post()
     async save(
         @Param('competitionId') competitionId: number,
-        @QueryParam('organisationId') organisationId: number,
+        @RequiredQueryParam('organisationId') organisationId: number,
         @Body({validate: true}) settings: UmpireAllocationSettingsStoreDto,
     ): Promise<UmpireAllocationSettingsResponseDto> {
         return this.umpireSettingsService.saveAllocationSettings(organisationId, competitionId, settings);

@@ -98,14 +98,10 @@ export class UmpireSettingsService extends BaseService<UmpireAllocationSetting> 
 
     async clearUmpireAllocationSettings(competitionId: number): Promise<void> {
         await this.entityManager.delete(UmpireAllocationSetting, {
-            where: {
-                competitionId: competitionId
-            }
+            competitionId: competitionId
         });
         await this.entityManager.delete(NoUmpiresUmpireAllocationSetting, {
-            where: {
-                competitionId: competitionId
-            }
+            competitionId: competitionId
         });
     }
 
