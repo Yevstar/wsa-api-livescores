@@ -2,6 +2,7 @@ import {BaseController} from "./BaseController";
 import {Authorized, Body, Get, JsonController, Param, Post, QueryParam} from "routing-controllers";
 import {UmpireAllocationSettingsStoreDto} from "../models/dto/UmpireAllocationSettingsStoreDto";
 import {UmpireAllocationSettingsResponseDto} from "../models/dto/UmpireAllocationSettingsResponseDto";
+import {RequiredQueryParam} from "../decorators/RequiredQueryParamDecorator";
 
 @JsonController('/competitions/:competitionId/umpires/settings/allocation')
 @Authorized()
