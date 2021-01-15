@@ -4,7 +4,6 @@ import {UmpirePaymentAllowedDivisionsSetting} from "../UmpirePaymentAllowedDivis
 
 export class UmpirePaymentSettingsResponseDto {
     constructor(
-        public umpirePayerTypeRefId: UmpirePayerTypeEnum = null,
         public umpirePaymentSettings: UmpirePaymentSetting[] = [],
         public allowedDivisionsSetting: UmpirePaymentAllowedDivisionsSetting = null
     ) {}

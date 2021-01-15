@@ -46,7 +46,7 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
             ]
         });
 
-        return new UmpirePaymentSettingsResponseDto(competition.umpirePayerTypeRefId, umpirePaymentSettings, competition.umpirePaymentAllowedDivisionsSetting)
+        return new UmpirePaymentSettingsResponseDto(umpirePaymentSettings, competition.umpirePaymentAllowedDivisionsSetting)
     }
 
     async saveOrganiserSettings(organisationId: number, competitionId: number, body: UmpirePaymentOrganiserSettingsDto): Promise<UmpirePaymentSettingsResponseDto> {
@@ -54,11 +54,10 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
             throw new ForbiddenError("Only competition organiser can save this setting");
         }
 
-        const competition = await this.entityManager.findOneOrFail(Competition, competitionId);
-        competition.umpirePayerTypeRefId = body.umpirePayerTypeRefId;
+        const competition = await this.entityManager.findOneOrFail(Competition, competitionId);;
 
-        const response = new UmpirePaymentSettingsResponseDto(body.umpirePayerTypeRefId);
-        if (UmpirePayerTypeEnum.ORGANISER === body.umpirePayerTypeRefId) {
+        const response = new UmpirePaymentSettingsResponseDto;
+        if ((body.umpirePaymentSettings||[]).length) {
 
             await this.entityManager.delete(UmpirePaymentSetting, {
                 competitionId: competitionId
@@ -67,7 +66,8 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
             for (const paymentSettingData of body.umpirePaymentSettings) {
                 response.umpirePaymentSettings.push(await this.setPaymentSetting(paymentSettingData, competitionId));
             }
-        } else {
+        }
+        if (!!body.allowedDivisionsSetting) {
             const allowedDivisionsSetting = new UmpirePaymentAllowedDivisionsSetting;
 
             allowedDivisionsSetting.allDivisions = body.allowedDivisionsSetting.allDivisions;
@@ -111,7 +111,7 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
             settings.push(await this.setPaymentSetting(paymentSettingData, competitionId));
         }
 
-        return new UmpirePaymentSettingsResponseDto(competition.umpirePayerTypeRefId, settings, competition.umpirePaymentAllowedDivisionsSetting)
+        return new UmpirePaymentSettingsResponseDto(settings, competition.umpirePaymentAllowedDivisionsSetting)
     }
 
     protected async setPaymentSetting(paymentSettingData: DeepPartial<UmpirePaymentSetting>, competitionId: number): Promise<UmpirePaymentSetting> {
