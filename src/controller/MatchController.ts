@@ -823,16 +823,22 @@ export class MatchController extends BaseController {
         @QueryParam('recordPoints') recordPoints: boolean = false,
         @QueryParam('points') points: number,
         @QueryParam('foul') foul: string,
+        @QueryParam('msChangeToStartTime') msChangeToStartTime: number,
         @Res() response: Response
     ) {
-        if (recordPoints && (!isNotNullAndUndefined(points) && !isNotNullAndUndefined(foul))) {
-            return response.status(400).send({
-                name: 'validation_error',
-                message: `Necessary data missing while recording points`
-            });
+        if (recordPoints &&
+          (!isNotNullAndUndefined(points) &&
+            !isNotNullAndUndefined(foul) &&
+            !isNotNullAndUndefined(msChangeToStartTime))) {
+              return response.status(400).send({
+                  name: 'validation_error',
+                  message: `Necessary data missing while recording points`
+              });
         }
 
         let match = await this.matchService.findById(matchId);
+
+        let newMatchStartTime = new Date(match.startTime.getTime() + (msFromStart - msChangeToStartTime));
 
         let eventTimestamp = msFromStart
             ? new Date(match.startTime.getTime() + msFromStart)
@@ -846,14 +852,22 @@ export class MatchController extends BaseController {
                 periodNumber,
                 eventTimestamp,
                 user.id,
-                'team' + teamSequence,
-                this.getRecordPointsAttribute1Value(gameStatCode, points, foul),
-                'playerId',
-                playerId ? playerId.toString() : ''
+                gameStatCode == 'TC' ? 'new' : 'team' + teamSequence,
+                gameStatCode == 'TC' ?  msChangeToStartTime.toString() : this.getRecordPointsAttribute1Value(gameStatCode, points, foul),
+                gameStatCode == 'TC' ? 'old' : 'playerId',
+                gameStatCode == 'TC' ?  msFromStart.toString() : playerId ? playerId.toString() : ''
             );
 
             if (gameStatCode == 'F') {
                 this.matchService.logMatchFouls(user.id, matchId, teamSequence, foul);
+            } else if (gameStatCode == 'TC') {
+              let newMatchStartTime = new Date(match.startTime.getTime() + (msFromStart - msChangeToStartTime));
+              if (!isNotNullAndUndefined(match.originalStartTime)) {
+                  match.originalStartTime = match.startTime;
+              }
+              match.startTime = newMatchStartTime;
+              await this.matchService.createOrUpdate(match);
+              this.sendMatchEvent(match, false, {user: user});
             }
         } else {
             this.matchService.logMatchEvent(
@@ -879,6 +893,8 @@ export class MatchController extends BaseController {
           return "MissedPoints";
         case 'F':
           return "Foul";
+        case 'TC':
+          return 'TimerChange';
         default:
           return gameStatCode;
       }
