@@ -14,6 +14,7 @@ import {Division} from "./Division";
 import {UmpirePaymentFeeTypeEnum} from "./enums/UmpirePaymentFeeTypeEnum";
 import {ByBadgeUmpirePaymentFee} from "./ByBadgeUmpirePaymentFee";
 import {ByPoolUmpirePaymentFee} from "./ByPoolUmpirePaymentFee";
+import {CompetitionOrganisationRoleEnum} from "./enums/CompetitionOrganisationRoleEnum";
 
 @Entity()
 export class UmpirePaymentSetting extends BaseEntity {
@@ -50,4 +51,9 @@ export class UmpirePaymentSetting extends BaseEntity {
     })
     @JoinColumn()
     byPool: ByPoolUmpirePaymentFee[];
+
+    @Column({
+        enum: CompetitionOrganisationRoleEnum
+    })
+    savedBy: CompetitionOrganisationRoleEnum;
 }

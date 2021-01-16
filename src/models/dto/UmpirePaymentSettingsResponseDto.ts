@@ -1,4 +1,3 @@
-import {UmpirePayerTypeEnum} from "../enums/UmpirePayerTypeEnum";
 import {UmpirePaymentSetting} from "../UmpirePaymentSetting";
 import {UmpirePaymentAllowedDivisionsSetting} from "../UmpirePaymentAllowedDivisionsSetting";
 
