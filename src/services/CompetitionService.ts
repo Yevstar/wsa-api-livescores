@@ -190,13 +190,13 @@ export default class CompetitionService extends BaseService<Competition> {
     }
 
     async isCompetitionAffiliate(organisationId: number, competitionId: number): Promise<boolean> {
-        //TODO: Implement logics
-        return true;
+        return ! await this.isCompetitionOrganiser(organisationId, competitionId);
     }
 
     async isCompetitionOrganiser(organisationId: number, competitionId: number): Promise<boolean> {
-        //TODO: Implement logics
-        return true;
+        const competition = await this.entityManager.findOneOrFail(Competition, competitionId)
+
+        return organisationId === competition.organisationId;
     }
 }
 

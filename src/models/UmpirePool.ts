@@ -21,7 +21,7 @@ export class UmpirePool extends BaseEntity {
     @IsString()
     name!: string;
 
-    @ManyToMany(type => User)
+    @ManyToMany(type => User, { eager: true })
     @JoinTable()
     umpires: User[];
 

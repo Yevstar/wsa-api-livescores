@@ -10,6 +10,7 @@ import { isDate } from 'util';
 import {MatchPausedTime} from "./MatchPausedTime";
 import {Roster} from "./security/Roster";
 import { MatchUmpire } from './MatchUmpire';
+import { MatchFouls } from './MatchFouls';
 
 @Entity()
 export class Match extends BaseEntity {
@@ -217,6 +218,11 @@ export class Match extends BaseEntity {
     @IsNumber()
     @Column()
     extraTimeWinByGoals: number;
+
+    @ValidateNested()
+    @OneToOne(type => MatchFouls)
+    @JoinColumn({name: 'id', referencedColumnName: 'matchId'})
+    matchFouls: MatchFouls;
 
     rosters: Roster[];
     matchUmpires: MatchUmpire[];

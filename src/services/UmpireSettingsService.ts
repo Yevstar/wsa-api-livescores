@@ -10,6 +10,7 @@ import {Inject} from "typedi";
 import CompetitionOrganisationService from "./CompetitionOrganisationService";
 import {CompetitionParticipatingTypeEnum} from "../models/enums/CompetitionParticipatingTypeEnum";
 import {EmptyDivisionsError} from "../exceptions/EmptyDivisionsError";
+import {logger} from "../logger";
 
 export class UmpireSettingsService extends BaseService<UmpireAllocationSetting> {
     modelName(): string {
@@ -45,14 +46,16 @@ export class UmpireSettingsService extends BaseService<UmpireAllocationSetting> 
             throw new ForbiddenError("You are not allowed to save this settings")
         }
 
-        this.checkDivisionsOverlapping(settings);
+        if ((settings.umpireAllocationSettings||[]).length || !!settings.noUmpiresSetting) {
+            this.checkDivisionsOverlapping(settings);
+        }
 
         const competition = await this.entityManager.findOneOrFail(Competition, competitionId);
 
         await this.clearUmpireAllocationSettings(competitionId);
 
         const response = new UmpireAllocationSettingsResponseDto;
-        if (settings.umpireAllocationSettings) {
+        if ((settings.umpireAllocationSettings||[]).length) {
             for (const settingData of settings.umpireAllocationSettings) {
                 const setting = await this.entityManager.create(UmpireAllocationSetting, settingData)
 
@@ -74,7 +77,7 @@ export class UmpireSettingsService extends BaseService<UmpireAllocationSetting> 
                 );
             }
         }
-        if (settings.noUmpiresSetting) {
+        if (!!settings.noUmpiresSetting) {
             const setting = await this.entityManager.create(NoUmpiresUmpireAllocationSetting, settings.noUmpiresSetting);
 
             setting.competition = competition;
@@ -98,21 +101,17 @@ export class UmpireSettingsService extends BaseService<UmpireAllocationSetting> 
 
     async clearUmpireAllocationSettings(competitionId: number): Promise<void> {
         await this.entityManager.delete(UmpireAllocationSetting, {
-            where: {
-                competitionId: competitionId
-            }
+            competitionId: competitionId
         });
         await this.entityManager.delete(NoUmpiresUmpireAllocationSetting, {
-            where: {
-                competitionId: competitionId
-            }
+            competitionId: competitionId
         });
     }
 
     private checkDivisionsOverlapping(settings: UmpireAllocationSettingsStoreDto): void {
         const dto = (settings.umpireAllocationSettings||[]).map(setting => {
             return {
-                divisions: [...setting.divisions],
+                divisions: [...(setting.divisions||[])],
                 allDivisions: !!setting.allDivisions
             }
         });

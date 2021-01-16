@@ -1,6 +1,6 @@
 import {
     Authorized,
-    Body,
+    Body, BodyParam,
     Get,
     HttpCode,
     JsonController,
@@ -14,7 +14,7 @@ import {UmpirePool} from "../models/UmpirePool";
 import {RequiredQueryParam} from "../decorators/RequiredQueryParamDecorator";
 
 @JsonController('/competitions/:competitionId/umpires/pools')
-//@Authorized()
+@Authorized()
 export class UmpirePoolsController extends BaseController {
 
     @Get()
@@ -42,5 +42,15 @@ export class UmpirePoolsController extends BaseController {
         @Body() body: UmpirePool[]
     ): Promise<UmpirePool[]> {
         return this.umpirePoolService.updateMany(organisationId, competitionId, body);
+    }
+
+    @Post('/:umpirePoolId/add')
+    async addUmpire(
+        @Param('competitionId') competitionId: number,
+        @Param('umpirePoolId') umpirePoolId: number,
+        @BodyParam('umpireId') umpireId: number,
+        @RequiredQueryParam('organisationId') organisationId: number,
+    ): Promise<UmpirePool>  {
+        return this.umpirePoolService.addUmpireToPool(organisationId, competitionId, umpirePoolId, umpireId)
     }
 }

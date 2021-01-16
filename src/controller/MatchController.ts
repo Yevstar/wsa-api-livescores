@@ -50,8 +50,11 @@ import {convertMatchStartTimeByTimezone} from '../utils/TimeFormatterUtils';
 export class MatchController extends BaseController {
     @Authorized()
     @Get('/id/:id')
-    async get(@Param("id") id: number) {
-        return this.matchService.findMatchById(id);
+    async get(
+        @Param("id") id: number,
+        @QueryParam("includeFouls") includeFouls: boolean = false
+    ) {
+        return this.matchService.findMatchById(id, includeFouls);
     }
 
     @Authorized()
@@ -62,6 +65,7 @@ export class MatchController extends BaseController {
     ) {
         let match = await this.matchService.findById(id);
         let deletedMatch = await this.matchService.softDelete(id, user.id);
+        this.matchService.deleteMatchFouls(id);
         this.sendMatchEvent(match, false, {user: user, subtype: 'match_removed'});
         return deletedMatch;
     }
@@ -818,32 +822,97 @@ export class MatchController extends BaseController {
         @QueryParam('gameStatCode') gameStatCode: string,
         @QueryParam('recordPoints') recordPoints: boolean = false,
         @QueryParam('points') points: number,
+        @QueryParam('foul') foul: string,
+        @QueryParam('msChangeToStartTime') msChangeToStartTime: number,
         @Res() response: Response
     ) {
-        if (recordPoints && !isNotNullAndUndefined(points)) {
-            return response.status(400).send({
-                name: 'validation_error',
-                message: `Points can not be empty while recording points`
-            });
+        if (recordPoints &&
+          (!isNotNullAndUndefined(points) &&
+            !isNotNullAndUndefined(foul) &&
+            !isNotNullAndUndefined(msChangeToStartTime))) {
+              return response.status(400).send({
+                  name: 'validation_error',
+                  message: `Necessary data missing while recording points`
+              });
         }
 
         let match = await this.matchService.findById(matchId);
+
+        let newMatchStartTime = new Date(match.startTime.getTime() + (msFromStart - msChangeToStartTime));
 
         let eventTimestamp = msFromStart
             ? new Date(match.startTime.getTime() + msFromStart)
             : new Date(Date.now());
 
         if (recordPoints) {
-            this.matchService.logMatchEvent(matchId, 'stat', gameStatCode == "M" ? "MissedPoints" : gameStatCode, periodNumber,
-                eventTimestamp, user.id, 'team' + teamSequence, points.toString(),
-                'playerId', playerId ? playerId.toString() : '');
+            this.matchService.logMatchEvent(
+                matchId,
+                'stat',
+                this.getRecordPointsGameEventType(gameStatCode),
+                periodNumber,
+                eventTimestamp,
+                user.id,
+                gameStatCode == 'TC' ? 'new' : 'team' + teamSequence,
+                gameStatCode == 'TC' ?  msChangeToStartTime.toString() : this.getRecordPointsAttribute1Value(gameStatCode, points, foul),
+                gameStatCode == 'TC' ? 'old' : 'playerId',
+                gameStatCode == 'TC' ?  msFromStart.toString() : playerId ? playerId.toString() : ''
+            );
+
+            if (gameStatCode == 'F') {
+                this.matchService.logMatchFouls(user.id, matchId, teamSequence, foul);
+            } else if (gameStatCode == 'TC') {
+              let newMatchStartTime = new Date(match.startTime.getTime() + (msFromStart - msChangeToStartTime));
+              if (!isNotNullAndUndefined(match.originalStartTime)) {
+                  match.originalStartTime = match.startTime;
+              }
+              match.startTime = newMatchStartTime;
+              await this.matchService.createOrUpdate(match);
+              this.sendMatchEvent(match, false, {user: user});
+            }
         } else {
-            this.matchService.logMatchEvent(matchId, 'stat', gameStatCode, periodNumber,
-                eventTimestamp, user.id, 'team' + teamSequence, positionId.toString(),
-                'playerId', playerId ? playerId.toString() : '');
+            this.matchService.logMatchEvent(
+                matchId,
+                'stat',
+                gameStatCode,
+                periodNumber,
+                eventTimestamp,
+                user.id,
+                'team' + teamSequence,
+                positionId.toString(),
+                'playerId',
+                playerId ? playerId.toString() : ''
+            );
         }
 
         return match;
+    }
+
+    private getRecordPointsGameEventType(gameStatCode: string) {
+      switch (gameStatCode) {
+        case 'M':
+          return "MissedPoints";
+        case 'F':
+          return "Foul";
+        case 'TC':
+          return 'TimerChange';
+        default:
+          return gameStatCode;
+      }
+    }
+
+    private getRecordPointsAttribute1Value(
+        gameStatCode: string,
+        points: number,
+        foul: string
+    ) {
+      switch (gameStatCode) {
+        case 'M':
+          return points.toString();
+        case 'F':
+          return foul;
+        default:
+          return '';
+      }
     }
 
     @Get('/periodScores')
@@ -2280,6 +2349,7 @@ export class MatchController extends BaseController {
         @QueryParam('positionId') positionId: number,
         @QueryParam('recordPoints') recordPoints: boolean = false,
         @QueryParam('points') points: number,
+        @QueryParam('foul') foul: string,
         @Res() response: Response
     ) {
         if (gameStatCode == 'G' &&
@@ -2289,11 +2359,12 @@ export class MatchController extends BaseController {
                   message: `Team score required when deleting a score match event`
               });
         } else if (recordPoints &&
-            (!isNotNullAndUndefined(points) || !isNotNullAndUndefined(playerId))) {
-              return response.status(400).send({
-                  name: 'validation_error',
-                  message: `Points and playerId can not be empty while removing record points`
-              });
+            ((!isNotNullAndUndefined(points) && !isNotNullAndUndefined(foul))
+              || !isNotNullAndUndefined(playerId))) {
+                return response.status(400).send({
+                    name: 'validation_error',
+                    message: `Points and playerId can not be empty while removing record points`
+                });
         } else if (!recordPoints &&
             gameStatCode == 'M' &&
             (!isNotNullAndUndefined(positionId) || !isNotNullAndUndefined(playerId))) {
@@ -2313,7 +2384,8 @@ export class MatchController extends BaseController {
             team2Score,
             positionId,
             recordPoints,
-            points
+            points,
+            foul
         );
 
         try {
@@ -2321,7 +2393,7 @@ export class MatchController extends BaseController {
                 const existingMatchEventIds = matchEvents.map(function(matchEvent){
                     return matchEvent.id;
                 });
-                await this.matchService.deleteByIds(existingMatchEventIds);
+                await this.matchService.deleteMatchEventByIds(existingMatchEventIds);
 
                 if (gameStatCode == 'G') {
                     let match = await this.matchService.findById(matchId);
@@ -2336,6 +2408,8 @@ export class MatchController extends BaseController {
                     }
                     this.matchService.createOrUpdate(match);
                     this.sendMatchEvent(match, true, {user: user});
+                } else if (gameStatCode == 'F') {
+                    await this.matchService.removeMatchFoul(matchId, teamSequence, foul);
                 }
             }
 

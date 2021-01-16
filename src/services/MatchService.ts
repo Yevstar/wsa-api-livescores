@@ -22,6 +22,7 @@ import {StateTimezone} from "../models/StateTimezone";
 import {Competition} from "../models/Competition";
 import {User} from "../models/User";
 import {MatchSheet} from "../models/MatchSheet";
+import {MatchFouls} from "../models/MatchFouls";
 import AWS from "aws-sdk";
 
 const s3 = new AWS.S3({
@@ -60,10 +61,13 @@ export default class MatchService extends BaseService<Match> {
             .getMany();
     }
 
-    public async findMatchById(id: number): Promise<Match> {
+    public async findMatchById(id: number, includeFouls: boolean = false): Promise<Match> {
         let query = this.entityManager.createQueryBuilder(Match, 'match')
             .andWhere('match.id = :id', { id });
         this.addDefaultJoin(query);
+        if (includeFouls) {
+            query.leftJoinAndSelect('match.matchFouls', 'matchFouls', 'matchFouls.deleted_at is null');
+        }
 
         return query.getOne();
     }
@@ -693,7 +697,7 @@ export default class MatchService extends BaseService<Match> {
             .execute();
     }
 
-    public async deleteByIds(ids: number[]): Promise<DeleteResult> {
+    public async deleteMatchEventByIds(ids: number[]): Promise<DeleteResult> {
         return this.entityManager.createQueryBuilder().delete().from(MatchEvent)
             .andWhere("id in (:ids)", {ids: ids}).execute();
     }
@@ -708,7 +712,8 @@ export default class MatchService extends BaseService<Match> {
         team2Score: number,
         positionId: number,
         recordPoints: boolean,
-        points: number
+        points: number,
+        foul: string
     ): Promise<MatchEvent[]> {
         let query = this.entityManager.createQueryBuilder(MatchEvent, 'matchEvent')
             .andWhere('matchEvent.matchId = :matchId', {matchId: matchId})
@@ -742,8 +747,8 @@ export default class MatchService extends BaseService<Match> {
 
             query.andWhere('(matchEvent.attribute1Value = :scoreAttribute1Value ' +
               'or matchEvent.attribute1Value = :statAttribute1Value)', {
-                  scoreAttribute1Value: team1Score,
-                  statAttribute1Value: recordPoints ? points: positionId
+                  scoreAttribute1Value: team1Score.toString(),
+                  statAttribute1Value: recordPoints ? points.toString() : positionId.toString()
               })
               .andWhere('(matchEvent.attribute2Key = :scoreAttribute2Key ' +
               'or matchEvent.attribute2Key = :statAttribute2Key)', {
@@ -752,16 +757,19 @@ export default class MatchService extends BaseService<Match> {
               })
               .andWhere('(matchEvent.attribute2Value = :scoreAttribute2Value ' +
               'or matchEvent.attribute2Value = :statAttribute2Value)', {
-                  scoreAttribute2Value: team2Score,
-                  statAttribute2Value: playerId
+                  scoreAttribute2Value: team2Score.toString(),
+                  statAttribute2Value: playerId.toString()
               });
-        } else if (gameStatCode == 'M') {
+        } else {
             query.andWhere('matchEvent.eventCategory = :eventCategory', {
                   eventCategory: 'stat'
-                })
-                .andWhere('matchEvent.type = :type', {
-                  type: recordPoints ? 'MissedPoints' : gameStatCode
                 });
+
+            query.andWhere('matchEvent.type = :type', {
+              type: recordPoints ?
+                this.getRecordPointsType(gameStatCode) :
+                gameStatCode
+            });
 
             if (teamSequence == 1) {
                 query.andWhere('matchEvent.attribute1Key = :attribute1Key', {
@@ -774,13 +782,15 @@ export default class MatchService extends BaseService<Match> {
             }
 
             query.andWhere('matchEvent.attribute1Value = :attribute1Value', {
-                  attribute1Value: recordPoints ? points: positionId
+                  attribute1Value: recordPoints ?
+                    this.getRecordPointsAttribute1Value(gameStatCode, points, foul) :
+                    positionId.toString()
               })
               .andWhere('matchEvent.attribute2Key = :attribute2Key', {
                   attribute2Key: 'playerId'
               })
               .andWhere('matchEvent.attribute2Value = :attribute2Value', {
-                  attribute2Value: playerId
+                  attribute2Value: playerId.toString()
               });
         }
 
@@ -792,5 +802,122 @@ export default class MatchService extends BaseService<Match> {
         }
 
         return query.getMany();
+    }
+
+    private getRecordPointsType(gameStatCode: string) {
+      switch (gameStatCode) {
+        case 'M':
+          return 'MissedPoints';
+        case 'F':
+          return 'Foul';
+        default:
+          return gameStatCode;
+      }
+    }
+
+    private getRecordPointsAttribute1Value(
+        gameStatCode: string,
+        points: number,
+        foul: string
+    ) {
+      switch (gameStatCode) {
+        case 'M':
+          return points.toString();
+        case 'F':
+          return foul;
+        default:
+          return '';
+      }
+    }
+
+    public async deleteMatchFouls(matchId: number) {
+        let endTime = new Date(Date.now());
+
+        return this.entityManager.createQueryBuilder(MatchFouls, 'mouthFouls')
+            .update()
+            .set({deleted_at: endTime})
+            .where("matchId = :matchId", {matchId})
+            .execute();
+    }
+
+    public async findMatchFoulByMatch(matchId: number) {
+      return this.entityManager.createQueryBuilder(MatchFouls, 'mouthFouls')
+          .where("matchId = :matchId", {matchId: matchId})
+          .getOne();
+    }
+
+    public async logMatchFouls(userId: number, matchId: number, teamSequence: number, foul: string) {
+      let matchFoul = await this.findMatchFoulByMatch(matchId);
+
+      if (!isNotNullAndUndefined(matchFoul)) {
+          matchFoul = new MatchFouls();
+
+          matchFoul.matchId = matchId;
+          matchFoul.team1Personal = 0;
+          matchFoul.team1Technical = 0;
+          matchFoul.team1Disqualifying = 0;
+          matchFoul.team1Unsportsmanlike = 0;
+          matchFoul.team2Personal = 0;
+          matchFoul.team2Technical = 0;
+          matchFoul.team2Disqualifying = 0;
+          matchFoul.team2Unsportsmanlike = 0;
+          matchFoul.created_by = userId;
+      }
+
+      switch (foul) {
+        case 'P':
+            teamSequence == 1 ?
+              matchFoul.team1Personal += 1 :
+              matchFoul.team2Personal += 1;
+        break;
+        case 'T':
+            teamSequence == 1 ?
+              matchFoul.team1Technical += 1 :
+              matchFoul.team2Technical += 1;
+        break;
+        case 'D':
+            teamSequence == 1 ?
+              matchFoul.team1Disqualifying += 1 :
+              matchFoul.team2Disqualifying += 1;
+        break;
+        case 'U':
+            teamSequence == 1 ?
+              matchFoul.team1Unsportsmanlike += 1 :
+              matchFoul.team2Unsportsmanlike += 1;
+        break;
+      }
+
+      return MatchFouls.save(matchFoul);
+    }
+
+    public async removeMatchFoul(matchId: number, teamSequence: number, foul: string) {
+        let matchFoul = await this.findMatchFoulByMatch(matchId);
+
+        if (isNotNullAndUndefined(matchFoul)) {
+            switch (foul) {
+              case 'P':
+                  teamSequence == 1 ?
+                    matchFoul.team1Personal -= 1 :
+                    matchFoul.team2Personal -= 1;
+              break;
+              case 'T':
+                  teamSequence == 1 ?
+                    matchFoul.team1Technical -= 1 :
+                    matchFoul.team2Technical -= 1;
+              break;
+              case 'D':
+                  teamSequence == 1 ?
+                    matchFoul.team1Disqualifying -= 1 :
+                    matchFoul.team2Disqualifying -= 1;
+              break;
+              case 'U':
+                  teamSequence == 1 ?
+                    matchFoul.team1Unsportsmanlike -= 1 :
+                    matchFoul.team2Unsportsmanlike -= 1;
+              break;
+            }
+
+            return MatchFouls.save(matchFoul);
+        }
     }
 }

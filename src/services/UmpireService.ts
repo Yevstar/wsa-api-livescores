@@ -58,6 +58,23 @@ export class UmpireService extends BaseService<User> {
         return umpire;
     }
 
+    async findOneByUserId(userId: number): Promise<User> {
+        const umpire = this.entityManager.createQueryBuilder(User,"u")
+            .leftJoinAndSelect("u.userRoleEntities", "roles")
+            .leftJoinAndSelect("u.umpireCompetitionRank", "umpireCompetitionRank")
+            .where("roles.roleId IN (15,20)")
+            .where("u.id = :userId", {
+                userId: userId,
+            })
+            .getOne();
+
+        if (!umpire) {
+            throw new NotFoundError;
+        }
+
+        return umpire;
+    }
+
     async updateRank(
         competitionId: number,
         umpireId: number,
