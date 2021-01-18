@@ -68,7 +68,8 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
         if ((body.umpirePaymentSettings||[]).length) {
 
             await this.entityManager.delete(UmpirePaymentSetting, {
-                competitionId: competitionId
+                competitionId: competitionId,
+                savedBy: CompetitionOrganisationRoleEnum.ORGANISER,
             });
 
             for (const paymentSettingData of body.umpirePaymentSettings) {
@@ -103,6 +104,11 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
         const competition = await this.entityManager.findOneOrFail(Competition, competitionId, {relations: ["umpirePaymentAllowedDivisionsSetting", "umpirePaymentAllowedDivisionsSetting.divisions"]});
 
         const allowedDivisions = competition.umpirePaymentAllowedDivisionsSetting.divisions.map(division => division.id);
+
+        await this.entityManager.delete(UmpirePaymentSetting, {
+            competitionId: competitionId,
+            savedBy: CompetitionOrganisationRoleEnum.AFFILIATE,
+        });
 
         const settings = [];
         for (const paymentSettingData of body) {
