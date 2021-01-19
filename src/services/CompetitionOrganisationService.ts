@@ -45,7 +45,7 @@ export default class CompetitionOrganisationService extends BaseService<Competit
     }
 
     async getByCompetitionOrganisation(competitionId: number, organisationId: number): Promise<CompetitionOrganisation> {
-        return this.entityManager.findOneOrFail(CompetitionOrganisation, {
+        return this.entityManager.findOne(CompetitionOrganisation, {
             competitionId: competitionId,
             orgId: organisationId,
         }, {relations: ["competition"]});

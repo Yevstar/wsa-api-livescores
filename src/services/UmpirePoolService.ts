@@ -61,16 +61,18 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
     }
 
     async getByCompetitionOrganisation(competitionId: number, organisationId: number): Promise<UmpirePool[]> {
+        const competition = await this.entityManager.findOneOrFail(Competition, competitionId);
+
         const competitionOrganisation = await this.competitionOrganisationService.getByCompetitionOrganisation(competitionId, organisationId);
 
         const umpirePools = await this.entityManager.find(UmpirePool, {
             where: {
-                competitionId: competitionId,
+                competitionId: competition.id,
             },
             relations: ["competition","umpires","divisions"]
         });
 
-        if (CompetitionParticipatingTypeEnum.PARTICIPATED_IN === await this.competitionOrganisationService.getCompetitionParticipatingType(competitionId, organisationId)) {
+        if (!!competitionOrganisation && CompetitionParticipatingTypeEnum.PARTICIPATED_IN === await this.competitionOrganisationService.getCompetitionParticipatingType(competitionId, organisationId)) {
 
             for (const umpirePool of umpirePools) {
                 const filteredUmpires = [];
