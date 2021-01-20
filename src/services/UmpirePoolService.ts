@@ -39,6 +39,15 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
         return await this.createOrUpdate(body);
     }
 
+    async deleteOne(organisationId: number, competitionId: number, umpirePoolId: number): Promise<void> {
+        if (CompetitionParticipatingTypeEnum.PARTICIPATED_IN === await this.competitionOrganisationService.getCompetitionParticipatingType(competitionId, organisationId)) {
+            throw new ForbiddenError("Participated-in organization can't delete pools!")
+        }
+
+        const umpirePool = await this.entityManager.findOneOrFail(UmpirePool, umpirePoolId);
+        await umpirePool.remove()
+    }
+
     async updateMany(organisationId: number, competitionId: number, body: UmpirePool[]): Promise<UmpirePool[]> {
 
         if (CompetitionParticipatingTypeEnum.PARTICIPATED_IN === await this.competitionOrganisationService.getCompetitionParticipatingType(competitionId, organisationId)) {

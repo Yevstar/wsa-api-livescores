@@ -1,6 +1,6 @@
 import {
     Authorized,
-    Body, BodyParam,
+    Body, BodyParam, Delete,
     Get,
     HttpCode,
     JsonController,
@@ -33,6 +33,15 @@ export class UmpirePoolsController extends BaseController {
         @Body() body: UmpirePool,
     ): Promise<UmpirePool> {
         return this.umpirePoolService.createOne(organisationId, competitionId, body);
+    }
+
+    @Delete('/:umpirePoolId')
+    async delete(
+        @Param('umpirePoolId') umpirePoolId: number,
+        @Param('competitionId') competitionId: number,
+        @RequiredQueryParam('organisationId') organisationId: number,
+    ): Promise<void> {
+        return this.umpirePoolService.deleteOne(organisationId, competitionId, umpirePoolId);
     }
 
     @Patch('/batch')
