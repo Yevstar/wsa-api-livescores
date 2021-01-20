@@ -52,9 +52,10 @@ export class MatchController extends BaseController {
     @Get('/id/:id')
     async get(
         @Param("id") id: number,
-        @QueryParam("includeFouls") includeFouls: boolean = false
+        @QueryParam("includeFouls") includeFouls: boolean = false,
+        @QueryParam("gameType") gameType: "NETBALL" | "FOOTBALL" | "BASKETBALL"
     ) {
-        return this.matchService.findMatchById(id, includeFouls);
+        return this.matchService.findMatchById(id, includeFouls, gameType);
     }
 
     @Authorized()

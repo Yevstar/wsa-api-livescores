@@ -61,11 +61,16 @@ export default class MatchService extends BaseService<Match> {
             .getMany();
     }
 
-    public async findMatchById(id: number, includeFouls: boolean = false): Promise<Match> {
+    public async findMatchById(
+        id: number,
+        includeFouls: boolean = false,
+        gameType?: "NETBALL" | "FOOTBALL" | "BASKETBALL"
+    ): Promise<Match> {
         let query = this.entityManager.createQueryBuilder(Match, 'match')
             .andWhere('match.id = :id', { id });
         this.addDefaultJoin(query);
-        if (includeFouls) {
+        
+        if (gameType == "BASKETBALL" && includeFouls) {
             query.leftJoinAndSelect('match.matchFouls', 'matchFouls', 'matchFouls.deleted_at is null');
         }
 
