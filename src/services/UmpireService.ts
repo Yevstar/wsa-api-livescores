@@ -19,7 +19,7 @@ export class UmpireService extends BaseService<User> {
         const query = this.entityManager.createQueryBuilder(User,"u")
             .leftJoinAndSelect("u.userRoleEntities", "roles")
             .leftJoinAndSelect("u.umpireCompetitionRank", "umpireCompetitionRank")
-            .leftJoinAndSelect("u.umpireCompetitionRank.competition", "umpireCompetitionRank.competition")
+            .leftJoinAndSelect("umpireCompetitionRank.competition", "umpireCompetitionRank.competition")
             .where("roles.entityTypeId = :entityTypeId AND roles.entityId = :entityId AND roles.roleId IN (15,20)", {
                 entityTypeId: 1,
                 entityId: competitionId,
