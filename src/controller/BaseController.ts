@@ -171,6 +171,9 @@ export class BaseController {
     @Inject()
     protected communicationService: CommunicationService;
 
+    @Inject()
+    protected organisationService: OrganisationService;
+
     protected async updateFirebaseData(user: User, password: string) {
         user.password = password;
 
