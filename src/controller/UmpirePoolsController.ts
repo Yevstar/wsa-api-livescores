@@ -15,7 +15,7 @@ import {RequiredQueryParam} from "../decorators/RequiredQueryParamDecorator";
 import {DeleteResult} from "typeorm-plus";
 
 @JsonController('/competitions/:competitionId/umpires/pools')
-// @Authorized()
+@Authorized()
 export class UmpirePoolsController extends BaseController {
 
     @Get()
