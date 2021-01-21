@@ -10,6 +10,7 @@ import UserService from "./UserService";
 import {UmpirePoolsAllocationUpdateDto} from "../models/dto/UmpirePoolsAllocationUpdateDto";
 import {Division} from "../models/Division";
 import {UmpireService} from "./UmpireService";
+import {DeleteResult} from "typeorm-plus";
 
 export class UmpirePoolService extends BaseService<UmpirePool> {
     modelName(): string {
@@ -39,13 +40,14 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
         return await this.createOrUpdate(body);
     }
 
-    async deleteOne(organisationId: number, competitionId: number, umpirePoolId: number): Promise<void> {
+    async deleteOne(organisationId: number, competitionId: number, umpirePoolId: number): Promise<DeleteResult> {
         if (CompetitionParticipatingTypeEnum.PARTICIPATED_IN === await this.competitionOrganisationService.getCompetitionParticipatingType(competitionId, organisationId)) {
             throw new ForbiddenError("Participated-in organization can't delete pools!")
         }
 
         const umpirePool = await this.entityManager.findOneOrFail(UmpirePool, umpirePoolId);
-        await umpirePool.remove()
+
+        return await this.deleteById(umpirePool.id);
     }
 
     async updateMany(organisationId: number, competitionId: number, body: UmpirePool[]): Promise<UmpirePool[]> {

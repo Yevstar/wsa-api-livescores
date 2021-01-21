@@ -12,6 +12,7 @@ import {
 import {BaseController} from "./BaseController";
 import {UmpirePool} from "../models/UmpirePool";
 import {RequiredQueryParam} from "../decorators/RequiredQueryParamDecorator";
+import {DeleteResult} from "typeorm-plus";
 
 @JsonController('/competitions/:competitionId/umpires/pools')
 @Authorized()
@@ -40,7 +41,7 @@ export class UmpirePoolsController extends BaseController {
         @Param('umpirePoolId') umpirePoolId: number,
         @Param('competitionId') competitionId: number,
         @RequiredQueryParam('organisationId') organisationId: number,
-    ): Promise<void> {
+    ): Promise<DeleteResult> {
         return this.umpirePoolService.deleteOne(organisationId, competitionId, umpirePoolId);
     }
 
