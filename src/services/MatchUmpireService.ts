@@ -8,6 +8,9 @@ import {DeleteResult} from "typeorm-plus";
 import {RequestFilter} from "../models/RequestFilter";
 import {stringTONumber, paginationData, isNotNullAndUndefined, isArrayPopulated} from "../utils/Utils";
 import {Role} from '../models/security/Role';
+import {Competition} from "../models/Competition";
+import {UmpirePaymentSetting} from "../models/UmpirePaymentSetting";
+import {UmpirePaymentFeeRate} from "../models/UmpirePaymentFeeRate";
 
 @Service()
 export default class MatchUmpireService extends BaseService<MatchUmpire> {
@@ -170,5 +173,42 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
             result = await query.getMany();
         }
         return { matchCount, result }
+    }
+
+    public async calculatePaymentForUmpire(matchUmpireId: number): Promise<number> {
+        const matchUmpire = (await this.entityManager.createQueryBuilder(MatchUmpire, 'matchUmpire')
+            .leftJoinAndSelect('matchUmpire.match', 'match')
+            .leftJoinAndSelect('matchUmpire.user', 'user')
+            .where('matchUmpire.id = :matchUmpireId', {matchUmpireId})
+            .getOne());
+
+        const competitionId = matchUmpire.match.competitionId;
+        const user = matchUmpire.user;
+        const accreditationId = user.accreditationLevelUmpireRefId;
+        console.log(`userId - ${user.id}`);
+        console.log(`accreditationId - ${accreditationId}`);
+
+        const umpireRole = await this.entityManager.createQueryBuilder(UserRoleEntity, 'userRoleEntity')
+            .where('entityId = :competitionId', {competitionId})
+            .andWhere('userId = :userId', {userId: matchUmpire.userId})
+            .andWhere('roleId IN (:roleIds)', {roleIds: [15, 19, 20]})
+            .getOne();
+
+        const roleId = umpireRole.roleId;
+        console.log(`roleId - ${roleId}`);
+
+        const rates = await this.entityManager.createQueryBuilder(UmpirePaymentFeeRate, 'umpirePaymentFeeRate')
+            .leftJoin('umpirePaymentFeeRate.umpirePaymentFeeByBadge', 'byBadge')
+            .leftJoin('byBadge.umpirePaymentSetting', 'umpirePaymentSetting')
+            .where('competitionId = :competitionId', {competitionId})
+            // .andWhere('byBadge.accreditationUmpireRefId = :accreditationId', {accreditationId})
+            .andWhere('umpirePaymentFeeRate.roleId = :roleId', {roleId})
+            .getMany();
+
+        console.log(`rate - ${JSON.stringify(rates)}`);
+
+
+        // TODO query
+        return 10;
     }
 }

@@ -48,6 +48,7 @@ import {UmpireSettingsService} from "../services/UmpireSettingsService";
 import CommunicationService from "../services/CommunicationService";
 import {UmpireService} from "../services/UmpireService";
 import {UmpirePaymentSettingsService} from "../services/UmpirePaymentSettingsService";
+import OrganisationService from "../services/OrganisationService";
 
 export class BaseController {
 
