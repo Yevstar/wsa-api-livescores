@@ -65,16 +65,22 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
         const competition = await this.entityManager.findOneOrFail(Competition, competitionId);;
 
         const response = new UmpirePaymentSettingsResponseDto;
+
+        await this.entityManager.delete(UmpirePaymentSetting, {
+            competitionId: competitionId,
+            savedBy: CompetitionOrganisationRoleEnum.ORGANISER,
+        });
+
         if ((body.umpirePaymentSettings||[]).length) {
-
-            await this.entityManager.delete(UmpirePaymentSetting, {
-                competitionId: competitionId
-            });
-
             for (const paymentSettingData of body.umpirePaymentSettings) {
                 response.umpirePaymentSettings.push(await this.setPaymentSetting(CompetitionOrganisationRoleEnum.ORGANISER, paymentSettingData, competitionId));
             }
         }
+
+        await this.entityManager.delete(UmpirePaymentAllowedDivisionsSetting, {
+            competitionId: competitionId,
+        });
+
         if (!!body.allowedDivisionsSetting) {
             const allowedDivisionsSetting = new UmpirePaymentAllowedDivisionsSetting;
 
@@ -103,6 +109,11 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
         const competition = await this.entityManager.findOneOrFail(Competition, competitionId, {relations: ["umpirePaymentAllowedDivisionsSetting", "umpirePaymentAllowedDivisionsSetting.divisions"]});
 
         const allowedDivisions = competition.umpirePaymentAllowedDivisionsSetting.divisions.map(division => division.id);
+
+        await this.entityManager.delete(UmpirePaymentSetting, {
+            competitionId: competitionId,
+            savedBy: CompetitionOrganisationRoleEnum.AFFILIATE,
+        });
 
         const settings = [];
         for (const paymentSettingData of body) {
