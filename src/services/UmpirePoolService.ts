@@ -76,12 +76,14 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
 
         const competitionOrganisation = await this.competitionOrganisationService.getByCompetitionOrganisation(competitionId, organisationId);
 
-        const umpirePools = await this.entityManager.find(UmpirePool, {
-            where: {
-                competitionId: competition.id,
-            },
-            relations: ["competition","umpires","divisions"]
-        });
+        const umpirePools = await this.entityManager.createQueryBuilder(UmpirePool, 'umpirePools')
+            .leftJoinAndSelect('umpirePools.competition', 'competition')
+            .leftJoinAndSelect('competition.competitionOrganizations', 'competitionOrganizations')
+            .leftJoinAndSelect('umpirePools.umpires', 'umpires')
+            .loadRelationCountAndMap('umpires.matchesCount', 'umpires.matchUmpires')
+            .leftJoinAndSelect('umpirePools.divisions', 'divisions')
+            .where('umpirePools.competitionId = :competitionId', {competitionId})
+            .getMany();
 
         if (!!competitionOrganisation && CompetitionParticipatingTypeEnum.PARTICIPATED_IN === await this.competitionOrganisationService.getCompetitionParticipatingType(competitionId, organisationId)) {
 
