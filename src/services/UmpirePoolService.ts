@@ -11,6 +11,7 @@ import {UmpirePoolsAllocationUpdateDto} from "../models/dto/UmpirePoolsAllocatio
 import {Division} from "../models/Division";
 import {UmpireService} from "./UmpireService";
 import {DeleteResult} from "typeorm-plus";
+import {UmpireCompetitionRank} from "../models/UmpireCompetitionRank";
 
 export class UmpirePoolService extends BaseService<UmpirePool> {
     modelName(): string {
@@ -81,12 +82,24 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
             .leftJoinAndSelect('competition.competitionOrganizations', 'competitionOrganizations')
             .leftJoinAndSelect('umpirePools.umpires', 'umpires')
             .loadRelationCountAndMap('umpires.matchesCount', 'umpires.matchUmpires')
+            .leftJoinAndSelect('umpires.umpireCompetitionRank', 'umpireCompetitionRank')
             .leftJoinAndSelect('umpirePools.divisions', 'divisions')
             .where('umpirePools.competitionId = :competitionId', {competitionId})
             .getMany();
 
-        if (!!competitionOrganisation && CompetitionParticipatingTypeEnum.PARTICIPATED_IN === await this.competitionOrganisationService.getCompetitionParticipatingType(competitionId, organisationId)) {
+        for (const umpirePool of umpirePools) {
+            for (const umpire of umpirePool.umpires) {
+                const rank = umpire.umpireCompetitionRank
+                    .map(umpireCompetitionRank => umpireCompetitionRank.rank)
+                    .reduce((prev, curr) => prev + curr, 0)
+                    / umpire.umpireCompetitionRank.length;
+                umpire.rank = isNaN(rank) ? 0 : rank;
+                delete umpire.umpireCompetitionRank;
+            }
+        }
 
+
+        if (!!competitionOrganisation && CompetitionParticipatingTypeEnum.PARTICIPATED_IN === await this.competitionOrganisationService.getCompetitionParticipatingType(competitionId, organisationId)) {
             for (const umpirePool of umpirePools) {
                 const filteredUmpires = [];
                 for (const umpire of umpirePool.umpires) {
@@ -97,7 +110,6 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
                 umpirePool.umpires = filteredUmpires;
             }
         }
-
         return umpirePools;
     }
 

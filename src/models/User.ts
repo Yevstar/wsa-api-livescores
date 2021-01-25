@@ -132,5 +132,7 @@ export class User extends BaseEntity {
     accreditationUmpireExpiryDate?: Date;
 
     @OneToMany(() => MatchUmpire, matchUmpire => matchUmpire.user)
-    matchUmpires: MatchUmpire[]
+    matchUmpires: MatchUmpire[];
+
+    rank?: number;
 }
