@@ -89,11 +89,7 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
 
         for (const umpirePool of umpirePools) {
             for (const umpire of umpirePool.umpires) {
-                const rank = umpire.umpireCompetitionRank
-                    .map(umpireCompetitionRank => umpireCompetitionRank.rank)
-                    .reduce((prev, curr) => prev + curr, 0)
-                    / umpire.umpireCompetitionRank.length;
-                umpire.rank = isNaN(rank) ? 0 : rank;
+                umpire.rank = this.umpireService.calculateAverageRank(umpire);
                 delete umpire.umpireCompetitionRank;
             }
         }
