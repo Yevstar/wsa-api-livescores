@@ -134,5 +134,8 @@ export class User extends BaseEntity {
     @OneToMany(() => MatchUmpire, matchUmpire => matchUmpire.user)
     matchUmpires: MatchUmpire[];
 
+    @Column()
+    yearsUmpired: number;
+
     rank?: number;
 }
