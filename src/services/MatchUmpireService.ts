@@ -217,7 +217,6 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
         const { UmpirePaymentFeeType } = paymentSetting;
 
         let paymentFeeQuery = this.entityManager.createQueryBuilder(UmpirePaymentFeeRate, 'paymentFeeRate');
-
         switch (UmpirePaymentFeeType) {
             case UmpirePaymentFeeTypeEnum.BY_BADGE:
                 paymentFeeQuery
@@ -247,7 +246,6 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
         }
 
         const umpirePaymentFeeRate = await paymentFeeQuery.getOne();
-
         // TODO
         if (!umpirePaymentFeeRate) {
             return null;

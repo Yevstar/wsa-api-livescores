@@ -112,4 +112,12 @@ export class UmpireService extends BaseService<User> {
             .reduce((prev, curr) => prev + curr, 0)
             / umpire.umpireCompetitionRank.length;
     }
+
+    async findByMatchUmpire(matchUmpireId: number): Promise<User> {
+
+        return await this.entityManager.createQueryBuilder(User,"u")
+            .leftJoinAndSelect("u.matchUmpires", "matchUmpires")
+            .where("matchUmpires.id = :matchUmpireId", {matchUmpireId})
+            .getOne();
+    }
 }

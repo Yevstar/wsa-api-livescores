@@ -11,45 +11,41 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2020-03-
 @JsonController('/api/payments')
 export class PaymentController extends BaseController {
 
-    // @Authorized()
+    @Authorized()
     @Post('/umpireTransfer')
     async createStripeTransfersToUmpireAccount(
-        // @HeaderParam("authorization") currentUser: User,
+        @HeaderParam("authorization") currentUser: User,
         @Body() transfersBody: any,
         @Res() response: Response): Promise<any> {
         try {
 
-            // const organisationKey = transfersBody.organisationUniqueKey;
-            // const currentOrgDetails = await this.organisationService.findOrganisationByUniqueKey(organisationKey);
-            // console.log('currentOrgDetails  :::: ', currentOrgDetails)
-            // TODO remove
-            const currentOrgDetails = [true];
+            const organisationKey = transfersBody.organisationUniqueKey;
+            const currentOrgDetails = await this.organisationService.findOrganisationByUniqueKey(organisationKey);
+            console.log('currentOrgDetails  :::: ', currentOrgDetails)
             if (isArrayPopulated(currentOrgDetails)) {
 
-                // const stripeAccount = currentOrgDetails[0].stripeAccountID;
-                // const orgCustomerId = currentOrgDetails[0].stripeCustomerAccountId;
-                // const orgPmId = currentOrgDetails[0].stripeBecsMandateId
-                // const orgBalance = await stripe.balance.retrieve({ stripeAccount });
-                // console.log('orgBalance  :::: ', orgBalance)
+                const stripeAccount = currentOrgDetails[0].stripeAccountID;
+                const orgCustomerId = currentOrgDetails[0].stripeCustomerAccountId;
+                const orgPmId = currentOrgDetails[0].stripeBecsMandateId
+                const orgBalance = await stripe.balance.retrieve({ stripeAccount });
+                console.log('orgBalance  :::: ', orgBalance)
 
                 const STATUS = transfersBody.statusId
                 if (isArrayPopulated(transfersBody.transfers)) {
                     for (let i of transfersBody.transfers) {
-
-                        // if (i.stripeId !== null && i.stripeId !== undefined) {
-                        //     await this.userService.updateMatchUmpirePaymentStatus(i.matchUmpireId, 'approved', currentUser.id);
-                        // }
-
                         if (STATUS === 1) { // submit button
                             const amount = 1;
+                            const umpire = await this.umpireService.findByMatchUmpire(i.matchUmpireId);
+                            const stripeId = umpire.stripeAccountId;
                             const organisationRole = CompetitionOrganisationRoleEnum.ORGANISER;
                             const STRIPE_AMOUNT = await this.matchUmpireService.calculatePaymentForUmpire(i.matchUmpireId, organisationRole);
-                            console.log(STRIPE_AMOUNT);
+                            console.log(`stripeId - ${stripeId}`);
+                            console.log(`STRIPE_AMOUNT - ${STRIPE_AMOUNT}`);
                             // const transferGroup = (i.matchUmpireId).toString();
                             // await this.createStripeTransfers(STRIPE_AMOUNT, i.stripeId, transferGroup, stripeAccount, response);
-                            // await this.stripePayConnectWithBecs(STRIPE_AMOUNT, i.stripeId, orgCustomerId, orgPmId, response);
+                            await this.stripePayConnectWithBecs(STRIPE_AMOUNT, stripeId, orgCustomerId, orgPmId, response);
                         }
-                    }
+                    }``
                 } else {
                     return response.status(212).send(`Please pass transfers list to make transfers`);
                 }
