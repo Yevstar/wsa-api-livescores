@@ -1,11 +1,21 @@
 import {IsBoolean, IsDate, IsNumber, IsString, IsArray} from "class-validator";
-import {BaseEntity, Column, Entity, PrimaryGeneratedColumn, OneToMany, ManyToMany} from "typeorm-plus";
+import {
+    BaseEntity,
+    Column,
+    Entity,
+    PrimaryGeneratedColumn,
+    OneToMany,
+    ManyToMany,
+    ManyToOne,
+    JoinColumn, OneToOne
+} from "typeorm-plus";
 
 import {Team} from './Team';
 import {LinkedCompetitionOrganisation} from './LinkedCompetitionOrganisation';
 import {UserRoleEntity} from './security/UserRoleEntity';
 import {UmpirePool} from "./UmpirePool";
 import {UmpireCompetitionRank} from "./UmpireCompetitionRank";
+import {MatchUmpire} from "./MatchUmpire";
 
 /// For referring the data model of another db we are giving the
 /// name as below wsa_users.<name>.
@@ -121,4 +131,11 @@ export class User extends BaseEntity {
     @Column()
     accreditationUmpireExpiryDate?: Date;
 
+    @OneToMany(() => MatchUmpire, matchUmpire => matchUmpire.user)
+    matchUmpires: MatchUmpire[];
+
+    @Column()
+    yearsUmpired: number;
+
+    rank?: number;
 }
