@@ -15,6 +15,7 @@ import {UmpireAllocationSetting} from "./UmpireAllocationSetting";
 import {UmpirePool} from "./UmpirePool";
 import {UmpirePaymentSetting} from "./UmpirePaymentSetting";
 import {UmpirePaymentAllowedDivisionsSetting} from "./UmpirePaymentAllowedDivisionsSetting";
+import {Match} from "./Match";
 
 @Entity()
 export class Division extends BaseEntity {
@@ -72,4 +73,8 @@ export class Division extends BaseEntity {
     @ManyToMany(type => UmpirePaymentAllowedDivisionsSetting, setting => setting.divisions)
     @JoinTable()
     umpirePaymentAllowedDivisionsSettings: UmpirePaymentAllowedDivisionsSetting[];
+
+    @OneToMany(type => Match, match => match.division)
+    @JoinColumn()
+    matches: Match[];
 }

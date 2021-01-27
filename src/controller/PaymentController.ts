@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 import { User } from "../models/User";
 import { isArrayPopulated } from '../utils/Utils';
 import { BaseController } from './BaseController';
+import {CompetitionOrganisationRoleEnum} from "../models/enums/CompetitionOrganisationRoleEnum";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2020-03-02' });
 
@@ -41,7 +42,8 @@ export class PaymentController extends BaseController {
 
                         if (STATUS === 1) { // submit button
                             const amount = 1;
-                            const STRIPE_AMOUNT = await this.matchUmpireService.calculatePaymentForUmpire(i.matchUmpireId);
+                            const organisationRole = CompetitionOrganisationRoleEnum.ORGANISER;
+                            const STRIPE_AMOUNT = await this.matchUmpireService.calculatePaymentForUmpire(i.matchUmpireId, organisationRole);
                             console.log(STRIPE_AMOUNT);
                             // const transferGroup = (i.matchUmpireId).toString();
                             // await this.createStripeTransfers(STRIPE_AMOUNT, i.stripeId, transferGroup, stripeAccount, response);
