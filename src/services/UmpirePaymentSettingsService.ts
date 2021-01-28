@@ -30,7 +30,7 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
     @Inject()
     private readonly competitionOrganisationService: CompetitionOrganisationService;
 
-    async getPaymentSettings(competitionId: number, organisationId?: number): Promise<UmpirePaymentSettingsResponseDto> {
+    async getPaymentSettings(competitionId: number, organisationId: number): Promise<UmpirePaymentSettingsResponseDto> {
         const competition = await this.entityManager.findOneOrFail(Competition, competitionId, {
             relations: ["umpirePaymentAllowedDivisionsSetting", "umpirePaymentAllowedDivisionsSetting.divisions"]
         });
@@ -38,6 +38,7 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
         let umpirePaymentSettings = await this.entityManager.find(UmpirePaymentSetting, {
             where: {
                 competitionId: competition.id,
+                organisationId,
             },
             relations: [
                 "divisions",
@@ -62,7 +63,7 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
             throw new ForbiddenError("Only competition organiser can save this setting");
         }
 
-        const competition = await this.entityManager.findOneOrFail(Competition, competitionId);;
+        const competition = await this.entityManager.findOneOrFail(Competition, competitionId);
 
         const response = new UmpirePaymentSettingsResponseDto;
 
