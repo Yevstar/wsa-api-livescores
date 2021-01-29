@@ -11,7 +11,6 @@ import {UmpirePoolsAllocationUpdateDto} from "../models/dto/UmpirePoolsAllocatio
 import {Division} from "../models/Division";
 import {UmpireService} from "./UmpireService";
 import {DeleteResult} from "typeorm-plus";
-import {UmpireCompetitionRank} from "../models/UmpireCompetitionRank";
 
 export class UmpirePoolService extends BaseService<UmpirePool> {
     modelName(): string {
@@ -53,20 +52,24 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
 
     async updateMany(organisationId: number, competitionId: number, body: UmpirePool[]): Promise<UmpirePool[]> {
 
-        if (CompetitionParticipatingTypeEnum.PARTICIPATED_IN === await this.competitionOrganisationService.getCompetitionParticipatingType(competitionId, organisationId)) {
-            throw new ForbiddenError("Participated-in organization can't update pools!")
-        }
-
         const updatedPools = [];
 
         for (const updateData of body) {
             const pool = await this.entityManager.findOneOrFail(UmpirePool, updateData.id, {
                 relations: ["competition","umpires"]
             });
-
-            pool.umpires = await this.setUmpires(competitionId, updateData.umpires);
-
-            updatedPools.push(await this.entityManager.save(pool));
+            const allowedUmpiresIds = (await this.umpireService.getAllowedUmpiresForOrganisation(competitionId, organisationId))
+                .map(umpire => umpire.id);
+            const assignedNotAllowedUmpires = pool.umpires.filter(umpire => !allowedUmpiresIds.includes(umpire.id));
+            const allowedUmpiresIdsToBeAssigned = updateData.umpires.filter(umpire => allowedUmpiresIds.includes(this.retrievePoolUmpireId(umpire)));
+            const allowedUmpiresToBeAssigned = await Promise.all(
+                allowedUmpiresIdsToBeAssigned.map(umpireId => this.entityManager.findOneOrFail(User, umpireId))
+            );
+            const allowedUmpiresResult = [...assignedNotAllowedUmpires, ...allowedUmpiresToBeAssigned];
+            pool.umpires = allowedUmpiresResult;
+            const savedPool = await this.entityManager.save(pool);
+            savedPool.umpires = allowedUmpiresResult;
+            updatedPools.push(savedPool);
         }
 
         return updatedPools;
@@ -150,5 +153,16 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
         }
 
         return await this.entityManager.save(umpirePool);
+    }
+
+    retrievePoolUmpireId(umpire: User): number;
+    retrievePoolUmpireId(umpire: number): number;
+
+    retrievePoolUmpireId(umpire: any): number {
+        if (Number.isInteger(umpire)) {
+            return umpire as number;
+        }
+
+        return umpire.id;
     }
 }

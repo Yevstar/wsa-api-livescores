@@ -9,10 +9,8 @@ import {Umpire} from "../models/Umpire";
 import {Inject} from "typedi";
 import CompetitionService from "./CompetitionService";
 import {EntityType} from "../models/security/EntityType";
-import {Location} from "../models/Location";
 import {CompetitionOrganisation} from "../models/CompetitionOrganisation";
 import {Role} from "../models/security/Role";
-import {UserRoleEntity} from "../models/security/UserRoleEntity";
 
 export class UmpireService extends BaseService<User> {
     modelName(): string {
@@ -26,7 +24,7 @@ export class UmpireService extends BaseService<User> {
         competitionId: number,
         organisationId: number,
         offset: number = 0,
-        limit: number = 10,
+        limit: number = 20,
     ): Promise<CrudResponse<any>> {
         const competition = await this.entityManager.findOneOrFail(Competition, competitionId);
         const isCompetitionOrganizer = await this.competitionService.isCompetitionOrganiser(organisationId, competitionId);
@@ -141,5 +139,14 @@ export class UmpireService extends BaseService<User> {
             .map(umpireCompetitionRank => umpireCompetitionRank.rank)
             .reduce((prev, curr) => prev + curr, 0)
             / umpire.umpireCompetitionRank.length;
+    }
+
+    async getAllowedUmpiresForOrganisation(
+        competitionId: number,
+        organisationId: number,
+    ): Promise<Umpire[]> {
+        const paginatedUmpires = await this.findManyByCompetitionIdForOrganisation(competitionId, organisationId, 0, 10000);
+
+        return paginatedUmpires.data;
     }
 }
