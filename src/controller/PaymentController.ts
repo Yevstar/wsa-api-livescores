@@ -38,14 +38,14 @@ export class PaymentController extends BaseController {
                             const umpire = await this.umpireService.findByMatchUmpire(i.matchUmpireId);
                             const stripeId = umpire.stripeAccountId;
                             const organisationRole = CompetitionOrganisationRoleEnum.ORGANISER;
-                            const STRIPE_AMOUNT = await this.matchUmpireService.calculatePaymentForUmpire(i.matchUmpireId, organisationRole);
+                            const STRIPE_AMOUNT = await this.matchUmpireService.calculatePaymentForUmpire(i.matchUmpireId, currentOrgDetails.id);
                             console.log(`stripeId - ${stripeId}`);
                             console.log(`STRIPE_AMOUNT - ${STRIPE_AMOUNT}`);
                             // const transferGroup = (i.matchUmpireId).toString();
                             // await this.createStripeTransfers(STRIPE_AMOUNT, i.stripeId, transferGroup, stripeAccount, response);
                             await this.stripePayConnectWithBecs(STRIPE_AMOUNT, stripeId, orgCustomerId, orgPmId, response);
                         }
-                    }``
+                    }
                 } else {
                     return response.status(212).send(`Please pass transfers list to make transfers`);
                 }

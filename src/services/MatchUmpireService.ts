@@ -4,11 +4,10 @@ import {MatchUmpire} from "../models/MatchUmpire";
 import {UserRoleEntity} from "../models/security/UserRoleEntity";
 import {DeleteResult} from "typeorm-plus";
 import {RequestFilter} from "../models/RequestFilter";
-import {stringTONumber, paginationData, isNotNullAndUndefined, isArrayPopulated} from "../utils/Utils";
+import {stringTONumber, paginationData, isNotNullAndUndefined} from "../utils/Utils";
 import {Role} from '../models/security/Role';
 import {UmpirePaymentSetting} from "../models/UmpirePaymentSetting";
 import {UmpirePaymentFeeRate} from "../models/UmpirePaymentFeeRate";
-import {CompetitionOrganisationRoleEnum} from "../models/enums/CompetitionOrganisationRoleEnum";
 import {UmpirePaymentFeeTypeEnum} from "../models/enums/UmpirePaymentFeeTypeEnum";
 import {UmpirePool} from "../models/UmpirePool";
 
@@ -177,7 +176,7 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
 
     public async calculatePaymentForUmpire(
         matchUmpireId: number,
-        competitionOrganisationRole: CompetitionOrganisationRoleEnum
+        organisationId: number
     ): Promise<number> {
         const matchUmpire = await this.entityManager.createQueryBuilder(MatchUmpire, 'matchUmpire')
             .leftJoinAndSelect('matchUmpire.match', 'match')
@@ -186,7 +185,6 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
 
         const { competitionId } = matchUmpire.match || {};
 
-        // TODO
         if (!competitionId) {
             return null;
         }
@@ -211,7 +209,7 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
 
         const paymentSetting = await this.entityManager.createQueryBuilder(UmpirePaymentSetting, 'paymentSetting')
             .where('paymentSetting.competitionId = :competitionId', {competitionId})
-            .where('paymentSetting.savedBy = :savedBy', {savedBy: competitionOrganisationRole})
+            .andWhere('paymentSetting.organisationId = :organisationId', {organisationId})
             .getOne();
 
         const { UmpirePaymentFeeType } = paymentSetting;
@@ -234,7 +232,6 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
                     .andWhere('umpires.id = :umpireId', {umpireId: matchUmpire.userId})
                     .getOne();
 
-                // TODO
                 if (!pool) {
                     return null;
                 }
@@ -246,11 +243,7 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
         }
 
         const umpirePaymentFeeRate = await paymentFeeQuery.getOne();
-        // TODO
-        if (!umpirePaymentFeeRate) {
-            return null;
-        }
 
-        return umpirePaymentFeeRate.rate;
+        return umpirePaymentFeeRate?.rate ?? null;
     }
 }
