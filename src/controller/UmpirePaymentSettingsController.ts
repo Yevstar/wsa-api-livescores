@@ -12,7 +12,7 @@ export class UmpirePaymentSettingsController extends BaseController {
     @Get()
     index(
         @Param('competitionId') competitionId: number,
-        @QueryParam('organisationId') organisationId: number,
+        @RequiredQueryParam('organisationId') organisationId: number,
     ): Promise<UmpirePaymentSettingsResponseDto> {
         return this.umpirePaymentSettingsService.getPaymentSettings(competitionId, organisationId)
     }
