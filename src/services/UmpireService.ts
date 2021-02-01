@@ -45,17 +45,23 @@ export class UmpireService extends BaseService<User> {
 
         const compOrgs = await competitionOrganizationsQuery.getMany();
 
+        const attachedUmpiresIds = (await this.entityManager.createQueryBuilder(User,"u")
+            .leftJoin("u.umpirePools", "umpirePools")
+            .where('umpirePools.competitionId = :competitionId', {competitionId})
+            .select("u.id")
+            .getMany()).map(umpire => umpire.id);
 
         const query = this.entityManager.createQueryBuilder(User,"u")
             .leftJoinAndSelect("u.userRoleEntities", "roles")
             .leftJoinAndSelect("u.umpireCompetitionRank", "umpireCompetitionRank")
-            .leftJoinAndSelect("umpireCompetitionRank.competition", "umpireCompetitionRank.competition")
-            .loadRelationCountAndMap('u.matchesCount', 'u.matchUmpires')
-            .where("roles.entityTypeId = :entityTypeId AND roles.entityId IN (:compOrgIds) AND roles.roleId IN (:roles)", {
+            .leftJoinAndSelect("umpireCompetitionRank.competition", "competition")
+            .loadRelationCountAndMap("u.umpirePools", "u.umpirePools")
+            .where("roles.entityTypeId = :entityTypeId AND roles.entityId IN (:compOrgIds) AND roles.roleId IN (:roles) AND u.id NOT IN (:attachedIds)", {
                 entityTypeId: EntityType.COMPETITION_ORGANISATION,
                 compOrgIds: compOrgs.map(compOrg => compOrg.id),
                 roles: [Role.UMPIRE, Role.UMPIRE_COACH],
-            });
+                attachedIds: attachedUmpiresIds,
+            })
 
         const total = await query.getCount();
         query.take(limit).skip(offset);

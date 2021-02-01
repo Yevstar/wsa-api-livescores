@@ -7,7 +7,7 @@ import {
     OneToMany,
     ManyToMany,
     ManyToOne,
-    JoinColumn, OneToOne
+    JoinColumn, OneToOne, JoinTable
 } from "typeorm-plus";
 
 import {Team} from './Team';
@@ -113,7 +113,18 @@ export class User extends BaseEntity {
     @Column()
     stripeAccountId: string;
 
-    @ManyToMany(type => UmpirePool, umpirePool => umpirePool)
+    @ManyToMany(type => UmpirePool, umpirePool => umpirePool.umpires)
+    @JoinTable({
+        database: 'wsa',
+        name: 'umpire_pool_umpires_user',
+        joinColumns: [
+            { name: 'userId' }
+        ],
+        inverseJoinColumns: [
+            { name: 'umpirePoolId' }
+        ]
+
+    })
     umpirePools: UmpirePool[];
 
     @OneToMany(type => UmpireCompetitionRank, umpireCompetitionRank => umpireCompetitionRank.umpire)
