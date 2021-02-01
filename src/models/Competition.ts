@@ -229,4 +229,8 @@ export class Competition extends BaseEntity {
     @OneToMany(type => UmpirePaymentSetting, umpirePaymentSetting => umpirePaymentSetting.competition)
     @JoinColumn()
     umpirePaymentSettings: UmpirePaymentSetting[];
+
+    @IsString()
+    @Column("json")
+    timeoutDetails: string;
 }

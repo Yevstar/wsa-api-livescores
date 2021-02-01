@@ -72,4 +72,8 @@ export class Division extends BaseEntity {
     @ManyToMany(type => UmpirePaymentAllowedDivisionsSetting, setting => setting.divisions)
     @JoinTable()
     umpirePaymentAllowedDivisionsSettings: UmpirePaymentAllowedDivisionsSetting[];
+
+    @IsString()
+    @Column("json")
+    timeoutDetails: string;
 }
