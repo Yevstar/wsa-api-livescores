@@ -16,7 +16,7 @@ export class UmpireController extends BaseController {
         @QueryParam('offset') offset: number,
         @QueryParam('limit') limit: number,
     ): Promise<CrudResponse<User>> {
-        return this.umpireService.findManyByCompetitionIdForOrganisation(competitionId, organisationId);
+        return this.umpireService.findManyByCompetitionIdForOrganisation(competitionId, organisationId, offset, limit);
     }
 
     @Patch('/:umpireId/rank')

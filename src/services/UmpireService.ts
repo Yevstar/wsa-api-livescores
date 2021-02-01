@@ -24,7 +24,7 @@ export class UmpireService extends BaseService<User> {
         competitionId: number,
         organisationId: number,
         offset: number = 0,
-        limit: number = 20,
+        limit: number = 10,
     ): Promise<CrudResponse<any>> {
         const competition = await this.entityManager.findOneOrFail(Competition, competitionId);
         const isCompetitionOrganizer = await this.competitionService.isCompetitionOrganiser(organisationId, competitionId);
@@ -58,7 +58,7 @@ export class UmpireService extends BaseService<User> {
             });
 
         const total = await query.getCount();
-        query.take(limit).skip(offset)
+        query.take(limit).skip(offset);
 
         const umpires = await query.getMany();
         for (const umpire of umpires) {
