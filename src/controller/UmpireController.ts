@@ -3,6 +3,7 @@ import {BaseController} from "./BaseController";
 import {UmpireCompetitionRank} from "../models/UmpireCompetitionRank";
 import {CrudResponse} from "./dto/CrudResponse";
 import {User} from "../models/User";
+import {RequiredQueryParam} from "../decorators/RequiredQueryParamDecorator";
 
 @JsonController('/competitions/:competitionId/umpires')
 @Authorized()
@@ -11,10 +12,11 @@ export class UmpireController extends BaseController {
     @Get()
     index(
         @Param('competitionId') competitionId: number,
+        @RequiredQueryParam('organisationId') organisationId: number,
         @QueryParam('offset') offset: number,
         @QueryParam('limit') limit: number,
     ): Promise<CrudResponse<User>> {
-        return this.umpireService.findManyByCompetitionId(competitionId);
+        return this.umpireService.findManyByCompetitionIdForOrganisation(competitionId, organisationId, offset, limit);
     }
 
     @Patch('/:umpireId/rank')

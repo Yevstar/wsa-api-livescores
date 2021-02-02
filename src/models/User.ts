@@ -7,7 +7,7 @@ import {
     OneToMany,
     ManyToMany,
     ManyToOne,
-    JoinColumn, OneToOne
+    JoinColumn, OneToOne, JoinTable
 } from "typeorm-plus";
 
 import {Team} from './Team';

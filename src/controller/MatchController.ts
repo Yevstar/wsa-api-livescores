@@ -53,9 +53,15 @@ export class MatchController extends BaseController {
     async get(
         @Param("id") id: number,
         @QueryParam("includeFouls") includeFouls: boolean = false,
+        @QueryParam("includeTimeouts") includeTimeouts: boolean = false,
         @QueryParam("gameType") gameType: "NETBALL" | "FOOTBALL" | "BASKETBALL"
     ) {
-        return this.matchService.findMatchById(id, includeFouls, gameType);
+        return this.matchService.findMatchById(
+            id,
+            includeFouls,
+            includeTimeouts,
+            gameType
+        );
     }
 
     @Authorized()
@@ -67,6 +73,7 @@ export class MatchController extends BaseController {
         let match = await this.matchService.findById(id);
         let deletedMatch = await this.matchService.softDelete(id, user.id);
         this.matchService.deleteMatchFouls(id);
+        this.matchService.deleteMatchTimeouts(id);
         this.sendMatchEvent(match, false, {user: user, subtype: 'match_removed'});
         return deletedMatch;
     }
@@ -1003,11 +1010,23 @@ export class MatchController extends BaseController {
         @QueryParam('msFromStart') msFromStart: number,
         @QueryParam('isBreak') isBreak: boolean,
         @QueryParam('period') period: number,
+        @QueryParam('recordTimeout') recordTimeout: boolean = false,
+        @QueryParam('timeoutTeamId') timeoutTeamId: number,
+        @QueryParam('timeoutValue') timeoutValue: number,
         @Res() response: Response
     ) {
+        if (recordTimeout && !isNotNullAndUndefined(timeoutTeamId)) {
+            return response.status(400).send({
+                name: 'missing_parameters',
+                message: 'Missing required parameters'
+            });
+        }
+
         let match = await this.matchService.findById(matchId);
         if (match) {
-            let pauseStartTime = msFromStart ? (match.startTime.getTime() + msFromStart) : Date.now();
+            let pauseStartTime = msFromStart ?
+                (match.startTime.getTime() + msFromStart) :
+                Date.now();
             match.pauseStartTime = new Date(pauseStartTime);
             match.matchStatus = "PAUSED";
             await this.matchService.createOrUpdate(match);
@@ -1017,11 +1036,19 @@ export class MatchController extends BaseController {
                 message: `Match with id ${matchId} not found`
             });
         }
-        this.sendMatchEvent(match, false, {user: user});
 
-        let eventTimestamp = msFromStart ? new Date(match.startTime.getTime() + msFromStart) : new Date(Date.now());
+        let eventTimestamp = msFromStart ?
+            new Date(match.startTime.getTime() + msFromStart) :
+            new Date(Date.now());
+        if (recordTimeout) {
+            this.matchService.recordTimeout(match, period, timeoutTeamId, eventTimestamp, user.id);
+            this.matchService.logMatchEvent(matchId, 'timer', 'timeout', period, eventTimestamp,
+                user.id, 'team', timeoutTeamId.toString(), 'timeoutValue', timeoutValue.toString());
+        }
+        this.sendMatchEvent(match, false, {user: user});
         this.matchService.logMatchEvent(matchId, 'timer', 'pause', period, eventTimestamp,
             user.id, 'isBreak', isBreak ? "true" : "false");
+
         return match;
     }
 
