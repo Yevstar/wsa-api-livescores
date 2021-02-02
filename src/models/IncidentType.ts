@@ -1,5 +1,5 @@
 import {BaseEntity, Column, Entity, PrimaryGeneratedColumn} from 'typeorm-plus';
-import {IsNumber, IsString} from "class-validator";
+import {IsNumber, IsString, IsBoolean} from "class-validator";
 
 @Entity("incidentType")
 export class IncidentType extends BaseEntity {
@@ -19,4 +19,8 @@ export class IncidentType extends BaseEntity {
     @IsNumber()
     @Column()
     sequence: number;
+
+    @IsBoolean()
+    @Column()
+    isPlayer: boolean;
 }
