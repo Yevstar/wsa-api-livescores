@@ -6,7 +6,7 @@ import {User} from "../models/User";
 import {RequiredQueryParam} from "../decorators/RequiredQueryParamDecorator";
 
 @JsonController('/competitions/:competitionId/umpires')
-@Authorized()
+// @Authorized()
 export class UmpireController extends BaseController {
 
     @Get()
