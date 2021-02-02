@@ -56,12 +56,17 @@ export class UmpireService extends BaseService<User> {
             .leftJoinAndSelect("u.umpireCompetitionRank", "umpireCompetitionRank")
             .leftJoinAndSelect("umpireCompetitionRank.competition", "competition")
             .loadRelationCountAndMap("u.umpirePools", "u.umpirePools")
-            .where("roles.entityTypeId = :entityTypeId AND roles.entityId IN (:compOrgIds) AND roles.roleId IN (:roles) AND u.id NOT IN (:attachedIds)", {
+            .where("roles.entityTypeId = :entityTypeId AND roles.entityId IN (:compOrgIds) AND roles.roleId IN (:roles)", {
                 entityTypeId: EntityType.COMPETITION_ORGANISATION,
                 compOrgIds: compOrgs.map(compOrg => compOrg.id),
                 roles: [Role.UMPIRE, Role.UMPIRE_COACH],
+            })
+
+        if (attachedUmpiresIds.length > 0) {
+            query.andWhere("u.id NOT IN (:attachedIds)", {
                 attachedIds: attachedUmpiresIds,
             })
+        }
 
         const total = await query.getCount();
         query.take(limit).skip(offset);
