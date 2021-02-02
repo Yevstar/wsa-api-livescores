@@ -113,18 +113,7 @@ export class User extends BaseEntity {
     @Column()
     stripeAccountId: string;
 
-    @ManyToMany(type => UmpirePool, umpirePool => umpirePool.umpires)
-    @JoinTable({
-        database: 'wsa',
-        name: 'umpire_pool_umpires_user',
-        joinColumns: [
-            { name: 'userId' }
-        ],
-        inverseJoinColumns: [
-            { name: 'umpirePoolId' }
-        ]
-
-    })
+    @ManyToMany(type => UmpirePool, umpirePool => umpirePool)
     umpirePools: UmpirePool[];
 
     @OneToMany(type => UmpireCompetitionRank, umpireCompetitionRank => umpireCompetitionRank.umpire)

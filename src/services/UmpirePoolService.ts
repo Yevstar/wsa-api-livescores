@@ -68,7 +68,7 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
             const allowedUmpiresResult = [...assignedNotAllowedUmpires, ...allowedUmpiresToBeAssigned];
             pool.umpires = allowedUmpiresResult;
             const savedPool = await this.entityManager.save(pool);
-            savedPool.umpires = allowedUmpiresResult;
+            savedPool.umpires = allowedUmpiresToBeAssigned;
             updatedPools.push(savedPool);
         }
 

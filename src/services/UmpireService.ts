@@ -11,6 +11,7 @@ import CompetitionService from "./CompetitionService";
 import {EntityType} from "../models/security/EntityType";
 import {CompetitionOrganisation} from "../models/CompetitionOrganisation";
 import {Role} from "../models/security/Role";
+import {UmpirePool} from "../models/UmpirePool";
 
 export class UmpireService extends BaseService<User> {
     modelName(): string {
@@ -25,6 +26,7 @@ export class UmpireService extends BaseService<User> {
         organisationId: number,
         offset: number = 0,
         limit: number = 10,
+        onlyAttached: boolean = true
     ): Promise<CrudResponse<any>> {
         const competition = await this.entityManager.findOneOrFail(Competition, competitionId);
         const isCompetitionOrganizer = await this.competitionService.isCompetitionOrganiser(organisationId, competitionId);
@@ -45,27 +47,36 @@ export class UmpireService extends BaseService<User> {
 
         const compOrgs = await competitionOrganizationsQuery.getMany();
 
-        const attachedUmpiresIds = (await this.entityManager.createQueryBuilder(User,"u")
-            .leftJoin("u.umpirePools", "umpirePools")
-            .where('umpirePools.competitionId = :competitionId', {competitionId})
-            .select("u.id")
-            .getMany()).map(umpire => umpire.id);
-
         const query = this.entityManager.createQueryBuilder(User,"u")
             .leftJoinAndSelect("u.userRoleEntities", "roles")
             .leftJoinAndSelect("u.umpireCompetitionRank", "umpireCompetitionRank")
             .leftJoinAndSelect("umpireCompetitionRank.competition", "competition")
-            .loadRelationCountAndMap("u.umpirePools", "u.umpirePools")
             .where("roles.entityTypeId = :entityTypeId AND roles.entityId IN (:compOrgIds) AND roles.roleId IN (:roles)", {
                 entityTypeId: EntityType.COMPETITION_ORGANISATION,
                 compOrgIds: compOrgs.map(compOrg => compOrg.id),
                 roles: [Role.UMPIRE, Role.UMPIRE_COACH],
             })
 
-        if (attachedUmpiresIds.length > 0) {
-            query.andWhere("u.id NOT IN (:attachedIds)", {
-                attachedIds: attachedUmpiresIds,
-            })
+        if (onlyAttached) {
+            const attachedPoolsUmpiresIds = await this.entityManager.createQueryBuilder(UmpirePool,"up")
+                .leftJoinAndSelect("up.umpires", "u")
+                .where('up.competitionId = :competitionId', {competitionId})
+                .getMany();
+
+            const attachedUmpiresIds = attachedPoolsUmpiresIds.reduce((umpiresIdsAcc: [], pool: UmpirePool) => {
+                const umpireIds = pool.umpires.map(umpire => umpire.id);
+
+                return [...umpiresIdsAcc, ...umpireIds];
+            }, []);
+
+            const uniqueAttachedUmpiresIds = [...new Set(attachedUmpiresIds)];
+
+            if (uniqueAttachedUmpiresIds.length > 0) {
+                query.andWhere("u.id NOT IN (:attachedIds)", {
+                    attachedIds: uniqueAttachedUmpiresIds,
+                })
+            }
+
         }
 
         const total = await query.getCount();
@@ -156,7 +167,13 @@ export class UmpireService extends BaseService<User> {
         competitionId: number,
         organisationId: number,
     ): Promise<Umpire[]> {
-        const paginatedUmpires = await this.findManyByCompetitionIdForOrganisation(competitionId, organisationId, 0, 10000);
+        const paginatedUmpires = await this.findManyByCompetitionIdForOrganisation(
+            competitionId,
+            organisationId,
+            0,
+            10000,
+            false
+        );
 
         return paginatedUmpires.data;
     }
