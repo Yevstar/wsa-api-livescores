@@ -10,7 +10,7 @@ import {
     PrimaryGeneratedColumn
 } from 'typeorm-plus';
 import {Competition} from "./Competition";
-import {IsNumber, IsString, IsBoolean, ValidateNested} from "class-validator";
+import {IsNumber, IsString, IsBoolean, ValidateNested, IsJSON} from "class-validator";
 import {UmpireAllocationSetting} from "./UmpireAllocationSetting";
 import {UmpirePool} from "./UmpirePool";
 import {UmpirePaymentSetting} from "./UmpirePaymentSetting";
@@ -73,7 +73,7 @@ export class Division extends BaseEntity {
     @JoinTable()
     umpirePaymentAllowedDivisionsSettings: UmpirePaymentAllowedDivisionsSetting[];
 
-    @IsString()
+    @IsJSON()
     @Column("json")
-    timeoutDetails: string;
+    timeoutDetails?: Record<string, any>;
 }

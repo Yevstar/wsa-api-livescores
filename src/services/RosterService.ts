@@ -26,7 +26,6 @@ export default class RosterService extends BaseService<Roster> {
             .leftJoinAndSelect('match.competition', 'competition')
             .leftJoinAndSelect('match.matchPausedTimes', 'matchPausedTimes')
             .leftJoinAndSelect('competition.location', 'location')
-
             .leftJoinAndSelect('venueCourt.venue', 'venue')
             .leftJoinAndSelect('roster.eventOccurrence', 'eo')
             .leftJoinAndSelect('eo.event', 'e')

@@ -145,7 +145,7 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
         Object.assign(paymentSetting, paymentSettingData)
 
         if (!paymentSettingData.allDivisions && (paymentSettingData.divisions||[]).length) {
-            paymentSetting.divisions = await Promise.all(paymentSettingData.divisions.map(divisionId => this.entityManager.findOneOrFail(Division, divisionId)));
+            paymentSetting.divisions = await Promise.all(paymentSettingData.divisions.map((divisionId) => this.entityManager.findOneOrFail(Division, +divisionId)));
         } else if (!paymentSettingData.allDivisions && !(paymentSettingData.divisions||[]).length) {
             throw new EmptyDivisionsError;
         }
