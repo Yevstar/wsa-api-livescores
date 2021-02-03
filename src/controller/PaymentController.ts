@@ -1,5 +1,5 @@
-import { Response } from 'express';
-import { Authorized, Body, HeaderParam, JsonController, Post, Res } from 'routing-controllers';
+import { Request, Response } from 'express';
+import {Authorized, Body, HeaderParam, JsonController, Post, Req, Res} from 'routing-controllers';
 import Stripe from 'stripe';
 import { User } from "../models/User";
 import { isArrayPopulated } from '../utils/Utils';
@@ -14,19 +14,23 @@ export class PaymentController extends BaseController {
     @Authorized()
     @Post('/umpireTransfer')
     async createStripeTransfersToUmpireAccount(
+        @Req() request: Request,
         @HeaderParam("authorization") currentUser: User,
         @Body() transfersBody: any,
         @Res() response: Response): Promise<any> {
         try {
-
             const organisationKey = transfersBody.organisationUniqueKey;
-            const currentOrgDetails = await this.organisationService.findOrganisationByUniqueKey(organisationKey);
-            console.log('currentOrgDetails  :::: ', currentOrgDetails)
-            if (isArrayPopulated(currentOrgDetails)) {
+            const rawHeaders = request.rawHeaders;
+            const authorizationIndex = rawHeaders.indexOf("Authorization");
+            const authToken = rawHeaders[authorizationIndex + 1];
 
-                const stripeAccount = currentOrgDetails[0].stripeAccountID;
-                const orgCustomerId = currentOrgDetails[0].stripeCustomerAccountId;
-                const orgPmId = currentOrgDetails[0].stripeBecsMandateId
+            const currentOrgDetails = await this.organisationService.findOrganisationByUniqueKey(organisationKey, authToken);
+            console.log('currentOrgDetails  :::: ', currentOrgDetails)
+            if (!currentOrgDetails) {
+
+                const stripeAccount = currentOrgDetails.stripeAccountID;
+                const orgCustomerId = currentOrgDetails.stripeCustomerAccountId;
+                const orgPmId = currentOrgDetails.stripeBecsMandateId
                 const orgBalance = await stripe.balance.retrieve({ stripeAccount });
                 console.log('orgBalance  :::: ', orgBalance)
 
@@ -54,6 +58,7 @@ export class PaymentController extends BaseController {
                 return response.status(212).send(`Error in finding organisation details`);
             }
         } catch (err) {
+            console.log(`err - ${err}`);
             return response.status(400).send(`Error in sending transfer to another stripeAccount: ${err}`);
         }
     }
