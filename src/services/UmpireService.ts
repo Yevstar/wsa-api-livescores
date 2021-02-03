@@ -46,6 +46,7 @@ export class UmpireService extends BaseService<User> {
         }
 
         const compOrgs = await competitionOrganizationsQuery.getMany();
+        const compOrgIds = compOrgs.length > 0 ? compOrgs.map(compOrg => compOrg.id) : [null];
 
         const query = this.entityManager.createQueryBuilder(User,"u")
             .leftJoinAndSelect("u.userRoleEntities", "roles")
@@ -53,7 +54,7 @@ export class UmpireService extends BaseService<User> {
             .leftJoinAndSelect("umpireCompetitionRank.competition", "competition")
             .where("roles.entityTypeId = :entityTypeId AND roles.entityId IN (:compOrgIds) AND roles.roleId IN (:roles)", {
                 entityTypeId: EntityType.COMPETITION_ORGANISATION,
-                compOrgIds: compOrgs.map(compOrg => compOrg.id),
+                compOrgIds,
                 roles: [Role.UMPIRE, Role.UMPIRE_COACH],
             })
 
