@@ -1,16 +1,18 @@
 import {BaseController} from "./BaseController";
-import {Authorized, JsonController, Param, Post} from "routing-controllers";
+import {Authorized, JsonController, OnUndefined, Param, Post, Res} from "routing-controllers";
+import {Response} from 'express';
 
 @JsonController('/competitions/:competitionId/umpires')
 @Authorized()
 export class UmpireAllocationController extends BaseController {
 
-    @Post('allocation')
-    allocateUmpires(
+    @Post('/allocation')
+    @OnUndefined(200)
+    async allocateUmpires(
         @Param('competitionId') competitionId: number,
+        @Res() response: Response,
     ): Promise<void> {
-        this.umpireAllocationService.allocateUmpires(competitionId);
 
-        return;
+        await this.umpireAllocationService.allocateUmpires(competitionId);
     }
 }

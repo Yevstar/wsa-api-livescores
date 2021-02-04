@@ -21,6 +21,8 @@ import {UmpireAllocationSetting} from "./UmpireAllocationSetting";
 import {NoUmpiresUmpireAllocationSetting} from "./NoUmpiresUmpireAllocationSetting";
 import {UmpirePaymentAllowedDivisionsSetting} from "./UmpirePaymentAllowedDivisionsSetting";
 import {UmpirePaymentSetting} from "./UmpirePaymentSetting";
+import {Division} from "./Division";
+import {Team} from "./Team";
 
 @Entity()
 export class Competition extends BaseEntity {
@@ -233,4 +235,10 @@ export class Competition extends BaseEntity {
     @IsJSON()
     @Column("json")
     timeoutDetails?: Record<string, any>;
+
+    @OneToMany(() => Division, division => division.competition)
+    divisions: Division[];
+
+    @OneToMany(() => Team, team => team.competition)
+    teams: Team[];
 }

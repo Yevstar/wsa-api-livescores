@@ -4,6 +4,8 @@ import {Competition} from "../models/Competition";
 import {Brackets, DeleteResult} from "typeorm-plus";
 import {RequestFilter} from "../models/RequestFilter";
 import {paginationData, stringTONumber, objectIsNotEmpty, isNotNullAndUndefined, isArrayPopulated } from "../utils/Utils";
+import {CompetitionNotFoundError} from "../exceptions/CompetitionNotFoundError";
+import {Division} from "../models/Division";
 
 @Service()
 export default class CompetitionService extends BaseService<Competition> {
@@ -197,6 +199,24 @@ export default class CompetitionService extends BaseService<Competition> {
         const competition = await this.entityManager.findOneOrFail(Competition, competitionId)
 
         return organisationId === competition.organisationId;
+    }
+
+    async getCompetitionDataForUmpiresAllocationAlgorithm(competitionId: number): Promise<Competition> {
+
+        const competitionData = this.entityManager.createQueryBuilder(Competition, 'c')
+            .leftJoinAndSelect('c.divisions', 'div')
+            .leftJoinAndSelect('c.teams', 'teams')
+            .leftJoinAndSelect('teams.division', 'teamDiv')
+            .leftJoinAndSelect('teams.linkedCompetitionOrganisation', 'linkedTeamOrg')
+            .leftJoinAndSelect('linkedTeamOrg.organisation', 'teamOrg')
+            .where('c.id = :competitionId', {competitionId})
+            .getOne();
+
+        if (!competitionData) {
+            throw new CompetitionNotFoundError;
+        }
+
+        return competitionData;
     }
 }
 
