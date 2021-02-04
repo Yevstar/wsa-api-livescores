@@ -27,7 +27,7 @@ export class UmpireService extends BaseService<User> {
         organisationId: number,
         offset: number = 0,
         limit: number = 10,
-        onlyAttached: boolean = true
+        skipAssignedToPools: boolean = true,
     ): Promise<CrudResponse<any>> {
         const competition = await this.entityManager.findOneOrFail(Competition, competitionId);
         const isCompetitionOrganizer = await this.competitionService.isCompetitionOrganiser(organisationId, competitionId);
@@ -59,7 +59,7 @@ export class UmpireService extends BaseService<User> {
                 roles: [Role.UMPIRE, Role.UMPIRE_COACH],
             })
 
-        if (onlyAttached) {
+        if (skipAssignedToPools) {
             const attachedPoolsUmpiresIds = await this.entityManager.createQueryBuilder(UmpirePool,"up")
                 .leftJoinAndSelect("up.umpires", "u")
                 .where('up.competitionId = :competitionId', {competitionId})
