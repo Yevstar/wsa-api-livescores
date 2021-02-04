@@ -1,6 +1,6 @@
 import BaseService from "./BaseService";
 import {User} from "../models/User";
-import {NotFoundError} from "routing-controllers";
+import {BadRequestError, NotFoundError} from "routing-controllers";
 import {UmpireCompetitionRank} from "../models/UmpireCompetitionRank";
 import {Competition} from "../models/Competition";
 import * as utils from '../utils/Utils';
@@ -12,6 +12,7 @@ import {EntityType} from "../models/security/EntityType";
 import {CompetitionOrganisation} from "../models/CompetitionOrganisation";
 import {Role} from "../models/security/Role";
 import {UmpirePool} from "../models/UmpirePool";
+import {Not} from "typeorm-plus";
 
 export class UmpireService extends BaseService<User> {
     modelName(): string {
@@ -140,6 +141,20 @@ export class UmpireService extends BaseService<User> {
     ): Promise<UmpireCompetitionRank> {
         const competition = await this.entityManager.findOneOrFail(Competition, competitionId)
         const umpire = await this.findOneByCompetitionId(umpireId, competitionId);
+
+        const competitionRanks = await this.entityManager.find(UmpireCompetitionRank, {
+            where: {
+                competitionId: competitionId,
+                umpireId: Not(umpireId)
+            },
+            select: [
+                "rank",
+            ]
+        });
+
+        if (competitionRanks.filter(competitionRank => rank === competitionRank.rank).length) {
+            throw new BadRequestError(`This competition already has umpire with rank ${rank}`)
+        }
 
         const umpireCompetitionRank = await this.entityManager.findOne(UmpireCompetitionRank, {
             umpireId: umpire.id,

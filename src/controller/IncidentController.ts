@@ -17,6 +17,7 @@ import {BaseController} from "./BaseController";
 import {Incident} from "../models/Incident";
 import {IncidentPlayer} from "../models/IncidentPlayer";
 import {IncidentMedia} from "../models/IncidentMedia";
+import {IncidentType} from "../models/IncidentType";
 import {
     fileExt,
     isPhoto,
@@ -94,7 +95,7 @@ export class IncidentController extends BaseController {
     @Authorized()
     @Post('/')
     async addIncident(
-        @QueryParam('playerIds', {required: true}) playerIds: number[] = undefined,
+        @QueryParam('playerIds') playerIds: number[] = undefined,
         @Body() incident: Incident,
         @Res() response: Response
     ) {
@@ -136,7 +137,7 @@ export class IncidentController extends BaseController {
                       name: 'validation_error',
                       message: `Competition id required parameter`
                   });
-              if (!incident.teamId)
+              if (isNotNullAndUndefined(playerIds) && !incident.teamId)
                   return response.status(400).send({
                       name: 'validation_error',
                       message: `Team id required parameter`
@@ -158,10 +159,12 @@ export class IncidentController extends BaseController {
               // save player incidents
               let save: IncidentPlayer[] = [];
               if (playerIds && !Array.isArray(playerIds)) playerIds = [playerIds];
-              for (const playerId of playerIds) {
-                  save.push(new IncidentPlayer(playerId, result.id));
+              if (isArrayPopulated(playerIds)) {
+                  for (const playerId of playerIds) {
+                      save.push(new IncidentPlayer(playerId, result.id));
+                  }
+                  await this.incidentService.batchSavePlayersIncident(save);
               }
-              await this.incidentService.batchSavePlayersIncident(save);
 
               return response.status(200).send({success: true, incidentId: result.id});
           } else {
