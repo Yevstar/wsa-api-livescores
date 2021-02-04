@@ -568,4 +568,18 @@ export default class UserService extends BaseService<User> {
         const competitionUmpires = await this.findByRoles([15,20], 6, competitionOrganisationId);
         return competitionUmpires.filter(umpire => userId === umpire.id).length > 0;
     }
+
+    public async updateMatchUmpirePaymentStatus(matchUmpireId: number, status:'paid'|'approved', approvedBy:number = undefined): Promise<any> {
+        try {
+            if(status === 'approved') {
+                const currentTime = new Date();
+                await this.entityManager.query(`update wsa.matchUmpire set paymentStatus = ?, approved_at = ?, 
+                approvedByUserId = ? where id = ?`, [status, currentTime, approvedBy, matchUmpireId]);
+            } else {
+                await this.entityManager.query(`update wsa.matchUmpire set paymentStatus = ? where id = ?`, [status, matchUmpireId]);
+            }
+        } catch (error) {
+            throw error;
+        }
+    }
 }

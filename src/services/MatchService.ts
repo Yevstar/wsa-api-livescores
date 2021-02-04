@@ -23,6 +23,7 @@ import {Competition} from "../models/Competition";
 import {User} from "../models/User";
 import {MatchSheet} from "../models/MatchSheet";
 import {MatchFouls} from "../models/MatchFouls";
+import {MatchTimeout} from "../models/MatchTimeout";
 import AWS from "aws-sdk";
 
 const s3 = new AWS.S3({
@@ -64,14 +65,28 @@ export default class MatchService extends BaseService<Match> {
     public async findMatchById(
         id: number,
         includeFouls: boolean = false,
+        includeTimeouts: boolean = false,
         gameType?: "NETBALL" | "FOOTBALL" | "BASKETBALL"
     ): Promise<Match> {
         let query = this.entityManager.createQueryBuilder(Match, 'match')
             .andWhere('match.id = :id', { id });
         this.addDefaultJoin(query);
-        
-        if (gameType == "BASKETBALL" && includeFouls) {
-            query.leftJoinAndSelect('match.matchFouls', 'matchFouls', 'matchFouls.deleted_at is null');
+
+        if (gameType == "BASKETBALL") {
+            if (includeFouls) {
+                query.leftJoinAndSelect(
+                    'match.matchFouls',
+                    'matchFouls',
+                    'matchFouls.deleted_at is null'
+                );
+            }
+            if (includeTimeouts) {
+                query.leftJoinAndSelect(
+                    'match.matchTimeouts',
+                    'matchTimeouts',
+                    'matchTimeouts.deleted_at is null'
+                );
+            }
         }
 
         return query.getOne();
@@ -924,5 +939,33 @@ export default class MatchService extends BaseService<Match> {
 
             return MatchFouls.save(matchFoul);
         }
+    }
+
+    public async recordTimeout(
+        match: Match,
+        period: number,
+        timeoutTeamId: number,
+        timeoutTimestamp: Date,
+        userId: number
+    ) {
+        let matchTimeout = new MatchTimeout();
+
+        matchTimeout.matchId = match.id;
+        matchTimeout.period = period;
+        matchTimeout.teamId = timeoutTeamId;
+        matchTimeout.timeoutTimestamp = timeoutTimestamp;
+        matchTimeout.created_by = userId;
+
+        return MatchTimeout.save(matchTimeout);
+    }
+
+    public async deleteMatchTimeouts(matchId: number) {
+        let endTime = new Date(Date.now());
+
+        return this.entityManager.createQueryBuilder(MatchTimeout, 'matchTimeout')
+            .update()
+            .set({deleted_at: endTime})
+            .where("matchId = :matchId", {matchId})
+            .execute();
     }
 }

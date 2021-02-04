@@ -30,7 +30,7 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
     @Inject()
     private readonly competitionOrganisationService: CompetitionOrganisationService;
 
-    async getPaymentSettings(competitionId: number, organisationId?: number): Promise<UmpirePaymentSettingsResponseDto> {
+    async getPaymentSettings(competitionId: number, organisationId: number): Promise<UmpirePaymentSettingsResponseDto> {
         const competition = await this.entityManager.findOneOrFail(Competition, competitionId, {
             relations: ["umpirePaymentAllowedDivisionsSetting", "umpirePaymentAllowedDivisionsSetting.divisions"]
         });
@@ -38,6 +38,7 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
         let umpirePaymentSettings = await this.entityManager.find(UmpirePaymentSetting, {
             where: {
                 competitionId: competition.id,
+                organisationId,
             },
             relations: [
                 "divisions",
@@ -62,7 +63,7 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
             throw new ForbiddenError("Only competition organiser can save this setting");
         }
 
-        const competition = await this.entityManager.findOneOrFail(Competition, competitionId);;
+        const competition = await this.entityManager.findOneOrFail(Competition, competitionId);
 
         const response = new UmpirePaymentSettingsResponseDto;
 
@@ -73,7 +74,7 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
 
         if ((body.umpirePaymentSettings||[]).length) {
             for (const paymentSettingData of body.umpirePaymentSettings) {
-                response.umpirePaymentSettings.push(await this.setPaymentSetting(CompetitionOrganisationRoleEnum.ORGANISER, paymentSettingData, competitionId));
+                response.umpirePaymentSettings.push(await this.setPaymentSetting(CompetitionOrganisationRoleEnum.ORGANISER, paymentSettingData, competitionId,  organisationId));
             }
         }
 
@@ -113,6 +114,7 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
         await this.entityManager.delete(UmpirePaymentSetting, {
             competitionId: competitionId,
             savedBy: CompetitionOrganisationRoleEnum.AFFILIATE,
+            organisationId,
         });
 
         const settings = [];
@@ -123,21 +125,27 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
                 }
             });
 
-            settings.push(await this.setPaymentSetting(CompetitionOrganisationRoleEnum.AFFILIATE, paymentSettingData, competitionId));
+            settings.push(await this.setPaymentSetting(CompetitionOrganisationRoleEnum.AFFILIATE, paymentSettingData, competitionId, organisationId));
         }
 
         return new UmpirePaymentSettingsResponseDto(settings, competition.umpirePaymentAllowedDivisionsSetting)
     }
 
-    protected async setPaymentSetting(savedBy: CompetitionOrganisationRoleEnum, paymentSettingData: DeepPartial<UmpirePaymentSetting>, competitionId: number): Promise<UmpirePaymentSetting> {
+    protected async setPaymentSetting(
+        savedBy: CompetitionOrganisationRoleEnum,
+        paymentSettingData: DeepPartial<UmpirePaymentSetting>,
+        competitionId: number,
+        organisationId: number,
+    ): Promise<UmpirePaymentSetting> {
         const paymentSetting = new UmpirePaymentSetting;
         paymentSetting.competitionId = competitionId;
         paymentSetting.savedBy = savedBy;
+        paymentSetting.organisationId = organisationId;
 
         Object.assign(paymentSetting, paymentSettingData)
 
         if (!paymentSettingData.allDivisions && (paymentSettingData.divisions||[]).length) {
-            paymentSetting.divisions = await Promise.all(paymentSettingData.divisions.map(divisionId => this.entityManager.findOneOrFail(Division, divisionId)));
+            paymentSetting.divisions = await Promise.all(paymentSettingData.divisions.map((divisionId) => this.entityManager.findOneOrFail(Division, +divisionId)));
         } else if (!paymentSettingData.allDivisions && !(paymentSettingData.divisions||[]).length) {
             throw new EmptyDivisionsError;
         }

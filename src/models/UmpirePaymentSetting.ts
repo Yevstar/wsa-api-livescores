@@ -56,4 +56,8 @@ export class UmpirePaymentSetting extends BaseEntity {
         enum: CompetitionOrganisationRoleEnum
     })
     savedBy: CompetitionOrganisationRoleEnum;
+
+    @Column()
+    @IsNumber()
+    organisationId: number;
 }

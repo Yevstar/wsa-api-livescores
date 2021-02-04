@@ -1,13 +1,15 @@
 import {Service} from "typedi";
 import BaseService from "./BaseService";
 import {MatchUmpire} from "../models/MatchUmpire";
-import {Division} from "../models/Division";
-import {Match} from "../models/Match";
 import {UserRoleEntity} from "../models/security/UserRoleEntity";
 import {DeleteResult} from "typeorm-plus";
 import {RequestFilter} from "../models/RequestFilter";
-import {stringTONumber, paginationData, isNotNullAndUndefined, isArrayPopulated} from "../utils/Utils";
+import {stringTONumber, paginationData, isNotNullAndUndefined} from "../utils/Utils";
 import {Role} from '../models/security/Role';
+import {UmpirePaymentSetting} from "../models/UmpirePaymentSetting";
+import {UmpirePaymentFeeRate} from "../models/UmpirePaymentFeeRate";
+import {UmpirePaymentFeeTypeEnum} from "../models/enums/UmpirePaymentFeeTypeEnum";
+import {UmpirePool} from "../models/UmpirePool";
 
 @Service()
 export default class MatchUmpireService extends BaseService<MatchUmpire> {
@@ -170,5 +172,78 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
             result = await query.getMany();
         }
         return { matchCount, result }
+    }
+
+    public async calculatePaymentForUmpire(
+        matchUmpireId: number,
+        organisationId: number
+    ): Promise<number> {
+        const matchUmpire = await this.entityManager.createQueryBuilder(MatchUmpire, 'matchUmpire')
+            .leftJoinAndSelect('matchUmpire.match', 'match')
+            .where('matchUmpire.id = :matchUmpireId', {matchUmpireId})
+            .getOne();
+
+        const { competitionId } = matchUmpire.match || {};
+
+        if (!competitionId) {
+            return null;
+        }
+
+        const userRoleEntity = await this.entityManager.createQueryBuilder(UserRoleEntity, 'userRoleEntity')
+            .leftJoinAndSelect('userRoleEntity.user', 'user')
+            .where('userRoleEntity.entityTypeId = 1')
+            .andWhere('userRoleEntity.entityId = :entityId', {entityId: competitionId})
+            .andWhere('userRoleEntity.userId = :userId', {userId: matchUmpire.userId})
+            .andWhere('userRoleEntity.roleId in (:roleIds)', {roleIds: [15, 19, 20]})
+            .getOne();
+
+        const { roleId, user } = userRoleEntity;
+        let umpireBadgeId;
+        if (roleId === Role.UMPIRE || roleId === Role.UMPIRE_RESERVE) {
+            umpireBadgeId = user.accreditationLevelUmpireRefId;
+        }
+
+        if (roleId === Role.UMPIRE_COACH) {
+            umpireBadgeId = user.accreditationLevelCoachRefId;
+        }
+
+        const paymentSetting = await this.entityManager.createQueryBuilder(UmpirePaymentSetting, 'paymentSetting')
+            .where('paymentSetting.competitionId = :competitionId', {competitionId})
+            .andWhere('paymentSetting.organisationId = :organisationId', {organisationId})
+            .getOne();
+
+        const { UmpirePaymentFeeType } = paymentSetting;
+
+        let paymentFeeQuery = this.entityManager.createQueryBuilder(UmpirePaymentFeeRate, 'paymentFeeRate');
+        switch (UmpirePaymentFeeType) {
+            case UmpirePaymentFeeTypeEnum.BY_BADGE:
+                paymentFeeQuery
+                    .leftJoin('paymentFeeRate.umpirePaymentFeeByBadge', 'umpirePaymentFeeByBadge')
+                    .where('umpirePaymentFeeByBadge.accreditationUmpireRefId = :umpireBadgeId', {umpireBadgeId})
+                    .andWhere('umpirePaymentFeeByBadge.umpirePaymentSettingId = :paymentSettingId', {paymentSettingId: paymentSetting.id})
+                    .andWhere('roleId = :roleId', {roleId});
+                break;
+            case UmpirePaymentFeeTypeEnum.BY_POOL:
+                const pool = await this.entityManager.createQueryBuilder(UmpirePool, 'umpirePool')
+                    .leftJoinAndSelect('umpirePool.umpires', 'umpires')
+                    .leftJoinAndSelect('umpirePool.divisions', 'divisions')
+                    .leftJoinAndSelect('divisions.matches', 'matches')
+                    .where('matches.id = :matchId', {matchId: matchUmpire.match.id})
+                    .andWhere('umpires.id = :umpireId', {umpireId: matchUmpire.userId})
+                    .getOne();
+
+                if (!pool) {
+                    return null;
+                }
+
+                paymentFeeQuery
+                    .leftJoinAndSelect('paymentFeeRate.umpirePaymentFeeByPool', 'umpByPool')
+                    .where('umpByPool.umpirePoolId = :umpirePoolId', {umpirePoolId: pool.id})
+                    .andWhere('roleId = :roleId', {roleId});
+        }
+
+        const umpirePaymentFeeRate = await paymentFeeQuery.getOne();
+
+        return umpirePaymentFeeRate?.rate ?? null;
     }
 }

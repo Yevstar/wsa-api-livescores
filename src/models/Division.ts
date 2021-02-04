@@ -10,11 +10,12 @@ import {
     PrimaryGeneratedColumn
 } from 'typeorm-plus';
 import {Competition} from "./Competition";
-import {IsNumber, IsString, IsBoolean, ValidateNested} from "class-validator";
+import {IsNumber, IsString, IsBoolean, ValidateNested, IsJSON} from "class-validator";
 import {UmpireAllocationSetting} from "./UmpireAllocationSetting";
 import {UmpirePool} from "./UmpirePool";
 import {UmpirePaymentSetting} from "./UmpirePaymentSetting";
 import {UmpirePaymentAllowedDivisionsSetting} from "./UmpirePaymentAllowedDivisionsSetting";
+import {Match} from "./Match";
 
 @Entity()
 export class Division extends BaseEntity {
@@ -72,4 +73,12 @@ export class Division extends BaseEntity {
     @ManyToMany(type => UmpirePaymentAllowedDivisionsSetting, setting => setting.divisions)
     @JoinTable()
     umpirePaymentAllowedDivisionsSettings: UmpirePaymentAllowedDivisionsSetting[];
+
+    @OneToMany(type => Match, match => match.division)
+    @JoinColumn()
+    matches: Match[];
+
+    @IsJSON()
+    @Column("json")
+    timeoutDetails?: Record<string, any>;
 }
