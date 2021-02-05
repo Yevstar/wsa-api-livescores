@@ -4,6 +4,7 @@ import {Competition} from "../models/Competition";
 import {Brackets, DeleteResult} from "typeorm-plus";
 import {RequestFilter} from "../models/RequestFilter";
 import {paginationData, stringTONumber, objectIsNotEmpty, isNotNullAndUndefined, isArrayPopulated } from "../utils/Utils";
+import {UmpireCompetitionRank} from "../models/UmpireCompetitionRank";
 
 @Service()
 export default class CompetitionService extends BaseService<Competition> {
@@ -197,6 +198,16 @@ export default class CompetitionService extends BaseService<Competition> {
         const competition = await this.entityManager.findOneOrFail(Competition, competitionId)
 
         return organisationId === competition.organisationId;
+    }
+
+    async getRankedUmpiresCountForCompetition(competitionId: number): Promise<number> {
+
+        const {count} = await this.entityManager.createQueryBuilder(UmpireCompetitionRank, 'ur')
+            .select("COUNT(*)", "count")
+            .where('ur.competitionId = :competitionId', {competitionId})
+            .getRawOne();
+
+        return parseInt(count);
     }
 }
 

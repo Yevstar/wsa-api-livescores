@@ -226,7 +226,7 @@ export class UmpireService extends BaseService<User> {
         return paginatedUmpires.data;
     }
 
-    async addMOrganisationNameToUmpiresWithURE(umpires: User[]): Promise<User[]> {
+    async addOrganisationNameToUmpiresWithURE(umpires: User[]): Promise<User[]> {
         if (umpires.length === 0) {
             return umpires;
         }

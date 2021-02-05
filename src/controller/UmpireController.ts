@@ -30,7 +30,7 @@ export class UmpireController extends BaseController {
             sortOrder,
         );
 
-        crudResponse.data = await this.umpireService.addMOrganisationNameToUmpiresWithURE(crudResponse.data);
+        crudResponse.data = await this.umpireService.addOrganisationNameToUmpiresWithURE(crudResponse.data);
 
         return crudResponse;
     }
