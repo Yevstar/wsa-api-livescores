@@ -20,7 +20,6 @@ import {getFromContainer, MetadataStorage} from "class-validator";
 import {routingControllersToSpec} from "routing-controllers-openapi";
 import {RequestLogger} from "./middleware/RequestLogger";
 import FirebaseService from "./services/FirebaseService";
-// import {TEN_MIN, fromCacheAsync, toCacheWithTtl} from "./cache";
 import cors from "cors";
 import { decrypt, isNullOrEmpty } from "./utils/Utils";
 import { Role } from "./models/security/Role";
