@@ -32,6 +32,8 @@ export class UmpireService extends BaseService<User> {
         offset: number = 0,
         limit: number = 10,
         skipAssignedToPools: boolean = true,
+        sortBy?: UmpiresSortType,
+        sortOrder?: "ASC" | "DESC",
     ): Promise<CrudResponse<any>> {
         const competition = await this.entityManager.findOneOrFail(Competition, competitionId);
         const isCompetitionOrganizer = await this.competitionService.isCompetitionOrganiser(organisationId, competitionId);
@@ -63,6 +65,23 @@ export class UmpireService extends BaseService<User> {
                 compOrgIds,
                 roles: [Role.UMPIRE, Role.UMPIRE_COACH],
             })
+
+        if (sortBy) {
+            switch (sortBy) {
+                case "email":
+                    query.orderBy('u.email', sortOrder)
+                    break;
+                case "firstName":
+                    query.orderBy('u.firstName', sortOrder)
+                    break;
+                case "lastName":
+                    query.orderBy('u.lastName', sortOrder)
+                    break;
+                case "mobileNumber":
+                    query.orderBy('u.mobileNumber', sortOrder)
+                    break;
+            }
+        }
 
         if (skipAssignedToPools) {
             const attachedPoolsUmpiresIds = await this.entityManager.createQueryBuilder(UmpirePool,"up")
@@ -241,3 +260,5 @@ export class UmpireService extends BaseService<User> {
         return umpires;
     }
 }
+
+export type UmpiresSortType = "firstName" | "lastName" | "email" | "mobileNumber";
