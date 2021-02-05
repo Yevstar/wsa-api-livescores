@@ -209,6 +209,14 @@ export default class CompetitionService extends BaseService<Competition> {
 
         return parseInt(count);
     }
+
+    async getCompetitionRanks(competitionId: number): Promise<UmpireCompetitionRank[]> {
+
+        return await this.entityManager.createQueryBuilder(UmpireCompetitionRank, 'ur')
+            .where('ur.competitionId = :competitionId', {competitionId})
+            .orderBy('ur.rank', 'ASC')
+            .getMany();
+    }
 }
 
 export interface RequestFilterCompetitionDashboard {
