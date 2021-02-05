@@ -13,6 +13,7 @@ import {CompetitionOrganisation} from "../models/CompetitionOrganisation";
 import {Role} from "../models/security/Role";
 import {UmpirePool} from "../models/UmpirePool";
 import {Not} from "typeorm-plus";
+import CompetitionOrganisationService from "./CompetitionOrganisationService";
 
 export class UmpireService extends BaseService<User> {
     modelName(): string {
@@ -21,6 +22,9 @@ export class UmpireService extends BaseService<User> {
 
     @Inject()
     private readonly competitionService: CompetitionService;
+
+    @Inject()
+    private readonly competitionOrganisationService: CompetitionOrganisationService;
 
     async findManyByCompetitionIdForOrganisation(
         competitionId: number,
@@ -53,6 +57,7 @@ export class UmpireService extends BaseService<User> {
             .leftJoinAndSelect("u.userRoleEntities", "roles")
             .leftJoinAndSelect("u.umpireCompetitionRank", "umpireCompetitionRank")
             .leftJoinAndSelect("umpireCompetitionRank.competition", "competition")
+            .loadRelationCountAndMap('u.matchesCount', 'u.matchUmpires')
             .where("roles.entityTypeId = :entityTypeId AND roles.entityId IN (:compOrgIds) AND roles.roleId IN (:roles)", {
                 entityTypeId: EntityType.COMPETITION_ORGANISATION,
                 compOrgIds,
@@ -200,5 +205,39 @@ export class UmpireService extends BaseService<User> {
         );
 
         return paginatedUmpires.data;
+    }
+
+    async addMOrganisationNameToUmpiresWithURE(umpires: User[]): Promise<User[]> {
+        if (umpires.length === 0) {
+            return umpires;
+        }
+
+        const compOrgIds = umpires.reduce((orgIds: number[], currentUmpire: User) => {
+            const userRoleEntitiesIds = currentUmpire.userRoleEntities
+                .filter(ure => ure.entityTypeId === EntityType.COMPETITION_ORGANISATION)
+                .map(ure => ure.entityId);
+
+            return [...orgIds, ...userRoleEntitiesIds];
+        }, []);
+
+        const uniqueCompOrgIds = [...new Set(compOrgIds)];
+
+        const compOrgs = await this.competitionOrganisationService.getWithOrganisationByIds(uniqueCompOrgIds);
+
+        umpires.forEach(umpire => {
+            umpire.organisationName = compOrgs.reduce((orgName: string, currentCompOrg: CompetitionOrganisation) => {
+                let currentName;
+                for (const ure of umpire.userRoleEntities) {
+                    if (ure.entityId === currentCompOrg.id) {
+                        currentName = currentCompOrg.organisation.name;
+                        break;
+                    }
+                }
+
+                return currentName ?? orgName;
+            }, '');
+        });
+
+        return umpires;
     }
 }

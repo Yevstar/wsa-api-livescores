@@ -50,4 +50,12 @@ export default class CompetitionOrganisationService extends BaseService<Competit
             orgId: organisationId,
         }, {relations: ["competition"]});
     }
+
+    async getWithOrganisationByIds(ids: number[]): Promise<CompetitionOrganisation[]> {
+
+        return this.entityManager.createQueryBuilder(CompetitionOrganisation, 'compOrg')
+            .leftJoinAndSelect('compOrg.organisation', 'org')
+            .where('compOrg.id IN (:ids)', {ids})
+            .getMany();
+    }
 }

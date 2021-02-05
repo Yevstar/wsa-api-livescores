@@ -1,4 +1,4 @@
-import {Authorized, BodyParam, Get, JsonController, Param, Patch, QueryParam} from "routing-controllers";
+import {Authorized, BodyParam, Get, JsonController, Param, Patch, QueryParam, Req} from "routing-controllers";
 import {BaseController} from "./BaseController";
 import {UmpireCompetitionRank} from "../models/UmpireCompetitionRank";
 import {CrudResponse} from "./dto/CrudResponse";
@@ -10,20 +10,24 @@ import {RequiredQueryParam} from "../decorators/RequiredQueryParamDecorator";
 export class UmpireController extends BaseController {
 
     @Get()
-    index(
+    async index(
         @Param('competitionId') competitionId: number,
         @RequiredQueryParam('organisationId') organisationId: number,
         @QueryParam('offset') offset: number,
         @QueryParam('limit') limit: number,
         @QueryParam('skipAssignedToPools') skipAssignedToPools: boolean = false,
     ): Promise<CrudResponse<User>> {
-        return this.umpireService.findManyByCompetitionIdForOrganisation(
+        const crudResponse = await this.umpireService.findManyByCompetitionIdForOrganisation(
             competitionId,
             organisationId,
             offset,
             limit,
             skipAssignedToPools,
         );
+
+        crudResponse.data = await this.umpireService.addMOrganisationNameToUmpiresWithURE(crudResponse.data);
+
+        return crudResponse;
     }
 
     @Patch('/:umpireId/rank')

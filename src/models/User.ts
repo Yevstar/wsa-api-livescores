@@ -138,4 +138,6 @@ export class User extends BaseEntity {
     yearsUmpired: number;
 
     rank?: number;
+
+    organisationName?: string;
 }

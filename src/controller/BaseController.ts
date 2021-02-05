@@ -48,6 +48,7 @@ import {UmpireSettingsService} from "../services/UmpireSettingsService";
 import {UmpireService} from "../services/UmpireService";
 import {UmpirePaymentSettingsService} from "../services/UmpirePaymentSettingsService";
 import OrganisationService from "../services/OrganisationService";
+import HelperService from "../services/HelperService";
 
 export class BaseController {
 
@@ -170,6 +171,9 @@ export class BaseController {
 
     @Inject()
     protected organisationService: OrganisationService;
+
+    @Inject()
+    protected helperService: HelperService;
 
     protected async updateFirebaseData(user: User, password: string) {
         user.password = password;
