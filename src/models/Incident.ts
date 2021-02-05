@@ -5,6 +5,7 @@ import {IncidentPlayer} from './IncidentPlayer';
 import {IncidentMedia} from './IncidentMedia';
 import {Match} from './Match';
 import {Competition} from './Competition';
+import {User} from "./User";
 
 @Entity("incident")
 export class Incident extends BaseEntity {
@@ -15,7 +16,7 @@ export class Incident extends BaseEntity {
 
     @IsString()
     @Column()
-    guid: string;
+    guid?: string;
 
     @IsNumber()
     @Column()
@@ -23,61 +24,89 @@ export class Incident extends BaseEntity {
 
     @IsNumber()
     @Column()
-    teamId: number;
+    userId?: number;
 
     @IsNumber()
     @Column()
-    competitionId: number;
+    teamId?: number;
+
+    @IsNumber()
+    @Column()
+    competitionId?: number;
 
     @ValidateNested()
     @OneToOne(type => Competition)
     @JoinColumn()
-    competition: Competition;
+    competition?: Competition;
 
     @IsNumber()
     @Column()
-    incidentTypeId: number;
+    incidentTypeId?: number;
 
     @IsString()
     @Column()
-    description: string;
+    description?: string;
 
     @IsDate()
     @Column()
-    incidentTime: Date;
+    incidentTime?: Date;
 
     @IsDate()
     @Column()
-    createdAt: Date;
+    createdAt?: Date;
 
     @IsDate()
     @Column()
-    updated_at: Date;
+    updated_at?: Date;
 
     @ValidateNested()
     @OneToOne(type => IncidentType)
     @JoinColumn()
-    incidentType: IncidentType;
+    incidentType?: IncidentType;
 
     @ValidateNested()
     @OneToOne(type => Match)
     @JoinColumn()
-    match: Match;
+    match?: Match;
 
     @IsArray({each: true})
     @OneToMany(type => IncidentPlayer, incidentPlayer => incidentPlayer.incident)
-    incidentPlayers: IncidentPlayer[];
+    incidentPlayers?: IncidentPlayer[];
 
     @IsArray({each: true})
     @OneToMany(type => Match, match => match.round)
-    matches: Match[];
+    matches?: Match[];
 
     @IsArray({each: true})
     @OneToMany(type => IncidentMedia, incidentMedia => incidentMedia.incident)
-    incidentMediaList: IncidentMedia[];
+    incidentMediaList?: IncidentMedia[];
 
     @IsDate()
     @DeleteDateColumn({ nullable: true, default: null, name: 'deleted_at' })
-    deleted_at: Date;
+    deleted_at?: Date;
 
+    @ValidateNested()
+    @OneToOne(type => User)
+    @JoinColumn()
+    foulPlayer?: User;
+
+    @IsNumber()
+    @Column()
+    foulPlayerId?: number
+
+    @IsString()
+    @Column()
+    foulPlayerRole?: string;
+
+    @IsArray()
+    @Column("json")
+    offences?: Record<string, any>[];
+
+    @IsArray()
+    @Column("json")
+    clarifyingQuestions?: Record<string, any>[];
+
+    @IsArray()
+    @Column("json")
+    witnesses?: Record<string, any>[];
 }
