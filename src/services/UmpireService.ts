@@ -12,10 +12,8 @@ import {EntityType} from "../models/security/EntityType";
 import {CompetitionOrganisation} from "../models/CompetitionOrganisation";
 import {Role} from "../models/security/Role";
 import {UmpirePool} from "../models/UmpirePool";
-import {Not} from "typeorm-plus";
 import CompetitionOrganisationService from "./CompetitionOrganisationService";
 import {PermissionError} from "../exceptions/PermissionError";
-import {UserRoleEntity} from "../models/security/UserRoleEntity";
 
 export class UmpireService extends BaseService<User> {
     modelName(): string {
@@ -174,10 +172,15 @@ export class UmpireService extends BaseService<User> {
             throw new PermissionError;
         }
 
-        const umpire = await this.getUmpireAttachedToCompetition(umpireId, competitionId);
+        const umpire = await this.getUmpireRankAttachedToCompetition(umpireId, competitionId);
 
         if (!umpire) {
             throw new NotFoundError;
+        }
+        const currentUmpireCompetitionRank = await this.getUmpireRankForCompetition(umpireId, competitionId);
+
+        if (currentUmpireCompetitionRank && currentUmpireCompetitionRank.rank === rank) {
+            return;
         }
 
         const rankedUmpires = await this.competitionService.getRankedUmpiresCountForCompetition(competitionId);
@@ -196,16 +199,23 @@ export class UmpireService extends BaseService<User> {
             umpireCompetitionRank.rank = rank;
 
             await this.entityManager.save(umpireCompetitionRank);
+            return;
         }
 
         if (rank < vacantRank) {
             switch (updateRankType) {
                 case "replace":
-                    await this.replaceUmpiresInRanksList(competitionId, umpireId, rank, rankedUmpires);
+                    await this.replaceUmpiresInRanksList(
+                        competitionId,
+                        umpireId,
+                        rank,
+                        rankedUmpires,
+                        currentUmpireCompetitionRank,
+                    );
                     return;
 
                 case "shift":
-                    await this.shiftUmpiresRanksList(competitionId, umpireId, rank);
+                    await this.shiftUmpiresRanksList(competitionId, umpireId, rank, currentUmpireCompetitionRank);
                     return;
             }
         }
@@ -279,7 +289,7 @@ export class UmpireService extends BaseService<User> {
         return umpires;
     }
 
-    async getUmpireAttachedToCompetition(umpireId: number, competitionId: number): Promise<User> {
+    async getUmpireRankAttachedToCompetition(umpireId: number, competitionId: number): Promise<User> {
 
         const competitionOrganization = await this.entityManager.createQueryBuilder(CompetitionOrganisation, 'compOrg')
             .where("compOrg.competitionId = :competitionId", {competitionId})
@@ -300,18 +310,44 @@ export class UmpireService extends BaseService<User> {
             .getOne();
     }
 
-    async shiftUmpiresRanksList(competitionId: number, umpireId: number, rank: number): Promise<void> {
+    async shiftUmpiresRanksList(
+        competitionId: number,
+        umpireId: number,
+        rank: number,
+        currentUmpireCompetitionRank: UmpireCompetitionRank,
+    ): Promise<void> {
         const competitionRanks = await this.competitionService.getCompetitionRanks(competitionId);
-        const competitionRank = competitionRanks.find(competitionRank => competitionRank.rank === rank);
+        let newlyCreatedCurrentCompetitionRank = false;
+        if (!currentUmpireCompetitionRank) {
+            newlyCreatedCurrentCompetitionRank = true;
+            currentUmpireCompetitionRank = new UmpireCompetitionRank;
+            currentUmpireCompetitionRank.competitionId = competitionId;
+            currentUmpireCompetitionRank.umpireId = umpireId;
+        }
 
-        const affectedCompetitionRanks = competitionRanks.filter(competitionRank => competitionRank.rank >= rank);
+        let affectedCompetitionRanks = [];
+        if (newlyCreatedCurrentCompetitionRank) {
+            affectedCompetitionRanks = competitionRanks.filter(
+                competitionRank => competitionRank.rank >= rank
+                    && competitionRank.umpireId !== umpireId
+            );
+        }
+
+        if (!newlyCreatedCurrentCompetitionRank) {
+            affectedCompetitionRanks = competitionRanks.filter(
+                competitionRank => competitionRank.rank >= rank
+                    && competitionRank.umpireId !== umpireId
+                    && competitionRank.rank < currentUmpireCompetitionRank.rank
+            );
+        }
+        currentUmpireCompetitionRank.rank = rank;
+
         const competitionRanksToBeUpdated = affectedCompetitionRanks.map(competitionRank => {
             ++competitionRank.rank;
 
             return competitionRank;
         });
-        competitionRank.umpireId = umpireId;
-        await this.entityManager.save([competitionRank, ...competitionRanksToBeUpdated]);
+        await this.entityManager.save([currentUmpireCompetitionRank, ...competitionRanksToBeUpdated]);
     }
 
     async replaceUmpiresInRanksList(
@@ -319,22 +355,28 @@ export class UmpireService extends BaseService<User> {
         umpireId: number,
         rank: number,
         rankedUmpires: number,
+        currentUmpireRank: UmpireCompetitionRank,
     ): Promise<void> {
         const competitionRanks = await this.competitionService.getCompetitionRanks(competitionId);
-        const competitionRank = competitionRanks.find(competitionRank => competitionRank.rank === rank);
-        const umpireIdToBeReplaced = competitionRank.umpireId;
-
-        let previousRank = competitionRanks.find(competitionRank => competitionRank.umpireId === umpireId);
-        if (!previousRank) {
-            previousRank = new UmpireCompetitionRank;
-            previousRank.rank = rankedUmpires + 1;
-            previousRank.competitionId = competitionId;
+        const umpireRankToBeReplaced = competitionRanks.find(competitionRank => competitionRank.rank === rank);
+        if (!currentUmpireRank) {
+            currentUmpireRank = new UmpireCompetitionRank;
+            currentUmpireRank.umpireId = umpireId;
+            currentUmpireRank.competitionId = competitionId;
         }
 
-        previousRank.umpireId = umpireIdToBeReplaced;
-        competitionRank.umpireId = umpireId;
+        umpireRankToBeReplaced.rank = currentUmpireRank.rank ?? rankedUmpires + 1;
+        currentUmpireRank.rank = rank;
 
-        await this.entityManager.save([competitionRank, previousRank]);
+        await this.entityManager.save([currentUmpireRank, umpireRankToBeReplaced]);
+    }
+
+    async getUmpireRankForCompetition(umpireId: number, competitionId: number): Promise<UmpireCompetitionRank> {
+
+        return await this.entityManager.findOne(UmpireCompetitionRank, {
+            umpireId,
+            competitionId,
+        });
     }
 }
 
