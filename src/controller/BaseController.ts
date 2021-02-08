@@ -53,6 +53,7 @@ import HelperService from "../services/HelperService";
 import {validate} from "class-validator";
 import {Response} from 'express';
 import {plainToClass} from "class-transformer";
+import MatchEventService from "../services/MatchEventService";
 
 export class BaseController {
 
@@ -181,6 +182,9 @@ export class BaseController {
 
     @Inject()
     protected helperService: HelperService;
+
+    @Inject()
+    protected matchEventService: MatchEventService;
 
     protected async updateFirebaseData(user: User, password: string) {
         user.password = password;
