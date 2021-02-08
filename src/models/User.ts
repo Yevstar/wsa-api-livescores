@@ -137,6 +137,7 @@ export class User extends BaseEntity {
     @Column()
     yearsUmpired: number;
 
+    @OneToOne(type => UmpireCompetitionRank, umpireCompetitionRank => umpireCompetitionRank.umpire)
     rank?: number;
 
     organisationName?: string;
