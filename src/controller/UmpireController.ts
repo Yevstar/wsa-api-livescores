@@ -45,7 +45,6 @@ export class UmpireController extends BaseController {
         return crudResponse;
     }
 
-    @OnUndefined(204)
     @Patch('/:umpireId/rank')
     async updateRank(
         @Param('competitionId') competitionId: number,
@@ -53,9 +52,10 @@ export class UmpireController extends BaseController {
         @RequiredQueryParam('organisationId') organisationId: number,
         @Body() rankUmpireDto: RankUmpireDto,
         @Res() response: Response,
-    ): Promise<UmpireCompetitionRank> {
+    ): Promise<boolean> {
         await this.validate(response, rankUmpireDto, RankUmpireDto);
+        await this.umpireService.updateRank(organisationId, competitionId, umpireId, rankUmpireDto);
 
-        return this.umpireService.updateRank(organisationId, competitionId, umpireId, rankUmpireDto);
+        return true;
     }
 }
