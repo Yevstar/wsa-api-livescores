@@ -1,6 +1,6 @@
 import BaseService from "./BaseService";
 import {User} from "../models/User";
-import {BadRequestError, NotFoundError} from "routing-controllers";
+import {NotFoundError} from "routing-controllers";
 import {UmpireCompetitionRank} from "../models/UmpireCompetitionRank";
 import {Competition} from "../models/Competition";
 import * as utils from '../utils/Utils';
@@ -59,7 +59,6 @@ export class UmpireService extends BaseService<User> {
         const query = this.entityManager.createQueryBuilder(User,"u")
             .leftJoinAndSelect("u.userRoleEntities", "roles")
             .leftJoinAndSelect("u.competitionRank", "competitionRank")
-            // .leftJoinAndSelect("rank.competition", "competition")
             .loadRelationCountAndMap('u.matchesCount', 'u.matchUmpires')
             .where("roles.entityTypeId = :entityTypeId AND roles.entityId IN (:compOrgIds) AND roles.roleId IN (:roles)", {
                 entityTypeId: EntityType.COMPETITION_ORGANISATION,
@@ -382,6 +381,47 @@ export class UmpireService extends BaseService<User> {
             umpireId,
             competitionId,
         });
+    }
+
+    async removeUmpireCompetitionRankedFromList(umpireId: number, competitionId: number): Promise<void> {
+        const currentUmpireRank = await this.getUmpireRankForCompetition(umpireId, competitionId);
+
+        if (!currentUmpireRank) {
+            return;
+        }
+
+        const competitionRanks = await this.competitionService.getCompetitionRanks(competitionId);
+
+        await currentUmpireRank.remove();
+
+        if (currentUmpireRank.rank === competitionRanks.length) {
+            return;
+        }
+
+        const affectedRanks = competitionRanks
+            .filter(competitionRank => competitionRank.rank > currentUmpireRank.rank)
+            .map(competitionRank => {
+                --competitionRank.rank;
+
+                return competitionRank;
+            });
+
+        await this.entityManager.save(affectedRanks);
+    }
+
+    async getCompetitionsIdsWhereUmpireRanked(umpireId: number): Promise<number[]> {
+
+        return (await this.entityManager.createQueryBuilder(UmpireCompetitionRank, 'ucr')
+            .where('ucr.umpireId = :umpireId', {umpireId})
+            .getMany()).map(umpireCompetitionRank => umpireCompetitionRank.competitionId);
+    }
+
+    async removeUmpireRanksFromCompetitions(umpireId: number): Promise<void> {
+        const competitionsIds = await this.getCompetitionsIdsWhereUmpireRanked(umpireId);
+
+        await Promise.all(competitionsIds.map(
+            competitionId => this.removeUmpireCompetitionRankedFromList(umpireId, competitionId))
+        );
     }
 }
 
