@@ -50,6 +50,9 @@ import {UmpirePaymentSettingsService} from "../services/UmpirePaymentSettingsSer
 import SuspensionService from "../services/SuspensionService";
 import OrganisationService from "../services/OrganisationService";
 import HelperService from "../services/HelperService";
+import {validate} from "class-validator";
+import {Response} from 'express';
+import {plainToClass} from "class-transformer";
 
 export class BaseController {
 
@@ -479,5 +482,18 @@ export class BaseController {
             return listIds.map(id => `score_team_${id}`);
         }
         return [];
+    }
+
+    protected async validate(response: Response, entity: object, type: any) {
+        const classObject = plainToClass(type, entity);
+        const errors = await validate(classObject);
+
+        if (errors.length) {
+            return response.status(400).send({
+                success: false,
+                name: 'validation_error',
+                errors
+            });
+        }
     }
 }

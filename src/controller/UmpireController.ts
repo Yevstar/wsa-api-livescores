@@ -1,20 +1,20 @@
 import {
-    Authorized,
-    BodyParam,
+    Authorized, Body,
     Get,
     JsonController,
     OnUndefined,
     Param,
     Patch,
-    QueryParam,
-    Req
+    QueryParam, Res,
 } from "routing-controllers";
 import {BaseController} from "./BaseController";
 import {UmpireCompetitionRank} from "../models/UmpireCompetitionRank";
 import {CrudResponse} from "./dto/CrudResponse";
 import {User} from "../models/User";
 import {RequiredQueryParam} from "../decorators/RequiredQueryParamDecorator";
-import {UmpiresSortType, UpdateRankType} from "../services/UmpireService";
+import {UmpiresSortType} from "../services/UmpireService";
+import {RankUmpireDto} from "./dto/RankUmpireDto";
+import {Response} from 'express';
 
 @JsonController('/competitions/:competitionId/umpires')
 @Authorized()
@@ -47,14 +47,15 @@ export class UmpireController extends BaseController {
 
     @OnUndefined(204)
     @Patch('/:umpireId/rank')
-    updateRank(
+    async updateRank(
         @Param('competitionId') competitionId: number,
         @Param('umpireId') umpireId: number,
         @RequiredQueryParam('organisationId') organisationId: number,
-        @BodyParam('rank', {required: true}) rank: number,
-        @BodyParam('updateRankType') updateRankType: UpdateRankType,
+        @Body() rankUmpireDto: RankUmpireDto,
+        @Res() response: Response,
     ): Promise<UmpireCompetitionRank> {
+        await this.validate(response, rankUmpireDto, RankUmpireDto);
 
-        return this.umpireService.updateRank(organisationId, competitionId, umpireId, rank, updateRankType);
+        return this.umpireService.updateRank(organisationId, competitionId, umpireId, rankUmpireDto);
     }
 }

@@ -14,6 +14,7 @@ import {Role} from "../models/security/Role";
 import {UmpirePool} from "../models/UmpirePool";
 import CompetitionOrganisationService from "./CompetitionOrganisationService";
 import {PermissionError} from "../exceptions/PermissionError";
+import {RankUmpireDto} from "../controller/dto/RankUmpireDto";
 
 export class UmpireService extends BaseService<User> {
     modelName(): string {
@@ -164,9 +165,11 @@ export class UmpireService extends BaseService<User> {
         organisationId: number,
         competitionId: number,
         umpireId: number,
-        rank: number,
-        updateRankType: UpdateRankType = "shift",
+        rankUmpireDto: RankUmpireDto,
     ): Promise<UmpireCompetitionRank> {
+        rankUmpireDto.updateRankType = rankUmpireDto.updateRankType ?? "shift";
+        let {rank, updateRankType} = rankUmpireDto;
+
         const competition = await this.entityManager.findOneOrFail(Competition, competitionId);
         const isCompetitionOrganizer = await this.competitionService.isCompetitionOrganiser(organisationId, competitionId);
 
