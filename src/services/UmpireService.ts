@@ -57,8 +57,8 @@ export class UmpireService extends BaseService<User> {
 
         const query = this.entityManager.createQueryBuilder(User,"u")
             .leftJoinAndSelect("u.userRoleEntities", "roles")
-            .leftJoinAndSelect("u.rank", "rank")
-            .leftJoinAndSelect("rank.competition", "competition")
+            .leftJoinAndSelect("u.competitionRank", "competitionRank")
+            // .leftJoinAndSelect("rank.competition", "competition")
             .loadRelationCountAndMap('u.matchesCount', 'u.matchUmpires')
             .where("roles.entityTypeId = :entityTypeId AND roles.entityId IN (:compOrgIds) AND roles.roleId IN (:roles)", {
                 entityTypeId: EntityType.COMPETITION_ORGANISATION,
@@ -80,6 +80,8 @@ export class UmpireService extends BaseService<User> {
                 case "mobileNumber":
                     query.orderBy('u.mobileNumber', sortOrder);
                     break;
+                case "rank":
+                    query.orderBy('competitionRank.rank', sortOrder);
             }
         }
 
@@ -107,11 +109,11 @@ export class UmpireService extends BaseService<User> {
 
         const total = await query.getCount();
         query.take(limit).skip(offset);
-
         const umpires = await query.getMany();
-        // for (const umpire of umpires) {
-        //     umpire.rank = this.calculateAverageRank(umpire);
-        // }
+        for (const umpire of umpires) {
+            umpire.rank = umpire.competitionRank ? umpire.competitionRank.rank : null;
+            delete umpire.competitionRank;
+        }
         return {
             ...utils.paginationData(total, limit, offset),
             data: umpires,
@@ -380,5 +382,5 @@ export class UmpireService extends BaseService<User> {
     }
 }
 
-export type UmpiresSortType = "firstName" | "lastName" | "email" | "mobileNumber";
+export type UmpiresSortType = "firstName" | "lastName" | "email" | "mobileNumber" | "rank";
 export type UpdateRankType = "shift" | "replace";

@@ -138,6 +138,8 @@ export class User extends BaseEntity {
     yearsUmpired: number;
 
     @OneToOne(type => UmpireCompetitionRank, umpireCompetitionRank => umpireCompetitionRank.umpire)
+    competitionRank?: UmpireCompetitionRank;
+
     rank?: number;
 
     organisationName?: string;
