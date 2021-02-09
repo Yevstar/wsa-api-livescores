@@ -4,7 +4,7 @@ import {
     Column,
     Entity,
     JoinColumn, JoinTable,
-    ManyToMany,
+    ManyToMany, ManyToOne,
     OneToMany,
     OneToOne,
     PrimaryGeneratedColumn
@@ -16,6 +16,7 @@ import {UmpirePool} from "./UmpirePool";
 import {UmpirePaymentSetting} from "./UmpirePaymentSetting";
 import {UmpirePaymentAllowedDivisionsSetting} from "./UmpirePaymentAllowedDivisionsSetting";
 import {Match} from "./Match";
+import {Round} from "./Round";
 
 @Entity()
 export class Division extends BaseEntity {
@@ -81,4 +82,7 @@ export class Division extends BaseEntity {
     @IsJSON()
     @Column("json")
     timeoutDetails?: Record<string, any>;
+
+    @OneToMany(type => Round, round => round.division)
+    rounds: Round[];
 }

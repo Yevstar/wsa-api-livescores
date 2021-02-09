@@ -1,4 +1,13 @@
-import {BaseEntity, Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn} from 'typeorm-plus';
+import {
+    BaseEntity,
+    Column,
+    Entity,
+    JoinColumn,
+    ManyToOne,
+    OneToMany,
+    OneToOne,
+    PrimaryGeneratedColumn
+} from 'typeorm-plus';
 import {Competition} from "./Competition";
 import {Division} from "./Division";
 import {Match} from "./Match";
@@ -33,7 +42,7 @@ export class Round extends BaseEntity {
     divisionId: number;
 
     @ValidateNested()
-    @OneToOne(type => Division)
+    @ManyToOne(type => Division)
     @JoinColumn()
     division: Division;
 

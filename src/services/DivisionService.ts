@@ -68,4 +68,15 @@ export default class DivisionService extends BaseService<Division> {
         }
     }
 
+    async getDrawsForCompetition(competitionId: number): Promise<Division[]> {
+
+        return await this.entityManager.createQueryBuilder(Division, 'd')
+            .leftJoinAndSelect('d.rounds', 'r')
+            .leftJoinAndSelect('r.matches', 'm')
+            .leftJoinAndSelect('m.team1', 't1')
+            .leftJoinAndSelect('t1.division', 'td')
+            .where('m.competitionId = :competitionId', {competitionId})
+            .getMany();
+    }
+
 }
