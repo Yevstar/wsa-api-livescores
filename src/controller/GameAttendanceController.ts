@@ -142,7 +142,7 @@ export class GameAttendanceController extends BaseController {
         period: number,
         updateMatchEvents: boolean,
         user: User,
-    ) { 
+    ) {
         let gsPlayerId;
         let gaPlayerId;
 
@@ -175,14 +175,14 @@ export class GameAttendanceController extends BaseController {
         if (updateMatchEvents) {
             let team = match.team1Id == teamId ? 'team1' : 'team2';
             if (isNotNullAndUndefined(gsPlayerId)) {
-                this.matchService.updateMatchStatEvent(
+                this.matchEventService.updateMatchStatEvent(
                     match.id,
                     team,
                     GamePosition.GOAL_SHOOTER,
                     gsPlayerId
                 );
             } else if(isNotNullAndUndefined(gaPlayerId)) {
-                this.matchService.updateMatchStatEvent(
+                this.matchEventService.updateMatchStatEvent(
                     match.id,
                     team,
                     GamePosition.GOAL_ATTACK,

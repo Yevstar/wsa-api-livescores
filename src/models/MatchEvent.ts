@@ -1,5 +1,5 @@
 import {BaseEntity, Column, Entity, PrimaryGeneratedColumn} from 'typeorm-plus';
-import {IsDate, IsNumber, IsString} from "class-validator";
+import {IsDate, IsNumber, IsString, IsBoolean} from "class-validator";
 
 @Entity('matchEvent')
 export class MatchEvent extends BaseEntity {
@@ -51,7 +51,12 @@ export class MatchEvent extends BaseEntity {
     @IsString()
     @Column()
     source: string;
+
+    @IsBoolean()
+    @Column()
+    processed: boolean;
+
+    @IsDate()
+    @Column()
+    updated_at: Date;
 }
-
-
-

@@ -6,6 +6,7 @@ import {RequestFilter} from "../models/RequestFilter";
 import {paginationData, stringTONumber, objectIsNotEmpty, isNotNullAndUndefined, isArrayPopulated } from "../utils/Utils";
 import {CompetitionNotFoundError} from "../exceptions/CompetitionNotFoundError";
 import {Division} from "../models/Division";
+import {UmpireCompetitionRank} from "../models/UmpireCompetitionRank";
 
 @Service()
 export default class CompetitionService extends BaseService<Competition> {
@@ -217,6 +218,24 @@ export default class CompetitionService extends BaseService<Competition> {
         }
 
         return competitionData;
+    }
+
+    async getRankedUmpiresCountForCompetition(competitionId: number): Promise<number> {
+
+        const {count} = await this.entityManager.createQueryBuilder(UmpireCompetitionRank, 'ur')
+            .select("COUNT(*)", "count")
+            .where('ur.competitionId = :competitionId', {competitionId})
+            .getRawOne();
+
+        return parseInt(count);
+    }
+
+    async getCompetitionRanks(competitionId: number): Promise<UmpireCompetitionRank[]> {
+
+        return await this.entityManager.createQueryBuilder(UmpireCompetitionRank, 'ur')
+            .where('ur.competitionId = :competitionId', {competitionId})
+            .orderBy('ur.rank', 'ASC')
+            .getMany();
     }
 }
 

@@ -1,4 +1,4 @@
-import {Service} from "typedi";
+import {Inject, Service} from "typedi";
 import BaseService from "./BaseService";
 import {Incident} from "../models/Incident";
 import {IncidentType} from "../models/IncidentType";
@@ -6,11 +6,34 @@ import {IncidentMedia} from "../models/IncidentMedia";
 import {IncidentPlayer} from "../models/IncidentPlayer";
 import { isNotNullAndUndefined } from "../utils/Utils";
 import { EntityType } from "../models/security/EntityType";
+import SuspensionService from "../services/SuspensionService";
 
 @Service()
 export default class IncidentService extends BaseService<Incident> {
+    @Inject()
+    protected suspensionService: SuspensionService;
+
     modelName(): string {
         return Incident.name;
+    }
+
+    async findById(id: number): Promise<Incident> {
+        return this.entityManager.findOne(this.modelName(), id, {
+            join: {
+                alias: "incident",
+                innerJoinAndSelect: {
+                    incidentType: 'incident.incidentType',
+                    match: 'incident.match',
+                    competition: 'incident.competition',
+                },
+                leftJoinAndSelect: {
+                    incidentPlayer: "incident.incidentPlayers",
+                    player: "incidentPlayer.player",
+                    incidentMedia: "incident.incidentMediaList",
+                    user: "incident.foulPlayer",
+                }
+            },
+        });
     }
 
     public async findByParams(
@@ -35,13 +58,15 @@ export default class IncidentService extends BaseService<Incident> {
             .leftJoinAndSelect('incident.incidentMediaList', 'incidentMedia')
             .leftJoinAndSelect('match.team1', 'team1')
             .leftJoinAndSelect('match.team2', 'team2')
-            .leftJoinAndSelect('venueCourt.venue', 'venue');
+            .leftJoinAndSelect('venueCourt.venue', 'venue')
+            .leftJoinAndSelect('incident.foulPlayer', 'user');
 
         query.andWhere("incident.deleted_at is null");
 
         if (incidentId) {
             query.andWhere("incident.id = :incidentId", { incidentId });
         }
+
 
         if (isNotNullAndUndefined(entityTypeId) && isNotNullAndUndefined(entityId)) {
             if (entityTypeId == EntityType.COMPETITION) {
@@ -50,6 +75,7 @@ export default class IncidentService extends BaseService<Incident> {
                 query.andWhere("team.competitionOrganisationId = :entityId", {entityId});
             }
         }
+
 
         if (isNotNullAndUndefined(search) && search !== '') {
             query.andWhere('(LOWER(concat_ws(" ", player.firstName, player.lastName)) like :search)',
@@ -70,15 +96,38 @@ export default class IncidentService extends BaseService<Incident> {
             }
         }
 
+        let count = null;
+        let results = [];
+
         if (isNotNullAndUndefined(limit) && isNotNullAndUndefined(offset)) {
-            const count = await query.getCount()
-            const results = await query.skip(offset).take(limit).getMany();
-            return { count, results }
+            count = await query.getCount()
+            results = await query.skip(offset).take(limit).getMany();
         } else {
-            const count = null;
-            const results = await query.getMany();
-            return { count, results }
+            results = await query.getMany();
         }
+
+        const resultsWithStatuses = await this.getSuspensionDataByResults(results)
+        return { count, results: resultsWithStatuses }
+    }
+
+    private getSuspensionDataByResults = async (results) => {
+        const promises = results.map(this.getSuspensionData)
+        const resultsWithStatuses = await Promise.all(promises);
+
+        return resultsWithStatuses;
+    }
+
+    public getSuspensionData = async (result) => {
+        const newResult = { ...result }
+        const incidentSuspension = await this.suspensionService.findOne({
+            incidentId: +result.id
+        })
+
+        if (incidentSuspension) {
+            newResult.suspension = incidentSuspension
+        }
+
+        return newResult;
     }
 
     public async findIncidents(competitionId: number): Promise<Incident[]> {
@@ -212,5 +261,10 @@ export default class IncidentService extends BaseService<Incident> {
           .andWhere('deleted_at is null');
 
       return query.getOne();
+    }
+
+    public async createRefereeReport(incident: Incident): Promise<any> {
+        const result = await this.createOrUpdate(incident);
+        return result
     }
 }

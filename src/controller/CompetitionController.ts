@@ -35,6 +35,11 @@ export class CompetitionController extends BaseController {
         return this.competitionService.findById(id);
     }
 
+    @Get('/id/:id/ranked-umpires-count')
+    async getRankedUmpiresCount(@Param("id") id: number): Promise<number> {
+        return this.competitionService.getRankedUmpiresCountForCompetition(id);
+    }
+
     @Authorized()
     @Delete('/id/:id')
     async delete(

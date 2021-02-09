@@ -3,7 +3,7 @@ import {IsNumber} from "class-validator";
 import {Competition} from "./Competition";
 import {User} from "./User";
 
-@Entity()
+@Entity({database: 'wsa', name: 'umpire_competition_rank'})
 export class UmpireCompetitionRank extends BaseEntity {
 
     @PrimaryColumn()

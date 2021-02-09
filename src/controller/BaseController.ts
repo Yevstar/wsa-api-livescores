@@ -47,8 +47,14 @@ import {UmpirePoolService} from "../services/UmpirePoolService";
 import {UmpireSettingsService} from "../services/UmpireSettingsService";
 import {UmpireService} from "../services/UmpireService";
 import {UmpirePaymentSettingsService} from "../services/UmpirePaymentSettingsService";
+import SuspensionService from "../services/SuspensionService";
 import OrganisationService from "../services/OrganisationService";
 import UmpireAllocation from "../services/UmpireAllocation";
+import HelperService from "../services/HelperService";
+import {validate} from "class-validator";
+import {Response} from 'express';
+import {plainToClass} from "class-transformer";
+import MatchEventService from "../services/MatchEventService";
 
 export class BaseController {
 
@@ -170,10 +176,19 @@ export class BaseController {
     protected umpirePaymentSettingsService: UmpirePaymentSettingsService;
 
     @Inject()
+    protected suspensionService: SuspensionService;
+
+    @Inject()
     protected organisationService: OrganisationService;
 
     @Inject()
     protected umpireAllocationService: UmpireAllocation;
+
+    @Inject()
+    protected helperService: HelperService;
+
+    @Inject()
+    protected matchEventService: MatchEventService;
 
     protected async updateFirebaseData(user: User, password: string) {
         user.password = password;
@@ -475,5 +490,21 @@ export class BaseController {
             return listIds.map(id => `score_team_${id}`);
         }
         return [];
+    }
+
+    protected async validate(response: Response, entity: object, type: any): Promise<typeof type> {
+        const classObject = plainToClass(type, entity);
+        const errors = await validate(classObject);
+
+        if (errors.length) {
+            return response.status(400).send({
+                success: false,
+                name: 'validation_error',
+                errors
+            });
+        }
+
+        return classObject;
+
     }
 }

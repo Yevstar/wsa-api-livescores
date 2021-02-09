@@ -17,7 +17,6 @@ import {BaseController} from "./BaseController";
 import {Incident} from "../models/Incident";
 import {IncidentPlayer} from "../models/IncidentPlayer";
 import {IncidentMedia} from "../models/IncidentMedia";
-import {IncidentType} from "../models/IncidentType";
 import {
     fileExt,
     isPhoto,
@@ -30,8 +29,10 @@ import {
 } from "../utils/Utils";
 import {logger} from "../logger";
 import {User} from "../models/User";
-import {Competition} from "../models/Competition";
+import {validate} from "class-validator";
+import {isNumber} from "lodash";
 import {convertMatchStartTimeByTimezone} from '../utils/TimeFormatterUtils';
+import {RefereeReportDto} from "../controller/dto/RefereeReportDto";
 
 @JsonController("/incident")
 export class IncidentController extends BaseController {
@@ -39,7 +40,13 @@ export class IncidentController extends BaseController {
     @Authorized()
     @Get('/id/:id')
     async get(@Param("id") id: number) {
-        return this.incidentService.findById(id);
+        let foundIncident = await this.incidentService.findById(id);
+
+        if (foundIncident) {
+            foundIncident = await this.incidentService.getSuspensionData(foundIncident);
+        }
+
+        return foundIncident;
     }
 
     @Authorized()
@@ -70,6 +77,7 @@ export class IncidentController extends BaseController {
                 if (incidentData && isNotNullAndUndefined(offset) && isNotNullAndUndefined(limit)) {
                     let responseObject = paginationData(stringTONumber(incidentData.count), limit, offset)
                     responseObject["incidents"] = incidentData.results;
+
                     return responseObject;
                 } else {
                     return incidentData.results;
@@ -137,7 +145,7 @@ export class IncidentController extends BaseController {
                       name: 'validation_error',
                       message: `Competition id required parameter`
                   });
-              if (isNotNullAndUndefined(playerIds) && !incident.teamId)
+              if (!isNumber(incident.teamId))
                   return response.status(400).send({
                       name: 'validation_error',
                       message: `Team id required parameter`
@@ -488,5 +496,34 @@ export class IncidentController extends BaseController {
             message: 'Required fields are missing',
         });
       }
-  }
+    }
+
+    @Authorized()
+    @Post('/refereeReport')
+    async createRefereeReport(
+        @Body() incident: RefereeReportDto,
+        @HeaderParam("authorization") user: User,
+        @Res() response: Response
+    ) {
+        const errors = await validate(incident)
+
+        if (errors.length) {
+            return response.status(400).send({
+                success: false,
+                name: 'validation_error',
+                errors
+            });
+        }
+
+        const incidentNew = new Incident()
+        Object.keys(incident).forEach(key => {
+            incidentNew[key] = incident[key]
+        })
+        incidentNew.incidentTypeId = 8;
+
+        const createdIncident = await this.incidentService.createRefereeReport(incidentNew);
+        return response.status(200).send({
+            incident: createdIncident
+        });
+    }
 }

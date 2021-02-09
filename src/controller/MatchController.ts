@@ -35,6 +35,7 @@ import {User} from "../models/User";
 import {Match} from "../models/Match";
 import {MatchScores} from "../models/MatchScores";
 import {MatchUmpire} from "../models/MatchUmpire";
+import {MatchEvent} from "../models/MatchEvent";
 import {Lineup} from "../models/Lineup";
 import {Round} from "../models/Round";
 import {RequestFilter} from "../models/RequestFilter";
@@ -45,6 +46,7 @@ import {Competition} from '../models/Competition';
 import {getMatchUpdatedNonSilentNotificationMessage} from "../utils/NotificationMessageUtils";
 import {StateTimezone} from "../models/StateTimezone";
 import {convertMatchStartTimeByTimezone} from '../utils/TimeFormatterUtils';
+import AppConstants from "../utils/AppConstants";
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
@@ -744,10 +746,10 @@ export class MatchController extends BaseController {
                         ? new Date(match.startTime.getTime() + startedMsFromStart)
                         : new Date(Date.now() - periodDuration * 1000);
                 }
-                this.matchService.logMatchEvent(matchId, 'timer', 'periodStart', saved.period, eventTimestamp, user.id);
+                this.matchEventService.logMatchEvent(matchId, 'timer', 'periodStart', saved.period, eventTimestamp, user.id);
 
                 eventTimestamp = msFromStart ? new Date(match.startTime.getTime() + msFromStart) : Date.now();
-                this.matchService.logMatchEvent(matchId, 'timer', 'periodEnd', saved.period, eventTimestamp, user.id);
+                this.matchEventService.logMatchEvent(matchId, 'timer', 'periodEnd', saved.period, eventTimestamp, user.id);
                 return response.status(200).send({ updated: true });
             } else {
                 return response.status(412).send({
@@ -800,16 +802,16 @@ export class MatchController extends BaseController {
         let eventTimestamp = msFromStart
             ? new Date(match.startTime.getTime() + msFromStart)
             : new Date(Date.now());
-        this.matchService.logMatchEvent(matchId, 'score', 'update', periodNumber,
+        this.matchEventService.logMatchEvent(matchId, 'score', 'update', periodNumber,
             eventTimestamp, user.id, 'team1score', team1Score.toString(),
             'team2score', team2Score.toString());
         if (gameStatCode) {
             if (recordPoints) {
-                this.matchService.logMatchEvent(matchId, 'stat', 'Points', periodNumber,
+                this.matchEventService.logMatchEvent(matchId, 'stat', 'Points', periodNumber,
                     eventTimestamp, user.id, 'team' + teamSequence, points.toString(),
                     'playerId', playerId ? playerId.toString() : '');
             } else {
-                this.matchService.logMatchEvent(matchId, 'stat', gameStatCode, periodNumber,
+                this.matchEventService.logMatchEvent(matchId, 'stat', gameStatCode, periodNumber,
                     eventTimestamp, user.id, 'team' + teamSequence, positionId.toString(),
                     'playerId', playerId ? playerId.toString() : '');
             }
@@ -853,7 +855,7 @@ export class MatchController extends BaseController {
             : new Date(Date.now());
 
         if (recordPoints) {
-            this.matchService.logMatchEvent(
+            this.matchEventService.logMatchEvent(
                 matchId,
                 'stat',
                 this.getRecordPointsGameEventType(gameStatCode),
@@ -878,7 +880,7 @@ export class MatchController extends BaseController {
               this.sendMatchEvent(match, false, {user: user});
             }
         } else {
-            this.matchService.logMatchEvent(
+            this.matchEventService.logMatchEvent(
                 matchId,
                 'stat',
                 gameStatCode,
@@ -954,7 +956,7 @@ export class MatchController extends BaseController {
             });
         }
         this.sendMatchEvent(match, false, {user: user});
-        await this.matchService.logLiteMatchEvent(matchId, 'timer', 'start', 1, match.startTime, user.id);
+        await this.matchEventService.logLiteMatchEvent(matchId, 'timer', 'start', 1, match.startTime, user.id);
         return match;
     }
 
@@ -998,7 +1000,7 @@ export class MatchController extends BaseController {
             });
         }
         this.sendMatchEvent(match, false, {user: user});
-        await this.matchService.logLiteMatchEvent(matchId, 'timer', 'start', 1, match.startTime, user.id);
+        await this.matchEventService.logLiteMatchEvent(matchId, 'timer', 'start', 1, match.startTime, user.id);
         return response.status(200).send({ restarted: true });
     }
 
@@ -1042,11 +1044,11 @@ export class MatchController extends BaseController {
             new Date(Date.now());
         if (recordTimeout) {
             this.matchService.recordTimeout(match, period, timeoutTeamId, eventTimestamp, user.id);
-            this.matchService.logMatchEvent(matchId, 'timer', 'timeout', period, eventTimestamp,
+            this.matchEventService.logMatchEvent(matchId, 'timer', 'timeout', period, eventTimestamp,
                 user.id, 'team', timeoutTeamId.toString(), 'timeoutValue', timeoutValue.toString());
         }
         this.sendMatchEvent(match, false, {user: user});
-        this.matchService.logMatchEvent(matchId, 'timer', 'pause', period, eventTimestamp,
+        this.matchEventService.logMatchEvent(matchId, 'timer', 'pause', period, eventTimestamp,
             user.id, 'isBreak', isBreak ? "true" : "false");
 
         return match;
@@ -1084,7 +1086,7 @@ export class MatchController extends BaseController {
 
             this.sendMatchEvent(match, false, {user: user});
             let eventTimestamp = msFromStart ? new Date(match.startTime.getTime() + msFromStart) : new Date(Date.now());
-            this.matchService.logMatchEvent(matchId, 'timer', 'resume', period, eventTimestamp,
+            this.matchEventService.logMatchEvent(matchId, 'timer', 'resume', period, eventTimestamp,
                 user.id, 'isBreak', isBreak ? "true" : "false");
             return savedMatch;
         } else {
@@ -1117,7 +1119,7 @@ export class MatchController extends BaseController {
         }
         this.sendMatchEvent(match, false, {user: user, subtype: "scorer_changed"});
         let eventTimestamp = msFromStart ? new Date(match.startTime.getTime() + msFromStart) : new Date(Date.now());
-        this.matchService.logMatchEvent(matchId, 'scorer', 'changed', period, eventTimestamp, user.id, 'scorerStatus', scorerStatus.toString());
+        this.matchEventService.logMatchEvent(matchId, 'scorer', 'changed', period, eventTimestamp, user.id, 'scorerStatus', scorerStatus.toString());
         return match;
     }
 
@@ -1169,10 +1171,10 @@ export class MatchController extends BaseController {
                 ? new Date(time.getTime() + startedMsFromStart)
                 : Date.now() - periodDuration * 1000;
         }
-        await this.matchService.logMatchEvent(match.id, 'timer', 'periodStart', scores.period, eventTimestamp, user.id);
+        await this.matchEventService.logMatchEvent(match.id, 'timer', 'periodStart', scores.period, eventTimestamp, user.id);
 
         eventTimestamp = msFromStart ? new Date(time.getTime() + msFromStart) : Date.now();
-        this.matchService.logMatchEvent(match.id, 'timer', 'periodEnd', scores.period, eventTimestamp, user.id);
+        this.matchEventService.logMatchEvent(match.id, 'timer', 'periodEnd', scores.period, eventTimestamp, user.id);
 
         return match;
     }
@@ -1508,14 +1510,14 @@ export class MatchController extends BaseController {
         }
         let team = match.team1Id == teamId ? 'team1' : 'team2';
         if (isNotNullAndUndefined(gsPlayerId)) {
-            this.matchService.updateMatchStatEvent(
+            this.matchEventService.updateMatchStatEvent(
                 match.id,
                 team,
                 GamePosition.GOAL_SHOOTER,
                 gsPlayerId
             );
         } else if (isNotNullAndUndefined(gaPlayerId)) {
-            this.matchService.updateMatchStatEvent(
+            this.matchEventService.updateMatchStatEvent(
                 match.id,
                 team,
                 GamePosition.GOAL_ATTACK,
@@ -2332,7 +2334,7 @@ export class MatchController extends BaseController {
             });
         }
         this.sendMatchEvent(match, false, {user: user});
-        this.matchService.logLiteMatchEvent(
+        this.matchEventService.logLiteMatchEvent(
             matchId,
             'timer',
             isExtraExtra ? 'extraStart' : 'extraExtraStart',
@@ -2402,7 +2404,7 @@ export class MatchController extends BaseController {
               });
         }
 
-        let matchEvents = await this.matchService.findByParams(
+        let matchEvents = await this.matchEventService.findByParams(
             matchId,
             gameStatCode,
             periodNumber,
@@ -2421,7 +2423,7 @@ export class MatchController extends BaseController {
                 const existingMatchEventIds = matchEvents.map(function(matchEvent){
                     return matchEvent.id;
                 });
-                await this.matchService.deleteMatchEventByIds(existingMatchEventIds);
+                await this.matchEventService.deleteMatchEventByIds(existingMatchEventIds);
 
                 if (gameStatCode == 'G') {
                     let match = await this.matchService.findById(matchId);
@@ -2450,6 +2452,110 @@ export class MatchController extends BaseController {
             return response.status(400).send({
                 name: 'delete_error',
                 message: `Unable to delete match events`
+            });
+        }
+    }
+
+    @Authorized()
+    @Get('/matchEvents')
+    async getMatchEvents(
+        @QueryParam('matchId', { required: true }) matchId: number,
+        @Res() response: Response
+    ) {
+        try {
+            const matchEvents = await this.matchEventService.findEventsByMatchId(matchId);
+            return matchEvents;
+        } catch (error) {
+            return response.status(400).send({
+                error,
+                name: 'unexpected_error',
+                message: 'Failed to retrieve match event details.'
+            });
+        }
+    }
+
+    @Authorized()
+    @Patch('/matchEvents/updateStats')
+    async updateMatchEvents(
+        @HeaderParam("authorization") user: User,
+        @QueryParam('matchId', { required: true }) matchId: number,
+        @QueryParam('team1Score') team1Score: number,
+        @QueryParam('team2Score') team2Score: number,
+        @Body() matchEvents: MatchEvent[],
+        @Res() response: Response
+    ) {
+        if (isArrayPopulated(matchEvents)) {
+            let canUpdateMatchEvents = true;
+            for (let me of matchEvents) {
+                if ((!isNotNullAndUndefined(me.id) ||
+                      !isNotNullAndUndefined(me.matchId) ||
+                      !isNotNullAndUndefined(me.eventCategory) ||
+                      !isNotNullAndUndefined(me.type) ||
+                      !isNotNullAndUndefined(me.eventTimestamp) ||
+                      !isNotNullAndUndefined(me.period) ||
+                      !isNotNullAndUndefined(me.attribute1Key) ||
+                      !isNotNullAndUndefined(me.attribute1Value) ||
+                      !isNotNullAndUndefined(me.attribute2Key) ||
+                      !isNotNullAndUndefined(me.attribute2Value) ||
+                      !isNotNullAndUndefined(me.userId) ||
+                      !isNotNullAndUndefined(me.source)) ||
+                    (me.eventCategory == 'score' &&
+                        (!isNotNullAndUndefined(team1Score) && !isNotNullAndUndefined(team2Score)))
+                ) {
+                    canUpdateMatchEvents = false;
+                    break;
+                }
+                me.processed = false;
+            }
+
+            if (canUpdateMatchEvents) {
+                var matchEventsData = [];
+                for (let me of matchEvents) {
+                    const data = new MatchEvent();
+
+                    data.id = me.id;
+                    data.matchId = me.matchId;
+                    data.eventCategory = me.eventCategory;
+                    data.type = me.type;
+                    data.eventTimestamp = new Date(me.eventTimestamp);
+                    data.period = me.period;
+                    data.attribute1Key = me.attribute1Key;
+                    data.attribute1Value = me.attribute1Value;
+                    data.attribute2Key = me.attribute2Key;
+                    data.attribute2Value = me.attribute2Value;
+                    data.userId = me.userId;
+                    data.source = me.source;
+                    data.processed = me.processed;
+
+                    matchEventsData.push(data);
+                }
+
+                const saved = await this.matchEventService.batchCreateOrUpdate(matchEventsData);
+                if (isNotNullAndUndefined(team1Score) || isNotNullAndUndefined(team2Score)) {
+                    let match = await this.matchService.findById(matchId);
+                    if (isNotNullAndUndefined(team1Score)) {
+                        match.team1Score = team1Score;
+                    }
+                    if (isNotNullAndUndefined(team2Score)) {
+                        match.team2Score = team2Score;
+                    }
+                    await this.matchService.createOrUpdate(match);
+                    this.sendMatchEvent(match, true, {user: user});
+                }
+                return response.status(200).send({ "success" : true, data: saved });
+            } else {
+                return response.status(400).send({
+                    success: false,
+                    message: process.env.NODE_ENV == AppConstants.development ?
+                      'Missing required data in the match event list. ' +
+                        'If there is a score update then pass team1Score and team2Score in the param as well.' :
+                      'Missing required data'
+                });
+            }
+        } else {
+            return response.status(212).send({
+                success: false,
+                message: 'No data provided for match events inorder to update data.'
             });
         }
     }
