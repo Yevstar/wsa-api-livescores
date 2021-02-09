@@ -488,7 +488,7 @@ export class BaseController {
         return [];
     }
 
-    protected async validate(response: Response, entity: object, type: any) {
+    protected async validate(response: Response, entity: object, type: any): Promise<typeof type> {
         const classObject = plainToClass(type, entity);
         const errors = await validate(classObject);
 
@@ -499,5 +499,8 @@ export class BaseController {
                 errors
             });
         }
+
+        return classObject;
+
     }
 }

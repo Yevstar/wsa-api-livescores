@@ -2,9 +2,9 @@ import {
     Authorized, Body,
     Get,
     JsonController,
-    Param,
+    Param, Params,
     Patch,
-    QueryParam, Res,
+    QueryParam, QueryParams, Res,
 } from "routing-controllers";
 import {BaseController} from "./BaseController";
 import {CrudResponse} from "./dto/CrudResponse";
@@ -13,6 +13,8 @@ import {RequiredQueryParam} from "../decorators/RequiredQueryParamDecorator";
 import {UmpiresSortType} from "../services/UmpireService";
 import {RankUmpireDto} from "./dto/RankUmpireDto";
 import {Response} from 'express';
+import {RankUmpireQueryParams} from "./dto/RankUmpireQueryParams";
+import {RankUmpireRouteParams} from "./dto/RankUmpireRouteParams";
 
 @JsonController('/competitions/:competitionId/umpires')
 @Authorized()
@@ -45,13 +47,14 @@ export class UmpireController extends BaseController {
 
     @Patch('/:umpireId/rank')
     async updateRank(
-        @Param('competitionId') competitionId: number,
-        @Param('umpireId') umpireId: number,
-        @RequiredQueryParam('organisationId') organisationId: number,
+        @Params() params: RankUmpireRouteParams,
+        @QueryParams() queryParams: RankUmpireQueryParams,
         @Body() rankUmpireDto: RankUmpireDto,
         @Res() response: Response,
     ): Promise<boolean> {
-        await this.validate(response, rankUmpireDto, RankUmpireDto);
+        rankUmpireDto = await this.validate(response, rankUmpireDto, RankUmpireDto);
+        const {organisationId} = await this.validate(response, queryParams, RankUmpireQueryParams);
+        const {competitionId, umpireId} = await this.validate(response, params, RankUmpireRouteParams);
         await this.umpireService.updateRank(organisationId, competitionId, umpireId, rankUmpireDto);
 
         return true;
