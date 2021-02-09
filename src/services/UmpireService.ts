@@ -81,7 +81,15 @@ export class UmpireService extends BaseService<User> {
                     query.orderBy('u.mobileNumber', sortOrder);
                     break;
                 case "rank":
-                    query.orderBy('competitionRank.rank', sortOrder);
+                    switch (sortOrder) {
+                        case "ASC":
+                            query.addSelect('(IFNULL(competitionRank.rank, 100000))', 'notNullRank')
+                                .orderBy('notNullRank', sortOrder);
+                            break;
+                        case "DESC":
+                            query.addSelect('(IFNULL(competitionRank.rank, 0))', 'notNullRank')
+                                .orderBy('notNullRank', sortOrder);
+                    }
             }
         }
 
@@ -106,7 +114,6 @@ export class UmpireService extends BaseService<User> {
             }
 
         }
-
         const total = await query.getCount();
         query.take(limit).skip(offset);
         const umpires = await query.getMany();
