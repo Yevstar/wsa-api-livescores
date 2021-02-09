@@ -1,6 +1,7 @@
 import {Inject, Service} from "typedi";
 import CompetitionService from "./CompetitionService";
 import DivisionService from "./DivisionService";
+import {UmpireService} from "./UmpireService";
 
 @Service()
 export default class UmpireAllocation {
@@ -11,9 +12,14 @@ export default class UmpireAllocation {
     @Inject()
     private readonly divisionService: DivisionService;
 
+    @Inject()
+    private readonly umpireService: UmpireService;
+
+
     public async allocateUmpires(competitionId: number): Promise<void> {
         const competitionData = await this.competitionService.getCompetitionDataForUmpiresAllocationAlgorithm(competitionId);
         const draws = await this.divisionService.getDrawsForCompetition(competitionId);
+        const umpires = await this.umpireService.getAllUmpiresAttachedToCompetition(competitionId);
     }
 
     private async callUmpireAllocationAlgorithm(inputData: IUmpireAllocationAlgorithmInput): Promise<void> {
@@ -27,4 +33,7 @@ export interface IUmpireAllocationAlgorithmInput {
     teams: [],
     draws: [],
     umpires: [],
+    // TODO
+    umpireType: string,
+
 }

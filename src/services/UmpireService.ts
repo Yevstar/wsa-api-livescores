@@ -56,15 +56,7 @@ export class UmpireService extends BaseService<User> {
         const compOrgs = await competitionOrganizationsQuery.getMany();
         const compOrgIds = compOrgs.length > 0 ? compOrgs.map(compOrg => compOrg.id) : [null];
 
-        const query = this.entityManager.createQueryBuilder(User,"u")
-            .leftJoinAndSelect("u.userRoleEntities", "roles")
-            .leftJoinAndSelect("u.competitionRank", "competitionRank")
-            .loadRelationCountAndMap('u.matchesCount', 'u.matchUmpires')
-            .where("roles.entityTypeId = :entityTypeId AND roles.entityId IN (:compOrgIds) AND roles.roleId IN (:roles)", {
-                entityTypeId: EntityType.COMPETITION_ORGANISATION,
-                compOrgIds,
-                roles: [Role.UMPIRE, Role.UMPIRE_COACH],
-            })
+        const query = this.getUmpiresQueryAttachedToCompetitionOrganisations(compOrgIds);
 
         if (sortBy) {
             switch (sortBy) {
@@ -125,6 +117,37 @@ export class UmpireService extends BaseService<User> {
             ...utils.paginationData(total, limit, offset),
             data: umpires,
         };
+    }
+
+    async getAllUmpiresAttachedToCompetition(competitionId: number): Promise<User[]> {
+        const compOrgs = await this.entityManager.createQueryBuilder(CompetitionOrganisation, 'compOrg')
+            .where("compOrg.competitionId = :competitionId", {
+                competitionId,
+            })
+            .getMany();
+
+        const compOrgIds = compOrgs.length > 0 ? compOrgs.map(compOrg => compOrg.id) : [null];
+        const query = this.getUmpiresQueryAttachedToCompetitionOrganisations(compOrgIds);
+        query.leftJoinAndSelect(
+            "u.userRoleEntities",
+            "teamRoles",
+            `teamRoles.userId = i.id AND teamRoles = ${EntityType.TEAM}`
+        );
+
+        return await query.getMany();
+    }
+
+    getUmpiresQueryAttachedToCompetitionOrganisations(compOrgIds: number[]) {
+
+        return this.entityManager.createQueryBuilder(User,"u")
+            .leftJoinAndSelect("u.userRoleEntities", "roles")
+            .leftJoinAndSelect("u.competitionRank", "competitionRank")
+            .loadRelationCountAndMap('u.matchesCount', 'u.matchUmpires')
+            .where("roles.entityTypeId = :entityTypeId AND roles.entityId IN (:compOrgIds) AND roles.roleId IN (:roles)", {
+                entityTypeId: EntityType.COMPETITION_ORGANISATION,
+                compOrgIds,
+                roles: [Role.UMPIRE, Role.UMPIRE_COACH],
+            });
     }
 
     async findOneByCompetitionId(
