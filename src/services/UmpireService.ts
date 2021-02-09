@@ -1,6 +1,6 @@
 import BaseService from "./BaseService";
 import {User} from "../models/User";
-import {NotFoundError} from "routing-controllers";
+import {BadRequestError, NotFoundError} from "routing-controllers";
 import {UmpireCompetitionRank} from "../models/UmpireCompetitionRank";
 import {Competition} from "../models/Competition";
 import * as utils from '../utils/Utils';
@@ -190,6 +190,39 @@ export class UmpireService extends BaseService<User> {
         const rankedUmpires = await this.competitionService.getRankedUmpiresCountForCompetition(competitionId);
         const vacantRank = rankedUmpires + 1;
 
+        if (
+            currentUmpireCompetitionRank &&
+            rank > currentUmpireCompetitionRank.rank  &&
+            rank >= vacantRank
+        ) {
+            rank = vacantRank - 1;
+            await this.decreaseUmpirePositionWithShiftStrategy(competitionId, umpireId, rank, currentUmpireCompetitionRank);
+            return;
+        }
+
+        if (
+            currentUmpireCompetitionRank &&
+            rank > currentUmpireCompetitionRank.rank
+        ) {
+            rank = vacantRank - 1;
+
+            switch (updateRankType) {
+                case "replace":
+                    await this.replaceUmpiresInRanksList(
+                        competitionId,
+                        umpireId,
+                        rank,
+                        rankedUmpires,
+                        currentUmpireCompetitionRank,
+                    );
+                    return;
+
+                case "shift":
+                    await this.decreaseUmpirePositionWithShiftStrategy(competitionId, umpireId, rank, currentUmpireCompetitionRank);
+                    return;
+            }
+        }
+
         if (rank >= vacantRank) {
             rank = vacantRank;
             const umpireCompetitionRank = await this.entityManager.findOne(UmpireCompetitionRank, {
@@ -373,6 +406,30 @@ export class UmpireService extends BaseService<User> {
         currentUmpireRank.rank = rank;
 
         await this.entityManager.save([currentUmpireRank, umpireRankToBeReplaced]);
+    }
+
+    async decreaseUmpirePositionWithShiftStrategy(
+        competitionId: number,
+        umpireId: number,
+        rank: number,
+        currentUmpireCompetitionRank: UmpireCompetitionRank,
+    ): Promise<void> {
+        const competitionRanks = await this.competitionService.getCompetitionRanks(competitionId);
+
+        const affectedCompetitionRanks = competitionRanks.filter(
+            competitionRank => competitionRank.rank <= rank
+            && competitionRank.umpireId !== umpireId
+            && competitionRank.rank > currentUmpireCompetitionRank.rank
+        );
+
+        currentUmpireCompetitionRank.rank = rank;
+
+        const competitionRanksToBeUpdated = affectedCompetitionRanks.map(competitionRank => {
+            --competitionRank.rank;
+
+            return competitionRank;
+        });
+        await this.entityManager.save([currentUmpireCompetitionRank, ...competitionRanksToBeUpdated]);
     }
 
     async getUmpireRankForCompetition(umpireId: number, competitionId: number): Promise<UmpireCompetitionRank> {
