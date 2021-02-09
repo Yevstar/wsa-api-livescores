@@ -2,13 +2,11 @@ import {
     Authorized, Body,
     Get,
     JsonController,
-    OnUndefined,
     Param,
     Patch,
     QueryParam, Res,
 } from "routing-controllers";
 import {BaseController} from "./BaseController";
-import {UmpireCompetitionRank} from "../models/UmpireCompetitionRank";
 import {CrudResponse} from "./dto/CrudResponse";
 import {User} from "../models/User";
 import {RequiredQueryParam} from "../decorators/RequiredQueryParamDecorator";
