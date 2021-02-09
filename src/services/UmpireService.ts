@@ -189,7 +189,6 @@ export class UmpireService extends BaseService<User> {
             throw new NotFoundError;
         }
         const currentUmpireCompetitionRank = await this.getUmpireRankForCompetition(umpireId, competitionId);
-
         if (currentUmpireCompetitionRank && currentUmpireCompetitionRank.rank === rank) {
             return;
         }
@@ -211,8 +210,6 @@ export class UmpireService extends BaseService<User> {
             currentUmpireCompetitionRank &&
             rank > currentUmpireCompetitionRank.rank
         ) {
-            rank = vacantRank - 1;
-
             switch (updateRankType) {
                 case "replace":
                     await this.replaceUmpiresInRanksList(
