@@ -520,7 +520,7 @@ export class MatchController extends BaseController {
         }
     }
 
-    private async addNULLRoster(
+    private async addUmpireTypeRoster(
         matchId: number,
         roleId: number,
         oldRosters: Roster[],
