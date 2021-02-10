@@ -16,7 +16,7 @@ export class LinkedCompetitionOrganisation extends BaseEntity {
 
     @ManyToOne(type => Organisation)
     @JoinColumn()
-    organisation: number;
+    organisation: Organisation;
 
     @IsString()
     @Column()

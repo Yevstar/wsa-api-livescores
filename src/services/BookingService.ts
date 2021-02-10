@@ -47,4 +47,11 @@ export default class BookingService extends BaseService<Booking> {
         return this.entityManager.createQueryBuilder().delete().from(Booking)
             .andWhere("id in (:ids)", {ids: ids}).execute();
     }
+
+    public async getUnavailableBookingForUmpires(umpireIds: number[]): Promise<Booking[]> {
+
+        return await this.entityManager.createQueryBuilder(Booking, "booking")
+            .where('booking.userId IN (:umpireIds) AND type = "UNAVAILABLE"', {umpireIds})
+            .getMany();
+    }
 }

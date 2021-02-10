@@ -75,6 +75,8 @@ export default class DivisionService extends BaseService<Division> {
             .leftJoinAndSelect('r.matches', 'm')
             .leftJoinAndSelect('m.team1', 't1')
             .leftJoinAndSelect('t1.division', 'td')
+            .leftJoinAndSelect('t1.linkedCompetitionOrganisation', 'linkedTeamOrg')
+            .leftJoinAndSelect('linkedTeamOrg.organisation', 'teamOrg')
             .where('m.competitionId = :competitionId', {competitionId})
             .getMany();
     }

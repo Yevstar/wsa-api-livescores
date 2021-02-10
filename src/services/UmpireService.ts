@@ -15,6 +15,8 @@ import {UmpirePool} from "../models/UmpirePool";
 import CompetitionOrganisationService from "./CompetitionOrganisationService";
 import {PermissionError} from "../exceptions/PermissionError";
 import {RankUmpireDto} from "../controller/dto/RankUmpireDto";
+import {UserRoleEntity} from "../models/security/UserRoleEntity";
+import {Team} from "../models/Team";
 
 export class UmpireService extends BaseService<User> {
     modelName(): string {
@@ -128,11 +130,6 @@ export class UmpireService extends BaseService<User> {
 
         const compOrgIds = compOrgs.length > 0 ? compOrgs.map(compOrg => compOrg.id) : [null];
         const query = this.getUmpiresQueryAttachedToCompetitionOrganisations(compOrgIds);
-        query.leftJoinAndSelect(
-            "u.userRoleEntities",
-            "teamRoles",
-            `teamRoles.userId = i.id AND teamRoles = ${EntityType.TEAM}`
-        );
 
         return await query.getMany();
     }
@@ -507,7 +504,36 @@ export class UmpireService extends BaseService<User> {
             competitionId => this.removeUmpireCompetitionRankedFromList(umpireId, competitionId))
         );
     }
+
+    async getUmpiresTeamsAndOrgRefs(umpiresIds: number[]): Promise<UmpireTeamsAndOrgsRefs[]> {
+        const rawData = await this.entityManager.createQueryBuilder(User, 'u')
+            .leftJoinAndSelect(
+                'u.userRoleEntities',
+                'ure',
+                'ure.entityTypeId IN (:entityTypeIds)',
+                {entityTypeIds: [EntityType.TEAM, EntityType.ORGANISATION]}
+                )
+            .where('u.id IN (:umpiresIds)', {umpiresIds})
+            .getMany();
+
+        return rawData.map(user => {
+            return {
+                umpireId: user.id,
+                teamIds: user.userRoleEntities
+                    .filter(ure => EntityType.TEAM === ure.entityTypeId)
+                    .map(ure => ure.entityId),
+                organisationIds: user.userRoleEntities
+                    .filter(ure => EntityType.ORGANISATION === ure.entityTypeId)
+                    .map(ure => ure.entityId),
+            };
+        });
+    }
 }
 
 export type UmpiresSortType = "firstName" | "lastName" | "email" | "mobileNumber" | "rank";
 export type UpdateRankType = "shift" | "replace";
+export type UmpireTeamsAndOrgsRefs = {
+    umpireId: number,
+    teamIds: number[],
+    organisationIds: number[],
+}
