@@ -12,7 +12,7 @@ import {
     UploadedFile,
 } from "routing-controllers";
 import { Response } from "express";
-import admin from "firebase-admin";
+import * as admin from "firebase-admin";
 import * as fastcsv from "fast-csv";
 
 import { Team } from "../models/Team";
@@ -34,11 +34,8 @@ import {
     isNotNullAndUndefined,
     validationForField,
     arrangeCSVToJson,
-    trim
 } from "../utils/Utils"
 import { logger } from "../logger";
-import { CommunicationTrack } from '../models/CommunicationTrack';
-
 
 @JsonController('/teams')
 export class TeamController extends BaseController {
@@ -190,14 +187,12 @@ export class TeamController extends BaseController {
     ): Promise<Player[]> {
         logger.info(`TeamController - invite : teamIds ${teamIds}, playerIds ${playerIds} from user (id: ${user.id.toString()} firstName: ${user.firstName} lastName: ${user.lastName})`);
         if (isArrayPopulated(playerIds)) {
-            logger.info('Fetching playerData via playerIds');
             let playersData = await this.teamService.getPlayerDataByPlayerIds(playerIds);
             for (let i of playersData) {
                 this.invitePlayer(user, i, isInviteToParents);
             }
             return playersData;
         } else if (isArrayPopulated(teamIds)) {
-            logger.info('Fetching playerData via teamIds');
             let playerList = await this.teamService.playerListByTeamId(teamIds);
             for (let i of playerList) {
                 this.invitePlayer(user, i, isInviteToParents);
@@ -399,18 +394,16 @@ export class TeamController extends BaseController {
 
         if (savedUser) {
             let competitionData = await this.competitionService.findById(savedTeam.competitionId)
-
             this.userService.sentMail(user, [savedTeam], competitionData, Role.MANAGER, savedUser, password);
         }
 
         if (file && isPhoto(file.mimetype)) {
             if (isNotNullAndUndefined(teamData.logoUrl) && teamData.logoUrl.includes(`%2Fteam%2F${savedTeam.id}`)) {
-
                 const fileName = await this.firebaseService.getFileNameFromUrl(JSON.stringify(teamData.logoUrl), 'team%F');
                 await this.firebaseService.removeMedia(fileName);
             }
 
-            let filename = `/team/${savedTeam.id}_S{savedTeam.name}.${fileExt(file.originalname)}`;;
+            let filename = `/team/${savedTeam.id}_S{savedTeam.name}.${fileExt(file.originalname)}`;
             let result = await this.firebaseService.upload(filename, file);
             if (result) {
                 savedTeam.logoUrl = result['url'];
@@ -425,8 +418,8 @@ export class TeamController extends BaseController {
                 .findLinkedCompetitionOrganisation(stringTONumber(savedTeam.competitionOrganisationId));
             if (isNotNullAndUndefined(linkedCompetitionOrganisation) &&
                 isNotNullAndUndefined(linkedCompetitionOrganisation.logoUrl)) {
-                  savedTeam.logoUrl = linkedCompetitionOrganisation.logoUrl;
-                  savedTeam = await this.teamService.createOrUpdate(savedTeam);
+                savedTeam.logoUrl = linkedCompetitionOrganisation.logoUrl;
+                savedTeam = await this.teamService.createOrUpdate(savedTeam);
             }
         }
         return savedTeam;
@@ -699,9 +692,8 @@ export class TeamController extends BaseController {
             }
 
             return response.status(200).send('Updated Successfully.');
-
         } catch (error) {
-            logger.error(`Error Occurred in  save ladder adjustments   ${currentUser.id}` + error);
+            logger.error(`Error Occurred in save ladder adjustments ${currentUser.id}` + error);
             return response.status(500).send({
                 message: 'Something went wrong. Please contact administrator'
             });
@@ -724,7 +716,7 @@ export class TeamController extends BaseController {
 
             return response.status(200).send(ladderAdjustments);
         } catch (error) {
-            logger.error(`Error Occurred in  get ladder adjustments   ${currentUser.id}` + error);
+            logger.error(`Error Occurred in get ladder adjustments ${currentUser.id}` + error);
             return response.status(500).send({
                 message: 'Something went wrong. Please contact administrator'
             });
@@ -746,9 +738,8 @@ export class TeamController extends BaseController {
             await this.teamLadderService.clearLadderPoints(competitionId, divisionId, currentUser.id);
 
             return response.status(200).send('Updated Successfully.');
-
         } catch (error) {
-            logger.error(`Error Occurred in  save ladder Reset   ${currentUser.id}` + error);
+            logger.error(`Error Occurred in save ladder Reset ${currentUser.id}` + error);
             return response.status(500).send({
                 message: 'Something went wrong. Please contact administrator'
             });
