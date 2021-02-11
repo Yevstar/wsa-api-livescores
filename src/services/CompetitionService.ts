@@ -7,6 +7,8 @@ import {paginationData, stringTONumber, objectIsNotEmpty, isNotNullAndUndefined,
 import {CompetitionNotFoundError} from "../exceptions/CompetitionNotFoundError";
 import {Division} from "../models/Division";
 import {UmpireCompetitionRank} from "../models/UmpireCompetitionRank";
+import {UmpireAllocationSetting} from "../models/UmpireAllocationSetting";
+import {UmpireAllocatorTypeEnum} from "../models/enums/UmpireAllocatorTypeEnum";
 
 @Service()
 export default class CompetitionService extends BaseService<Competition> {
@@ -236,6 +238,16 @@ export default class CompetitionService extends BaseService<Competition> {
             .where('ur.competitionId = :competitionId', {competitionId})
             .orderBy('ur.rank', 'ASC')
             .getMany();
+    }
+
+    async getUmpireAllocationSettingForCompetitionOrganiser(competitionId: number): Promise<UmpireAllocationSetting> {
+
+        return await this.entityManager.createQueryBuilder(UmpireAllocationSetting, 'uas')
+            .where(
+                'uas.competitionId = :competitionId AND uas.umpireAllocatorTypeRefId = :umpireAllocatorTypeRefId',
+                {competitionId, umpireAllocatorTypeRefId: UmpireAllocatorTypeEnum.COMPETITION_ORGANISER}
+                )
+            .getOne();
     }
 }
 

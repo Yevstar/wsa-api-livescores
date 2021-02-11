@@ -6,6 +6,8 @@ import {Competition} from "../models/Competition";
 import {Division} from "../models/Division";
 import {Booking} from "../models/Booking";
 import BookingService from "./BookingService";
+import {UmpireAllocationSetting} from "../models/UmpireAllocationSetting";
+import {UmpireAllocationTypeEnum} from "../models/enums/UmpireAllocationTypeEnum";
 
 @Service()
 export default class UmpireAllocation {
@@ -31,30 +33,39 @@ export default class UmpireAllocation {
 
     protected async prepareUmpiresAllocationAlgorithmInputData(competitionId: number): Promise<IUmpireAllocationAlgorithmInput> {
 
-        const [competitionData, rawDraws, rawUmpires] = await Promise.all([
+        const [competitionData, rawDraws, rawUmpires, umpiresAllocationSetting] = await Promise.all([
             this.competitionService.getCompetitionDataForUmpiresAllocationAlgorithm(competitionId),
             this.divisionService.getDrawsForCompetition(competitionId),
             this.umpireService.getAllUmpiresAttachedToCompetition(competitionId),
+            this.competitionService.getUmpireAllocationSettingForCompetitionOrganiser(competitionId),
         ]);
 
         const umpiresTeamsAndOrgRefs = await this.umpireService.getUmpiresTeamsAndOrgRefs(rawUmpires.map(umpire => umpire.id));
         const unavailableBookings = await this.bookingService.getUnavailableBookingForUmpires(rawUmpires.map(umpire => umpire.id));
         const umpireDivisionRefs = await this.umpireService.getUmpiresDivisions(competitionId, rawUmpires.map(umpire => umpire.id));
 
-        const [divisions, teams, draws, umpireType] = await Promise.all([
+        const [divisions, teams, draws, umpires, umpireType] = await Promise.all([
             this.mapRawDataToDivisionsFormattedData(competitionData),
             this.mapRawDataToTeamsFormattedData(competitionData),
             this.mapRawDataToDrawsFormattedData(rawDraws),
             this.mapUmpiresToUmpireAllocationAlgorithmFormat(rawUmpires, umpiresTeamsAndOrgRefs, unavailableBookings, umpireDivisionRefs),
-            this.getUmpireType(competitionId),
+            this.mapSettingToUmpireType(umpiresAllocationSetting),
         ]);
+
+        console.log(JSON.stringify({
+            divisions,
+            teams,
+            draws,
+            umpires,
+            umpireType,
+        }));
 
         return {
             divisions,
             teams,
             draws,
-            umpires: [],
-            umpireType: 1,
+            umpires,
+            umpireType,
         };
     }
 
@@ -151,9 +162,21 @@ export default class UmpireAllocation {
         });
     }
 
-    protected async getUmpireType(competitionId: number): Promise<any> {
-        // TODO
-        return 1;
+    protected mapSettingToUmpireType(setting: UmpireAllocationSetting): number {
+        if (!setting) {
+            return 1;
+        }
+
+        switch (setting.umpireAllocationTypeRefId) {
+            case UmpireAllocationTypeEnum.OWN_TEAM:
+                return 1;
+            case UmpireAllocationTypeEnum.OWN_ORGANISATION:
+                return 2;
+            case UmpireAllocationTypeEnum.VIA_POOLS:
+                return 3;
+            default:
+                return 1;
+        }
     }
 
     protected async callUmpireAllocationAlgorithm(inputData: IUmpireAllocationAlgorithmInput): Promise<void> {
