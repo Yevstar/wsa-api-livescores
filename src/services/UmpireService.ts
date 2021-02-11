@@ -15,9 +15,6 @@ import {UmpirePool} from "../models/UmpirePool";
 import CompetitionOrganisationService from "./CompetitionOrganisationService";
 import {PermissionError} from "../exceptions/PermissionError";
 import {RankUmpireDto} from "../controller/dto/RankUmpireDto";
-import {UserRoleEntity} from "../models/security/UserRoleEntity";
-import {Team} from "../models/Team";
-import {forEach} from "csv-string";
 
 export class UmpireService extends BaseService<User> {
     modelName(): string {

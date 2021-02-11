@@ -8,6 +8,9 @@ import {Booking} from "../models/Booking";
 import BookingService from "./BookingService";
 import {UmpireAllocationSetting} from "../models/UmpireAllocationSetting";
 import {UmpireAllocationTypeEnum} from "../models/enums/UmpireAllocationTypeEnum";
+import axios from "axios";
+// TODO move to env
+const competitionApi = 'https://competition-api-dev.worldsportaction.com';
 
 @Service()
 export default class UmpireAllocation {
@@ -25,10 +28,9 @@ export default class UmpireAllocation {
     private readonly bookingService: BookingService;
 
 
-    public async allocateUmpires(competitionId: number): Promise<void> {
+    public async allocateUmpires(competitionId: number, authToken: string, userId: number): Promise<void> {
         const inputData = await this.prepareUmpiresAllocationAlgorithmInputData(competitionId);
-
-        await this.callUmpireAllocationAlgorithm(inputData);
+        await this.callUmpireAllocationAlgorithm(inputData, authToken, userId);
     }
 
     protected async prepareUmpiresAllocationAlgorithmInputData(competitionId: number): Promise<IUmpireAllocationAlgorithmInput> {
@@ -51,14 +53,6 @@ export default class UmpireAllocation {
             this.mapUmpiresToUmpireAllocationAlgorithmFormat(rawUmpires, umpiresTeamsAndOrgRefs, unavailableBookings, umpireDivisionRefs),
             this.mapSettingToUmpireType(umpiresAllocationSetting),
         ]);
-
-        console.log(JSON.stringify({
-            divisions,
-            teams,
-            draws,
-            umpires,
-            umpireType,
-        }));
 
         return {
             divisions,
@@ -179,8 +173,19 @@ export default class UmpireAllocation {
         }
     }
 
-    protected async callUmpireAllocationAlgorithm(inputData: IUmpireAllocationAlgorithmInput): Promise<void> {
-        // TODO
+    protected async callUmpireAllocationAlgorithm(inputData: IUmpireAllocationAlgorithmInput, authToken: string, userId: number): Promise<void> {
+
+        const response = await axios.post(
+            `${competitionApi}/api/generatedraw?userId=${userId}`,
+            inputData,
+            {
+                headers: {
+                    'Authorization': authToken,
+                }
+            },
+        );
+
+        return response.data;
     }
 
     protected mapMatchTypeToNumber(matchType: "FOUR_QUARTERS" | "TWO_HALVES" | "SINGLE_PERIOD"): number {
