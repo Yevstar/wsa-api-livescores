@@ -17,6 +17,7 @@ import {PermissionError} from "../exceptions/PermissionError";
 import {RankUmpireDto} from "../controller/dto/RankUmpireDto";
 import {UserRoleEntity} from "../models/security/UserRoleEntity";
 import {Team} from "../models/Team";
+import {forEach} from "csv-string";
 
 export class UmpireService extends BaseService<User> {
     modelName(): string {
@@ -506,6 +507,7 @@ export class UmpireService extends BaseService<User> {
     }
 
     async getUmpiresTeamsAndOrgRefs(umpiresIds: number[]): Promise<UmpireTeamsAndOrgsRefs[]> {
+        umpiresIds = umpiresIds.length ? umpiresIds : [null];
         const rawData = await this.entityManager.createQueryBuilder(User, 'u')
             .leftJoinAndSelect(
                 'u.userRoleEntities',
@@ -528,6 +530,27 @@ export class UmpireService extends BaseService<User> {
             };
         });
     }
+
+    async getUmpiresDivisions(competitionId: number, umpiresIds: number[]): Promise<UmpireDivisionRef[]> {
+        umpiresIds = umpiresIds.length ? umpiresIds : [null];
+        const pools = await this.entityManager.createQueryBuilder(UmpirePool,"up")
+            .leftJoinAndSelect("up.umpires", "u")
+            .leftJoinAndSelect("up.divisions", "div")
+            .where('up.competitionId = :competitionId', {competitionId})
+            .getRawMany();
+
+        const umpiresDivision = [];
+        for (const umpireId of umpiresIds) {
+            const rawPool = pools.find(rawPool => rawPool.u_id === umpireId && rawPool.div_id !== null);
+            const umpireDivision = {umpireId, divisionId: null};
+            if (rawPool) {
+                umpireDivision.divisionId = rawPool.div_id;
+            }
+            umpiresDivision.push(umpireDivision);
+        }
+
+        return umpiresDivision;
+    }
 }
 
 export type UmpiresSortType = "firstName" | "lastName" | "email" | "mobileNumber" | "rank";
@@ -536,4 +559,10 @@ export type UmpireTeamsAndOrgsRefs = {
     umpireId: number,
     teamIds: number[],
     organisationIds: number[],
+}
+export type UmpireDivisionRef = {umpireId: number, divisionId: number};
+type RawPool = {
+    u_id: number,
+    div_id: number,
+    up_id: number;
 }

@@ -1,7 +1,7 @@
 import {Inject, Service} from "typedi";
 import CompetitionService from "./CompetitionService";
 import DivisionService from "./DivisionService";
-import {UmpireService, UmpireTeamsAndOrgsRefs} from "./UmpireService";
+import {UmpireDivisionRef, UmpireService, UmpireTeamsAndOrgsRefs} from "./UmpireService";
 import {Competition} from "../models/Competition";
 import {Division} from "../models/Division";
 import {Booking} from "../models/Booking";
@@ -39,12 +39,13 @@ export default class UmpireAllocation {
 
         const umpiresTeamsAndOrgRefs = await this.umpireService.getUmpiresTeamsAndOrgRefs(rawUmpires.map(umpire => umpire.id));
         const unavailableBookings = await this.bookingService.getUnavailableBookingForUmpires(rawUmpires.map(umpire => umpire.id));
+        const umpireDivisionRefs = await this.umpireService.getUmpiresDivisions(competitionId, rawUmpires.map(umpire => umpire.id));
 
-        const [divisions, teams, draws, umpires, umpireType] = await Promise.all([
+        const [divisions, teams, draws, umpireType] = await Promise.all([
             this.mapRawDataToDivisionsFormattedData(competitionData),
             this.mapRawDataToTeamsFormattedData(competitionData),
             this.mapRawDataToDrawsFormattedData(rawDraws),
-            this.mapUmpiresToUmpireAllocationAlgorithmFormat(rawUmpires, umpiresTeamsAndOrgRefs, unavailableBookings),
+            this.mapUmpiresToUmpireAllocationAlgorithmFormat(rawUmpires, umpiresTeamsAndOrgRefs, unavailableBookings, umpireDivisionRefs),
             this.getUmpireType(competitionId),
         ]);
 
@@ -52,8 +53,8 @@ export default class UmpireAllocation {
             divisions,
             teams,
             draws,
-            umpires,
-            umpireType,
+            umpires: [],
+            umpireType: 1,
         };
     }
 
@@ -130,18 +131,20 @@ export default class UmpireAllocation {
         rawData: any[],
         umpiresTeamsAndOrgRefs: UmpireTeamsAndOrgsRefs[],
         unavailableBookings: Booking[],
+        umpireDivisionRefs: UmpireDivisionRef[],
     ): Promise<any[]> {
 
         return rawData.map(umpire => {
             const currentUmpiresTeamsAndOrgRefs = umpiresTeamsAndOrgRefs.find(ref => ref.umpireId === umpire.id);
             const currentUnavailableBookings = unavailableBookings.filter(booking => booking.userId === umpire.id);
+            const {divisionId} = umpireDivisionRefs.find(ref => ref.umpireId === umpire.id);
 
             return {
                 umpireId: umpire.id,
                 umpireName: `${umpire.firstName} ${umpire.lastName}`,
                 organisationIds: currentUmpiresTeamsAndOrgRefs ? currentUmpiresTeamsAndOrgRefs.organisationIds : [],
                 teamIds: currentUmpiresTeamsAndOrgRefs ? currentUmpiresTeamsAndOrgRefs.teamIds : [],
-                // TODO
+                divisionId,
                 availableTimeslots: [],
                 unavailableDateTimeslots: currentUnavailableBookings.map(booking => this.mapBookingToUnavailableDateTimeslot(booking)),
             };
@@ -171,22 +174,26 @@ export default class UmpireAllocation {
     }
 
     protected mapBookingToUnavailableDateTimeslot(booking: Booking): UnavailableDateTimeslot {
-
+        const startTime = `${this.twoDigitFormatTime(booking.startTime.getHours())}:${this.twoDigitFormatTime(booking.startTime.getMinutes())}`;
+        const endTime = `${this.twoDigitFormatTime(booking.endTime.getHours())}:${this.twoDigitFormatTime(booking.endTime.getMinutes())}`;
         return {
-            // TODO
             venueId: null,
-            date: booking.startTime.setHours(0, 0).toString(),
+            date: booking.startTime.toISOString(),
             timeslot: {
-                startTime: booking.startTime.getTime().toString(),
-                endTime: booking.endTime.getTime().toString(),
+                startTime,
+                endTime,
             }
         }
     }
+
+    protected twoDigitFormatTime(time: number): string {
+
+        return ("0" + time).slice(-2);
+    }
 }
 
-// TODO need more detailed definition
 export interface IUmpireAllocationAlgorithmInput {
-    divisions: { divisionId: number, divisionName: string }[],
+    divisions: any[],
     teams: any[],
     draws: any[],
     umpires: any[],

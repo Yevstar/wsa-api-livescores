@@ -49,6 +49,7 @@ export default class BookingService extends BaseService<Booking> {
     }
 
     public async getUnavailableBookingForUmpires(umpireIds: number[]): Promise<Booking[]> {
+        umpireIds = umpireIds.length ? umpireIds : [null];
 
         return await this.entityManager.createQueryBuilder(Booking, "booking")
             .where('booking.userId IN (:umpireIds) AND type = "UNAVAILABLE"', {umpireIds})
