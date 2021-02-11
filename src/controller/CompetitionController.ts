@@ -108,6 +108,7 @@ export class CompetitionController extends BaseController {
                 c.gamesBorrowedThreshold = competition.gamesBorrowedThreshold;
                 c.linkedCompetitionId = competition.linkedCompetitionId;
                 c.gameTimeTrackingType = stringTONumber(competition.gameTimeTrackingType);
+                c.timeoutDetails = competition.timeoutDetails;
 
                 if(c.id===0){
                     c.uniqueKey = uuidv4();

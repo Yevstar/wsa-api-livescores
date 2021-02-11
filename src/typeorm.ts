@@ -1,7 +1,7 @@
-import {logger} from './logger';
-import {Container} from "typedi";
-import {Connection, createConnections, DefaultNamingStrategy, useContainer} from "typeorm-plus";
-import {snakeCase} from 'typeorm-plus/util/StringUtils';
+import { Container } from "typedi";
+import { Connection, createConnections, DefaultNamingStrategy, useContainer } from "typeorm-plus";
+import { snakeCase } from 'typeorm-plus/util/StringUtils';
+
 let connection: Connection[];
 
 async function currentConnection(): Promise<Connection[]> {
@@ -33,7 +33,7 @@ async function connect(): Promise<Connection[]> {
 
     const wsaDatabase = Object.assign({
         name: "default",
-        type: "mysql",  
+        type: "mysql",
         database: process.env.MYSQL_DATABASE,
         host: process.env.MYSQL_HOST,
         port: process.env.MYSQL_PORT,

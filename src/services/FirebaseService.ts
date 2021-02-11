@@ -1,10 +1,11 @@
-import { Service } from "typedi";
 import * as admin from "firebase-admin";
+import { Service } from "typedi";
+
 import { logger } from "../logger";
-import { chunk, isArrayPopulated } from "../utils/Utils";
-import { firestore } from "firebase-admin";
-import UserRecord = admin.auth.UserRecord;
 import { User } from "../models/User";
+import { chunk, isArrayPopulated } from "../utils/Utils";
+
+import UserRecord = admin.auth.UserRecord;
 
 @Service()
 export default class FirebaseService {
@@ -42,7 +43,6 @@ export default class FirebaseService {
                 });
                 blobStream.end(fileContent);
             });
-
 
         const uploadFileAndGetURL = async (): Promise<any> =>
             new Promise<any>((resolve, reject): void => {
@@ -86,9 +86,12 @@ export default class FirebaseService {
             tokens: tokens
         };
         message['android'] = { priority: 'high' };
+
         if (title || body) message['notification'] = { title: title, body: body };
+
         logger.debug('Sending data', data);
         if (data) message['data'] = data.hasOwnProperty('data') ? data['data'] : data;
+
         logger.debug('Send multicast message', message);
         admin.messaging().sendMulticast(message)
             .then((response) => {
@@ -101,22 +104,22 @@ export default class FirebaseService {
             });
     }
 
-    // public async sendMatchUpdate({match, title = undefined, body = undefined, data = undefined}) {
+    // public async sendMatchUpdate({ match, title = undefined, body = undefined, data = undefined }) {
     //     let message = {
     //         condition: `'score_team_${match.team1Id}' in topics || 'score_team_${match.team2Id}' in topics`
     //     };
-    //     message['android'] = {priority: 'high'};
-    //     if (title || body) message['notification'] = {title: title, body: body};
+    //     message['android'] = { priority: 'high' };
+    //     if (title || body) message['notification'] = { title: title, body: body };
     //     if (data) message['data'] = data.hasOwnProperty('data') ? data['data'] : data;
     //     logger.info('Send topic message', message);
     //     admin.messaging().send(message)
     //         .then((response) => {
     //             logger.info('Success sent message', response);
-    //             return {success: true, response: response};
+    //             return { success: true, response: response };
     //         })
     //         .catch((error) => {
     //             logger.error('Failed sent message', error);
-    //             return {success: false, response: error};
+    //             return { success: false, response: error };
     //         });
     // }
 
