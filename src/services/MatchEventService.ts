@@ -10,6 +10,14 @@ export default class MatchEventService extends BaseService<MatchEvent> {
         return MatchEvent.name;
     }
 
+    public isGameStatGoalOrPoints(gameStatCode: string): boolean {
+        return (gameStatCode == 'G' || gameStatCode == 'P');
+    }
+
+    public isGameStatMissOrMissedPoints(gameStatCode: string): boolean {
+        return (gameStatCode == 'M' || gameStatCode == 'MP');
+    }
+
     public async findEventsByMatchId(matchId: number): Promise<MatchEvent[]> {
         let query = this.entityManager.createQueryBuilder(MatchEvent, 'matchEvent')
             .andWhere('matchEvent.matchId = :matchId', { matchId });
@@ -111,7 +119,7 @@ export default class MatchEventService extends BaseService<MatchEvent> {
             .andWhere('matchEvent.matchId = :matchId', {matchId: matchId})
             .andWhere('matchEvent.period = :period', {period: periodNumber});
 
-        if (gameStatCode == 'G') {
+        if (this.isGameStatGoalOrPoints(gameStatCode)) {
             query.andWhere('(matchEvent.eventCategory = :scoreEventCategory or ' +
                   'matchEvent.eventCategory = :statEventCategory)', {
                     scoreEventCategory: 'score',
@@ -120,7 +128,7 @@ export default class MatchEventService extends BaseService<MatchEvent> {
                 .andWhere('(matchEvent.type = :scoreEventType or ' +
                   'matchEvent.type = :statEventType)', {
                     scoreEventType: 'update',
-                    statEventType: recordPoints ? 'Points' : gameStatCode
+                    statEventType: gameStatCode
                 });
 
             if (teamSequence == 1) {
@@ -158,9 +166,7 @@ export default class MatchEventService extends BaseService<MatchEvent> {
                 });
 
             query.andWhere('matchEvent.type = :type', {
-              type: recordPoints ?
-                this.getRecordPointsType(gameStatCode) :
-                gameStatCode
+              type: gameStatCode
             });
 
             if (teamSequence == 1) {
@@ -187,7 +193,7 @@ export default class MatchEventService extends BaseService<MatchEvent> {
         }
 
         query.orderBy('matchEvent.id', 'DESC');
-        if (gameStatCode == 'G') {
+        if (this.isGameStatGoalOrPoints(gameStatCode)) {
           query.limit(2);
         } else {
           query.limit(1);
@@ -202,23 +208,12 @@ export default class MatchEventService extends BaseService<MatchEvent> {
         foul: string
     ) {
       switch (gameStatCode) {
-        case 'M':
+        case 'MP':
           return points.toString();
         case 'F':
           return foul;
         default:
           return '';
-      }
-    }
-
-    private getRecordPointsType(gameStatCode: string) {
-      switch (gameStatCode) {
-        case 'M':
-          return 'MissedPoints';
-        case 'F':
-          return 'Foul';
-        default:
-          return gameStatCode;
       }
     }
 }

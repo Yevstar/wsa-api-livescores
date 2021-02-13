@@ -806,15 +806,9 @@ export class MatchController extends BaseController {
             eventTimestamp, user.id, 'team1score', team1Score.toString(),
             'team2score', team2Score.toString());
         if (gameStatCode) {
-            if (recordPoints) {
-                this.matchEventService.logMatchEvent(matchId, 'stat', 'Points', periodNumber,
-                    eventTimestamp, user.id, 'team' + teamSequence, points.toString(),
-                    'playerId', playerId ? playerId.toString() : '');
-            } else {
-                this.matchEventService.logMatchEvent(matchId, 'stat', gameStatCode, periodNumber,
-                    eventTimestamp, user.id, 'team' + teamSequence, positionId.toString(),
-                    'playerId', playerId ? playerId.toString() : '');
-            }
+            this.matchEventService.logMatchEvent(matchId, 'stat', gameStatCode, periodNumber,
+                eventTimestamp, user.id, 'team' + teamSequence, recordPoints ? points.toString() : positionId.toString(),
+                'playerId', playerId ? playerId.toString() : '');
         }
         return match;
     }
@@ -855,10 +849,11 @@ export class MatchController extends BaseController {
             : new Date(Date.now());
 
         if (recordPoints) {
+            // For TC which is timer change we will record the new and old times
             this.matchEventService.logMatchEvent(
                 matchId,
                 'stat',
-                this.getRecordPointsGameEventType(gameStatCode),
+                gameStatCode,
                 periodNumber,
                 eventTimestamp,
                 user.id,
@@ -897,26 +892,13 @@ export class MatchController extends BaseController {
         return match;
     }
 
-    private getRecordPointsGameEventType(gameStatCode: string) {
-      switch (gameStatCode) {
-        case 'M':
-          return "MissedPoints";
-        case 'F':
-          return "Foul";
-        case 'TC':
-          return 'TimerChange';
-        default:
-          return gameStatCode;
-      }
-    }
-
     private getRecordPointsAttribute1Value(
         gameStatCode: string,
         points: number,
         foul: string
     ) {
       switch (gameStatCode) {
-        case 'M':
+        case 'MP':
           return points.toString();
         case 'F':
           return foul;
@@ -2382,7 +2364,7 @@ export class MatchController extends BaseController {
         @QueryParam('foul') foul: string,
         @Res() response: Response
     ) {
-        if (gameStatCode == 'G' &&
+        if (this.matchEventService.isGameStatGoalOrPoints(gameStatCode) &&
           (!isNotNullAndUndefined(team1Score) || !isNotNullAndUndefined(team2Score))) {
               return response.status(400).send({
                   name: 'validation_error',
@@ -2396,7 +2378,7 @@ export class MatchController extends BaseController {
                     message: `Points and playerId can not be empty while removing record points`
                 });
         } else if (!recordPoints &&
-            gameStatCode == 'M' &&
+            this.matchEventService.isGameStatMissOrMissedPoints(gameStatCode) &&
             (!isNotNullAndUndefined(positionId) || !isNotNullAndUndefined(playerId))) {
               return response.status(400).send({
                   name: 'validation_error',
@@ -2425,7 +2407,7 @@ export class MatchController extends BaseController {
                 });
                 await this.matchEventService.deleteMatchEventByIds(existingMatchEventIds);
 
-                if (gameStatCode == 'G') {
+                if (this.matchEventService.isGameStatGoalOrPoints(gameStatCode)) {
                     let match = await this.matchService.findById(matchId);
                     if (recordPoints) {
                       teamSequence == 1 ?
@@ -2505,7 +2487,6 @@ export class MatchController extends BaseController {
                     canUpdateMatchEvents = false;
                     break;
                 }
-                me.processed = false;
             }
 
             if (canUpdateMatchEvents) {
@@ -2540,7 +2521,7 @@ export class MatchController extends BaseController {
                         match.team2Score = team2Score;
                     }
                     await this.matchService.createOrUpdate(match);
-                    this.sendMatchEvent(match, true, {user: user});
+                    this.sendMatchEvent(match, true);
                 }
                 return response.status(200).send({ "success" : true, data: saved });
             } else {
