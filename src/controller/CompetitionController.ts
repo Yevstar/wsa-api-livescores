@@ -109,6 +109,14 @@ export class CompetitionController extends BaseController {
                 c.linkedCompetitionId = competition.linkedCompetitionId;
                 c.gameTimeTrackingType = stringTONumber(competition.gameTimeTrackingType);
                 c.timeoutDetails = competition.timeoutDetails;
+                c.whoScoring = competition.whoScoring;
+                c.acceptScoring = competition.acceptScoring;
+                c.extraTime = stringToBoolean(competition.extraTime);
+                c.extraTimeFor = competition.extraTimeFor;
+                c.extraTimeType = competition.extraTimeType;
+                c.extraTimeDuration = competition.extraTimeDuration;
+                c.extraTimeMainBreak = competition.extraTimeMainBreak;
+                c.extraTimeQuarterBreak = competition.extraTimeQuarterBreak;
 
                 if(c.id===0){
                     c.uniqueKey = uuidv4();

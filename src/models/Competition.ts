@@ -236,6 +236,38 @@ export class Competition extends BaseEntity {
     @Column("json")
     timeoutDetails?: Record<string, any>;
 
+    @IsString()
+    @Column()
+    whoScoring?: string;
+
+    @IsString()
+    @Column()
+    acceptScoring?: string;
+
+    @IsBoolean()
+    @Column()
+    extraTime?: boolean;
+
+    @IsString()
+    @Column()
+    extraTimeFor?: string;
+
+    @IsString()
+    @Column()
+    extraTimeType?: string;
+
+    @IsString()
+    @Column()
+    extraTimeDuration?: string;
+
+    @IsString()
+    @Column()
+    extraTimeMainBreak?: string;
+
+    @IsString()
+    @Column()
+    extraTimeQuarterBreak?: string;
+
     @OneToMany(() => Division, division => division.competition)
     divisions: Division[];
 
