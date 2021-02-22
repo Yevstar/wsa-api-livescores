@@ -29,6 +29,7 @@ export default class UmpireAllocation {
 
 
     public async allocateUmpires(competitionId: number, authToken: string, userId: number): Promise<void> {
+        await this.competitionService.findOneOrFail(competitionId);
         const inputData = await this.prepareUmpiresAllocationAlgorithmInputData(competitionId);
         await this.callUmpireAllocationAlgorithm(inputData, authToken, userId);
     }

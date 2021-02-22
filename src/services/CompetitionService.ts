@@ -249,6 +249,11 @@ export default class CompetitionService extends BaseService<Competition> {
                 )
             .getOne();
     }
+
+    async findOneOrFail(competitionId: number): Promise<Competition> {
+
+        return await this.entityManager.findOneOrFail(Competition, competitionId);
+    }
 }
 
 export interface RequestFilterCompetitionDashboard {
