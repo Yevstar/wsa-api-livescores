@@ -31,7 +31,7 @@ export class UmpireAllocationController extends BaseController {
 
         const {competitionId} = await this.validate(response, pathParams, UmpireAllocationPathParams);
         const {rounds} = await this.validate(response, allocationQueryParams, UmpireAllocationBodyParams);
-        console.log(`rounds controller - ${JSON.stringify(rounds)}`);
+
         const allocationDto = {
             competitionId,
             rounds,
