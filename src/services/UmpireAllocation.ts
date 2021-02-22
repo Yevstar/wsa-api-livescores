@@ -9,6 +9,7 @@ import BookingService from "./BookingService";
 import {UmpireAllocationSetting} from "../models/UmpireAllocationSetting";
 import {UmpireAllocationTypeEnum} from "../models/enums/UmpireAllocationTypeEnum";
 import axios from "axios";
+import {AllocationDto} from "../controller/dto/AllocationDto";
 // TODO move to env
 const competitionApi = 'https://competition-api-dev.worldsportaction.com';
 
@@ -28,17 +29,19 @@ export default class UmpireAllocation {
     private readonly bookingService: BookingService;
 
 
-    public async allocateUmpires(competitionId: number, authToken: string, userId: number): Promise<void> {
-        await this.competitionService.findOneOrFail(competitionId);
-        const inputData = await this.prepareUmpiresAllocationAlgorithmInputData(competitionId);
+    public async allocateUmpires(allocationDto: AllocationDto, authToken: string, userId: number): Promise<void> {
+        await this.competitionService.findOneOrFail(allocationDto.competitionId);
+        const inputData = await this.prepareUmpiresAllocationAlgorithmInputData(allocationDto);
         await this.callUmpireAllocationAlgorithm(inputData, authToken, userId);
     }
 
-    protected async prepareUmpiresAllocationAlgorithmInputData(competitionId: number): Promise<IUmpireAllocationAlgorithmInput> {
-
+    protected async prepareUmpiresAllocationAlgorithmInputData(
+        allocationDto: AllocationDto
+    ): Promise<IUmpireAllocationAlgorithmInput> {
+        const {competitionId, rounds} = allocationDto;
         const [competitionData, rawDraws, rawUmpires, umpiresAllocationSetting] = await Promise.all([
             this.competitionService.getCompetitionDataForUmpiresAllocationAlgorithm(competitionId),
-            this.divisionService.getDrawsForCompetition(competitionId),
+            this.divisionService.getDrawsForCompetition(competitionId, rounds),
             this.umpireService.getAllUmpiresAttachedToCompetition(competitionId),
             this.competitionService.getUmpireAllocationSettingForCompetitionOrganiser(competitionId),
         ]);

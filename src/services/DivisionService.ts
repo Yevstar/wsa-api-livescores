@@ -68,17 +68,26 @@ export default class DivisionService extends BaseService<Division> {
         }
     }
 
-    async getDrawsForCompetition(competitionId: number): Promise<Division[]> {
+    async getDrawsForCompetition(competitionId: number, rounds: number[]): Promise<Division[]> {
+        const query = this.entityManager.createQueryBuilder(Division, 'd');
+        if (rounds && rounds.length > 0) {
+            query.leftJoinAndSelect(
+                'd.rounds', 'r', 'r.divisionId = d.id and r.id in (:rounds)',
+                {rounds},
+            )
+        } else {
+            query.leftJoinAndSelect('d.rounds', 'r')
 
-        return await this.entityManager.createQueryBuilder(Division, 'd')
-            .leftJoinAndSelect('d.rounds', 'r')
-            .leftJoinAndSelect('r.matches', 'm')
+        }
+
+        query.leftJoinAndSelect('r.matches', 'm')
             .leftJoinAndSelect('m.team1', 't1')
             .leftJoinAndSelect('t1.division', 'td')
             .leftJoinAndSelect('t1.linkedCompetitionOrganisation', 'linkedTeamOrg')
             .leftJoinAndSelect('linkedTeamOrg.organisation', 'teamOrg')
             .where('m.competitionId = :competitionId', {competitionId})
-            .getMany();
+
+        return await query.getMany();
     }
 
 }

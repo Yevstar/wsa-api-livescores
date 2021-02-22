@@ -1,0 +1,14 @@
+import {
+    IsInt,
+    Max,
+    Min,
+} from "class-validator";
+import {Type} from "class-transformer";
+
+export class UmpireAllocationPathParams {
+    @Min(1)
+    @Max(1000000)
+    @IsInt()
+    @Type(() => Number)
+    competitionId: number;
+}
