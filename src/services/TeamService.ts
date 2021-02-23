@@ -37,8 +37,8 @@ export default class TeamService extends BaseService<Team> {
         exactlyMatchesName: boolean = false
     ): Promise<Team[]> {
         let query = this.entityManager.createQueryBuilder(Team, 'team')
-            .innerJoinAndSelect('team.division', 'division')
-            .innerJoinAndSelect('team.competition', 'competition');
+            .innerJoinAndSelect('team.division', 'division', 'division.deleted_at is null')
+            .innerJoinAndSelect('team.competition', 'competition', 'competition.deleted_at is null');
 
         if (name) {
             query = exactlyMatchesName
