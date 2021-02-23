@@ -32,11 +32,7 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
             throw new ForbiddenError("Participated-in organization can't create pools!")
         }
 
-        const competitionOrganisation = await this.competitionOrganisationService.getByCompetitionOrganisation(competitionId, organisationId);
-
         body.competition = await this.entityManager.findOneOrFail(Competition, competitionId);
-        body.umpires = await this.setUmpires(competitionOrganisation.id, body.umpires);
-
         return await this.createOrUpdate(body);
     }
 
