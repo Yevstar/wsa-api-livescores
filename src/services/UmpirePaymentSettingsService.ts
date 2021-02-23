@@ -190,6 +190,6 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
             }
         }
 
-        return await this.entityManager.findOne(UmpirePaymentSetting, savedSetting);
+        return await this.entityManager.findOne(UmpirePaymentSetting, {id: savedSetting.id});
     }
 }
