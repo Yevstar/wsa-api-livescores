@@ -2,23 +2,23 @@ import { Brackets } from "typeorm";
 import { Service } from "typedi";
 import nodeMailer from "nodemailer";
 
-import {User} from "../models/User";
+import { User } from "../models/User";
 import BaseService from "./BaseService";
-import {Role} from "../models/security/Role";
-import {Function} from "../models/security/Function";
-import {EntityType} from "../models/security/EntityType";
-import {UserRoleEntity} from "../models/security/UserRoleEntity";
-import {RoleFunction} from "../models/security/RoleFunction";
-import {LinkedCompetitionOrganisation} from "../models/LinkedCompetitionOrganisation";
-import {Competition} from "../models/Competition";
-import {logger} from '../logger';
-import {LinkedEntities} from "../models/views/LinkedEntities";
-import {LinkedOrganisations} from "../models/views/LinkedOrganisations";
+import { Role } from "../models/security/Role";
+import { Function } from "../models/security/Function";
+import { EntityType } from "../models/security/EntityType";
+import { UserRoleEntity } from "../models/security/UserRoleEntity";
+import { RoleFunction } from "../models/security/RoleFunction";
+import { LinkedCompetitionOrganisation } from "../models/LinkedCompetitionOrganisation";
+import { Competition } from "../models/Competition";
+import { logger } from '../logger';
+import { LinkedEntities } from "../models/views/LinkedEntities";
+import { LinkedOrganisations } from "../models/views/LinkedOrganisations";
 import AppConstants from "../utils/AppConstants";
-import {CommunicationTrack} from "../models/CommunicationTrack";
-import { isNotNullAndUndefined } from "../utils/Utils";
-import {In} from "typeorm-plus";
-import {CompetitionOrganisation} from "../models/CompetitionOrganisation";
+import { CommunicationTrack } from "../models/CommunicationTrack";
+import { getParentEmail, isNotNullAndUndefined } from "../utils/Utils";
+import { In } from "typeorm-plus";
+import { CompetitionOrganisation } from "../models/CompetitionOrganisation";
 
 @Service()
 export default class UserService extends BaseService<User> {
@@ -94,13 +94,9 @@ export default class UserService extends BaseService<User> {
     ) {
         try {
             let result = await this.entityManager.query("call " +
-                "wsa_users.usp_delete_entity_roles_by_user(?,?,?,?,?)", [
-                    userId,
-                    roleId,
-                    inputEntityId,
-                    inputEntityTypeId,
-                    linkedEntityTypeId
-            ]);
+                "wsa_users.usp_delete_entity_roles_by_user(?,?,?,?,?)",
+                [userId, roleId, inputEntityId, inputEntityTypeId, linkedEntityTypeId]
+            );
             return result[0];
         } catch (error) {
             throw error;
@@ -398,12 +394,13 @@ export default class UserService extends BaseService<User> {
             }
         });
 
+        const targetEmail = receiverData.isInActive == 1 ? getParentEmail(receiverData.email) : receiverData.email;
         const mailOptions = {
             from: {
                 name: "NetballConnect",
                 address: "mail@netballconnect.com"
             },
-            to: receiverData.email.toLowerCase(),
+            to: targetEmail.toLowerCase(),
             replyTo: "donotreply@worldsportaction.com",
             subject: subject,
             html: html
@@ -522,11 +519,14 @@ export default class UserService extends BaseService<User> {
             .andWhere('le.inputEntityId in (:entityIdList)', { entityIdList: entityIdList });
 
         if (userName) {
-            query.andWhere('(LOWER(u.firstName) like :query or ' +
-              'LOWER(u.lastName) like :query or ' +
-              'LOWER(CONCAT_WS(\' \', u.firstName, u.lastName)) like :query)', {
-                  query: `${userName.toLowerCase()}%`
-            });
+            query.andWhere(
+                '(LOWER(u.firstName) like :query or ' +
+                'LOWER(u.lastName) like :query or ' +
+                'LOWER(CONCAT_WS(\' \', u.firstName, u.lastName)) like :query)',
+                {
+                    query: `${userName.toLowerCase()}%`
+                }
+            );
         }
 
         return query.getMany();
@@ -548,7 +548,7 @@ export default class UserService extends BaseService<User> {
 
     async findByRoles(roles: number[], entityType: number, entityId: number): Promise<User[]>;
     async findByRoles(role: number, entityType: number, entityId: number): Promise<User[]>;
-    async findByRoles(roles: number|number[], entityType: number, entityId: number): Promise<User[]> {
+    async findByRoles(roles: number | number[], entityType: number, entityId: number): Promise<User[]> {
         if (!Array.isArray(roles)) {
             roles = [roles];
         }
@@ -565,13 +565,13 @@ export default class UserService extends BaseService<User> {
     };
 
     async isCompetitionOrganisationUmpire(competitionOrganisationId: number, userId: number): Promise<boolean> {
-        const competitionUmpires = await this.findByRoles([15,20], 6, competitionOrganisationId);
+        const competitionUmpires = await this.findByRoles([15, 20], 6, competitionOrganisationId);
         return competitionUmpires.filter(umpire => userId === umpire.id).length > 0;
     }
 
-    public async updateMatchUmpirePaymentStatus(matchUmpireId: number, status:'paid'|'approved', approvedBy:number = undefined): Promise<any> {
+    public async updateMatchUmpirePaymentStatus(matchUmpireId: number, status: 'paid' | 'approved', approvedBy: number = undefined): Promise<any> {
         try {
-            if(status === 'approved') {
+            if (status === 'approved') {
                 const currentTime = new Date();
                 await this.entityManager.query(`update wsa.matchUmpire set paymentStatus = ?, approved_at = ?, 
                 approvedByUserId = ? where id = ?`, [status, currentTime, approvedBy, matchUmpireId]);

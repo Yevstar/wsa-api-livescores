@@ -1,4 +1,4 @@
-import {IsBoolean, IsDate, IsNumber, IsString, IsArray} from "class-validator";
+import { IsBoolean, IsDate, IsNumber, IsString, IsArray } from "class-validator";
 import {
     BaseEntity,
     Column,
@@ -6,16 +6,15 @@ import {
     PrimaryGeneratedColumn,
     OneToMany,
     ManyToMany,
-    ManyToOne,
-    JoinColumn, OneToOne, JoinTable
+    OneToOne,
 } from "typeorm-plus";
 
-import {Team} from './Team';
-import {LinkedCompetitionOrganisation} from './LinkedCompetitionOrganisation';
-import {UserRoleEntity} from './security/UserRoleEntity';
-import {UmpirePool} from "./UmpirePool";
-import {UmpireCompetitionRank} from "./UmpireCompetitionRank";
-import {MatchUmpire} from "./MatchUmpire";
+import { Team } from './Team';
+import { LinkedCompetitionOrganisation } from './LinkedCompetitionOrganisation';
+import { UserRoleEntity } from './security/UserRoleEntity';
+import { UmpirePool } from "./UmpirePool";
+import { UmpireCompetitionRank } from "./UmpireCompetitionRank";
+import { MatchUmpire } from "./MatchUmpire";
 
 /// For referring the data model of another db we are giving the
 /// name as below wsa_users.<name>.
@@ -104,6 +103,10 @@ export class User extends BaseEntity {
     @IsDate()
     @Column({ nullable: true, default: null })
     lastAppLogin: Date;
+
+    @IsNumber()
+    @Column({ nullable: false, default: 0 })
+    isInActive: number;
 
     @IsString()
     @Column()

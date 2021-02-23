@@ -1,17 +1,17 @@
-import {Service} from "typedi";
+import { Service } from "typedi";
 import BaseService from "./BaseService";
-import {Team} from "../models/Team";
-import {Player} from "../models/Player";
-import {TeamLadder} from "../models/views/TeamLadder";
-import {User} from "../models/User";
-import {DeepLinkPlayer} from "../models/DeepLinkPlayer";
-import {logger} from '../logger';
-import {isArrayPopulated, isNotNullAndUndefined, paginationData} from "../utils/Utils"
+import { Team } from "../models/Team";
+import { Player } from "../models/Player";
+import { TeamLadder } from "../models/views/TeamLadder";
+import { User } from "../models/User";
+import { DeepLinkPlayer } from "../models/DeepLinkPlayer";
+import { logger } from '../logger';
+import { getParentEmail, isArrayPopulated, isNotNullAndUndefined, paginationData } from "../utils/Utils"
 import nodeMailer from "nodemailer";
-import {DeleteResult} from "typeorm-plus";
+import { DeleteResult } from "typeorm-plus";
 import AppConstants from "../utils/AppConstants";
 import { CommunicationTrack } from "../models/CommunicationTrack";
-import {LinkedCompetitionOrganisation} from "../models/LinkedCompetitionOrganisation";
+import { LinkedCompetitionOrganisation } from "../models/LinkedCompetitionOrganisation";
 
 "use strict";
 
@@ -41,15 +41,19 @@ export default class TeamService extends BaseService<Team> {
             .innerJoinAndSelect('team.competition', 'competition');
 
         if (name) {
-            query = exactlyMatchesName ?
-              query.andWhere('LOWER(team.name) like :name', { name: `${name.toLowerCase()}` }) :
-              query.andWhere('LOWER(team.name) like :name', { name: `${name.toLowerCase()}%` });
+            query = exactlyMatchesName
+                ? query.andWhere('LOWER(team.name) like :name', { name: `${name.toLowerCase()}` })
+                : query.andWhere('LOWER(team.name) like :name', { name: `${name.toLowerCase()}%` });
         }
-        if (isNotNullAndUndefined(competitionId)) query = query.andWhere('team.competitionId = :competitionId', { competitionId });
+        if (isNotNullAndUndefined(competitionId)) {
+            query = query.andWhere('team.competitionId = :competitionId', { competitionId });
+        }
         if (isNotNullAndUndefined(competitionOrganisationId) && competitionOrganisationId != 0) {
             query = query.andWhere('team.competitionOrganisationId = :competitionOrganisationId', { competitionOrganisationId });
         }
-        if (isNotNullAndUndefined(divisionName)) query = query.andWhere('division.name = :divisionName', { divisionName });
+        if (isNotNullAndUndefined(divisionName)) {
+            query = query.andWhere('division.name = :divisionName', { divisionName });
+        }
         return query.getMany();
     }
 
@@ -196,7 +200,9 @@ export default class TeamService extends BaseService<Team> {
         let query = this.entityManager.createQueryBuilder(Player, 'player');
         query.innerJoinAndSelect('player.team', 'team');
         query.leftJoinAndSelect('player.user', 'user');
-        if (ids) query.andWhere("player.teamId in (:ids)", { ids });
+        if (ids) {
+            query.andWhere("player.teamId in (:ids)", { ids });
+        }
         query.andWhere("(player.email <> '' AND player.email IS NOT NULL)");
         return query.getMany();
     }
@@ -205,7 +211,9 @@ export default class TeamService extends BaseService<Team> {
         let query = this.entityManager.createQueryBuilder(Player, 'player');
         query.innerJoinAndSelect('player.team', 'team');
         query.leftJoinAndSelect('player.user', 'user');
-        if (ids) query.andWhere("player.id in (:ids)", { ids });
+        if (ids) {
+            query.andWhere("player.id in (:ids)", { ids });
+        }
         query.andWhere("(player.email <> '' AND player.email IS NOT NULL)");
         return query.getMany();
     }
@@ -250,23 +258,23 @@ export default class TeamService extends BaseService<Team> {
         search: string,
         divisionId: number,
         noOfTeams: number,
-        sortBy:string = undefined,
-        sortOrder:"ASC"|"DESC" = undefined
+        sortBy: string = undefined,
+        sortOrder: "ASC" | "DESC" = undefined
     ): Promise<any> {
         let result = await this.entityManager.query(
             "call wsa.usp_get_scoring_stats_by_player(?,?,?,?,?,?,?,?,?,?,?)",
             [
-              competitionId,
-              competitionOrganisationId,
-              playerId,
-              aggregate,
-              limit,
-              offset,
-              search,
-              divisionId,
-              noOfTeams,
-              sortBy,
-              sortOrder
+                competitionId,
+                competitionOrganisationId,
+                playerId,
+                aggregate,
+                limit,
+                offset,
+                search,
+                divisionId,
+                noOfTeams,
+                sortBy,
+                sortOrder
             ]
         );
 
@@ -361,26 +369,27 @@ export default class TeamService extends BaseService<Team> {
                 rejectUnauthorized: false
             }
         });
+        const targetMail = player?.user?.isInActive == 1 ? getParentEmail(player.email) : player.email;
         const mailOptions = {
             from: {
                 name: "NetballConnect",
                 address: "mail@netballconnect.com"
             },
-            to: player.email,
+            to: targetMail,
             replyTo: "donotreply@worldsportaction.com",
             subject: `Invite Mail ${teamName}`,
             html: mailHtml
         };
-        if(Number(process.env.SOURCE_MAIL) == 1){
-            mailOptions.html = ' To: '+mailOptions.to + '<br><br>'+ mailOptions.html
+        if (Number(process.env.SOURCE_MAIL) == 1) {
+            mailOptions.html = ' To: ' + mailOptions.to + '<br><br>' + mailOptions.html
             mailOptions.to = process.env.TEMP_DEV_EMAIL
         }
         let cTrack = new CommunicationTrack();
-        try{
-            cTrack.id= 0;
+        try {
+            cTrack.id = 0;
 
             cTrack.communicationType = 10;
-           // cTrack.contactNumber = player.phoneNumber
+            // cTrack.contactNumber = player.phoneNumber
             cTrack.entityId = player.id;
             cTrack.deliveryChannelRefId = 1;
             cTrack.emailId = player.email;
@@ -389,26 +398,24 @@ export default class TeamService extends BaseService<Team> {
             cTrack.content = mailOptions.html;
             cTrack.createdBy = user.id;
 
-        await transporter.sendMail(mailOptions, (err, info) => {
-            if (err) {
-                logger.error(`TeamService - sendInviteMail : ${err}`);
-                cTrack.statusRefId = 2;
-                this.insertIntoCommunicationTrack(cTrack);
-                // Here i commented the below code as the caller is not handling the promise reject
-                // return Promise.reject(err);
-            } else {
-                logger.info('TeamService - sendInviteMail : Mail sent successfully');
-                cTrack.statusRefId = 1;
-                this.insertIntoCommunicationTrack(cTrack);
-            }
-            transporter.close();
-            return Promise.resolve();
-        });
+            await transporter.sendMail(mailOptions, (err, info) => {
+                if (err) {
+                    logger.error(`TeamService - sendInviteMail : ${err}`);
+                    cTrack.statusRefId = 2;
+                    this.insertIntoCommunicationTrack(cTrack);
+                    // Here i commented the below code as the caller is not handling the promise reject
+                    // return Promise.reject(err);
+                } else {
+                    logger.info('TeamService - sendInviteMail : Mail sent successfully');
+                    cTrack.statusRefId = 1;
+                    this.insertIntoCommunicationTrack(cTrack);
+                }
+                transporter.close();
+                return Promise.resolve();
+            });
+        } catch (error) {
 
-
-        }catch(error){
-
-         }
+        }
     }
 
     public async softDelete(id: number, userId: number): Promise<DeleteResult> {
@@ -430,7 +437,7 @@ export default class TeamService extends BaseService<Team> {
         if (isNotNullAndUndefined(organisationId) && organisationId != 0) {
             query.innerJoin(LinkedCompetitionOrganisation,
                 'lco',
-                '(lco.competitionId = team.competitionId and lco.organisationId = :id)', {id: organisationId}
+                '(lco.competitionId = team.competitionId and lco.organisationId = :id)', { id: organisationId }
             );
             query.andWhere('team.competitionOrganisationId = lco.id');
         }
@@ -473,8 +480,10 @@ export default class TeamService extends BaseService<Team> {
             .getCount();
     }
 
-    public async insertIntoCommunicationTrack(ctrack : CommunicationTrack ) {
-        await this.entityManager.query(`insert into wsa_common.communicationTrack(id, emailId,content,subject,contactNumber,userId,entityId,communicationType,statusRefId,deliveryChannelRefId,createdBy) values(?,?,?,?,?,?,?,?,?,?,?)`,
-        [ctrack.id,ctrack.emailId,ctrack.content,ctrack.subject,ctrack.contactNumber,ctrack.userId,ctrack.entityId,ctrack.communicationType,ctrack.statusRefId,ctrack.deliveryChannelRefId,ctrack.createdBy]);
+    public async insertIntoCommunicationTrack(ctrack: CommunicationTrack) {
+        await this.entityManager.query(
+            `insert into wsa_common.communicationTrack(id, emailId,content,subject,contactNumber,userId,entityId,communicationType,statusRefId,deliveryChannelRefId,createdBy) values(?,?,?,?,?,?,?,?,?,?,?)`,
+            [ctrack.id, ctrack.emailId, ctrack.content, ctrack.subject, ctrack.contactNumber, ctrack.userId, ctrack.entityId, ctrack.communicationType, ctrack.statusRefId, ctrack.deliveryChannelRefId, ctrack.createdBy]
+        );
     }
 }

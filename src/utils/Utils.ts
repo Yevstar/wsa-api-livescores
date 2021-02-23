@@ -217,7 +217,7 @@ export function validationForField({ filedList, values }: { filedList: string[],
             if (isNullOrEmpty(val[field])) {
                 msg.push(`The field '${field}' is required.`);
             } else {
-                if (field === 'dateOfBirth' || field === 'DOB' ||  field === 'Date') {
+                if (field === 'dateOfBirth' || field === 'DOB' || field === 'Date') {
                     const date = typeof tempValue[field] === 'string' ? parseDateString(tempValue[field]) : tempValue[field];
                     if (date.getFullYear() < 1000) {
                         msg.push(`The '${field}' value is invalid date.`);
@@ -246,7 +246,7 @@ export function validationForField({ filedList, values }: { filedList: string[],
             templateRes.push(tempValue);
             successRes.push({ ...tempValue, line: index + 2 });
         } else {
-            message[`Line ${index + 2}`] = {  ...val, message: msg };
+            message[`Line ${index + 2}`] = { ...val, message: msg };
         }
     });
 
@@ -340,4 +340,13 @@ export function removeDuplicatesByValue(originalArray, properties) {
         }
     }
     return newArray;
+}
+
+export function getParentEmail(email: string): string {
+    let parentEmail = email.split(".");
+    let parentEmailString = parentEmail[0];
+    for (let n = 1; n < parentEmail.length - 1; n++) {
+        parentEmailString = parentEmailString + "." + parentEmail[n];
+    }
+    return parentEmailString;
 }
