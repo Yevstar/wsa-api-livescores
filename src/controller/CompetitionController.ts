@@ -584,12 +584,13 @@ export class CompetitionController extends BaseController {
         @QueryParam('competitionIds') competitionIds: number[],
         @QueryParam('competitionOrganisationIds') competitionOrganisationIds: number[],
         @QueryParam('teamIds') teamIds: number[],
-        @QueryParam('playerIds') playerIds: number[]
+        @QueryParam('playerIds') playerIds: number[],
+        @QueryParam('fetchTeamCompetition') fetchTeamCompetition: boolean = false
     ): Promise<{ competitions: Competition[], linkedCompetitionOrganisations: LinkedCompetitionOrganisation[], teams: Team[], players: Player[] }> {
 
         const competitions = await this.competitionService.findByIds(competitionIds);
         const linkedCompetitionOrganisations = await this.linkedCompetitionOrganisationService.findByIds(competitionOrganisationIds);
-        const teams = await this.teamService.findByTeamIds(teamIds);
+        const teams = await this.teamService.findByTeamIds(teamIds, fetchTeamCompetition);
         const players = await this.playerService.findByIds(playerIds);
 
         return {competitions, linkedCompetitionOrganisations, teams, players};

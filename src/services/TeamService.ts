@@ -459,10 +459,18 @@ export default class TeamService extends BaseService<Team> {
         return query.getMany();
     }
 
-    public async findByTeamIds(ids: number[]): Promise<Team[]> {
+    public async findByTeamIds(
+        ids: number[],
+        fetchTeamCompetition: boolean = false
+    ): Promise<Team[]> {
         if (isArrayPopulated(ids)) {
-            let query = this.entityManager.createQueryBuilder(Team, 'team')
-                .andWhere('team.id in (:ids)', { ids: ids })
+            let query = this.entityManager.createQueryBuilder(Team, 'team');
+
+            if (fetchTeamCompetition) {
+                query.innerJoinAndSelect('team.competition', 'competition', 'competition.deleted_at is null');
+            }
+
+            query.andWhere('team.id in (:ids)', { ids: ids })
                 .andWhere('team.deleted_at is null');
 
             return query.getMany();
