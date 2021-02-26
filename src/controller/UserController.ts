@@ -748,9 +748,11 @@ export class UserController extends BaseController {
                 )
             );
         }
-        await Promise.all(promiseList);
+        for (const func in promiseList) {
+            await func;
+        }
 
-        this.sendUserRosterUpdateNotification(user);
+        await this.sendUserRosterUpdateNotification(user);
     }
 
     private async sendUserRosterUpdateNotification(user: User) {
@@ -835,8 +837,10 @@ export class UserController extends BaseController {
         ureArray.push(ure1);
         await this.ureService.batchCreateOrUpdate(ureArray);
         // Not keeping await for notifyChangeRole as its having wait times.
-        this.notifyChangeRole(user.id);
-        Promise.all(teamChatPromiseArray);
+        await this.notifyChangeRole(user.id);
+        for (const func in teamChatPromiseArray) {
+            await func;
+        }
     }
 
     @Authorized()
