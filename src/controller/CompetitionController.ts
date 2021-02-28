@@ -117,6 +117,7 @@ export class CompetitionController extends BaseController {
                 c.extraTimeDuration = competition.extraTimeDuration;
                 c.extraTimeMainBreak = competition.extraTimeMainBreak;
                 c.extraTimeQuarterBreak = competition.extraTimeQuarterBreak;
+                c.foulsSettings = competition.foulsSettings;
 
                 if(c.id===0){
                     c.uniqueKey = uuidv4();

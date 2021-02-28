@@ -12,7 +12,7 @@ import {
 import {Location} from "./Location";
 import {CompetitionVenue} from "./CompetitionVenue";
 import {LinkedCompetitionOrganisation} from "./LinkedCompetitionOrganisation";
-import {IsBoolean, IsNumber, IsString, ValidateNested, IsJSON} from "class-validator";
+import {IsBoolean, IsNumber, IsString, ValidateNested, IsJSON, IsArray} from "class-validator";
 import { CompetitionInvitees } from "./CompetitionInvitees";
 import {UmpireCompetitionRank} from "./UmpireCompetitionRank";
 import {UmpirePool} from "./UmpirePool";
@@ -263,6 +263,10 @@ export class Competition extends BaseEntity {
     @IsString()
     @Column()
     extraTimeMainBreak?: string;
+
+    @IsArray()
+    @Column("json")
+    foulsSettings?: Record<string, any>[];
 
     @IsString()
     @Column()
