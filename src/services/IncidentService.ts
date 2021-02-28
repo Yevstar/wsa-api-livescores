@@ -30,7 +30,7 @@ export default class IncidentService extends BaseService<Incident> {
                     incidentPlayer: "incident.incidentPlayers",
                     player: "incidentPlayer.player",
                     incidentMedia: "incident.incidentMediaList",
-                    user: "incident.foulPlayer",
+                    user: "incident.foulUser",
                 }
             },
         });
@@ -59,7 +59,7 @@ export default class IncidentService extends BaseService<Incident> {
             .leftJoinAndSelect('match.team1', 'team1')
             .leftJoinAndSelect('match.team2', 'team2')
             .leftJoinAndSelect('venueCourt.venue', 'venue')
-            .leftJoinAndSelect('incident.foulPlayer', 'user');
+            .leftJoinAndSelect('incident.foulUser', 'user');
 
         query.andWhere("incident.deleted_at is null");
 

@@ -24,7 +24,7 @@ export class RefereeReportDto {
   incidentTime: Date;
 
   @IsNumber()
-  foulPlayerId: number;
+  foulUserId: number;
 
   @IsString()
   foulPlayerRole: string;

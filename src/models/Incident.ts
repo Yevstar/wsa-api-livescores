@@ -88,11 +88,11 @@ export class Incident extends BaseEntity {
     @ValidateNested()
     @OneToOne(type => User)
     @JoinColumn()
-    foulPlayer?: User;
+    foulUser?: User;
 
     @IsNumber()
     @Column()
-    foulPlayerId?: number
+    foulUserId?: number
 
     @IsString()
     @Column()
