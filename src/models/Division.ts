@@ -1,7 +1,7 @@
 import {Team} from './Team';
 import {
     BaseEntity,
-    Column,
+    Column, DeleteDateColumn,
     Entity,
     JoinColumn, JoinTable,
     ManyToMany, ManyToOne,

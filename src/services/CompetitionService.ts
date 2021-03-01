@@ -207,9 +207,9 @@ export default class CompetitionService extends BaseService<Competition> {
     async getCompetitionDataForUmpiresAllocationAlgorithm(competitionId: number): Promise<Competition> {
 
         const competitionData = this.entityManager.createQueryBuilder(Competition, 'c')
-            .leftJoinAndSelect('c.divisions', 'div')
-            .leftJoinAndSelect('c.teams', 'teams')
-            .leftJoinAndSelect('teams.division', 'teamDiv')
+            .leftJoinAndSelect('c.divisions', 'div', 'div.deleted_at is null')
+            .leftJoinAndSelect('c.teams', 'teams', 'teams.deleted_at is null')
+            .leftJoinAndSelect('teams.division', 'teamDiv', 'teamDiv.deleted_at is null')
             .leftJoinAndSelect('teams.linkedCompetitionOrganisation', 'linkedTeamOrg')
             .leftJoinAndSelect('linkedTeamOrg.organisation', 'teamOrg')
             .where('c.id = :competitionId', {competitionId})

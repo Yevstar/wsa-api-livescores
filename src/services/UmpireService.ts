@@ -142,7 +142,8 @@ export class UmpireService extends BaseService<User> {
                 entityTypeId: EntityType.COMPETITION_ORGANISATION,
                 compOrgIds,
                 roles: [Role.UMPIRE, Role.UMPIRE_COACH],
-            });
+            })
+            .andWhere('u.isDeleted = 0');
     }
 
     async findOneByCompetitionId(

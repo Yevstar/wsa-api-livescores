@@ -80,9 +80,10 @@ export default class DivisionService extends BaseService<Division> {
 
         }
 
-        query.leftJoinAndSelect('r.matches', 'm')
-            .leftJoinAndSelect('m.team1', 't1')
-            .leftJoinAndSelect('t1.division', 'td')
+        query
+            .leftJoinAndSelect('r.matches', 'm', 'm.deleted_at is null')
+            .leftJoinAndSelect('m.team1', 't1', 't1.deleted_at is null')
+            .leftJoinAndSelect('t1.division', 'td', 'td.deleted_at is null')
             .leftJoinAndSelect('t1.linkedCompetitionOrganisation', 'linkedTeamOrg')
             .leftJoinAndSelect('linkedTeamOrg.organisation', 'teamOrg')
             .where('m.competitionId = :competitionId', {competitionId})
