@@ -56,8 +56,6 @@ import {validate} from "class-validator";
 import {Response} from 'express';
 import {plainToClass} from "class-transformer";
 import MatchEventService from "../services/MatchEventService";
-import NonPlayerService from "../services/NonPlayerService";
-import CompetitionRegService from "../services/CompetitionRegService";
 
 export class BaseController {
 
@@ -192,12 +190,6 @@ export class BaseController {
 
     @Inject()
     protected matchEventService: MatchEventService;
-
-    @Inject()
-    protected nonPlayerService: NonPlayerService;
-
-    @Inject()
-    protected competitionRegService: CompetitionRegService;
 
     protected async updateFirebaseData(user: User, password: string) {
         user.password = password;
