@@ -47,6 +47,7 @@ import {getMatchUpdatedNonSilentNotificationMessage} from "../utils/Notification
 import {StateTimezone} from "../models/StateTimezone";
 import {convertMatchStartTimeByTimezone} from '../utils/TimeFormatterUtils';
 import AppConstants from "../utils/AppConstants";
+import {MatchSinBin} from "../models/MatchSinBin";
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
@@ -56,12 +57,14 @@ export class MatchController extends BaseController {
         @Param("id") id: number,
         @QueryParam("includeFouls") includeFouls: boolean = false,
         @QueryParam("includeTimeouts") includeTimeouts: boolean = false,
+        @QueryParam("includeSinBins") includeSinBins: boolean = false,
         @QueryParam("gameType") gameType: "NETBALL" | "FOOTBALL" | "BASKETBALL"
     ) {
         return this.matchService.findMatchById(
             id,
             includeFouls,
             includeTimeouts,
+            includeSinBins,
             gameType
         );
     }
@@ -76,6 +79,7 @@ export class MatchController extends BaseController {
         let deletedMatch = await this.matchService.softDelete(id, user.id);
         this.matchService.deleteMatchFouls(id);
         this.matchService.deleteMatchTimeouts(id);
+        this.matchService.deleteMatchSinBin(id);
         this.sendMatchEvent(match, false, {user: user, subtype: 'match_removed'});
         return deletedMatch;
     }
@@ -828,6 +832,7 @@ export class MatchController extends BaseController {
         @QueryParam('points') points: number,
         @QueryParam('foul') foul: string,
         @QueryParam('msChangeToStartTime') msChangeToStartTime: number,
+        @QueryParam('sinbinApplied') sinbinApplied: boolean = false,
         @Res() response: Response
     ) {
         if (recordPoints &&
@@ -850,7 +855,7 @@ export class MatchController extends BaseController {
 
         if (recordPoints) {
             // For TC which is timer change we will record the new and old times
-            this.matchEventService.logMatchEvent(
+            const savedMatchEvent = await this.matchEventService.logMatchEvent(
                 matchId,
                 'stat',
                 gameStatCode,
@@ -865,6 +870,17 @@ export class MatchController extends BaseController {
 
             if (gameStatCode == 'F') {
                 this.matchService.logMatchFouls(user.id, matchId, teamSequence, foul);
+                if (sinbinApplied) {
+                   /// We will get sinbin when a foul type technical is getting logged
+                   /// and user said the player is assigned a sinbin
+                   this.matchService.logMatchSinBin(
+                      savedMatchEvent['identifiers'][0].id,
+                      match,
+                      teamSequence,
+                      playerId,
+                      user.id
+                   );
+                }
             } else if (gameStatCode == 'TC') {
               let newMatchStartTime = new Date(match.startTime.getTime() + (msFromStart - msChangeToStartTime));
               if (!isNotNullAndUndefined(match.originalStartTime)) {
@@ -1045,6 +1061,7 @@ export class MatchController extends BaseController {
         @QueryParam('pausedMs') pausedMs: number,
         @QueryParam('isBreak') isBreak: boolean,
         @QueryParam('period') period: number,
+        @BodyParam("matchSinBins") matchSinBins: MatchSinBin[],
         @Res() response: Response
     ) {
         let match = await this.matchService.findById(matchId);
@@ -1065,11 +1082,17 @@ export class MatchController extends BaseController {
                 isBreak,
                 totalPausedTime
             );
+            if (isArrayPopulated(matchSinBins)) {
+              let timestamps = matchSinBins.map(sinbin => sinbin.matchEvent.eventTimestamp);
+              let dbMatchSinBins = await this.matchService.findMatchSinBins(matchId, timestamps);
+              await this.matchService.updateMatchSinBins(dbMatchSinBins, totalPausedTime);
+            }
 
             this.sendMatchEvent(match, false, {user: user});
             let eventTimestamp = msFromStart ? new Date(match.startTime.getTime() + msFromStart) : new Date(Date.now());
             this.matchEventService.logMatchEvent(matchId, 'timer', 'resume', period, eventTimestamp,
                 user.id, 'isBreak', isBreak ? "true" : "false");
+
             return savedMatch;
         } else {
             return response.status(400).send({
@@ -2407,8 +2430,8 @@ export class MatchController extends BaseController {
                 });
                 await this.matchEventService.deleteMatchEventByIds(existingMatchEventIds);
 
+                let match = await this.matchService.findById(matchId);
                 if (this.matchEventService.isGameStatGoalOrPoints(gameStatCode)) {
-                    let match = await this.matchService.findById(matchId);
                     if (recordPoints) {
                       teamSequence == 1 ?
                         match.team1Score = team1Score - points :
@@ -2422,6 +2445,11 @@ export class MatchController extends BaseController {
                     this.sendMatchEvent(match, true, {user: user});
                 } else if (gameStatCode == 'F') {
                     await this.matchService.removeMatchFoul(matchId, teamSequence, foul);
+                    await this.matchService.removeMatchSinBin(
+                        matchId,
+                        teamSequence == 1 ? match.team1Id : match.team2Id,
+                        existingMatchEventIds
+                    );
                 }
             }
 

@@ -23,6 +23,7 @@ import {User} from "../models/User";
 import {MatchSheet} from "../models/MatchSheet";
 import {MatchFouls} from "../models/MatchFouls";
 import {MatchTimeout} from "../models/MatchTimeout";
+import {MatchSinBin} from "../models/MatchSinBin";
 import AWS from "aws-sdk";
 
 const s3 = new AWS.S3({
@@ -65,6 +66,7 @@ export default class MatchService extends BaseService<Match> {
         id: number,
         includeFouls: boolean = false,
         includeTimeouts: boolean = false,
+        includeSinBins: boolean = false,
         gameType?: "NETBALL" | "FOOTBALL" | "BASKETBALL"
     ): Promise<Match> {
         let query = this.entityManager.createQueryBuilder(Match, 'match')
@@ -84,6 +86,22 @@ export default class MatchService extends BaseService<Match> {
                     'match.matchTimeouts',
                     'matchTimeouts',
                     'matchTimeouts.deleted_at is null'
+                );
+            }
+            if (includeSinBins) {
+                query.leftJoinAndSelect(
+                    'match.matchSinBins',
+                    'matchSinBins',
+                    'matchSinBins.deleted_at is null'
+                );
+                query.leftJoinAndSelect(
+                  'matchSinBins.matchEvent',
+                  'matchEvent'
+                );
+                query.leftJoinAndSelect(
+                  'matchSinBins.player',
+                  'player',
+                  'player.deleted_at is null'
                 );
             }
         }
@@ -760,5 +778,64 @@ export default class MatchService extends BaseService<Match> {
             .set({deleted_at: endTime})
             .where("matchId = :matchId", {matchId})
             .execute();
+    }
+
+    public async logMatchSinBin(
+        matchEventId: number,
+        match: Match,
+        teamSequence: number,
+        playerId: number,
+        createdBy: number
+    ) {
+        let matchSinBin = new MatchSinBin();
+
+        matchSinBin.matchEventId = matchEventId;
+        matchSinBin.matchId = match.id;
+        matchSinBin.teamId = teamSequence == 1 ? match.team1Id : match.team2Id;
+        matchSinBin.playerId = playerId;
+        matchSinBin.created_by = createdBy;
+
+        return MatchSinBin.save(matchSinBin);
+    }
+
+    public async deleteMatchSinBin(matchId: number) {
+        let endTime = new Date(Date.now());
+
+        return this.entityManager.createQueryBuilder(MatchSinBin, 'matchSinBin')
+            .update()
+            .set({deleted_at: endTime})
+            .where("matchId = :matchId", {matchId})
+            .execute();
+    }
+
+    public async removeMatchSinBin(
+        matchId: number,
+        teamId: number,
+        matchEventIds: number[],
+    ) {
+      return this.entityManager.createQueryBuilder().delete().from(MatchSinBin)
+          .where("matchId = :matchId", {matchId})
+          .andWhere("matchEventId in (:matchEventIds)", {matchEventIds})
+          .andWhere("teamId = :teamId", {teamId})
+          .execute();
+    }
+
+    public async findMatchSinBins(matchId: number, eventTimestamps: Date[]): Promise<MatchSinBin[]> {
+        return this.entityManager.createQueryBuilder(MatchSinBin, 'matchSinBin')
+            .innerJoinAndSelect('matchSinBin.matchEvent', 'matchEvent')
+            .where("matchSinBin.matchId = :matchId", {matchId: matchId})
+            .andWhere("matchEvent.eventTimestamp in (:timeStamps)", {timeStamps: eventTimestamps})
+            .getMany();
+    }
+
+    public async updateMatchSinBins(matchSinBins: MatchSinBin[], totalPausedMs: number) {
+        if (isArrayPopulated(matchSinBins)) {
+            for (let sinbin of matchSinBins) {
+              sinbin.totalPausedMs += totalPausedMs;
+            }
+            return this.entityManager.save(MatchSinBin.name, matchSinBins);
+        }
+
+        return null;
     }
 }

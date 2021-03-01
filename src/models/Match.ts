@@ -12,6 +12,7 @@ import {Roster} from "./security/Roster";
 import { MatchUmpire } from './MatchUmpire';
 import { MatchFouls } from './MatchFouls';
 import { MatchTimeout } from './MatchTimeout';
+import { MatchSinBin } from './MatchSinBin';
 
 @Entity()
 export class Match extends BaseEntity {
@@ -229,6 +230,11 @@ export class Match extends BaseEntity {
     @OneToMany(type => MatchTimeout, matchTimeout => matchTimeout.match)
     @JoinColumn()
     matchTimeouts: MatchTimeout[];
+
+    @ValidateNested()
+    @OneToMany(type => MatchSinBin, matchSinBin => matchSinBin.match)
+    @JoinColumn()
+    matchSinBins: MatchSinBin[];
 
     rosters: Roster[];
     matchUmpires: MatchUmpire[];
