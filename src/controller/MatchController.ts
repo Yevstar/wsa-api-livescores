@@ -136,7 +136,15 @@ export class MatchController extends BaseController {
         }
 
         if (search === null || search === undefined) search = '';
-
+        if (competitionOrganisationId) {
+            const competitionOrganisation = await this.competitionOrganisationService.findById(competitionOrganisationId);
+            const competition = await this.competitionService.findById(competitionId);
+            // viewiing as competitionOrganiser - show everything!
+            if (competitionOrganisation.orgId == competition.organisationId) {
+                competitionOrganisationId = null;
+            }
+        }
+        
         const matchFound = await this.matchService.findByParam(
             from,
             to,
