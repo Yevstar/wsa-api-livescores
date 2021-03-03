@@ -28,6 +28,10 @@ export default class UmpireAllocation {
     @Inject()
     private readonly bookingService: BookingService;
 
+    modelName(): string {
+        return Competition.name;
+    }
+
 
     public async allocateUmpires(allocationDto: AllocationDto, authToken: string, userId: number): Promise<void> {
         await this.competitionService.findOneOrFail(allocationDto.competitionId);

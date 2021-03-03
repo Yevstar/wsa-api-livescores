@@ -15,9 +15,6 @@ import {UmpirePool} from "../models/UmpirePool";
 import CompetitionOrganisationService from "./CompetitionOrganisationService";
 import {PermissionError} from "../exceptions/PermissionError";
 import {RankUmpireDto} from "../controller/dto/RankUmpireDto";
-import { CompetitionReg } from "../models/CompetitionReg";
-import { NonPlayer } from "../models/NonPlayer";
-import { RegistrationStatusEnum } from "../models/enums/RegistrationStatusEnum";
 
 export class UmpireService extends BaseService<User> {
     modelName(): string {
@@ -140,18 +137,13 @@ export class UmpireService extends BaseService<User> {
         return this.entityManager.createQueryBuilder(User,"u")
             .leftJoinAndSelect("u.userRoleEntities", "roles")
             .leftJoinAndSelect("u.competitionRank", "competitionRank")
-            .leftJoin(CompetitionOrganisation,'co', 'co.id = roles.entityId and co.deleted_at is null')
-            .leftJoin(Competition,'cl', 'cl.id = co.competitionId and cl.deleted_at is null')
-            .leftJoin(CompetitionReg,'c','c.competitionUniqueKey = cl.uniqueKey and c.isDeleted = 0')
-            .leftJoin(NonPlayer,'np', 'np.competitionId = c.id and np.userId = u.id and np.isDeleted = 0')
             .loadRelationCountAndMap('u.matchesCount', 'u.matchUmpires')
             .where("roles.entityTypeId = :entityTypeId AND roles.entityId IN (:compOrgIds) AND roles.roleId IN (:roles)", {
                 entityTypeId: EntityType.COMPETITION_ORGANISATION,
                 compOrgIds,
                 roles: [Role.UMPIRE, Role.UMPIRE_COACH],
             })
-            .andWhere('case when np.id is not null then np.statusRefId != :deregisterStatus else 1 end',{deregisterStatus: RegistrationStatusEnum.DEREISTERED})
-            ;
+            .andWhere('u.isDeleted = 0');
     }
 
     async findOneByCompetitionId(
