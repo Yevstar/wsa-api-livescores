@@ -549,6 +549,12 @@ export class UmpireService extends BaseService<User> {
 
         return umpiresDivision;
     }
+
+    async getDetailedUmpire(competitionId: number, umpireId: number, organisationId: number): Promise<DetailedUmpire> {
+
+        // TODO
+        return {} as DetailedUmpire;
+    }
 }
 
 export type UmpiresSortType = "firstName" | "lastName" | "email" | "mobileNumber" | "rank";
@@ -563,4 +569,19 @@ type RawPool = {
     u_id: number,
     div_id: number,
     up_id: number;
+}
+
+export type DetailedUmpire = {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    mobileNumber: string;
+    organisations: [];
+    selectedOrganisations: [];
+    isUmpire: boolean;
+    isUmpireCoach: boolean;
+    umpireOwnTeam: boolean;
+    teams: [];
+    selectedTeams: [];
 }

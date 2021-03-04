@@ -10,11 +10,14 @@ import {BaseController} from "./BaseController";
 import {CrudResponse} from "./dto/CrudResponse";
 import {User} from "../models/User";
 import {RequiredQueryParam} from "../decorators/RequiredQueryParamDecorator";
-import {UmpiresSortType} from "../services/UmpireService";
+import {DetailedUmpire, UmpiresSortType} from "../services/UmpireService";
 import {RankUmpireDto} from "./dto/RankUmpireDto";
 import {Response} from 'express';
 import {RankUmpireQueryParams} from "./dto/RankUmpireQueryParams";
 import {RankUmpireRouteParams} from "./dto/RankUmpireRouteParams";
+import {Umpire} from "../models/Umpire";
+import {UmpireDetailsPathParams} from "./dto/UmpireDetailsPathParams";
+import {OrganisationQueryParam} from "./dto/OrganisationQueryParam";
 
 @JsonController('/competitions/:competitionId/umpires')
 @Authorized()
@@ -43,6 +46,18 @@ export class UmpireController extends BaseController {
         crudResponse.data = await this.umpireService.addOrganisationNameToUmpiresWithURE(crudResponse.data);
 
         return crudResponse;
+    }
+
+    @Get('/:umpireId')
+    async getDetailedUmpire(
+        @Params() params: UmpireDetailsPathParams,
+        @QueryParams() queryParams: OrganisationQueryParam,
+        @Res() response: Response,
+    ): Promise<DetailedUmpire> {
+        const {competitionId, umpireId} = await this.validate(response, params, UmpireDetailsPathParams);
+        const {organisationId} = await this.validate(response, queryParams, OrganisationQueryParam);
+
+        return await this.umpireService.getDetailedUmpire(competitionId, umpireId, organisationId);
     }
 
     @Patch('/:umpireId/rank')
