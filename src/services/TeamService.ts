@@ -429,7 +429,8 @@ export default class TeamService extends BaseService<Team> {
         organisationId: number,
         competitionOrganisationId: number,
         competitionId: number,
-        teamName: string
+        teamName: string,
+        divisionsIds: number[] = [],
     ): Promise<Team[]> {
         let query = this.entityManager.createQueryBuilder(Team, 'team')
             .leftJoinAndSelect('team.division', 'division');
@@ -445,19 +446,23 @@ export default class TeamService extends BaseService<Team> {
             query.andWhere('team.id = :id', { id: teamId });
         }
         if (isNotNullAndUndefined(competitionOrganisationId) && competitionOrganisationId != 0) {
-            query.andWhere('team.competitionOrganisationId = :id', { id: competitionOrganisationId });
+            query.andWhere('team.competitionOrganisationId = :competitionOrganisationId', { competitionOrganisationId });
         }
         if (isNotNullAndUndefined(competitionId)) {
-            query.andWhere('team.competitionId = :id', { id: competitionId });
+            query.andWhere('team.competitionId = :competitionId', { competitionId });
         }
         if (isNotNullAndUndefined(teamName)) {
             query.andWhere('LOWER(team.name) like :query', { query: `${teamName.toLowerCase()}%` });
         }
+        if (isNotNullAndUndefined(divisionsIds) && divisionsIds.length > 0) {
+            query.andWhere('team.divisionId IN (:divisionsIds)', { divisionsIds });
+        }
 
         query.andWhere('team.deleted_at is null');
 
-        return query.getMany();
+        return await query.getMany();
     }
+
 
     public async findByTeamIds(
         ids: number[],

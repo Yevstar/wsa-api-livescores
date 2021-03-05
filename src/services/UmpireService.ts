@@ -15,6 +15,13 @@ import {UmpirePool} from "../models/UmpirePool";
 import CompetitionOrganisationService from "./CompetitionOrganisationService";
 import {PermissionError} from "../exceptions/PermissionError";
 import {RankUmpireDto} from "../controller/dto/RankUmpireDto";
+import * as _ from "lodash";
+import {Organisation} from "../models/security/Organisation";
+import {Team} from "../models/Team";
+import {UmpireSettingsService} from "./UmpireSettingsService";
+import {UmpireAllocationTypeEnum} from "../models/enums/UmpireAllocationTypeEnum";
+import {UmpireAllocatorTypeEnum} from "../models/enums/UmpireAllocatorTypeEnum";
+import TeamService from "./TeamService";
 
 export class UmpireService extends BaseService<User> {
     modelName(): string {
@@ -26,6 +33,12 @@ export class UmpireService extends BaseService<User> {
 
     @Inject()
     private readonly competitionOrganisationService: CompetitionOrganisationService;
+
+    @Inject()
+    private readonly umpireSettingsService: UmpireSettingsService;
+
+    @Inject()
+    private readonly teamService: TeamService;
 
     async findManyByCompetitionIdForOrganisation(
         competitionId: number,
@@ -551,9 +564,95 @@ export class UmpireService extends BaseService<User> {
     }
 
     async getDetailedUmpire(competitionId: number, umpireId: number, organisationId: number): Promise<DetailedUmpire> {
+        const competition = await this.entityManager.findOneOrFail(Competition, competitionId);
+        const isCompetitionOrganizer = await this.competitionService.isCompetitionOrganiser(organisationId, competitionId);
+        let competitionOrganizationsQuery = this.entityManager.createQueryBuilder(CompetitionOrganisation, 'compOrg');
+        competitionOrganizationsQuery.leftJoinAndSelect('compOrg.organisation', 'org');
 
-        // TODO
-        return {} as DetailedUmpire;
+        if (isCompetitionOrganizer) {
+            competitionOrganizationsQuery
+                .where("compOrg.competitionId = :competitionId", {
+                    competitionId,
+                });
+        } else {
+            competitionOrganizationsQuery
+                .where("compOrg.orgId = :orgId AND compOrg.competitionId = :competitionId", {
+                    orgId: organisationId,
+                    competitionId,
+                });
+        }
+        const compOrgs = await competitionOrganizationsQuery.getMany();
+        const compOrgIds = compOrgs.length > 0 ? compOrgs.map(compOrg => compOrg.id) : [null];
+
+        const query = this.getUmpiresQueryAttachedToCompetitionOrganisations(compOrgIds);
+            query.andWhere('u.id = :umpireId', {umpireId});
+
+        const umpire = await query.getOne();
+
+        if (!umpire) {
+            throw new NotFoundError();
+        }
+
+        const {id, firstName, lastName, email, mobileNumber} = umpire;
+        const isUmpire = !!umpire.userRoleEntities.find(ure => Role.UMPIRE === ure.roleId);
+        const isUmpireCoach = !!umpire.userRoleEntities.find(ure => Role.UMPIRE_COACH === ure.roleId);
+        let umpireOwnTeam = false;
+
+        const {umpireAllocationSettings} = (
+            await this.umpireSettingsService.getAllocationSettings(competitionId)) ||
+            {umpireAllocationSettings: []};
+
+        let allocationSettings = [];
+
+        if (isCompetitionOrganizer) {
+            allocationSettings = umpireAllocationSettings
+                .filter(setting => {
+                    return UmpireAllocationTypeEnum.OWN_TEAM === setting.umpireAllocationTypeRefId &&
+                        UmpireAllocatorTypeEnum.COMPETITION_ORGANISER === setting.umpireAllocatorTypeRefId;
+                });
+        } else {
+            allocationSettings = umpireAllocationSettings
+                .filter(setting => {
+                    return UmpireAllocationTypeEnum.OWN_TEAM === setting.umpireAllocationTypeRefId &&
+                        UmpireAllocatorTypeEnum.AFFILIATE_ORGANISATIONS === setting.umpireAllocatorTypeRefId;
+                });
+        }
+        umpireOwnTeam = allocationSettings.length > 0;
+
+        let divisionsIds = _.uniq(_.flattenDeep(allocationSettings
+            .map(setting => setting.divisions.map(division => division.id))));
+
+
+        let teams = [];
+        for (let compOrgId of compOrgIds) {
+            const compOrgTeams = await this.teamService.findTeams(
+                null,
+                null,
+                compOrgId,
+                competitionId,
+                null,
+                divisionsIds
+            );
+            teams.push(...compOrgTeams);
+        }
+        const selectedTeams = [] as Team[];
+        const selectedOrganisations = _.uniqBy(compOrgs.map(compOrg => compOrg.organisation), 'id');
+
+        const detailedUmpire = {
+            id,
+            firstName,
+            lastName,
+            email,
+            mobileNumber,
+            selectedOrganisations,
+            isUmpire,
+            isUmpireCoach,
+            umpireOwnTeam,
+            teams,
+            selectedTeams,
+        };
+
+        return detailedUmpire;
     }
 }
 
@@ -577,11 +676,10 @@ export type DetailedUmpire = {
     lastName: string;
     email: string;
     mobileNumber: string;
-    organisations: [];
-    selectedOrganisations: [];
+    selectedOrganisations: Organisation[];
     isUmpire: boolean;
     isUmpireCoach: boolean;
     umpireOwnTeam: boolean;
-    teams: [];
-    selectedTeams: [];
+    teams: Team[];
+    selectedTeams: Team[];
 }
