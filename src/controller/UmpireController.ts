@@ -48,15 +48,14 @@ export class UmpireController extends BaseController {
         return crudResponse;
     }
 
-    @Get('/:umpireId')
+    @Get('/details')
     async getDetailedUmpire(
         @Params() params: UmpireDetailsPathParams,
         @QueryParams() queryParams: OrganisationQueryParam,
         @Res() response: Response,
     ): Promise<DetailedUmpire> {
-        const {competitionId, umpireId} = await this.validate(response, params, UmpireDetailsPathParams);
-        const {organisationId} = await this.validate(response, queryParams, OrganisationQueryParam);
-
+        const {competitionId} = await this.validate(response, params, UmpireDetailsPathParams);
+        const {organisationId, umpireId} = await this.validate(response, queryParams, OrganisationQueryParam);
         return await this.umpireService.getDetailedUmpire(competitionId, umpireId, organisationId);
     }
 

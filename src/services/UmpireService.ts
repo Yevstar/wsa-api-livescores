@@ -566,41 +566,12 @@ export class UmpireService extends BaseService<User> {
     async getDetailedUmpire(competitionId: number, umpireId: number, organisationId: number): Promise<DetailedUmpire> {
         const competition = await this.entityManager.findOneOrFail(Competition, competitionId);
         const isCompetitionOrganizer = await this.competitionService.isCompetitionOrganiser(organisationId, competitionId);
-        let competitionOrganizationsQuery = this.entityManager.createQueryBuilder(CompetitionOrganisation, 'compOrg');
-        competitionOrganizationsQuery.leftJoinAndSelect('compOrg.organisation', 'org');
 
-        if (isCompetitionOrganizer) {
-            competitionOrganizationsQuery
-                .where("compOrg.competitionId = :competitionId", {
-                    competitionId,
-                });
-        } else {
-            competitionOrganizationsQuery
-                .where("compOrg.orgId = :orgId AND compOrg.competitionId = :competitionId", {
-                    orgId: organisationId,
-                    competitionId,
-                });
-        }
-        const compOrgs = await competitionOrganizationsQuery.getMany();
-        const compOrgIds = compOrgs.length > 0 ? compOrgs.map(compOrg => compOrg.id) : [null];
-
-        const query = this.getUmpiresQueryAttachedToCompetitionOrganisations(compOrgIds);
-            query.andWhere('u.id = :umpireId', {umpireId});
-
-        const umpire = await query.getOne();
-
-        if (!umpire) {
-            throw new NotFoundError();
-        }
-
-        const {id, firstName, lastName, email, mobileNumber} = umpire;
-        const isUmpire = !!umpire.userRoleEntities.find(ure => Role.UMPIRE === ure.roleId);
-        const isUmpireCoach = !!umpire.userRoleEntities.find(ure => Role.UMPIRE_COACH === ure.roleId);
         let umpireOwnTeam = false;
 
         const {umpireAllocationSettings} = (
             await this.umpireSettingsService.getAllocationSettings(competitionId)) ||
-            {umpireAllocationSettings: []};
+        {umpireAllocationSettings: []};
 
         let allocationSettings = [];
 
@@ -619,9 +590,26 @@ export class UmpireService extends BaseService<User> {
         }
         umpireOwnTeam = allocationSettings.length > 0;
 
+        let competitionOrganizationsQuery = this.entityManager.createQueryBuilder(CompetitionOrganisation, 'compOrg');
+        competitionOrganizationsQuery.leftJoinAndSelect('compOrg.organisation', 'org');
+
+        if (isCompetitionOrganizer) {
+            competitionOrganizationsQuery
+                .where("compOrg.competitionId = :competitionId", {
+                    competitionId,
+                });
+        } else {
+            competitionOrganizationsQuery
+                .where("compOrg.orgId = :orgId AND compOrg.competitionId = :competitionId", {
+                    orgId: organisationId,
+                    competitionId,
+                });
+        }
+        const compOrgs = await competitionOrganizationsQuery.getMany();
+        const compOrgIds = compOrgs.length > 0 ? compOrgs.map(compOrg => compOrg.id) : [null];
+
         let divisionsIds = _.uniq(_.flattenDeep(allocationSettings
             .map(setting => setting.divisions.map(division => division.id))));
-
 
         let teams = [];
         for (let compOrgId of compOrgIds) {
@@ -635,6 +623,28 @@ export class UmpireService extends BaseService<User> {
             );
             teams.push(...compOrgTeams);
         }
+
+        const query = this.getUmpiresQueryAttachedToCompetitionOrganisations(compOrgIds);
+            query.andWhere('u.id = :umpireId', {umpireId});
+
+        const umpire = await query.getOne();
+        console.log(`umpire - ${JSON.stringify(umpire)}`);
+        console.log(`umpireId - ${umpireId}`);
+        if (!umpire && umpireId) {
+            throw new NotFoundError();
+        }
+
+        if (!umpire && !umpireId) {
+            return {
+                umpireOwnTeam,
+                teams,
+            };
+        }
+
+        const {id, firstName, lastName, email, mobileNumber} = umpire;
+        const isUmpire = !!umpire.userRoleEntities.find(ure => Role.UMPIRE === ure.roleId);
+        const isUmpireCoach = !!umpire.userRoleEntities.find(ure => Role.UMPIRE_COACH === ure.roleId);
+
         const selectedTeams = [] as Team[];
         const selectedOrganisations = _.uniqBy(compOrgs.map(compOrg => compOrg.organisation), 'id');
 
@@ -671,15 +681,15 @@ type RawPool = {
 }
 
 export type DetailedUmpire = {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    mobileNumber: string;
-    selectedOrganisations: Organisation[];
-    isUmpire: boolean;
-    isUmpireCoach: boolean;
+    id?: number;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    mobileNumber?: string;
+    selectedOrganisations?: Organisation[];
+    isUmpire?: boolean;
+    isUmpireCoach?: boolean;
     umpireOwnTeam: boolean;
     teams: Team[];
-    selectedTeams: Team[];
+    selectedTeams?: Team[];
 }

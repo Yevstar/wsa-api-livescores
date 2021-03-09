@@ -1,5 +1,5 @@
 import {
-    IsInt,
+    IsInt, IsOptional,
     Max,
     Min,
 } from "class-validator";
@@ -11,4 +11,11 @@ export class OrganisationQueryParam {
     @Max(100000000)
     @IsInt()
     organisationId: number;
+
+    @Min(1)
+    @Max(1000000)
+    @IsInt()
+    @Type(() => Number)
+    @IsOptional()
+    umpireId?: number;
 }
