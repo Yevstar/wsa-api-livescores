@@ -458,7 +458,15 @@ export class UserController extends BaseController {
               }
               // Delete umpire coach ure
               await this.deleteRolesNecessary("UMPIRE_COACH", foundUser, entityId, entityTypeId, compId);
+              await this.deleteRolesNecessary("UMPIRE", foundUser, entityId, entityTypeId, compId);
+              let existsTeamUres = await this.ureService.getTeamUmpireUREs(foundUser.id);
+              for (const ure of existsTeamUres) {
+                  await this.deleteRolesNecessary("UMPIRE_TEAM", foundUser, ure.entityId, EntityType.TEAM, compId);
+              }
             }
+            const teamEntityId = 1;
+            const teamEntityTypeId = EntityType.TEAM;
+            await this.add(user, "UMPIRE_TEAM", teamEntityId, teamEntityTypeId, competitionId, userData, response);
             return await this.add(user, "UMPIRE", entityId, entityTypeId, competitionId, userData, response);
         } else if (isUmpireCoach) {
             const foundUser = await this.userService.findByEmail(userData.email.toLowerCase());
@@ -504,7 +512,7 @@ export class UserController extends BaseController {
     @Post('/add')
     async add(
         @HeaderParam("authorization") user: User,
-        @QueryParam("type", { required: true }) type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH",
+        @QueryParam("type", { required: true }) type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH" | "UMPIRE_TEAM",
         @QueryParam("entityId", { required: true }) entityId: number,
         @QueryParam('entityTypeId', { required: true }) entityTypeId: number,
         @QueryParam('competitionId') competitionId: number,
@@ -606,7 +614,7 @@ export class UserController extends BaseController {
     }
 
     private async processSendMail(
-        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH",
+        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH" | "UMPIRE_TEAM",
         userData: User,
         password: string,
         entityTypeId: number,
@@ -630,7 +638,7 @@ export class UserController extends BaseController {
     }
 
     private async canSendMailForAdd(
-        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH",
+        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH"| "UMPIRE_TEAM",
         user: User
     ) {
         switch (type) {
@@ -648,7 +656,7 @@ export class UserController extends BaseController {
     }
 
     private async getRoleIdForType(
-        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH",
+        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH" | "UMPIRE_TEAM",
     ) {
         let roleId;
         switch (type) {
@@ -664,6 +672,9 @@ export class UserController extends BaseController {
             case 'UMPIRE_COACH':
                 roleId = Role.UMPIRE_COACH;
                 break;
+            case 'UMPIRE_TEAM':
+                roleId = Role.UMPIRE;
+                break;
             default:
                 roleId = Role.MEMBER;
                 break;
@@ -672,7 +683,7 @@ export class UserController extends BaseController {
     }
 
     private async deleteRolesNecessary(
-        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH",
+        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH" | "UMPIRE_TEAM",
         user: User,
         entityId: number,
         entityTypeId: number,
@@ -696,6 +707,10 @@ export class UserController extends BaseController {
             case 'UMPIRE_COACH':
                 roleIdToDelete = Role.UMPIRE_COACH;
                 linkedEntityTypeId = EntityType.COMPETITION_ORGANISATION;
+                break;
+            case 'UMPIRE_TEAM':
+                roleIdToDelete = Role.UMPIRE;
+                linkedEntityTypeId = EntityType.TEAM;
                 break;
             default:
                 break;
@@ -748,7 +763,8 @@ export class UserController extends BaseController {
                 )
             );
         }
-        for (const func in promiseList) {
+
+        for (const func of promiseList) {
             await func;
         }
 
@@ -770,7 +786,7 @@ export class UserController extends BaseController {
     }
 
     private async createUREAndNotify(
-        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH",
+        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH" | "UMPIRE_TEAM",
         user: User,
         competitionId: number,
         createdBy: number
@@ -801,6 +817,11 @@ export class UserController extends BaseController {
                 loopData = user.affiliates;
                 roleId = Role.UMPIRE_COACH;
                 entityTypeId = EntityType.COMPETITION_ORGANISATION;
+                break;
+            case 'UMPIRE_TEAM':
+                loopData = user.teams;
+                roleId = Role.UMPIRE;
+                entityTypeId = EntityType.TEAM;
                 break;
             default:
                 break;
@@ -838,7 +859,7 @@ export class UserController extends BaseController {
         await this.ureService.batchCreateOrUpdate(ureArray);
         // Not keeping await for notifyChangeRole as its having wait times.
         await this.notifyChangeRole(user.id);
-        for (const func in teamChatPromiseArray) {
+        for (const func of teamChatPromiseArray) {
             await func;
         }
     }

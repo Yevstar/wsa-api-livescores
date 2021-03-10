@@ -127,4 +127,14 @@ export default class UserRoleEntityService extends BaseService<UserRoleEntity> {
             return [];
         }
     }
+
+    public async getTeamUmpireUREs(
+        userId: number,
+    ): Promise<UserRoleEntity[]> {
+
+        return await this.entityManager.createQueryBuilder(UserRoleEntity, 'ure')
+            .where('ure.userId = :userId', {userId})
+            .andWhere('ure.entityTypeId = :entityTypeId', {entityTypeId: EntityType.TEAM})
+            .getMany();
+    }
 }

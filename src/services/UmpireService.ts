@@ -628,8 +628,6 @@ export class UmpireService extends BaseService<User> {
             query.andWhere('u.id = :umpireId', {umpireId});
 
         const umpire = await query.getOne();
-        console.log(`umpire - ${JSON.stringify(umpire)}`);
-        console.log(`umpireId - ${umpireId}`);
         if (!umpire && umpireId) {
             throw new NotFoundError();
         }
