@@ -5,6 +5,8 @@ import {DeleteResult} from "typeorm-plus";
 import {EntityType} from "../models/security/EntityType";
 import {RoleFunction} from "../models/security/RoleFunction";
 import { isArrayPopulated } from '../utils/Utils';
+import {Team} from "../models/Team";
+import {Role} from "../models/security/Role";
 
 @Service()
 export default class UserRoleEntityService extends BaseService<UserRoleEntity> {
@@ -136,5 +138,18 @@ export default class UserRoleEntityService extends BaseService<UserRoleEntity> {
             .where('ure.userId = :userId', {userId})
             .andWhere('ure.entityTypeId = :entityTypeId', {entityTypeId: EntityType.TEAM})
             .getMany();
+    }
+
+    public async getSelectedTeamsForUmpire(
+        userId: number,
+    ): Promise<Team[]> {
+
+        return await this.entityManager.query(`
+            SELECT t.*
+            FROM wsa.\`team\` t
+            LEFT JOIN wsa_users.\`userRoleEntity\` ure
+                ON ure.entityId = t.id and t.deleted_at is null
+            WHERE ure.userId = ? and ure.entityTypeId = ? and ure.roleId = ?;
+        `, [userId, EntityType.TEAM, Role.UMPIRE]);
     }
 }

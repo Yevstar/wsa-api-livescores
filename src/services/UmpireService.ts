@@ -22,6 +22,7 @@ import {UmpireSettingsService} from "./UmpireSettingsService";
 import {UmpireAllocationTypeEnum} from "../models/enums/UmpireAllocationTypeEnum";
 import {UmpireAllocatorTypeEnum} from "../models/enums/UmpireAllocatorTypeEnum";
 import TeamService from "./TeamService";
+import UserRoleEntityService from "./UserRoleEntityService";
 
 export class UmpireService extends BaseService<User> {
     modelName(): string {
@@ -39,6 +40,9 @@ export class UmpireService extends BaseService<User> {
 
     @Inject()
     private readonly teamService: TeamService;
+
+    @Inject()
+    private readonly uresService: UserRoleEntityService;
 
     async findManyByCompetitionIdForOrganisation(
         competitionId: number,
@@ -643,7 +647,7 @@ export class UmpireService extends BaseService<User> {
         const isUmpire = !!umpire.userRoleEntities.find(ure => Role.UMPIRE === ure.roleId);
         const isUmpireCoach = !!umpire.userRoleEntities.find(ure => Role.UMPIRE_COACH === ure.roleId);
 
-        const selectedTeams = [] as Team[];
+        const selectedTeams = await this.uresService.getSelectedTeamsForUmpire(id);
         const selectedOrganisations = _.uniqBy(compOrgs.map(compOrg => compOrg.organisation), 'id');
 
         const detailedUmpire = {

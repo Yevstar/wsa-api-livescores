@@ -14,22 +14,22 @@ import {
     UploadedFile
 } from 'routing-controllers';
 import axios from 'axios';
-import { decode as atob } from 'base-64';
+import {decode as atob} from 'base-64';
 
-import { logger } from '../logger';
+import {logger} from '../logger';
 import {authToken, isNullOrEmpty, validationForField, arrangeCSVToJson, trim, formatPhoneNumber} from '../utils/Utils';
-import { LoginError } from '../exceptions/LoginError';
-import { User } from '../models/User';
-import { UserDevice } from '../models/UserDevice';
-import { UserRoleEntity } from '../models/security/UserRoleEntity';
-import { Role } from '../models/security/Role';
-import { EntityType } from '../models/security/EntityType';
-import { Team } from '../models/Team';
-import { LinkedCompetitionOrganisation } from '../models/LinkedCompetitionOrganisation';
-import { md5, isArrayPopulated } from '../utils/Utils';
-import { isNotNullAndUndefined } from '../utils/Utils';
-import { BaseController } from './BaseController';
-import { CommunicationTrack } from '../models/CommunicationTrack';
+import {LoginError} from '../exceptions/LoginError';
+import {User} from '../models/User';
+import {UserDevice} from '../models/UserDevice';
+import {UserRoleEntity} from '../models/security/UserRoleEntity';
+import {Role} from '../models/security/Role';
+import {EntityType} from '../models/security/EntityType';
+import {Team} from '../models/Team';
+import {LinkedCompetitionOrganisation} from '../models/LinkedCompetitionOrganisation';
+import {md5, isArrayPopulated} from '../utils/Utils';
+import {isNotNullAndUndefined} from '../utils/Utils';
+import {BaseController} from './BaseController';
+import {CommunicationTrack} from '../models/CommunicationTrack';
 
 @JsonController('/users')
 export class UserController extends BaseController {
@@ -94,7 +94,7 @@ export class UserController extends BaseController {
                 return await this.responseWithTokenAndUser(user.email.toLowerCase(), user.password, user, deviceId);
             }
         } finally {
-            response.status(404).send({ name: 'validation_error', message: 'Invalid access token' });
+            response.status(404).send({name: 'validation_error', message: 'Invalid access token'});
         }
     }
 
@@ -110,14 +110,14 @@ export class UserController extends BaseController {
                 const email = tokenResponse.data.email.toLowerCase();
                 const user = await this.userService.findByEmail(email);
                 if (!user) {
-                    response.status(203).send({ name: 'new_user', message: 'Need process registration' });
-                    return { user: { email } };
+                    response.status(203).send({name: 'new_user', message: 'Need process registration'});
+                    return {user: {email}};
                 } else {
                     return await this.responseWithTokenAndUser(user.email.toLowerCase(), user.password, user, deviceId);
                 }
             }
         } catch (e) {
-            return response.status(404).send({ name: 'validation_error', message: 'Invalid access token' });
+            return response.status(404).send({name: 'validation_error', message: 'Invalid access token'});
         }
     }
 
@@ -131,7 +131,7 @@ export class UserController extends BaseController {
         if (isNullOrEmpty(user.email) || isNullOrEmpty(user.password)) {
             return response
                 .status(422)
-                .send({ name: 'validation_error', message: 'Not all required field filled' });
+                .send({name: 'validation_error', message: 'Not all required field filled'});
         }
         const existing = await this.userService.findByEmail(user.email.toLowerCase());
         if (existing) {
@@ -168,7 +168,7 @@ export class UserController extends BaseController {
             await this.watchlistService.copyByUserId(deviceId, user.id);
             await this.deviceService.saveDevice(deviceId, undefined);
         }
-        return response.status(200).send({ name: 'logout', message: 'success' });
+        return response.status(200).send({name: 'logout', message: 'success'});
     }
 
     @Authorized('spectator')
@@ -211,7 +211,7 @@ export class UserController extends BaseController {
     @Patch('/changePassword')
     async changeUserPassword(
         @HeaderParam("authorization") user: User,
-        @QueryParam('password', { required: true }) password: string = undefined,
+        @QueryParam('password', {required: true}) password: string = undefined,
         @Res() response: Response
     ) {
         try {
@@ -284,8 +284,8 @@ export class UserController extends BaseController {
     @Patch('/device')
     async updateDevice(
         @HeaderParam("authorization") user: User,
-        @QueryParam('oldDeviceId', { required: true }) oldDeviceId: string,
-        @QueryParam('newDeviceId', { required: true }) newDeviceId: string,
+        @QueryParam('oldDeviceId', {required: true}) oldDeviceId: string,
+        @QueryParam('newDeviceId', {required: true}) newDeviceId: string,
         @Res() response: Response
     ) {
         if (oldDeviceId && newDeviceId) {
@@ -300,9 +300,9 @@ export class UserController extends BaseController {
             update = await this.deviceService.updateDeviceId(oldDeviceId, newDeviceId);
             logger.debug('UserDevice device id updated', update);
 
-            return response.status(200).send({ name: 'update_device', success: true });
+            return response.status(200).send({name: 'update_device', success: true});
         } else {
-            return response.status(200).send({ name: 'update_device', success: false });
+            return response.status(200).send({name: 'update_device', success: false});
         }
     }
 
@@ -349,20 +349,20 @@ export class UserController extends BaseController {
         } else if (deviceId) {
             watchlist = await this.watchlistService.findByParam(undefined, deviceId);
         } else {
-            return { competitionOrganisationIds: [], teamIds: [] }
+            return {competitionOrganisationIds: [], teamIds: []}
         }
 
         let competitionOrganisationIds = watchlist.filter(item => item.entityTypeId == EntityType.COMPETITION_ORGANISATION).map(item => item.entityId);
         let teamIds = watchlist.filter(item => item.entityTypeId == EntityType.TEAM).map(item => item.entityId);
-        return { teamIds, competitionOrganisationIds }
+        return {teamIds, competitionOrganisationIds}
     }
 
     @Authorized()
     @Post('/manager')
     async addManager(
         @HeaderParam("authorization") user: User,
-        @QueryParam('entityId', { required: true }) entityId: number,
-        @QueryParam('entityTypeId', { required: true }) entityTypeId: number,
+        @QueryParam('entityId', {required: true}) entityId: number,
+        @QueryParam('entityTypeId', {required: true}) entityTypeId: number,
         @QueryParam('competitionId') competitionId: number,
         @Body() userData: User,
         @Res() response: Response
@@ -399,13 +399,13 @@ export class UserController extends BaseController {
     @Post('/coach')
     async addCoach(
         @HeaderParam("authorization") user: User,
-        @QueryParam('entityId', { required: true }) entityId: number,
-        @QueryParam('entityTypeId', { required: true }) entityTypeId: number,
+        @QueryParam('entityId', {required: true}) entityId: number,
+        @QueryParam('entityTypeId', {required: true}) entityTypeId: number,
         @QueryParam('competitionId') competitionId: number,
         @Body() userData: User,
         @Res() response: Response
     ) {
-        const addCoachResponse =  await this.add(
+        const addCoachResponse = await this.add(
             user,
             "COACH",
             entityId,
@@ -424,45 +424,45 @@ export class UserController extends BaseController {
     @Post('/umpire')
     async addUmpire(
         @HeaderParam("authorization") user: User,
-        @QueryParam('entityId', { required: true }) entityId: number,
-        @QueryParam('entityTypeId', { required: true }) entityTypeId: number,
-        @QueryParam('isUmpire', { required: true }) isUmpire: boolean,
-        @QueryParam('isUmpireCoach', { required: true }) isUmpireCoach: boolean,
+        @QueryParam('entityId', {required: true}) entityId: number,
+        @QueryParam('entityTypeId', {required: true}) entityTypeId: number,
+        @QueryParam('isUmpire', {required: true}) isUmpire: boolean,
+        @QueryParam('isUmpireCoach', {required: true}) isUmpireCoach: boolean,
         @QueryParam('competitionId') competitionId: number,
         @Body() userData: User,
         @Res() response: Response
     ) {
         if (entityTypeId == EntityType.COMPETITION_ORGANISATION &&
             !isNotNullAndUndefined(competitionId)) {
-                return response.status(400).send({
-                    name: 'params_error',
-                    message: 'Missing mandatory data'
-                });
+            return response.status(400).send({
+                name: 'params_error',
+                message: 'Missing mandatory data'
+            });
         }
 
         if (isUmpire && isUmpireCoach) {
-          /// If the adding user is both then first create for umpire and
-          /// then add a additional URE for coach
-          await this.add(user, "UMPIRE", entityId, entityTypeId, competitionId, userData, response);
-          await this.add(user, "UMPIRE_COACH", entityId, entityTypeId, competitionId, userData, response);
+            /// If the adding user is both then first create for umpire and
+            /// then add a additional URE for coach
+            await this.add(user, "UMPIRE", entityId, entityTypeId, competitionId, userData, response);
+            await this.add(user, "UMPIRE_COACH", entityId, entityTypeId, competitionId, userData, response);
 
-          return userData;
+            return userData;
         } else if (isUmpire) {
             const foundUser = await this.userService.findByEmail(userData.email.toLowerCase());
             if (foundUser) {
-              var compId;
-              if (entityTypeId == EntityType.COMPETITION_ORGANISATION) {
-                  compId = competitionId;
-              } else {
-                  compId = entityId;
-              }
-              // Delete umpire coach ure
-              await this.deleteRolesNecessary("UMPIRE_COACH", foundUser, entityId, entityTypeId, compId);
-              await this.deleteRolesNecessary("UMPIRE", foundUser, entityId, entityTypeId, compId);
-              let existsTeamUres = await this.ureService.getTeamUmpireUREs(foundUser.id);
-              for (const ure of existsTeamUres) {
-                  await this.deleteRolesNecessary("UMPIRE_TEAM", foundUser, ure.entityId, EntityType.TEAM, compId);
-              }
+                var compId;
+                if (entityTypeId == EntityType.COMPETITION_ORGANISATION) {
+                    compId = competitionId;
+                } else {
+                    compId = entityId;
+                }
+                // Delete umpire coach ure
+                await this.deleteRolesNecessary("UMPIRE_COACH", foundUser, entityId, entityTypeId, compId);
+                await this.deleteRolesNecessary("UMPIRE", foundUser, entityId, entityTypeId, compId);
+                let existsTeamUres = await this.ureService.getTeamUmpireUREs(foundUser.id);
+                for (const ure of existsTeamUres) {
+                    await this.deleteRolesNecessary("UMPIRE_TEAM", foundUser, ure.entityId, EntityType.TEAM, compId);
+                }
             }
             const teamEntityId = 1;
             const teamEntityTypeId = EntityType.TEAM;
@@ -471,21 +471,28 @@ export class UserController extends BaseController {
         } else if (isUmpireCoach) {
             const foundUser = await this.userService.findByEmail(userData.email.toLowerCase());
             if (foundUser) {
-              var compId;
-              if (entityTypeId == EntityType.COMPETITION_ORGANISATION) {
-                  compId = competitionId;
-              } else {
-                  compId = entityId;
-              }
-              // Delete umpire coach ure
-              await this.deleteRolesNecessary("UMPIRE", foundUser, entityId, entityTypeId, compId);
+                var compId;
+                if (entityTypeId == EntityType.COMPETITION_ORGANISATION) {
+                    compId = competitionId;
+                } else {
+                    compId = entityId;
+                }
+                // Delete umpire coach ure
+                await this.deleteRolesNecessary("UMPIRE", foundUser, entityId, entityTypeId, compId);
+                let existsTeamUres = await this.ureService.getTeamUmpireUREs(foundUser.id);
+                for (const ure of existsTeamUres) {
+                    await this.deleteRolesNecessary("UMPIRE_TEAM", foundUser, ure.entityId, EntityType.TEAM, compId);
+                }
             }
+            const teamEntityId = 1;
+            const teamEntityTypeId = EntityType.TEAM;
+            await this.add(user, "UMPIRE_TEAM", teamEntityId, teamEntityTypeId, competitionId, userData, response);
             return await this.add(user, "UMPIRE_COACH", entityId, entityTypeId, competitionId, userData, response);
         } else {
-          return response.status(400).send({
-              name: 'params_error',
-              message: 'User should be an umpire or umpire coach or both'
-          });
+            return response.status(400).send({
+                name: 'params_error',
+                message: 'User should be an umpire or umpire coach or both'
+            });
         }
     }
 
@@ -493,7 +500,7 @@ export class UserController extends BaseController {
     @Post('/member')
     async addMember(
         @HeaderParam("authorization") user: User,
-        @QueryParam('competitionId', { required: true }) competitionId: number,
+        @QueryParam('competitionId', {required: true}) competitionId: number,
         @Body() userData: User,
         @Res() response: Response
     ) {
@@ -512,19 +519,19 @@ export class UserController extends BaseController {
     @Post('/add')
     async add(
         @HeaderParam("authorization") user: User,
-        @QueryParam("type", { required: true }) type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH" | "UMPIRE_TEAM",
-        @QueryParam("entityId", { required: true }) entityId: number,
-        @QueryParam('entityTypeId', { required: true }) entityTypeId: number,
+        @QueryParam("type", {required: true}) type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH" | "UMPIRE_TEAM",
+        @QueryParam("entityId", {required: true}) entityId: number,
+        @QueryParam('entityTypeId', {required: true}) entityTypeId: number,
         @QueryParam('competitionId') competitionId: number,
         @Body() userData: User,
         @Res() response: Response
     ) {
         if (entityTypeId == EntityType.COMPETITION_ORGANISATION &&
             !isNotNullAndUndefined(competitionId)) {
-                return response.status(400).send({
-                    name: 'params_error',
-                    message: 'Missing mandatory data'
-                });
+            return response.status(400).send({
+                name: 'params_error',
+                message: 'Missing mandatory data'
+            });
         }
 
         try {
@@ -603,6 +610,10 @@ export class UserController extends BaseController {
                 user
             );
 
+            if (type === "UMPIRE") {
+                userData.selectedTeams = await this.ureService.getSelectedTeamsForUmpire(userData.id);
+            }
+
             return userData;
         } catch (error) {
             logger.error(`Failed to add ${type} due to error -`, error);
@@ -622,23 +633,23 @@ export class UserController extends BaseController {
         user: User
     ) {
         if (this.canSendMailForAdd(type, userData) &&
-          (entityTypeId == EntityType.COMPETITION ||
-            entityTypeId == EntityType.COMPETITION_ORGANISATION)) {
-                let competitionData = await this.competitionService.findById(competitionId)
-                let roleId = await this.getRoleIdForType(type);
-                this.userService.sentMail(
-                    user,
-                    userData.teams ? userData.teams : null,
-                    competitionData,
-                    roleId,
-                    userData,
-                    password
-                );
+            (entityTypeId == EntityType.COMPETITION ||
+                entityTypeId == EntityType.COMPETITION_ORGANISATION)) {
+            let competitionData = await this.competitionService.findById(competitionId)
+            let roleId = await this.getRoleIdForType(type);
+            this.userService.sentMail(
+                user,
+                userData.teams ? userData.teams : null,
+                competitionData,
+                roleId,
+                userData,
+                password
+            );
         }
     }
 
     private async canSendMailForAdd(
-        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH"| "UMPIRE_TEAM",
+        type: "MANAGER" | "COACH" | "UMPIRE" | "MEMBER" | "UMPIRE_COACH" | "UMPIRE_TEAM",
         user: User
     ) {
         switch (type) {
@@ -726,9 +737,9 @@ export class UserController extends BaseController {
             );
             if (isArrayPopulated(rosters)) {
                 rosters.forEach((roster) => {
-                  promiseList.push(
-                      this.rosterService.deleteById(roster.id)
-                  );
+                    promiseList.push(
+                        this.rosterService.deleteById(roster.id)
+                    );
                 });
             }
             promiseList.push(
@@ -752,7 +763,7 @@ export class UserController extends BaseController {
                 )
             );
         } else if (entityTypeId == EntityType.COMPETITION_ORGANISATION &&
-                isNotNullAndUndefined(memberCompetitionId)) {
+            isNotNullAndUndefined(memberCompetitionId)) {
             promiseList.push(
                 this.userService.deleteRolesByUser(
                     user.id,
@@ -868,8 +879,8 @@ export class UserController extends BaseController {
     @Post('/importCoach')
     async importCoach(
         @HeaderParam("authorization") user: User,
-        @QueryParam('competitionId', { required: true }) competitionId: number,
-        @UploadedFile("file", { required: true }) file: Express.Multer.File,
+        @QueryParam('competitionId', {required: true}) competitionId: number,
+        @UploadedFile("file", {required: true}) file: Express.Multer.File,
         @Res() response: Response
     ) {
         await this.importUserWithRoles(user, competitionId, Role.COACH, file, response);
@@ -879,9 +890,9 @@ export class UserController extends BaseController {
     @Post('/import')
     async import(
         @HeaderParam("authorization") user: User,
-        @QueryParam('competitionId', { required: true }) competitionId: number,
-        @QueryParam('roleId', { required: true }) roleId: number,
-        @UploadedFile("file", { required: true }) file: Express.Multer.File,
+        @QueryParam('competitionId', {required: true}) competitionId: number,
+        @QueryParam('roleId', {required: true}) roleId: number,
+        @UploadedFile("file", {required: true}) file: Express.Multer.File,
         @Res() response: Response
     ) {
         await this.importUserWithRoles(user, competitionId, roleId, file, response);
@@ -916,7 +927,7 @@ export class UserController extends BaseController {
             requiredField.push('Organisation');
         }
 
-        const { result: importArr, message } = validationForField({
+        const {result: importArr, message} = validationForField({
             filedList: requiredField,
             values: data,
         });
@@ -1040,34 +1051,52 @@ export class UserController extends BaseController {
                     }
                 } else if (isArrayPopulated(linkedOrgDetailArray)) {
                     for (let org of linkedOrgDetailArray) {
-                      if (roleId == Role.UMPIRE) {
-                          var createUmpireURE = false;
-                          var createUmpireCoachURE = false;
+                        if (roleId == Role.UMPIRE) {
+                            var createUmpireURE = false;
+                            var createUmpireCoachURE = false;
 
-                          const umpire = i['Umpire'].toLowerCase();
-                          const umpireCoach = i['Umpire Coach'].toLowerCase();
+                            const umpire = i['Umpire'].toLowerCase();
+                            const umpireCoach = i['Umpire Coach'].toLowerCase();
 
-                          if ((isNullOrEmpty(umpire) && isNullOrEmpty(umpireCoach)) ||
+                            if ((isNullOrEmpty(umpire) && isNullOrEmpty(umpireCoach)) ||
                                 ((!isNullOrEmpty(umpire) &&
-                                (umpire == 'yes' || umpire == 'true')) &&
-                                isNullOrEmpty(umpireCoach))) {
+                                    (umpire == 'yes' || umpire == 'true')) &&
+                                    isNullOrEmpty(umpireCoach))) {
+                                createUmpireURE = true;
+                            } else if (isNullOrEmpty(umpire) &&
+                                (!isNullOrEmpty(umpireCoach) &&
+                                    (umpireCoach == 'yes' || umpireCoach == 'true'))) {
+                                createUmpireCoachURE = true;
+                            } else {
+                                if (!isNullOrEmpty(umpire) &&
+                                    (umpire == 'yes' || umpire == 'true')) {
                                     createUmpireURE = true;
-                          } else if (isNullOrEmpty(umpire) &&
-                              (!isNullOrEmpty(umpireCoach) &&
-                              (umpireCoach == 'yes' || umpireCoach == 'true'))) {
-                                  createUmpireCoachURE = true;
-                          } else {
-                            if (!isNullOrEmpty(umpire) &&
-                              (umpire == 'yes' || umpire == 'true')) {
-                                  createUmpireURE = true;
+                                }
+                                if (!isNullOrEmpty(umpireCoach) &&
+                                    (umpireCoach == 'yes' || umpireCoach == 'true')) {
+                                    createUmpireCoachURE = true;
+                                }
                             }
-                          if (!isNullOrEmpty(umpireCoach) &&
-                              (umpireCoach == 'yes' || umpireCoach == 'true')) {
-                                  createUmpireCoachURE = true;
-                          }
-                        }
 
-                        if (createUmpireURE) {
+                            if (createUmpireURE) {
+                                let ure = new UserRoleEntity();
+                                ure.roleId = roleId;
+                                ure.entityId = org.id;
+                                ure.entityTypeId = EntityType.COMPETITION_ORGANISATION;
+                                ure.userId = userDetails.id;
+                                ure.createdBy = user.id;
+                                ureArray.push(ure);
+                            }
+                            if (createUmpireCoachURE) {
+                                let ure = new UserRoleEntity();
+                                ure.roleId = Role.UMPIRE_COACH;
+                                ure.entityId = org.id;
+                                ure.entityTypeId = EntityType.COMPETITION_ORGANISATION;
+                                ure.userId = userDetails.id;
+                                ure.createdBy = user.id;
+                                ureArray.push(ure);
+                            }
+                        } else {
                             let ure = new UserRoleEntity();
                             ure.roleId = roleId;
                             ure.entityId = org.id;
@@ -1076,24 +1105,6 @@ export class UserController extends BaseController {
                             ure.createdBy = user.id;
                             ureArray.push(ure);
                         }
-                        if (createUmpireCoachURE) {
-                            let ure = new UserRoleEntity();
-                            ure.roleId = Role.UMPIRE_COACH;
-                            ure.entityId = org.id;
-                            ure.entityTypeId = EntityType.COMPETITION_ORGANISATION;
-                            ure.userId = userDetails.id;
-                            ure.createdBy = user.id;
-                            ureArray.push(ure);
-                        }
-                      } else {
-                          let ure = new UserRoleEntity();
-                          ure.roleId = roleId;
-                          ure.entityId = org.id;
-                          ure.entityTypeId = EntityType.COMPETITION_ORGANISATION;
-                          ure.userId = userDetails.id;
-                          ure.createdBy = user.id;
-                          ureArray.push(ure);
-                      }
                     }
                 }
 
@@ -1221,21 +1232,21 @@ export class UserController extends BaseController {
             }
 
             if (notifyUser && deviceId) {
-              this.firebaseService.sendMessageChunked({
-                  tokens: [deviceId],
-                  data: {
-                      type: 'watchlist_updated'
-                  }
-              });
+                this.firebaseService.sendMessageChunked({
+                    tokens: [deviceId],
+                    data: {
+                        type: 'watchlist_updated'
+                    }
+                });
             }
         }
     }
 
     private async removeUserWatchlist(
-      user: User,
-      deviceId: string = undefined,
-      entityId: number,
-      entityTypeId: number
+        user: User,
+        deviceId: string = undefined,
+        entityId: number,
+        entityTypeId: number
     ) {
         if (entityTypeId) {
             let teamIds: number[] = [];
@@ -1286,22 +1297,22 @@ export class UserController extends BaseController {
         if (isArrayPopulated(ures)) {
             ures.forEach((ure) => {
                 if (ure.roleId == Role.MANAGER ||
-                      ure.roleId == Role.PLAYER ||
-                      ure.roleId == Role.COACH) {
-                          if (ure.entityTypeId == EntityType.COMPETITION_ORGANISATION) {
-                              competitionOrganisationIdSet.add(ure.entityId);
-                          } else {
-                              teamIdSet.add(ure.entityId);
-                          }
-                      }
+                    ure.roleId == Role.PLAYER ||
+                    ure.roleId == Role.COACH) {
+                    if (ure.entityTypeId == EntityType.COMPETITION_ORGANISATION) {
+                        competitionOrganisationIdSet.add(ure.entityId);
+                    } else {
+                        teamIdSet.add(ure.entityId);
+                    }
+                }
             });
         }
 
         let userWatchlist = await this.watchlistService.findByParam(user.id, deviceId);
         userWatchlist.forEach((watchItem) => {
             if (watchItem.entityTypeId == EntityType.COMPETITION_ORGANISATION &&
-                  competitionOrganisationIdSet.has(watchItem.entityId)) {
-                      competitionOrganisationIdSet.delete(watchItem.entityId);
+                competitionOrganisationIdSet.has(watchItem.entityId)) {
+                competitionOrganisationIdSet.delete(watchItem.entityId);
             } else if (teamIdSet.has(watchItem.entityId)) {
                 teamIdSet.delete(watchItem.entityId);
             }
@@ -1310,14 +1321,14 @@ export class UserController extends BaseController {
         if (user &&
             deviceId &&
             (teamIdSet.size != 0 ||
-              competitionOrganisationIdSet.size != 0)) {
-                await this.createUserWatchlist(
-                    user,
-                    deviceId,
-                    Array.from(teamIdSet),
-                    Array.from(competitionOrganisationIdSet),
-                    notifyAnyChange
-                );
+                competitionOrganisationIdSet.size != 0)) {
+            await this.createUserWatchlist(
+                user,
+                deviceId,
+                Array.from(teamIdSet),
+                Array.from(competitionOrganisationIdSet),
+                notifyAnyChange
+            );
         }
     }
 }

@@ -146,4 +146,5 @@ export class User extends BaseEntity {
     rank?: number;
 
     organisationName?: string;
+    selectedTeams?: Team[];
 }
