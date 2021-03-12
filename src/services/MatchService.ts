@@ -105,13 +105,13 @@ export default class MatchService extends BaseService<Match> {
                   'player.deleted_at is null'
                 );
             }
-            if (includeAdditionalTimeMatchEvents) {
-                query.leftJoinAndSelect(
-                    'match.matchEvents',
-                    'matchEvents',
-                    'matchEvents.attribute1Key = :key', {key: 'AT'}
-                );
-            }
+        }
+        if (includeAdditionalTimeMatchEvents) {
+            query.leftJoinAndSelect(
+                'match.matchEvents',
+                'matchEvents',
+                'matchEvents.attribute1Key = :key', {key: 'AT'}
+            );
         }
 
         return query.getOne();
