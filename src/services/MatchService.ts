@@ -67,6 +67,7 @@ export default class MatchService extends BaseService<Match> {
         includeFouls: boolean = false,
         includeTimeouts: boolean = false,
         includeSinBins: boolean = false,
+        includeAdditionalTimeMatchEvents: boolean = false,
         gameType?: "NETBALL" | "FOOTBALL" | "BASKETBALL"
     ): Promise<Match> {
         let query = this.entityManager.createQueryBuilder(Match, 'match')
@@ -102,6 +103,13 @@ export default class MatchService extends BaseService<Match> {
                   'matchSinBins.player',
                   'player',
                   'player.deleted_at is null'
+                );
+            }
+            if (includeAdditionalTimeMatchEvents) {
+                query.leftJoinAndSelect(
+                    'match.matchEvents',
+                    'matchEvents',
+                    'matchEvents.attribute1Key = :key', {key: 'AT'}
                 );
             }
         }

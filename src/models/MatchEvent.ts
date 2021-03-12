@@ -1,5 +1,13 @@
-import {BaseEntity, Column, Entity, PrimaryGeneratedColumn} from 'typeorm-plus';
-import {IsDate, IsNumber, IsString, IsBoolean} from "class-validator";
+import {
+    BaseEntity,
+    Column,
+    Entity,
+    PrimaryGeneratedColumn,
+    ManyToOne,
+    JoinColumn
+} from 'typeorm-plus';
+import {IsDate, IsNumber, IsString, IsBoolean, ValidateNested} from "class-validator";
+import {Match} from './Match';
 
 @Entity('matchEvent')
 export class MatchEvent extends BaseEntity {
@@ -11,6 +19,11 @@ export class MatchEvent extends BaseEntity {
     @IsNumber()
     @Column()
     matchId: number;
+
+    @ValidateNested()
+    @ManyToOne(type => Match, match => match.matchEvents)
+    @JoinColumn()
+    match: Match;
 
     @IsString()
     @Column()
