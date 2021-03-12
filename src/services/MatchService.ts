@@ -110,7 +110,7 @@ export default class MatchService extends BaseService<Match> {
             query.leftJoinAndSelect(
                 'match.matchEvents',
                 'matchEvents',
-                'matchEvents.attribute1Key = :key', {key: 'AT'}
+                'matchEvents.type = :type', {type: 'AT'}
             );
         }
 
