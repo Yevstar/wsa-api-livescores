@@ -5,7 +5,7 @@ import {Competition} from './Competition';
 import {Division} from './Division';
 import {MatchResultType} from "./MatchResultType";
 import {Round} from "./Round";
-import {IsBoolean, IsDate, IsNumber, IsString, ValidateNested, IsArray} from "class-validator";
+import {IsBoolean, IsDate, IsNumber, IsString, ValidateNested, IsArray, IsJSON} from "class-validator";
 import { isDate } from 'util';
 import {MatchPausedTime} from "./MatchPausedTime";
 import {Roster} from "./security/Roster";
@@ -235,6 +235,10 @@ export class Match extends BaseEntity {
     @OneToMany(type => MatchSinBin, matchSinBin => matchSinBin.match)
     @JoinColumn()
     matchSinBins: MatchSinBin[];
+
+    @IsJSON()
+    @Column("json")
+    additionalDetails?: Record<string, any>;
 
     rosters: Roster[];
     matchUmpires: MatchUmpire[];
