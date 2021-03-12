@@ -905,8 +905,8 @@ export class MatchController extends BaseController {
                 match.additionalDetails = {};
             }
             match.additionalDetails['COMPLETED_ADDITIONAL_TIMER_PERIOD'] = periodNumber;
-
-            this.matchEventService.logMatchEvent(
+            await this.matchService.createOrUpdate(match);
+            await this.matchEventService.logMatchEvent(
                 matchId,
                 'timer',
                 gameStatCode,
@@ -916,6 +916,7 @@ export class MatchController extends BaseController {
                 'additionalMs',
                 additionalMs.toString()
             );
+            this.sendMatchEvent(match, false, {user: user});
         } else {
             this.matchEventService.logMatchEvent(
                 matchId,
