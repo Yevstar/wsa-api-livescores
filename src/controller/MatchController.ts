@@ -58,7 +58,6 @@ export class MatchController extends BaseController {
         @QueryParam("includeFouls") includeFouls: boolean = false,
         @QueryParam("includeTimeouts") includeTimeouts: boolean = false,
         @QueryParam("includeSinBins") includeSinBins: boolean = false,
-        @QueryParam("includeAdditionalTimeMatchEvents") includeAdditionalTimeMatchEvents: boolean = false,
         @QueryParam("gameType") gameType: "NETBALL" | "FOOTBALL" | "BASKETBALL"
     ) {
         return this.matchService.findMatchById(
@@ -66,7 +65,6 @@ export class MatchController extends BaseController {
             includeFouls,
             includeTimeouts,
             includeSinBins,
-            includeAdditionalTimeMatchEvents,
             gameType
         );
     }
@@ -907,7 +905,7 @@ export class MatchController extends BaseController {
                 match.additionalDetails = {};
             }
             match.additionalDetails['COMPLETED_ADDITIONAL_TIMER_PERIOD'] = periodNumber;
-            match.additionalDetails['COMPLETED_ADDITIONAL_TIMER_MilliSeconds'] = additionalMs;
+            match.additionalDetails[`ADDITIONAL_TIME_Ms_PERIOD_${periodNumber}`] = additionalMs;
 
             await this.matchService.createOrUpdate(match);
             await this.matchEventService.logMatchEvent(

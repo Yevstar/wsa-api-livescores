@@ -13,7 +13,6 @@ import { MatchUmpire } from './MatchUmpire';
 import { MatchFouls } from './MatchFouls';
 import { MatchTimeout } from './MatchTimeout';
 import { MatchSinBin } from './MatchSinBin';
-import { MatchEvent } from './MatchEvent';
 
 @Entity()
 export class Match extends BaseEntity {
@@ -240,11 +239,6 @@ export class Match extends BaseEntity {
     @IsJSON()
     @Column("json")
     additionalDetails?: Record<string, any>;
-
-    @ValidateNested()
-    @OneToMany(type => MatchEvent, matchEvent => matchEvent.match)
-    @JoinColumn()
-    matchEvents: MatchEvent[];
 
     rosters: Roster[];
     matchUmpires: MatchUmpire[];
