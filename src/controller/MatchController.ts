@@ -907,6 +907,8 @@ export class MatchController extends BaseController {
                 match.additionalDetails = {};
             }
             match.additionalDetails['COMPLETED_ADDITIONAL_TIMER_PERIOD'] = periodNumber;
+            match.additionalDetails['COMPLETED_ADDITIONAL_TIMER_MilliSeconds'] = additionalMs;
+
             await this.matchService.createOrUpdate(match);
             await this.matchEventService.logMatchEvent(
                 matchId,
