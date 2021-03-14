@@ -66,6 +66,8 @@ export class NewsController extends BaseController {
             n.news_expire_date = body.news_expire_date;
             n.recipientRefId = body.recipientRefId;
             n.toUserRoleIds = body.toUserRoleIds;
+            n.toRosterRoleIds = body.toRosterRoleIds;
+            n.toUserIds = body.toUserIds;
             n.id = stringTONumber(body.id);
             let imageFilePopulated = false;
             let videoFilePopulated = false;
