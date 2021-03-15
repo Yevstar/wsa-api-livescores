@@ -1,4 +1,9 @@
-import {BaseEntity, Column, Entity, PrimaryGeneratedColumn} from 'typeorm-plus';
+import {
+    BaseEntity,
+    Column,
+    Entity,
+    PrimaryGeneratedColumn
+} from 'typeorm-plus';
 import {IsDate, IsNumber, IsString, IsBoolean} from "class-validator";
 
 @Entity('matchEvent')

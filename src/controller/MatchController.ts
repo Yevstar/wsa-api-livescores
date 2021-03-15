@@ -148,7 +148,7 @@ export class MatchController extends BaseController {
                 competitionOrganisationId = null;
             }
         }
-        
+
         const matchFound = await this.matchService.findByParam(
             from,
             to,
@@ -841,12 +841,16 @@ export class MatchController extends BaseController {
         @QueryParam('foul') foul: string,
         @QueryParam('msChangeToStartTime') msChangeToStartTime: number,
         @QueryParam('sinbinApplied') sinbinApplied: boolean = false,
+        @QueryParam('recordAdditionalTime') recordAdditionalTime: boolean = false,
+        @QueryParam('additionalMs') additionalMs: number,
         @Res() response: Response
     ) {
-        if (recordPoints &&
+        if ((recordPoints &&
           (!isNotNullAndUndefined(points) &&
             !isNotNullAndUndefined(foul) &&
-            !isNotNullAndUndefined(msChangeToStartTime))) {
+            !isNotNullAndUndefined(msChangeToStartTime))) ||
+            (recordAdditionalTime &&
+                !isNotNullAndUndefined(additionalMs))) {
               return response.status(400).send({
                   name: 'validation_error',
                   message: `Necessary data missing while recording points`
@@ -854,8 +858,6 @@ export class MatchController extends BaseController {
         }
 
         let match = await this.matchService.findById(matchId);
-
-        let newMatchStartTime = new Date(match.startTime.getTime() + (msFromStart - msChangeToStartTime));
 
         let eventTimestamp = msFromStart
             ? new Date(match.startTime.getTime() + msFromStart)
@@ -898,6 +900,25 @@ export class MatchController extends BaseController {
               await this.matchService.createOrUpdate(match);
               this.sendMatchEvent(match, false, {user: user});
             }
+        } else if (recordAdditionalTime) {
+            if (!isNotNullAndUndefined(match.additionalDetails)) {
+                match.additionalDetails = {};
+            }
+            match.additionalDetails['COMPLETED_ADDITIONAL_TIMER_PERIOD'] = periodNumber;
+            match.additionalDetails[`ADDITIONAL_TIME_Ms_PERIOD_${periodNumber}`] = additionalMs;
+
+            await this.matchService.createOrUpdate(match);
+            await this.matchEventService.logMatchEvent(
+                matchId,
+                'timer',
+                gameStatCode,
+                periodNumber,
+                eventTimestamp,
+                user.id,
+                'additionalMs',
+                additionalMs.toString()
+            );
+            this.sendMatchEvent(match, false, {user: user});
         } else {
             this.matchEventService.logMatchEvent(
                 matchId,
