@@ -582,4 +582,25 @@ export default class UserService extends BaseService<User> {
             throw error;
         }
     }
+
+    public async findUserRoles(options): Promise<any> {
+        const {
+            userId,
+            entityId
+        } = options;
+        try {
+            const userRoleQuery = this.entityManager
+                .createQueryBuilder(UserRoleEntity, "ure")
+                .where("ure.userId = :userId", { userId })
+                .andWhere("ure.isDeleted = 0");
+
+            if (entityId) {
+                userRoleQuery.andWhere("ure.entityId = :entityId", { entityId })
+            }
+
+            return await userRoleQuery.getMany();
+        } catch (error) {
+            throw error;
+        }
+    }
 }

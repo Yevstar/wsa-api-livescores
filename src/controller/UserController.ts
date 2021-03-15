@@ -29,7 +29,6 @@ import {LinkedCompetitionOrganisation} from '../models/LinkedCompetitionOrganisa
 import {md5, isArrayPopulated} from '../utils/Utils';
 import {isNotNullAndUndefined} from '../utils/Utils';
 import {BaseController} from './BaseController';
-import {CommunicationTrack} from '../models/CommunicationTrack';
 
 @JsonController('/users')
 export class UserController extends BaseController {
@@ -565,11 +564,13 @@ export class UserController extends BaseController {
                             message: 'A user with this email address already exists however other details do not match'
                         });
                     }
-                } else {
+                }
+                else {
                     // create user
                     password = Math.random().toString(36).slice(-8);
                     userData.email = userData.email.toLowerCase();
                     userData.password = md5(password);
+
                     const saved = await this.userService.createOrUpdate(userData);
                     await this.updateFirebaseData(userData, userData.password);
                     logger.info(`${type} ${userData.email} signed up.`);
@@ -577,11 +578,13 @@ export class UserController extends BaseController {
                     userData.firebaseUID = saved.firebaseUID;
                     isNewUser = true;
                 }
-            } else if (userData.firstName && userData.lastName && userData.mobileNumber) {
+            }
+            else if (userData.firstName && userData.lastName && userData.mobileNumber) {
                 let foundUser = await this.userService.findById(userData.id);
                 foundUser.firstName = userData.firstName;
                 foundUser.lastName = userData.lastName;
                 foundUser.mobileNumber = userData.mobileNumber;
+
                 const saved = await this.userService.createOrUpdate(foundUser);
                 userData.firebaseUID = saved.firebaseUID;
             }
@@ -593,11 +596,6 @@ export class UserController extends BaseController {
                 compId = entityId;
             }
 
-            // If not a new user then we will check for roles necessary to be deleted
-            if (!isNewUser) {
-                // existing user - delete existing team assignments
-                await this.deleteRolesNecessary(type, userData, entityId, entityTypeId, compId);
-            }
             // Create necessary URE's and notify
             await this.createUREAndNotify(type, userData, compId, user.id);
 
@@ -619,7 +617,8 @@ export class UserController extends BaseController {
             logger.error(`Failed to add ${type} due to error -`, error);
             return response.status(400).send({
                 name: 'validation_error',
-                message: 'Failed to add user'
+                message: 'Failed to add user',
+                error
             });
         }
     }
@@ -806,6 +805,7 @@ export class UserController extends BaseController {
         let roleId;
         let entityTypeId;
         let addUserToChat = false;
+
         switch (type) {
             case 'MANAGER':
                 loopData = user.teams;
@@ -843,31 +843,56 @@ export class UserController extends BaseController {
         let ureArray = [];
         const teamChatPromiseArray = [];
         if (loopData && roleId && entityTypeId) {
-            for (let i of loopData) {
-                let ure = new UserRoleEntity();
+            const foundUserRoles = await this.userService.findUserRoles({
+                userId: user.id,
+            });
+
+            const itemsToCreate = loopData.filter((data) => {
+                const foundUserRole = !!foundUserRoles.find(userRole => {
+                    return userRole.userId === user.id && userRole.entityId === data.id
+                });
+
+                return !foundUserRole
+            })
+
+            const itemsToDelete = foundUserRoles.filter(userRole => {
+                const foundUserRole = !!loopData.find(loopDataItem => {
+                    return userRole.entityId === loopDataItem.id || userRole.entityId === competitionId
+                });
+
+                return !foundUserRole
+            })
+
+            itemsToCreate.forEach(itemToCreate => {
+                const ure = new UserRoleEntity();
                 ure.roleId = roleId;
-                ure.entityId = i.id;
+                ure.entityId = itemToCreate.id;
                 ure.entityTypeId = entityTypeId;
                 ure.userId = user.id
                 ure.createdBy = createdBy;
                 ureArray.push(ure);
+            })
 
-                if (addUserToChat) {
-                    /// Checking with respect to each team for existing chat
-                    teamChatPromiseArray.push(
-                        this.addUserToTeamChat(i.id, user)
-                    );
-                }
+            const deletePromises = itemsToDelete.map(async (itemToDelete) => {
+                return await this.ureService.deleteById(itemToDelete.id)
+            })
+
+            await Promise.all(deletePromises)
+
+            if (foundUserRoles.length === 0) {
+                const additionalUre = new UserRoleEntity();
+                additionalUre.roleId = Role.MEMBER;
+                additionalUre.entityId = competitionId;
+                additionalUre.entityTypeId = EntityType.COMPETITION;
+                additionalUre.userId = user.id;
+                additionalUre.createdBy = createdBy;
+                ureArray.push(additionalUre);
             }
         }
-        let ure1 = new UserRoleEntity();
-        ure1.roleId = Role.MEMBER;
-        ure1.entityId = competitionId;
-        ure1.entityTypeId = EntityType.COMPETITION;
-        ure1.userId = user.id;
-        ure1.createdBy = createdBy;
-        ureArray.push(ure1);
-        await this.ureService.batchCreateOrUpdate(ureArray);
+
+        if (ureArray.length) {
+            await this.ureService.batchCreateOrUpdate(ureArray);
+        }
         // Not keeping await for notifyChangeRole as its having wait times.
         await this.notifyChangeRole(user.id);
         for (const func of teamChatPromiseArray) {
