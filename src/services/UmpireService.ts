@@ -647,7 +647,9 @@ export class UmpireService extends BaseService<User> {
         const isUmpire = !!umpire.userRoleEntities.find(ure => Role.UMPIRE === ure.roleId);
         const isUmpireCoach = !!umpire.userRoleEntities.find(ure => Role.UMPIRE_COACH === ure.roleId);
 
-        const selectedTeams = await this.uresService.getSelectedTeamsForUmpire(id);
+        let selectedTeams = await this.uresService.getSelectedTeamsForUmpire(id);
+        selectedTeams = selectedTeams.filter(selectedTeam =>
+            !teams.every((team) => team.id !== selectedTeam.id));
         const selectedOrganisations = _.uniqBy(compOrgs.map(compOrg => compOrg.organisation), 'id');
 
         const detailedUmpire = {
