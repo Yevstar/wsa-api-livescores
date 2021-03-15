@@ -598,7 +598,6 @@ export class UserController extends BaseController {
 
             // Create necessary URE's and notify
             await this.createUREAndNotify(type, userData, compId, user.id);
-
             this.processSendMail(
                 type,
                 userData,
@@ -608,7 +607,7 @@ export class UserController extends BaseController {
                 user
             );
 
-            if (type === "UMPIRE") {
+            if (type === "UMPIRE_TEAM") {
                 userData.selectedTeams = await this.ureService.getSelectedTeamsForUmpire(userData.id);
             }
 
@@ -845,6 +844,8 @@ export class UserController extends BaseController {
         if (loopData && roleId && entityTypeId) {
             const foundUserRoles = await this.userService.findUserRoles({
                 userId: user.id,
+                entityTypeId,
+                roleId,
             });
 
             const itemsToCreate = loopData.filter((data) => {
@@ -891,7 +892,11 @@ export class UserController extends BaseController {
         }
 
         if (ureArray.length) {
-            await this.ureService.batchCreateOrUpdate(ureArray);
+            const res = await this.ureService.batchCreateOrUpdate(ureArray);
+            console.log(`type - ${JSON.stringify(type)}`);
+            if (type === "UMPIRE_TEAM") {
+                console.log(`res - ${JSON.stringify(res)}`);
+            }
         }
         // Not keeping await for notifyChangeRole as its having wait times.
         await this.notifyChangeRole(user.id);

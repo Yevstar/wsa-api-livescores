@@ -586,7 +586,9 @@ export default class UserService extends BaseService<User> {
     public async findUserRoles(options): Promise<any> {
         const {
             userId,
-            entityId
+            entityId,
+            entityTypeId,
+            roleId,
         } = options;
         try {
             const userRoleQuery = this.entityManager
@@ -596,6 +598,14 @@ export default class UserService extends BaseService<User> {
 
             if (entityId) {
                 userRoleQuery.andWhere("ure.entityId = :entityId", { entityId })
+            }
+
+            if (entityTypeId) {
+                userRoleQuery.andWhere("ure.entityTypeId = :entityTypeId", { entityTypeId })
+            }
+
+            if (roleId) {
+                userRoleQuery.andWhere("ure.roleId = :roleId", { roleId })
             }
 
             return await userRoleQuery.getMany();
