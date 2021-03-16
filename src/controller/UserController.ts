@@ -893,10 +893,6 @@ export class UserController extends BaseController {
 
         if (ureArray.length) {
             const res = await this.ureService.batchCreateOrUpdate(ureArray);
-            console.log(`type - ${JSON.stringify(type)}`);
-            if (type === "UMPIRE_TEAM") {
-                console.log(`res - ${JSON.stringify(res)}`);
-            }
         }
         // Not keeping await for notifyChangeRole as its having wait times.
         await this.notifyChangeRole(user.id);
