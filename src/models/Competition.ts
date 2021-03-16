@@ -277,4 +277,8 @@ export class Competition extends BaseEntity {
 
     @OneToMany(() => Team, team => team.competition)
     teams: Team[];
+
+    @IsJSON()
+    @Column("json")
+    additionalSettings?: Record<string, any>;
 }
