@@ -7,6 +7,7 @@ import {
     HeaderParam,
     Delete
  } from "routing-controllers";
+import { get } from 'lodash';
 import {Competition} from '../models/Competition';
 import { CompetitionLadderSettings } from '../models/CompetitionLadderSettings';
 import {Get, JsonController, QueryParam, UploadedFile} from 'routing-controllers';
@@ -72,6 +73,8 @@ export class CompetitionController extends BaseController {
                 {name: 'save_error', message: `Attendance recording must be set to periods or minutes if position tracking is enabled.`});
         }
 
+        const currentCompetition = await this.competitionService.findById(competition.id);
+        const currentAdditionalSettings = get(currentCompetition, 'additionalSettings') || {}
         try {
             if (competition) {
                 let isNewCompetition = false;
@@ -118,6 +121,10 @@ export class CompetitionController extends BaseController {
                 c.extraTimeMainBreak = competition.extraTimeMainBreak;
                 c.extraTimeQuarterBreak = competition.extraTimeQuarterBreak;
                 c.foulsSettings = competition.foulsSettings;
+                c.additionalSettings = {
+                    ...currentAdditionalSettings,
+                    ALLOWED_ADDITIONAL_TIME: !!competition.additionalTime
+                }
 
                 if(c.id===0){
                     c.uniqueKey = uuidv4();
@@ -747,7 +754,6 @@ export class CompetitionController extends BaseController {
                                     ladderFormatDivArr.push(div);
                                 }
                             }
-                            console.log("item.id" + item.id);
                             await this.competitionLadderSettingsService.deleteByLadderFormatId(item.id);
                         }
                     }
