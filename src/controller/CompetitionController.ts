@@ -26,6 +26,7 @@ import { LadderFormat } from "../models/LadderFormat";
 import { LadderFormatDivision } from "../models/LadderFormatDivision";
 import { RequestFilterCompetitionDashboard } from "../services/CompetitionService";
 import {CompetitionInvitees} from '../models/CompetitionInvitees';
+import AppConstants from "../utils/AppConstants";
 
 @JsonController('/competitions')
 export class CompetitionController extends BaseController {
@@ -70,7 +71,10 @@ export class CompetitionController extends BaseController {
 
         if (stringToBoolean(competition.positionTracking) == true && competition.attendanceRecordingPeriod == 'MATCH') {
             return response.status(212).send(
-                {name: 'save_error', message: `Attendance recording must be set to periods or minutes if position tracking is enabled.`});
+                {
+                    name: 'save_error',
+                    message: AppConstants.attendanceRecordingPeriodError
+                });
         }
 
         const currentCompetition = await this.competitionService.findById(competition.id);
@@ -420,7 +424,7 @@ export class CompetitionController extends BaseController {
                     } else {
                         return response
                             .status(400).send(
-                                { name: 'save_error', message: 'Logo not saved, try again later.' });
+                                { name: 'save_error', message: AppConstants.saveLogoError });
                     }
 
                 } else {
@@ -437,10 +441,10 @@ export class CompetitionController extends BaseController {
 
             } else {
                 return response.status(200).send(
-                    {name: 'search_error', message: `Required fields are missing`});
+                    {name: 'search_error', message: AppConstants.requiredFieldsMissingError});
             }
         } catch(err) {
-            return response.send(`An error occured while creating competition ${err}`)
+            return response.send(`${AppConstants.createCompetitionError} ${err}`)
         }
     }
 
@@ -616,9 +620,9 @@ export class CompetitionController extends BaseController {
 
             return await this.competitionLadderSettingsService.getLadderSettings(competitionId);
         } catch (error) {
-            logger.error(`Error Occurred in  getLadderSettingse   ${currentUser.id}` + error);
+            logger.error(`Error Occurred in  getLadderSettingse ${currentUser.id}` + error);
                 return response.status(500).send({
-                    message: 'Something went wrong. Please contact administrator'
+                    message: AppConstants.somethingWentWrong
                 });
         }
 
@@ -771,7 +775,7 @@ export class CompetitionController extends BaseController {
         catch(error){
             logger.error(`Error Occurred in  save LadderSettings   ${currentUser.id}` + error);
             return response.status(500).send({
-                message: 'Something went wrong. Please contact administrator'
+                message: AppConstants.somethingWentWrong
             });
         }
 
