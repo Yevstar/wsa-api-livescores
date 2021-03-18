@@ -376,6 +376,14 @@ export class MatchUmpireController extends BaseController {
                     e['Umpire 2 Response'] = '';
                     e['Umpire 2 Organisation'] = '';
                 }
+                e['Umpire Reserves'] = (e['umpireReserves'] ?? [])
+                    .map(u => `${u.umpireFirstName} ${u.umpireLastName}` )
+                    .join(',');
+                e['Umpire Coaches'] = (e['umpireCoaches'] ?? [])
+                    .map(u => `${u.umpireFirstName} ${u.umpireLastName}` )
+                    .join(',');
+                delete e['umpireReserves'];
+                delete e['umpireCoaches'];
                 delete e['id'];
                 delete e['startTime'];
                 delete e['team1'];
