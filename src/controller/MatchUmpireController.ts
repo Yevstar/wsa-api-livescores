@@ -296,7 +296,6 @@ export class MatchUmpireController extends BaseController {
                 message: 'Required fields are missing',
             });
         }
-
         let dict = await this.matchUmpireService.findByRosterAndCompetition(
             organisationId,
             competitionId,
@@ -306,15 +305,12 @@ export class MatchUmpireController extends BaseController {
             roundIds,
             null,
         );
-
         let competitionTimezone: StateTimezone;
         if (dict.locationId) {
             competitionTimezone = await this.matchService.getMatchTimezone(dict.locationId);
         }
-
         if (isArrayPopulated(dict.results)) {
             let constants = require('../constants/Constants');
-
             let venueStateRefIdSet = new Set<number>();
             // Getting all the necessary venue stateRef Ids to get the timezones
             dict.results.map(e => {
@@ -328,7 +324,6 @@ export class MatchUmpireController extends BaseController {
                 let venueTimeZone = await this.matchService.getMatchTimezone(venueStateRefIdArray[i]);
                 venueTimezoneMap[venueStateRefIdArray[i]] = venueTimeZone;
             }
-
             dict.results.map(e => {
                 e['Match ID'] = e['id'];
                 if (isNotNullAndUndefined(e['venueStateRefId'])) {
@@ -386,7 +381,6 @@ export class MatchUmpireController extends BaseController {
                 delete e['team1'];
                 delete e['team2'];
                 delete e['round'];
-                delete e['umpires'];
                 return e;
             });
         } else {
@@ -403,10 +397,11 @@ export class MatchUmpireController extends BaseController {
                 ['Umpire 2 Id']: '',
                 ['Umpire 2']: '',
                 ['Umpire 2 Response']: '',
-                ['Umpire 2 Organisation']: ''
+                ['Umpire 2 Organisation']: '',
+                ['Umpire Reserves']: '',
+                ['Umpire Coaches']: '',
             });
         }
-
         response.setHeader('Content-disposition', 'attachment; filename=match-umpires.csv');
         response.setHeader('content-type', 'text/csv');
         fastcsv.write(dict.results, { headers: true })
