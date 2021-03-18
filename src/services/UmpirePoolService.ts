@@ -82,6 +82,7 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
             .leftJoinAndSelect('umpirePools.umpires', 'umpires')
             .loadRelationCountAndMap('umpires.matchesCount', 'umpires.matchUmpires')
             .leftJoinAndSelect('umpires.umpireCompetitionRank', 'umpireCompetitionRank')
+            .leftJoinAndSelect('umpires.umpirePoolRank', 'umpirePoolRank')
             .leftJoinAndSelect('umpirePools.divisions', 'divisions')
             .where('umpirePools.competitionId = :competitionId', {competitionId})
             .getMany();
@@ -89,7 +90,9 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
         for (const umpirePool of umpirePools) {
             for (const umpire of umpirePool.umpires) {
                 umpire.rank = umpire.umpireCompetitionRank[0] ? umpire.umpireCompetitionRank[0].rank : null;
+                umpire.poolRank = umpire.umpirePoolRank[0] ? umpire.umpirePoolRank[0].rank : null;
                 delete umpire.umpireCompetitionRank;
+                delete umpire.umpirePoolRank;
             }
         }
 

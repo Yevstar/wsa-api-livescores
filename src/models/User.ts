@@ -15,6 +15,7 @@ import { UserRoleEntity } from './security/UserRoleEntity';
 import { UmpirePool } from "./UmpirePool";
 import { UmpireCompetitionRank } from "./UmpireCompetitionRank";
 import { MatchUmpire } from "./MatchUmpire";
+import {UmpirePoolRank} from "./UmpirePoolRank";
 
 /// For referring the data model of another db we are giving the
 /// name as below wsa_users.<name>.
@@ -142,6 +143,11 @@ export class User extends BaseEntity {
 
     @OneToOne(type => UmpireCompetitionRank, umpireCompetitionRank => umpireCompetitionRank.umpire)
     competitionRank?: UmpireCompetitionRank;
+
+    @OneToOne(type => UmpirePoolRank, umpirePoolRank => umpirePoolRank.umpire)
+    umpirePoolRank?: UmpirePoolRank;
+
+    poolRank?: number;
 
     rank?: number;
 
