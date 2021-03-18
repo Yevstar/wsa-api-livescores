@@ -389,6 +389,7 @@ export class MatchUmpireController extends BaseController {
                 delete e['team1'];
                 delete e['team2'];
                 delete e['round'];
+                delete e['umpires'];
                 return e;
             });
         } else {
