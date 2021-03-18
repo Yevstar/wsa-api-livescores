@@ -68,7 +68,7 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
             updatedPools.push(savedPool);
         }
 
-        return updatedPools;
+        return await this.getByCompetitionOrganisation(competitionId, organisationId);
     }
 
     async getByCompetitionOrganisation(competitionId: number, organisationId: number): Promise<UmpirePool[]> {
@@ -88,7 +88,7 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
 
         for (const umpirePool of umpirePools) {
             for (const umpire of umpirePool.umpires) {
-                umpire.rank = this.umpireService.calculateAverageRank(umpire);
+                umpire.rank = umpire.umpireCompetitionRank[0] ? umpire.umpireCompetitionRank[0].rank : null;
                 delete umpire.umpireCompetitionRank;
             }
         }
