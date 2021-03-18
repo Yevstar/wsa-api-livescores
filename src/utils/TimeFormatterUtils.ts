@@ -3,6 +3,10 @@ export function convertMatchStartTimeByTimezone(
     timezone: string,
     formatBy: string
 ): string {
+    if (!time) {
+        return null;
+    }
+
     let constants = require('../constants/Constants');
 
     if (timezone) {
