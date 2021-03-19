@@ -119,14 +119,19 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
         });
 
         const newPoolRanks = allowedPoolRanks.concat(notAllowedPoolRanks);
+        const arrangedPoolRanks = this.arrangePoolRanks(newPoolRanks);
 
-        const maxSortedRank = newPoolRanks.reduce((maxRank: number, poolRank: UmpirePoolRank) => {
+        await this.entityManager.save(arrangedPoolRanks);
+    }
+
+    arrangePoolRanks(poolRanks: UmpirePoolRank[]): UmpirePoolRank[] {
+        const maxSortedRank = poolRanks.reduce((maxRank: number, poolRank: UmpirePoolRank) => {
             const currentRank = poolRank.rank ?? 0;
             maxRank = currentRank > maxRank ? currentRank: maxRank;
             return maxRank;
         }, 0);
 
-        const sortedNewPoolRanks = newPoolRanks.sort((poolRankA, poolRankB) => {
+        const sortedRanks = poolRanks.sort((poolRankA, poolRankB) => {
             const rankA = poolRankA.rank ?? maxSortedRank + 1;
             const rankB = poolRankB.rank ?? maxSortedRank + 1;
 
@@ -134,11 +139,11 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
         });
 
 
-        for (let i = 0; i < sortedNewPoolRanks.length; i++) {
-            sortedNewPoolRanks[i].rank = i + 1;
+        for (let i = 0; i < sortedRanks.length; i++) {
+            sortedRanks[i].rank = i + 1;
         }
 
-        await this.entityManager.save(sortedNewPoolRanks);
+        return sortedRanks;
     }
 
     async getByCompetitionOrganisation(competitionId: number, organisationId: number): Promise<UmpirePool[]> {

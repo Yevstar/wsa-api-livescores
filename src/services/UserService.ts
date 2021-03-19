@@ -14,11 +14,8 @@ import { Competition } from "../models/Competition";
 import { logger } from '../logger';
 import { LinkedEntities } from "../models/views/LinkedEntities";
 import { LinkedOrganisations } from "../models/views/LinkedOrganisations";
-import AppConstants from "../utils/AppConstants";
 import { CommunicationTrack } from "../models/CommunicationTrack";
 import { getParentEmail, isNotNullAndUndefined } from "../utils/Utils";
-import { In } from "typeorm-plus";
-import { CompetitionOrganisation } from "../models/CompetitionOrganisation";
 
 @Service()
 export default class UserService extends BaseService<User> {
