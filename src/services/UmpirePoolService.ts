@@ -83,6 +83,7 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
             const allowedUmpiresIds = (await this.umpireService.getAllowedUmpiresForOrganisation(competitionId, organisationId))
                 .map(umpire => umpire.id);
             const assignedNotAllowedUmpires = pool.umpires.filter(umpire => !allowedUmpiresIds.includes(umpire.id));
+            const assignedNotAllowedUmpiresIds = assignedNotAllowedUmpires.map(umpire => umpire.id);
             const allowedUmpiresIdsToBeAssigned = updateData.umpires
                 .map(umpire => umpire.id)
                 .filter(umpire => allowedUmpiresIds.includes(this.retrievePoolUmpireId(umpire)));
@@ -93,16 +94,22 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
             pool.umpires = allowedUmpiresResult;
             const savedPool = await this.entityManager.save(pool);
             savedPool.umpires = allowedUmpiresToBeAssigned;
-            await this.updateUmpireRanksForPool(pool.id, updateData.umpires as RawUmpireRank[]);
+            await this.updateUmpireRanksForPool(pool.id, updateData.umpires as RawUmpireRank[], assignedNotAllowedUmpiresIds);
             updatedPools.push(savedPool);
         }
 
         return await this.getByCompetitionOrganisation(competitionId, organisationId);
     }
 
-    async updateUmpireRanksForPool(umpirePoolId, umpireRanks: RawUmpireRank[]): Promise<void> {
+    async updateUmpireRanksForPool(
+        umpirePoolId,
+        umpireRanks: RawUmpireRank[],
+        assignedNotAllowedUmpiresIds: number[],
+    ): Promise<void> {
+        const notAllowedPoolRanks = await this.entityManager.find(UmpirePoolRank, {umpirePoolId, umpireId: In(assignedNotAllowedUmpiresIds)});
         await this.entityManager.delete(UmpirePoolRank, {umpirePoolId});
-        const newPoolRanks = umpireRanks.map(umpireRank => {
+
+        const allowedPoolRanks = umpireRanks.map(umpireRank => {
             const rankToBeSaved = new UmpirePoolRank();
             rankToBeSaved.umpireId = umpireRank.id;
             rankToBeSaved.umpirePoolId = umpirePoolId;
@@ -110,6 +117,8 @@ export class UmpirePoolService extends BaseService<UmpirePool> {
 
             return rankToBeSaved;
         });
+
+        const newPoolRanks = allowedPoolRanks.concat(notAllowedPoolRanks);
 
         const maxSortedRank = newPoolRanks.reduce((maxRank: number, poolRank: UmpirePoolRank) => {
             const currentRank = poolRank.rank ?? 0;
