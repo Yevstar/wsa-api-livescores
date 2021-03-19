@@ -49,9 +49,15 @@ export class UmpirePoolsController extends BaseController {
     async updateMany(
         @Param('competitionId') competitionId: number,
         @QueryParam('organisationId') organisationId: number,
+        @QueryParam('version') version: number = 1,
         @Body() body: UmpirePool[]
     ): Promise<UmpirePool[]> {
-        return this.umpirePoolService.updateMany(organisationId, competitionId, body);
+        switch (version) {
+            case 2:
+                return this.umpirePoolService.updateManyV2(organisationId, competitionId, body);
+            default:
+                return this.umpirePoolService.updateMany(organisationId, competitionId, body);
+        }
     }
 
     @Post('/:umpirePoolId/add')
