@@ -14,7 +14,12 @@ export default class MatchEventService extends BaseService<MatchEvent> {
     }
 
     public isGameStatGoalOrPoints(gameStatCode: string): boolean {
-        return (gameStatCode == 'G' || gameStatCode == 'P');
+        return (
+            gameStatCode == 'G' ||
+            gameStatCode == 'P' ||
+            gameStatCode == 'Pe' ||
+            gameStatCode == 'OG'
+        );
     }
 
     public isGameStatMissOrMissedPoints(gameStatCode: string): boolean {
@@ -173,10 +178,10 @@ export default class MatchEventService extends BaseService<MatchEvent> {
               query.andWhere('(matchEvent.attribute1Value = :scoreAttribute1Value ' +
                 'or matchEvent.attribute1Value = :statAttribute1Value)', {
                     scoreAttribute1Value: team1Score.toString(),
-                    statAttribute1Value: recordPoints ? points.toString() : positionId.toString()
+                    statAttribute1Value: recordPoints ? points.toString() : (positionId ? positionId.toString() : '')
                 });
             }
-
+            
             query.andWhere('(matchEvent.attribute2Key = :scoreAttribute2Key ' +
               'or matchEvent.attribute2Key = :statAttribute2Key)', {
                   scoreAttribute2Key: 'team2score',
