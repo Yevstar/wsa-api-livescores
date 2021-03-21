@@ -793,6 +793,9 @@ export class MatchController extends BaseController {
         @QueryParam('centrePassStatus') centrePassStatus: "TEAM1" | "TEAM2",
         @QueryParam('recordPoints') recordPoints: boolean = false,
         @QueryParam('points') points: number,
+        @QueryParam('recordAssistPlayer') recordAssistPlayer: boolean = false,
+        @QueryParam('assistPlayerPositionId') assistPlayerPositionId: number,
+        @QueryParam('assistPlayerId') assistPlayerId: number,
         @Res() response: Response
     ) {
         if (recordPoints && !isNotNullAndUndefined(points)) {
@@ -819,8 +822,13 @@ export class MatchController extends BaseController {
             'team2score', team2Score.toString());
         if (gameStatCode) {
             this.matchEventService.logMatchEvent(matchId, 'stat', gameStatCode, periodNumber,
-                eventTimestamp, user.id, 'team' + teamSequence, recordPoints ? points.toString() : positionId.toString(),
+                eventTimestamp, user.id, 'team' + teamSequence, recordPoints ? points.toString() : (positionId ? positionId.toString() : ''),
                 'playerId', playerId ? playerId.toString() : '');
+        }
+        if (recordAssistPlayer && isNotNullAndUndefined(assistPlayerId)) {
+            this.matchEventService.logMatchEvent(matchId, 'stat', 'A', periodNumber,
+                eventTimestamp, user.id, 'team' + teamSequence, assistPlayerPositionId ? assistPlayerPositionId.toString() : '',
+                'playerId', assistPlayerId ? assistPlayerId.toString() : '');
         }
         return match;
     }
@@ -2414,6 +2422,9 @@ export class MatchController extends BaseController {
         @QueryParam('recordPoints') recordPoints: boolean = false,
         @QueryParam('points') points: number,
         @QueryParam('foul') foul: string,
+        @QueryParam('recordAssistPlayer') recordAssistPlayer: boolean = false,
+        @QueryParam('assistPlayerPositionId') assistPlayerPositionId: number,
+        @QueryParam('assistPlayerId') assistPlayerId: number,
         @Res() response: Response
     ) {
         if (this.matchEventService.isGameStatGoalOrPoints(gameStatCode) &&
@@ -2449,7 +2460,10 @@ export class MatchController extends BaseController {
             positionId,
             recordPoints,
             points,
-            foul
+            foul,
+            recordAssistPlayer,
+            assistPlayerPositionId,
+            assistPlayerId,
         );
 
         try {

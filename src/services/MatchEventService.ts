@@ -2,6 +2,9 @@ import {Service} from "typedi";
 import {DeleteResult} from "typeorm-plus";
 import BaseService from "./BaseService";
 import {MatchEvent} from "../models/MatchEvent";
+import {
+    isNotNullAndUndefined
+} from "../utils/Utils";
 
 @Service()
 export default class MatchEventService extends BaseService<MatchEvent> {
@@ -113,7 +116,10 @@ export default class MatchEventService extends BaseService<MatchEvent> {
         positionId: number,
         recordPoints: boolean,
         points: number,
-        foul: string
+        foul: string,
+        recordAssistPlayer: boolean,
+        assistPlayerPositionId: number,
+        assistPlayerId: number,
     ): Promise<MatchEvent[]> {
         let query = this.entityManager.createQueryBuilder(MatchEvent, 'matchEvent')
             .andWhere('matchEvent.matchId = :matchId', {matchId: matchId})
@@ -125,11 +131,21 @@ export default class MatchEventService extends BaseService<MatchEvent> {
                     scoreEventCategory: 'score',
                     statEventCategory: 'stat'
                 })
-                .andWhere('(matchEvent.type = :scoreEventType or ' +
-                  'matchEvent.type = :statEventType)', {
-                    scoreEventType: 'update',
-                    statEventType: gameStatCode
-                });
+            if (isNotNullAndUndefined(recordAssistPlayer) && recordAssistPlayer) {
+                query.andWhere('(matchEvent.type = :scoreEventType or ' +
+                    'matchEvent.type = :statEventType or ' +
+                    'matchEvent.type = :assistEventType)', {
+                        scoreEventType: 'update',
+                        statEventType: gameStatCode,
+                        assistEventType: 'A'
+                    });
+            } else {
+                query.andWhere('(matchEvent.type = :scoreEventType or ' +
+                    'matchEvent.type = :statEventType)', {
+                        scoreEventType: 'update',
+                        statEventType: gameStatCode
+                    });
+            }
 
             if (teamSequence == 1) {
                 query.andWhere('(matchEvent.attribute1Key = :scoreAttribute1Key ' +
@@ -145,21 +161,43 @@ export default class MatchEventService extends BaseService<MatchEvent> {
                   });
             }
 
-            query.andWhere('(matchEvent.attribute1Value = :scoreAttribute1Value ' +
-              'or matchEvent.attribute1Value = :statAttribute1Value)', {
-                  scoreAttribute1Value: team1Score.toString(),
-                  statAttribute1Value: recordPoints ? points.toString() : positionId.toString()
-              })
-              .andWhere('(matchEvent.attribute2Key = :scoreAttribute2Key ' +
+            if (isNotNullAndUndefined(recordAssistPlayer) && recordAssistPlayer) {
+              query.andWhere('(matchEvent.attribute1Value = :scoreAttribute1Value ' +
+                'or matchEvent.attribute1Value = :statAttribute1Value ' +
+                'or matchEvent.attribute1Value = :assistAttribute1Value)', {
+                    scoreAttribute1Value: team1Score.toString(),
+                    statAttribute1Value: recordPoints ? points.toString() : (positionId ? positionId.toString() : ''),
+                    assistAttribute1Value: assistPlayerPositionId ? assistPlayerPositionId.toString() : ''
+                });
+            } else {
+              query.andWhere('(matchEvent.attribute1Value = :scoreAttribute1Value ' +
+                'or matchEvent.attribute1Value = :statAttribute1Value)', {
+                    scoreAttribute1Value: team1Score.toString(),
+                    statAttribute1Value: recordPoints ? points.toString() : positionId.toString()
+                });
+            }
+
+            query.andWhere('(matchEvent.attribute2Key = :scoreAttribute2Key ' +
               'or matchEvent.attribute2Key = :statAttribute2Key)', {
                   scoreAttribute2Key: 'team2score',
                   statAttribute2Key: 'playerId'
-              })
-              .andWhere('(matchEvent.attribute2Value = :scoreAttribute2Value ' +
-              'or matchEvent.attribute2Value = :statAttribute2Value)', {
-                  scoreAttribute2Value: team2Score.toString(),
-                  statAttribute2Value: playerId.toString()
               });
+
+            if (isNotNullAndUndefined(recordAssistPlayer) && recordAssistPlayer) {
+              query.andWhere('(matchEvent.attribute2Value = :scoreAttribute2Value ' +
+                'or matchEvent.attribute2Value = :statAttribute2Value ' +
+                'or matchEvent.attribute2Value = :assistAttribute2Value)', {
+                    scoreAttribute2Value: team2Score.toString(),
+                    statAttribute2Value: playerId.toString(),
+                    assistAttribute2Value: assistPlayerId ? assistPlayerId.toString() : ''
+                });
+            } else {
+              query.andWhere('(matchEvent.attribute2Value = :scoreAttribute2Value ' +
+                'or matchEvent.attribute2Value = :statAttribute2Value)', {
+                    scoreAttribute2Value: team2Score.toString(),
+                    statAttribute2Value: playerId.toString()
+                });
+            }
         } else {
             query.andWhere('matchEvent.eventCategory = :eventCategory', {
                   eventCategory: 'stat'
@@ -194,7 +232,11 @@ export default class MatchEventService extends BaseService<MatchEvent> {
 
         query.orderBy('matchEvent.id', 'DESC');
         if (this.isGameStatGoalOrPoints(gameStatCode)) {
-          query.limit(2);
+          if (isNotNullAndUndefined(recordAssistPlayer) && recordAssistPlayer) {
+            query.limit(3);
+          } else {
+            query.limit(2);
+          }
         } else {
           query.limit(1);
         }
