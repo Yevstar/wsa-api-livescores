@@ -5,6 +5,7 @@ import {MatchEvent} from "../models/MatchEvent";
 import {
     isNotNullAndUndefined
 } from "../utils/Utils";
+import {GameStatCodeEnum} from "../models/enums/GameStatCodeEnum";
 
 @Service()
 export default class MatchEventService extends BaseService<MatchEvent> {
@@ -15,15 +16,15 @@ export default class MatchEventService extends BaseService<MatchEvent> {
 
     public isGameStatGoalOrPoints(gameStatCode: string): boolean {
         return (
-            gameStatCode == 'G' ||
-            gameStatCode == 'P' ||
-            gameStatCode == 'Pe' ||
-            gameStatCode == 'OG'
+            gameStatCode == GameStatCodeEnum.G ||
+            gameStatCode == GameStatCodeEnum.P ||
+            gameStatCode == GameStatCodeEnum.Pe ||
+            gameStatCode == GameStatCodeEnum.OG
         );
     }
 
     public isGameStatMissOrMissedPoints(gameStatCode: string): boolean {
-        return (gameStatCode == 'M' || gameStatCode == 'MP');
+        return (gameStatCode == GameStatCodeEnum.M || gameStatCode == GameStatCodeEnum.MP);
     }
 
     public async findEventsByMatchId(matchId: number): Promise<MatchEvent[]> {
@@ -181,7 +182,7 @@ export default class MatchEventService extends BaseService<MatchEvent> {
                     statAttribute1Value: recordPoints ? points.toString() : (positionId ? positionId.toString() : '')
                 });
             }
-            
+
             query.andWhere('(matchEvent.attribute2Key = :scoreAttribute2Key ' +
               'or matchEvent.attribute2Key = :statAttribute2Key)', {
                   scoreAttribute2Key: 'team2score',
@@ -255,9 +256,9 @@ export default class MatchEventService extends BaseService<MatchEvent> {
         foul: string
     ) {
       switch (gameStatCode) {
-        case 'MP':
+        case GameStatCodeEnum.MP:
           return points.toString();
-        case 'F':
+        case GameStatCodeEnum.F:
           return foul;
         default:
           return '';

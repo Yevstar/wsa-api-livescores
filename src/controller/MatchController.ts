@@ -48,6 +48,7 @@ import {StateTimezone} from "../models/StateTimezone";
 import {convertMatchStartTimeByTimezone} from '../utils/TimeFormatterUtils';
 import AppConstants from "../utils/AppConstants";
 import {MatchSinBin} from "../models/MatchSinBin";
+import {GameStatCodeEnum} from "../models/enums/GameStatCodeEnum";
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
@@ -880,13 +881,13 @@ export class MatchController extends BaseController {
                 periodNumber,
                 eventTimestamp,
                 user.id,
-                gameStatCode == 'TC' ? 'new' : 'team' + teamSequence,
-                gameStatCode == 'TC' ?  msChangeToStartTime.toString() : this.getRecordPointsAttribute1Value(gameStatCode, points, foul),
-                gameStatCode == 'TC' ? 'old' : 'playerId',
-                gameStatCode == 'TC' ?  msFromStart.toString() : playerId ? playerId.toString() : ''
+                gameStatCode == GameStatCodeEnum.TC ? 'new' : 'team' + teamSequence,
+                gameStatCode == GameStatCodeEnum.TC ?  msChangeToStartTime.toString() : this.getRecordPointsAttribute1Value(gameStatCode, points, foul),
+                gameStatCode == GameStatCodeEnum.TC ? 'old' : 'playerId',
+                gameStatCode == GameStatCodeEnum.TC ?  msFromStart.toString() : playerId ? playerId.toString() : ''
             );
 
-            if (gameStatCode == 'F') {
+            if (gameStatCode == GameStatCodeEnum.F) {
                 this.matchService.logMatchFouls(user.id, matchId, teamSequence, foul);
                 if (sinbinApplied) {
                    /// We will get sinbin when a foul type technical is getting logged
@@ -899,7 +900,7 @@ export class MatchController extends BaseController {
                       user.id
                    );
                 }
-            } else if (gameStatCode == 'TC') {
+            } else if (gameStatCode == GameStatCodeEnum.TC) {
               let newMatchStartTime = new Date(match.startTime.getTime() + (msFromStart - msChangeToStartTime));
               if (!isNotNullAndUndefined(match.originalStartTime)) {
                   match.originalStartTime = match.startTime;
@@ -2486,7 +2487,7 @@ export class MatchController extends BaseController {
                     }
                     this.matchService.createOrUpdate(match);
                     this.sendMatchEvent(match, true, {user: user});
-                } else if (gameStatCode == 'F') {
+                } else if (gameStatCode == GameStatCodeEnum.F) {
                     await this.matchService.removeMatchFoul(matchId, teamSequence, foul);
                     await this.matchService.removeMatchSinBin(
                         matchId,
