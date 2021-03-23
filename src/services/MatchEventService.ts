@@ -224,7 +224,8 @@ export default class MatchEventService extends BaseService<MatchEvent> {
             }
 
             query.andWhere('matchEvent.attribute1Value = :attribute1Value', {
-                  attribute1Value: recordPoints ?
+                  attribute1Value: (recordPoints ||
+                      (gameStatCode == GameStatCodeEnum.F && isNotNullAndUndefined(foul))) ?
                     this.getRecordPointsAttribute1Value(gameStatCode, points, foul) :
                     positionId.toString()
               })
