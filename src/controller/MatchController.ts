@@ -1,4 +1,4 @@
-import {Response} from "express";
+import { Request, Response } from "express";
 import {
     Authorized,
     Body,
@@ -12,7 +12,7 @@ import {
     QueryParam,
     Res,
     UploadedFile,
-    Delete
+    Delete, Req
 } from "routing-controllers";
 import * as _ from "lodash";
 import * as fastcsv from "fast-csv";
@@ -26,7 +26,6 @@ import {
     validationForField,
     parseDateTimeZoneString,
     arrangeCSVToJson,
-    trim,
     isNullOrEmpty
 } from "../utils/Utils";
 import {BaseController} from "./BaseController";
@@ -42,13 +41,13 @@ import {RequestFilter} from "../models/RequestFilter";
 import {Roster} from "../models/security/Roster";
 import {Role} from "../models/security/Role";
 import {GamePosition} from "../models/GamePosition";
-import {Competition} from '../models/Competition';
 import {getMatchUpdatedNonSilentNotificationMessage} from "../utils/NotificationMessageUtils";
 import {StateTimezone} from "../models/StateTimezone";
 import {convertMatchStartTimeByTimezone} from '../utils/TimeFormatterUtils';
 import AppConstants from "../utils/AppConstants";
 import {MatchSinBin} from "../models/MatchSinBin";
 import {GameStatCodeEnum} from "../models/enums/GameStatCodeEnum";
+import {GameTimeAttendance} from "../models/GameTimeAttendance";
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
@@ -939,7 +938,9 @@ export class MatchController extends BaseController {
                 eventTimestamp,
                 user.id,
                 'team' + teamSequence,
-                positionId.toString(),
+                (gameStatCode == GameStatCodeEnum.F && isNotNullAndUndefined(foul)) ?
+                      foul :
+                      (positionId ? positionId.toString() : ''),
                 'playerId',
                 playerId ? playerId.toString() : ''
             );
@@ -954,9 +955,9 @@ export class MatchController extends BaseController {
         foul: string
     ) {
       switch (gameStatCode) {
-        case 'MP':
+        case GameStatCodeEnum.MP:
           return points.toString();
-        case 'F':
+        case GameStatCodeEnum.F:
           return foul;
         default:
           return '';
@@ -1440,9 +1441,11 @@ export class MatchController extends BaseController {
     @Authorized()
     @Patch('/lineup/update')
     async updateLineups(
+        @HeaderParam("authorization") currentUser: User,
         @QueryParam('matchId') matchId: number,
         @QueryParam('teamId') teamId: number,
         @QueryParam('updateMatchEvents') updateMatchEvents: boolean,
+        @QueryParam('updateGameTimeAttendances') updateGameTimeAttendances: boolean,
         @Body() lineups: Lineup[],
         @Res() response: Response
     ) {
@@ -1455,6 +1458,14 @@ export class MatchController extends BaseController {
                 await this.matchService.batchSaveLineups(lineups);
                 if (updateMatchEvents) {
                     this.updateMatchEventsForLineup(match, teamId, lineups);
+                }
+                if (updateGameTimeAttendances) {
+                    this.updateGameTimeAttendancesViaLineup(
+                        matchId,
+                        teamId,
+                        lineups,
+                        currentUser
+                    );
                 }
                 let tokens = (await this.deviceService.findScorerDeviceFromRoster(matchId)).map(device => device.deviceId);
                 if (tokens && tokens.length > 0) {
@@ -1479,7 +1490,11 @@ export class MatchController extends BaseController {
         }
     }
 
-    private async checkLineupsForExisting(matchId: number, teamId: number, lineups: Lineup[]) {
+    private async checkLineupsForExisting(
+        matchId: number,
+        teamId: number,
+        lineups: Lineup[]
+    ) {
         let existingLineups = await this.lineupService.findByParams(
             matchId,
             null,
@@ -1498,6 +1513,42 @@ export class MatchController extends BaseController {
                 }
             }
         });
+    }
+
+    private async updateGameTimeAttendancesViaLineup(
+        matchId: number,
+        teamId: number,
+        lineups: Lineup[],
+        currentUser: User
+    ) {
+        if (isArrayPopulated(lineups)) {
+            /// Getting existing GameTimeAttendance data if any
+            await this.gameTimeAttendanceService.deleteByMatchAndTeam(
+                matchId,
+                teamId,
+                null,
+                true,
+                null
+            );
+            var createGTAs = [];
+            lineups.forEach(lineup => {
+                let gta = new GameTimeAttendance();
+                gta.matchId = lineup.matchId;
+                gta.teamId = lineup.teamId;
+                gta.playerId = lineup.playerId;
+                gta.positionId = lineup.positionId;
+                gta.isBorrowed = lineup.borrowed;
+                gta.isPlaying = lineup.playing;
+                gta.verifiedBy = lineup.verifiedBy;
+                gta.createdBy = currentUser.id;
+                gta.createdAt = new Date(Date.now());
+                createGTAs.push(gta);
+            });
+
+            if (isArrayPopulated(createGTAs)) {
+                await this.gameTimeAttendanceService.batchCreateOrUpdate(createGTAs);
+            }
+        }
     }
 
     @Authorized()
@@ -1627,6 +1678,7 @@ export class MatchController extends BaseController {
         }
     }
 
+
     @Authorized()
     @Post('/bulk/end')
     async bulkEnd(
@@ -1635,9 +1687,32 @@ export class MatchController extends BaseController {
         @QueryParam('startTimeStart', { required: true }) startTimeStart: Date,
         @QueryParam('startTimeEnd', { required: true }) startTimeEnd: Date,
         @QueryParam('resultTypeId') resultTypeId: number,
-        @Res() response: Response
+        @QueryParam('venueId') venueId: number,
+        @QueryParam('courtId') courtId: string,
+        @QueryParam('roundId') roundId: number,
+        @Res() response: Response,
     ) {
-        let matchesData = await this.matchService.findByDate(new Date(startTimeStart), new Date(startTimeEnd), competitionId);
+        let venueCourtIds;
+
+        if (courtId) {
+            venueCourtIds = courtId.split(',')
+        }
+
+        if (venueId && !courtId) {
+            const venueCourts = await this.competitionVenueService.findVenueCourts(venueId)
+
+            if (venueCourts.length) {
+                venueCourtIds = venueCourts.map(court => court.id)
+            }
+        }
+
+        const matchesData = await this.matchService.findByDto({
+            from: new Date(startTimeStart),
+            to: new Date(startTimeEnd),
+            competitionId,
+            courtId: venueCourtIds,
+            roundId
+        });
 
         let arr = [];
         let endTime = Date.now();
@@ -2516,10 +2591,11 @@ export class MatchController extends BaseController {
     @Get('/matchEvents')
     async getMatchEvents(
         @QueryParam('matchId', { required: true }) matchId: number,
+        @QueryParam('period') period: number,
         @Res() response: Response
     ) {
         try {
-            const matchEvents = await this.matchEventService.findEventsByMatchId(matchId);
+            const matchEvents = await this.matchEventService.findEventsByMatchId(matchId, period);
             return matchEvents;
         } catch (error) {
             return response.status(400).send({

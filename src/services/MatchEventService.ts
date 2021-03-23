@@ -27,9 +27,13 @@ export default class MatchEventService extends BaseService<MatchEvent> {
         return (gameStatCode == GameStatCodeEnum.M || gameStatCode == GameStatCodeEnum.MP);
     }
 
-    public async findEventsByMatchId(matchId: number): Promise<MatchEvent[]> {
+    public async findEventsByMatchId(matchId: number, period: number): Promise<MatchEvent[]> {
         let query = this.entityManager.createQueryBuilder(MatchEvent, 'matchEvent')
-            .andWhere('matchEvent.matchId = :matchId', { matchId });
+            .andWhere('matchEvent.matchId = :matchId', { matchId })
+
+        if (period >= 0) {
+            query.andWhere('matchEvent.period = :period', { period });
+        }
         return query.getMany();
     }
 
@@ -224,7 +228,8 @@ export default class MatchEventService extends BaseService<MatchEvent> {
             }
 
             query.andWhere('matchEvent.attribute1Value = :attribute1Value', {
-                  attribute1Value: recordPoints ?
+                  attribute1Value: (recordPoints ||
+                      (gameStatCode == GameStatCodeEnum.F && isNotNullAndUndefined(foul))) ?
                     this.getRecordPointsAttribute1Value(gameStatCode, points, foul) :
                     positionId.toString()
               })
