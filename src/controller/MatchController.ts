@@ -2589,10 +2589,11 @@ export class MatchController extends BaseController {
     @Get('/matchEvents')
     async getMatchEvents(
         @QueryParam('matchId', { required: true }) matchId: number,
+        @QueryParam('period') period: number,
         @Res() response: Response
     ) {
         try {
-            const matchEvents = await this.matchEventService.findEventsByMatchId(matchId);
+            const matchEvents = await this.matchEventService.findEventsByMatchId(matchId, period);
             return matchEvents;
         } catch (error) {
             return response.status(400).send({
