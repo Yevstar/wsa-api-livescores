@@ -937,7 +937,10 @@ export class MatchController extends BaseController {
                 eventTimestamp,
                 user.id,
                 'team' + teamSequence,
-                positionId.toString(),
+                (isNotNullAndUndefined(foul) &&
+                  !isNotNullAndUndefined(positionId)) ?
+                      foul :
+                      (positionId ? positionId.toString() : ''),
                 'playerId',
                 playerId ? playerId.toString() : ''
             );
