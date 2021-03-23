@@ -49,6 +49,7 @@ import {convertMatchStartTimeByTimezone} from '../utils/TimeFormatterUtils';
 import AppConstants from "../utils/AppConstants";
 import {MatchSinBin} from "../models/MatchSinBin";
 import {GameStatCodeEnum} from "../models/enums/GameStatCodeEnum";
+import {GameTimeAttendance} from "../models/GameTimeAttendance";
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
@@ -937,7 +938,9 @@ export class MatchController extends BaseController {
                 eventTimestamp,
                 user.id,
                 'team' + teamSequence,
-                positionId.toString(),
+                (gameStatCode == GameStatCodeEnum.F && isNotNullAndUndefined(foul)) ?
+                      foul :
+                      (positionId ? positionId.toString() : ''),
                 'playerId',
                 playerId ? playerId.toString() : ''
             );
@@ -952,9 +955,9 @@ export class MatchController extends BaseController {
         foul: string
     ) {
       switch (gameStatCode) {
-        case 'MP':
+        case GameStatCodeEnum.MP:
           return points.toString();
-        case 'F':
+        case GameStatCodeEnum.F:
           return foul;
         default:
           return '';
@@ -1438,9 +1441,11 @@ export class MatchController extends BaseController {
     @Authorized()
     @Patch('/lineup/update')
     async updateLineups(
+        @HeaderParam("authorization") currentUser: User,
         @QueryParam('matchId') matchId: number,
         @QueryParam('teamId') teamId: number,
         @QueryParam('updateMatchEvents') updateMatchEvents: boolean,
+        @QueryParam('updateGameTimeAttendances') updateGameTimeAttendances: boolean,
         @Body() lineups: Lineup[],
         @Res() response: Response
     ) {
@@ -1453,6 +1458,14 @@ export class MatchController extends BaseController {
                 await this.matchService.batchSaveLineups(lineups);
                 if (updateMatchEvents) {
                     this.updateMatchEventsForLineup(match, teamId, lineups);
+                }
+                if (updateGameTimeAttendances) {
+                    this.updateGameTimeAttendancesViaLineup(
+                        matchId,
+                        teamId,
+                        lineups,
+                        currentUser
+                    );
                 }
                 let tokens = (await this.deviceService.findScorerDeviceFromRoster(matchId)).map(device => device.deviceId);
                 if (tokens && tokens.length > 0) {
@@ -1477,7 +1490,11 @@ export class MatchController extends BaseController {
         }
     }
 
-    private async checkLineupsForExisting(matchId: number, teamId: number, lineups: Lineup[]) {
+    private async checkLineupsForExisting(
+        matchId: number,
+        teamId: number,
+        lineups: Lineup[]
+    ) {
         let existingLineups = await this.lineupService.findByParams(
             matchId,
             null,
@@ -1496,6 +1513,42 @@ export class MatchController extends BaseController {
                 }
             }
         });
+    }
+
+    private async updateGameTimeAttendancesViaLineup(
+        matchId: number,
+        teamId: number,
+        lineups: Lineup[],
+        currentUser: User
+    ) {
+        if (isArrayPopulated(lineups)) {
+            /// Getting existing GameTimeAttendance data if any
+            await this.gameTimeAttendanceService.deleteByMatchAndTeam(
+                matchId,
+                teamId,
+                null,
+                true,
+                null
+            );
+            var createGTAs = [];
+            lineups.forEach(lineup => {
+                let gta = new GameTimeAttendance();
+                gta.matchId = lineup.matchId;
+                gta.teamId = lineup.teamId;
+                gta.playerId = lineup.playerId;
+                gta.positionId = lineup.positionId;
+                gta.isBorrowed = lineup.borrowed;
+                gta.isPlaying = lineup.playing;
+                gta.verifiedBy = lineup.verifiedBy;
+                gta.createdBy = currentUser.id;
+                gta.createdAt = new Date(Date.now());
+                createGTAs.push(gta);
+            });
+
+            if (isArrayPopulated(createGTAs)) {
+                await this.gameTimeAttendanceService.batchCreateOrUpdate(createGTAs);
+            }
+        }
     }
 
     @Authorized()
