@@ -1,4 +1,4 @@
-import {Response} from "express";
+import { Request, Response } from "express";
 import {
     Authorized,
     Body,
@@ -12,7 +12,7 @@ import {
     QueryParam,
     Res,
     UploadedFile,
-    Delete
+    Delete, Req
 } from "routing-controllers";
 import * as _ from "lodash";
 import * as fastcsv from "fast-csv";
@@ -26,7 +26,6 @@ import {
     validationForField,
     parseDateTimeZoneString,
     arrangeCSVToJson,
-    trim,
     isNullOrEmpty
 } from "../utils/Utils";
 import {BaseController} from "./BaseController";
@@ -42,7 +41,6 @@ import {RequestFilter} from "../models/RequestFilter";
 import {Roster} from "../models/security/Roster";
 import {Role} from "../models/security/Role";
 import {GamePosition} from "../models/GamePosition";
-import {Competition} from '../models/Competition';
 import {getMatchUpdatedNonSilentNotificationMessage} from "../utils/NotificationMessageUtils";
 import {StateTimezone} from "../models/StateTimezone";
 import {convertMatchStartTimeByTimezone} from '../utils/TimeFormatterUtils';
@@ -1678,6 +1676,7 @@ export class MatchController extends BaseController {
         }
     }
 
+
     @Authorized()
     @Post('/bulk/end')
     async bulkEnd(
@@ -1686,9 +1685,32 @@ export class MatchController extends BaseController {
         @QueryParam('startTimeStart', { required: true }) startTimeStart: Date,
         @QueryParam('startTimeEnd', { required: true }) startTimeEnd: Date,
         @QueryParam('resultTypeId') resultTypeId: number,
-        @Res() response: Response
+        @QueryParam('venueId') venueId: number,
+        @QueryParam('courtId') courtId: string,
+        @QueryParam('roundId') roundId: number,
+        @Res() response: Response,
     ) {
-        let matchesData = await this.matchService.findByDate(new Date(startTimeStart), new Date(startTimeEnd), competitionId);
+        let venueCourtIds;
+
+        if (courtId) {
+            venueCourtIds = courtId.split(',')
+        }
+
+        if (venueId && !courtId) {
+            const venueCourts = await this.competitionVenueService.findVenueCourts(venueId)
+
+            if (venueCourts.length) {
+                venueCourtIds = venueCourts.map(court => court.id)
+            }
+        }
+
+        const matchesData = await this.matchService.findByDto({
+            from: new Date(startTimeStart),
+            to: new Date(startTimeEnd),
+            competitionId,
+            courtId: venueCourtIds,
+            roundId
+        });
 
         let arr = [];
         let endTime = Date.now();

@@ -30,6 +30,13 @@ export default class CompetitionVenueService extends BaseService<CompetitionVenu
       .execute();
   }
 
+  public async findVenueCourts(venueId: number): Promise<any> {
+    const query = this.entityManager.createQueryBuilder(VenueCourt, 'vc')
+        .select()
+        .where("vc.venueId = :venueId", { venueId });
+    return query.getMany();
+  }
+
   public async findByCourtNameNotWorking(name?: string, competitionId?: number): Promise<any> {
     let query = this.entityManager.createQueryBuilder(VenueCourt, 'vc')
         .select(['vc.id as id'])
