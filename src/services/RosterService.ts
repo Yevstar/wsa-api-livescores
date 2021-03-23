@@ -384,4 +384,27 @@ export default class RosterService extends BaseService<Roster> {
             return responseObject;
         }
     }
+
+    public async getUmpireRostersForDates(umpireId: number, startTime: Date, endTime: Date): Promise<Roster[]> {
+
+        const result = await this.entityManager.createQueryBuilder(Roster, 'ros')
+            .leftJoin(subQuery => {
+                const query =  subQuery
+                    .select(['id', 'startTime', 'matchDuration', 'DATE_ADD(startTime, INTERVAL matchDuration MINUTE) AS approxEndTime'])
+                    .from(Match, 'm')
+                return query;
+            }, 'match', 'match.id = ros.matchId and ((match.startTime ' +
+                '<= :startTime and match.approxEndTime > :startTime) or (match.startTime ' +
+                '>= :startTime and match.startTime < :endTime))', {
+                startTime: startTime,
+                endTime: endTime
+            })
+            .where('ros.match.id is not null')
+            .andWhere('ros.userId = :umpireId', {umpireId})
+            .getMany();
+
+        return result;
+    }
+
+
 }

@@ -233,6 +233,7 @@ export class MatchController extends BaseController {
         @QueryParam('teamId') teamId: number,
         @QueryParam('roleId') roleId: number,
         @QueryParam('userId') userId: number,
+        @QueryParam('showRosterAvailability') showRosterAvailability: boolean = false,
         @Body() requestFilter: RequestFilter,
         @Res() response: Response
     ): Promise<any> {
@@ -246,7 +247,8 @@ export class MatchController extends BaseController {
                 teamId,
                 roleId,
                 userId,
-                requestFilter
+                requestFilter,
+                {showRosterAvailability}
             );
         } else {
             return response.status(200).send({

@@ -1,4 +1,4 @@
-import {Service} from "typedi";
+import {Inject, Service} from "typedi";
 import pdf from "html-pdf";
 import hummus from "hummus";
 import memoryStreams from "memory-streams";
@@ -25,6 +25,7 @@ import {MatchFouls} from "../models/MatchFouls";
 import {MatchTimeout} from "../models/MatchTimeout";
 import {MatchSinBin} from "../models/MatchSinBin";
 import AWS from "aws-sdk";
+import RosterService from "./RosterService";
 
 const s3 = new AWS.S3({
     accessKeyId: process.env.AWS_ACCESS_KEY,
@@ -33,6 +34,9 @@ const s3 = new AWS.S3({
 
 @Service()
 export default class MatchService extends BaseService<Match> {
+
+    @Inject()
+    protected rosterService: RosterService;
 
     modelName(): string {
         return Match.name;
@@ -311,15 +315,18 @@ export default class MatchService extends BaseService<Match> {
         teamId: number,
         roleId: number,
         userId: number,
-        requestFilter: RequestFilter
+        requestFilter: RequestFilter,
+        options: LoadAdminOptions = {},
     ): Promise<any> {
         let result = await this.entityManager.query("call wsa.usp_get_matches(?,?,?,?,?,?)",
             [competitionId, teamId, roleId, userId, requestFilter.paging.offset, requestFilter.paging.limit]);
-
         if (result != null) {
             let totalCount = (result[1] && result[1].find(x => x)) ? result[1].find(x => x).totalCount : 0;
             let responseObject = paginationData(stringTONumber(totalCount), requestFilter.paging.limit, requestFilter.paging.offset);
             responseObject["matches"] = result[0];
+            if (options.showRosterAvailability) {
+                responseObject["matches"] = await this.markUnavailableMatchesForUmpire(responseObject["matches"], userId);
+            }
             return responseObject;
         } else {
             return [];
@@ -838,4 +845,77 @@ export default class MatchService extends BaseService<Match> {
 
         return null;
     }
+
+    public async markUnavailableMatchesForUmpire(matches: Match[], umpireId: number): Promise<MatchWithAvailability[]> {
+        const matchesIntervals = [];
+        matches.forEach(match => {
+            if (match.startTime && match.matchDuration) {
+                const startTime = match.startTime;
+                const endTime = new Date(startTime.getTime() + match.matchDuration*60000);
+                matchesIntervals.push({startTime, endTime});
+            }
+        });
+        const minStartTime = matchesIntervals.reduce((minStartTime: Date, interval) => {
+            if (!minStartTime) {
+                return interval.startTime;
+            }
+
+            if (interval.startTime.getTime() < minStartTime.getTime()) {
+                return interval.startTime;
+            }
+
+            return minStartTime;
+        }, null);
+        const maxEndTime = matchesIntervals.reduce((maxEndTime: Date, interval) => {
+            if (!maxEndTime) {
+                return interval.endTime;
+            }
+
+            if (interval.endTime.getTime() > maxEndTime.getTime()) {
+                return interval.endTime;
+            }
+
+            return maxEndTime;
+        }, null);
+
+        const rosters = await this.rosterService.getUmpireRostersForDates(umpireId, minStartTime, maxEndTime);
+        const reservedTimeIntervals = [] as {startTime: number, endTime: number}[];
+        rosters.forEach(roster => {
+            const startTime = roster.match.startTime.getTime();
+            const endTime = roster.match.startTime.setMinutes(roster.match.startTime.getMinutes() + roster.match.matchDuration);
+
+            return reservedTimeIntervals.push({startTime, endTime});
+        });
+
+        return matches.map(match => {
+            if (!match.startTime) {
+                return Object.assign(match, {availableToAttach: false});
+            }
+
+            const startTime = match.startTime.getTime();
+            const endTime = match.startTime.setMinutes(match.startTime.getMinutes() + match.matchDuration);
+            let availableToAttach = true;
+            const overlaps = reservedTimeIntervals.filter(interval => {
+                if (
+                    ((interval.startTime <= startTime) && (interval.endTime > startTime)) ||
+                    ((interval.startTime >= startTime) && (interval.startTime < endTime))
+                ) {
+                    return true;
+                }
+
+                return false;
+            });
+            if (overlaps.length) {
+                availableToAttach = false;
+            }
+
+            return Object.assign(match, {availableToAttach});
+        });
+    }
+
 }
+
+export type MatchWithAvailability = Match & {availableToAttach: boolean};
+export type LoadAdminOptions = {
+    showRosterAvailability?: boolean,
+};
