@@ -11,7 +11,8 @@ import {UmpireAllocationTypeEnum} from "../models/enums/UmpireAllocationTypeEnum
 import axios from "axios";
 import {AllocationDto} from "../controller/dto/AllocationDto";
 // TODO move to env
-const competitionApi = process.env.COMPETITION_API_URL;
+// const competitionApi = process.env.COMPETITION_API_URL;
+const competitionApi = 'https://competition-api-dev.worldsportaction.com';
 
 @Service()
 export default class UmpireAllocation {
@@ -36,7 +37,10 @@ export default class UmpireAllocation {
     public async allocateUmpires(allocationDto: AllocationDto, authToken: string, userId: number): Promise<void> {
         await this.competitionService.findOneOrFail(allocationDto.competitionId);
         const inputData = await this.prepareUmpiresAllocationAlgorithmInputData(allocationDto);
-        await this.callUmpireAllocationAlgorithm(inputData, authToken, userId);
+        console.log('before');
+        const res = await this.callUmpireAllocationAlgorithm(inputData, authToken, userId);
+        console.log('after');
+        console.log(`res - ${JSON.stringify(res)}`);
     }
 
     protected async prepareUmpiresAllocationAlgorithmInputData(
@@ -49,7 +53,8 @@ export default class UmpireAllocation {
             this.umpireService.getAllUmpiresAttachedToCompetition(competitionId),
             this.competitionService.getUmpireAllocationSettingForCompetitionOrganiser(competitionId),
         ]);
-        const {uniqueKey: competitionUniqueKey, organisationId} = competitionData;
+        const competitionUniqueKey = competitionData.uniqueKey;
+        const organisationId = competitionData.linkedCompetitionOrganisation.organisation.organisationUniqueKey;
         const umpiresTeamsAndOrgRefs = await this.umpireService.getUmpiresTeamsAndOrgRefs(rawUmpires.map(umpire => umpire.id));
         const unavailableBookings = await this.bookingService.getUnavailableBookingForUmpires(rawUmpires.map(umpire => umpire.id));
         const umpireDivisionRefs = await this.umpireService.getUmpiresDivisions(competitionId, rawUmpires.map(umpire => umpire.id));
@@ -237,7 +242,7 @@ export interface IUmpireAllocationAlgorithmInput {
     umpires: any[],
     umpireType: number,
     competitionUniqueKey: string,
-    organisationId: number,
+    organisationId: string,
 }
 
 export interface UnavailableDateTimeslot {
