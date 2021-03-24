@@ -7,7 +7,6 @@ import {
     PrimaryGeneratedColumn,
     OneToMany,
     DeleteDateColumn,
-    ManyToOne
 } from "typeorm-plus";
 import {Location} from "./Location";
 import {CompetitionVenue} from "./CompetitionVenue";
@@ -281,4 +280,8 @@ export class Competition extends BaseEntity {
     @IsJSON()
     @Column("json")
     additionalSettings?: Record<string, any>;
+
+    @IsBoolean()
+    @Column()
+    noPaymentThroughPlatform: boolean;
 }
