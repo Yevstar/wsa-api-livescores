@@ -11,7 +11,7 @@ import {UmpireAllocationTypeEnum} from "../models/enums/UmpireAllocationTypeEnum
 import axios from "axios";
 import {AllocationDto} from "../controller/dto/AllocationDto";
 // TODO move to env
-const competitionApi = 'https://competition-api-dev.worldsportaction.com';
+const competitionApi = process.env.COMPETITION_API_URL;
 
 @Service()
 export default class UmpireAllocation {
@@ -49,7 +49,7 @@ export default class UmpireAllocation {
             this.umpireService.getAllUmpiresAttachedToCompetition(competitionId),
             this.competitionService.getUmpireAllocationSettingForCompetitionOrganiser(competitionId),
         ]);
-
+        const {uniqueKey: competitionUniqueKey, organisationId} = competitionData;
         const umpiresTeamsAndOrgRefs = await this.umpireService.getUmpiresTeamsAndOrgRefs(rawUmpires.map(umpire => umpire.id));
         const unavailableBookings = await this.bookingService.getUnavailableBookingForUmpires(rawUmpires.map(umpire => umpire.id));
         const umpireDivisionRefs = await this.umpireService.getUmpiresDivisions(competitionId, rawUmpires.map(umpire => umpire.id));
@@ -68,6 +68,8 @@ export default class UmpireAllocation {
             draws,
             umpires,
             umpireType,
+            competitionUniqueKey,
+            organisationId,
         };
     }
 
@@ -234,6 +236,8 @@ export interface IUmpireAllocationAlgorithmInput {
     draws: any[],
     umpires: any[],
     umpireType: number,
+    competitionUniqueKey: string,
+    organisationId: number,
 }
 
 export interface UnavailableDateTimeslot {
