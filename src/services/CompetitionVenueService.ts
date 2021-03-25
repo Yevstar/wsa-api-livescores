@@ -59,4 +59,15 @@ export default class CompetitionVenueService extends BaseService<CompetitionVenu
         , [competitionId, name])
   }
 
+  public async findByCourtAndVenueName(venueName: string, courtName: string, competitionId: number): Promise<any[]> {
+    return this.entityManager.query(
+        'select vc.id, vc.name, vc.courtNumber' +
+        '    from wsa_common.venueCourt vc \n' +
+        '    inner join wsa_common.venue v on v.id = vc.venueId\n' +
+        '    inner join wsa.competitionVenue cv on cv.venueId = v.id\n' +
+        'where cv.competitionId = ? \n' +
+        '    and vc.courtNumber = ? \n' +
+        '    and v.name = ?;'
+        , [competitionId, courtName, venueName]);
+  }
 }

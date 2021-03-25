@@ -1998,6 +1998,7 @@ export class MatchController extends BaseController {
             'Home Team',
             'Away Team',
             'Venue',
+            'Court',
             'Type',
             'Match Duration',
             'Break Duration',
@@ -2021,7 +2022,7 @@ export class MatchController extends BaseController {
             let divisionData = await this.divisionService.findByName(i["Division Grade"], competitionId);
             let team1Data = await this.teamService.findByNameAndCompetition(i["Home Team"], competitionId, null, divisionData.length > 0 ? divisionData[0].name : undefined);
             let team2Data = await this.teamService.findByNameAndCompetition(i["Away Team"], competitionId, null, divisionData.length > 0 ? divisionData[0].name : undefined);
-            let venueData = await this.competitionVenueService.findByCourtName(i["Venue"], competitionId);
+            let venueData = await this.competitionVenueService.findByCourtAndVenueName(i["Venue"], i["Court"], competitionId);
             let roundData;
             if (!!divisionData[0] && !!team1Data[0] && !!team2Data[0] && !!venueData[0]) {
                 let rounds = await this.roundService.findByName(competitionId, i["Round"], divisionData[0].id);
@@ -2075,7 +2076,7 @@ export class MatchController extends BaseController {
                 if (!divisionData[0]) message[`Line ${i.line}`].message.push('The division entered is not associated with this competition.');
                 if (!team1Data[0]) message[`Line ${i.line}`].message.push(`Can't find the team named "${i['Home Team']}"`);
                 if (!team2Data[0]) message[`Line ${i.line}`].message.push(`Can't find the team named "${i['Away Team']}"`);
-                if (!venueData[0]) message[`Line ${i.line}`].message.push(`Can't find the venue court named "${i['Venue']}"`);
+                if (!venueData[0]) message[`Line ${i.line}`].message.push(`Can't find the court named "${i['Court']}" on the venue "${i['Venue']}"`);
             }
         }
 
