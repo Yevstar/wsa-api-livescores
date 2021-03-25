@@ -933,6 +933,18 @@ export default class MatchService extends BaseService<Match> {
         });
     }
 
+    public async checkIfAbleToAssignUmpireToMath(matchId: number, umpireId: number): Promise<boolean> {
+        const match = await this.findById(matchId);
+
+        if (!match) {
+            return false;
+        }
+
+        const markedMatches = await this.markUnavailableMatchesForUmpire([match], umpireId);
+
+        return markedMatches[0].availableToAttach;
+    }
+
 }
 
 export type MatchWithAvailability = Match & {availableToAttach: boolean};
