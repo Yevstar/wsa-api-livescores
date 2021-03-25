@@ -69,7 +69,7 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
 
         const competition = await this.entityManager.findOneOrFail(Competition, competitionId);
         let {noPaymentThroughPlatform} = competition;
-        const newNoPaymentThroughPlatform = competition.noPaymentThroughPlatform;
+        const newNoPaymentThroughPlatform = body.noPaymentThroughPlatform;
 
         if (undefined !== newNoPaymentThroughPlatform) {
             noPaymentThroughPlatform = newNoPaymentThroughPlatform;
