@@ -55,7 +55,11 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
             }
         }
 
-        return new UmpirePaymentSettingsResponseDto(umpirePaymentSettings, competition.umpirePaymentAllowedDivisionsSetting)
+        return new UmpirePaymentSettingsResponseDto(
+            umpirePaymentSettings,
+            competition.umpirePaymentAllowedDivisionsSetting,
+            competition.noPaymentThroughPlatform
+        );
     }
 
     async saveOrganiserSettings(organisationId: number, competitionId: number, body: UmpirePaymentOrganiserSettingsDto): Promise<UmpirePaymentSettingsResponseDto> {
@@ -64,7 +68,12 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
         }
 
         const competition = await this.entityManager.findOneOrFail(Competition, competitionId);
+        let {noPaymentThroughPlatform} = competition;
+        const newNoPaymentThroughPlatform = body.noPaymentThroughPlatform;
 
+        if (undefined !== newNoPaymentThroughPlatform) {
+            noPaymentThroughPlatform = newNoPaymentThroughPlatform;
+        }
         const response = new UmpirePaymentSettingsResponseDto;
 
         await this.entityManager.delete(UmpirePaymentSetting, {
@@ -94,9 +103,10 @@ export class UmpirePaymentSettingsService extends BaseService<UmpirePaymentSetti
 
             allowedDivisionsSetting.competitionId = competitionId;
 
-            response.allowedDivisionsSetting = await this.entityManager.save(allowedDivisionsSetting)
+            response.allowedDivisionsSetting = await this.entityManager.save(allowedDivisionsSetting);
         }
-
+        response.noPaymentThroughPlatform = noPaymentThroughPlatform;
+        competition.noPaymentThroughPlatform = noPaymentThroughPlatform;
         await competition.save()
 
         return response;
