@@ -66,7 +66,7 @@ export default class CompetitionVenueService extends BaseService<CompetitionVenu
         '    inner join wsa_common.venue v on v.id = vc.venueId\n' +
         '    inner join wsa.competitionVenue cv on cv.venueId = v.id\n' +
         'where cv.competitionId = ? \n' +
-        '    and vc.courtNumber = ? \n' +
+        '    and vc.name = ? \n' +
         '    and v.name = ?;'
         , [competitionId, courtName, venueName]);
   }
