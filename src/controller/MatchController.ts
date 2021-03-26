@@ -1,4 +1,4 @@
-import {Response} from "express";
+import { Request, Response } from "express";
 import {
     Authorized,
     Body,
@@ -12,7 +12,7 @@ import {
     QueryParam,
     Res,
     UploadedFile,
-    Delete
+    Delete, Req
 } from "routing-controllers";
 import * as _ from "lodash";
 import * as fastcsv from "fast-csv";
@@ -26,7 +26,6 @@ import {
     validationForField,
     parseDateTimeZoneString,
     arrangeCSVToJson,
-    trim,
     isNullOrEmpty
 } from "../utils/Utils";
 import {BaseController} from "./BaseController";
@@ -42,12 +41,13 @@ import {RequestFilter} from "../models/RequestFilter";
 import {Roster} from "../models/security/Roster";
 import {Role} from "../models/security/Role";
 import {GamePosition} from "../models/GamePosition";
-import {Competition} from '../models/Competition';
 import {getMatchUpdatedNonSilentNotificationMessage} from "../utils/NotificationMessageUtils";
 import {StateTimezone} from "../models/StateTimezone";
 import {convertMatchStartTimeByTimezone} from '../utils/TimeFormatterUtils';
 import AppConstants from "../utils/AppConstants";
 import {MatchSinBin} from "../models/MatchSinBin";
+import {GameStatCodeEnum} from "../models/enums/GameStatCodeEnum";
+import {GameTimeAttendance} from "../models/GameTimeAttendance";
 
 @JsonController('/matches')
 export class MatchController extends BaseController {
@@ -793,6 +793,9 @@ export class MatchController extends BaseController {
         @QueryParam('centrePassStatus') centrePassStatus: "TEAM1" | "TEAM2",
         @QueryParam('recordPoints') recordPoints: boolean = false,
         @QueryParam('points') points: number,
+        @QueryParam('recordAssistPlayer') recordAssistPlayer: boolean = false,
+        @QueryParam('assistPlayerPositionId') assistPlayerPositionId: number,
+        @QueryParam('assistPlayerId') assistPlayerId: number,
         @Res() response: Response
     ) {
         if (recordPoints && !isNotNullAndUndefined(points)) {
@@ -819,8 +822,13 @@ export class MatchController extends BaseController {
             'team2score', team2Score.toString());
         if (gameStatCode) {
             this.matchEventService.logMatchEvent(matchId, 'stat', gameStatCode, periodNumber,
-                eventTimestamp, user.id, 'team' + teamSequence, recordPoints ? points.toString() : positionId.toString(),
+                eventTimestamp, user.id, 'team' + teamSequence, recordPoints ? points.toString() : (positionId ? positionId.toString() : ''),
                 'playerId', playerId ? playerId.toString() : '');
+        }
+        if (recordAssistPlayer && isNotNullAndUndefined(assistPlayerId)) {
+            this.matchEventService.logMatchEvent(matchId, 'stat', 'A', periodNumber,
+                eventTimestamp, user.id, 'team' + teamSequence, assistPlayerPositionId ? assistPlayerPositionId.toString() : '',
+                'playerId', assistPlayerId ? assistPlayerId.toString() : '');
         }
         return match;
     }
@@ -872,13 +880,13 @@ export class MatchController extends BaseController {
                 periodNumber,
                 eventTimestamp,
                 user.id,
-                gameStatCode == 'TC' ? 'new' : 'team' + teamSequence,
-                gameStatCode == 'TC' ?  msChangeToStartTime.toString() : this.getRecordPointsAttribute1Value(gameStatCode, points, foul),
-                gameStatCode == 'TC' ? 'old' : 'playerId',
-                gameStatCode == 'TC' ?  msFromStart.toString() : playerId ? playerId.toString() : ''
+                gameStatCode == GameStatCodeEnum.TC ? 'new' : 'team' + teamSequence,
+                gameStatCode == GameStatCodeEnum.TC ?  msChangeToStartTime.toString() : this.getRecordPointsAttribute1Value(gameStatCode, points, foul),
+                gameStatCode == GameStatCodeEnum.TC ? 'old' : 'playerId',
+                gameStatCode == GameStatCodeEnum.TC ?  msFromStart.toString() : playerId ? playerId.toString() : ''
             );
 
-            if (gameStatCode == 'F') {
+            if (gameStatCode == GameStatCodeEnum.F) {
                 this.matchService.logMatchFouls(user.id, matchId, teamSequence, foul);
                 if (sinbinApplied) {
                    /// We will get sinbin when a foul type technical is getting logged
@@ -891,7 +899,7 @@ export class MatchController extends BaseController {
                       user.id
                    );
                 }
-            } else if (gameStatCode == 'TC') {
+            } else if (gameStatCode == GameStatCodeEnum.TC) {
               let newMatchStartTime = new Date(match.startTime.getTime() + (msFromStart - msChangeToStartTime));
               if (!isNotNullAndUndefined(match.originalStartTime)) {
                   match.originalStartTime = match.startTime;
@@ -928,7 +936,9 @@ export class MatchController extends BaseController {
                 eventTimestamp,
                 user.id,
                 'team' + teamSequence,
-                positionId.toString(),
+                (gameStatCode == GameStatCodeEnum.F && isNotNullAndUndefined(foul)) ?
+                      foul :
+                      (positionId ? positionId.toString() : ''),
                 'playerId',
                 playerId ? playerId.toString() : ''
             );
@@ -943,9 +953,9 @@ export class MatchController extends BaseController {
         foul: string
     ) {
       switch (gameStatCode) {
-        case 'MP':
+        case GameStatCodeEnum.MP:
           return points.toString();
-        case 'F':
+        case GameStatCodeEnum.F:
           return foul;
         default:
           return '';
@@ -1429,9 +1439,11 @@ export class MatchController extends BaseController {
     @Authorized()
     @Patch('/lineup/update')
     async updateLineups(
+        @HeaderParam("authorization") currentUser: User,
         @QueryParam('matchId') matchId: number,
         @QueryParam('teamId') teamId: number,
         @QueryParam('updateMatchEvents') updateMatchEvents: boolean,
+        @QueryParam('updateGameTimeAttendances') updateGameTimeAttendances: boolean,
         @Body() lineups: Lineup[],
         @Res() response: Response
     ) {
@@ -1444,6 +1456,14 @@ export class MatchController extends BaseController {
                 await this.matchService.batchSaveLineups(lineups);
                 if (updateMatchEvents) {
                     this.updateMatchEventsForLineup(match, teamId, lineups);
+                }
+                if (updateGameTimeAttendances) {
+                    this.updateGameTimeAttendancesViaLineup(
+                        matchId,
+                        teamId,
+                        lineups,
+                        currentUser
+                    );
                 }
                 let tokens = (await this.deviceService.findScorerDeviceFromRoster(matchId)).map(device => device.deviceId);
                 if (tokens && tokens.length > 0) {
@@ -1468,7 +1488,11 @@ export class MatchController extends BaseController {
         }
     }
 
-    private async checkLineupsForExisting(matchId: number, teamId: number, lineups: Lineup[]) {
+    private async checkLineupsForExisting(
+        matchId: number,
+        teamId: number,
+        lineups: Lineup[]
+    ) {
         let existingLineups = await this.lineupService.findByParams(
             matchId,
             null,
@@ -1487,6 +1511,42 @@ export class MatchController extends BaseController {
                 }
             }
         });
+    }
+
+    private async updateGameTimeAttendancesViaLineup(
+        matchId: number,
+        teamId: number,
+        lineups: Lineup[],
+        currentUser: User
+    ) {
+        if (isArrayPopulated(lineups)) {
+            /// Getting existing GameTimeAttendance data if any
+            await this.gameTimeAttendanceService.deleteByMatchAndTeam(
+                matchId,
+                teamId,
+                null,
+                true,
+                null
+            );
+            var createGTAs = [];
+            lineups.forEach(lineup => {
+                let gta = new GameTimeAttendance();
+                gta.matchId = lineup.matchId;
+                gta.teamId = lineup.teamId;
+                gta.playerId = lineup.playerId;
+                gta.positionId = lineup.positionId;
+                gta.isBorrowed = lineup.borrowed;
+                gta.isPlaying = lineup.playing;
+                gta.verifiedBy = lineup.verifiedBy;
+                gta.createdBy = currentUser.id;
+                gta.createdAt = new Date(Date.now());
+                createGTAs.push(gta);
+            });
+
+            if (isArrayPopulated(createGTAs)) {
+                await this.gameTimeAttendanceService.batchCreateOrUpdate(createGTAs);
+            }
+        }
     }
 
     @Authorized()
@@ -1616,6 +1676,7 @@ export class MatchController extends BaseController {
         }
     }
 
+
     @Authorized()
     @Post('/bulk/end')
     async bulkEnd(
@@ -1624,9 +1685,32 @@ export class MatchController extends BaseController {
         @QueryParam('startTimeStart', { required: true }) startTimeStart: Date,
         @QueryParam('startTimeEnd', { required: true }) startTimeEnd: Date,
         @QueryParam('resultTypeId') resultTypeId: number,
-        @Res() response: Response
+        @QueryParam('venueId') venueId: number,
+        @QueryParam('courtId') courtId: string,
+        @QueryParam('roundId') roundId: number,
+        @Res() response: Response,
     ) {
-        let matchesData = await this.matchService.findByDate(new Date(startTimeStart), new Date(startTimeEnd), competitionId);
+        let venueCourtIds;
+
+        if (courtId) {
+            venueCourtIds = courtId.split(',')
+        }
+
+        if (venueId && !courtId) {
+            const venueCourts = await this.competitionVenueService.findVenueCourts(venueId)
+
+            if (venueCourts.length) {
+                venueCourtIds = venueCourts.map(court => court.id)
+            }
+        }
+
+        const matchesData = await this.matchService.findByDto({
+            from: new Date(startTimeStart),
+            to: new Date(startTimeEnd),
+            competitionId,
+            courtId: venueCourtIds,
+            roundId
+        });
 
         let arr = [];
         let endTime = Date.now();
@@ -1914,6 +1998,7 @@ export class MatchController extends BaseController {
             'Home Team',
             'Away Team',
             'Venue',
+            'Court',
             'Type',
             'Match Duration',
             'Break Duration',
@@ -1937,7 +2022,7 @@ export class MatchController extends BaseController {
             let divisionData = await this.divisionService.findByName(i["Division Grade"], competitionId);
             let team1Data = await this.teamService.findByNameAndCompetition(i["Home Team"], competitionId, null, divisionData.length > 0 ? divisionData[0].name : undefined);
             let team2Data = await this.teamService.findByNameAndCompetition(i["Away Team"], competitionId, null, divisionData.length > 0 ? divisionData[0].name : undefined);
-            let venueData = await this.competitionVenueService.findByCourtName(i["Venue"], competitionId);
+            let venueData = await this.competitionVenueService.findByCourtAndVenueName(i["Venue"], i["Court"], competitionId);
             let roundData;
             if (!!divisionData[0] && !!team1Data[0] && !!team2Data[0] && !!venueData[0]) {
                 let rounds = await this.roundService.findByName(competitionId, i["Round"], divisionData[0].id);
@@ -1991,7 +2076,7 @@ export class MatchController extends BaseController {
                 if (!divisionData[0]) message[`Line ${i.line}`].message.push('The division entered is not associated with this competition.');
                 if (!team1Data[0]) message[`Line ${i.line}`].message.push(`Can't find the team named "${i['Home Team']}"`);
                 if (!team2Data[0]) message[`Line ${i.line}`].message.push(`Can't find the team named "${i['Away Team']}"`);
-                if (!venueData[0]) message[`Line ${i.line}`].message.push(`Can't find the venue court named "${i['Venue']}"`);
+                if (!venueData[0]) message[`Line ${i.line}`].message.push(`Can't find the court named "${i['Court']}" on the venue "${i['Venue']}"`);
             }
         }
 
@@ -2414,6 +2499,9 @@ export class MatchController extends BaseController {
         @QueryParam('recordPoints') recordPoints: boolean = false,
         @QueryParam('points') points: number,
         @QueryParam('foul') foul: string,
+        @QueryParam('recordAssistPlayer') recordAssistPlayer: boolean = false,
+        @QueryParam('assistPlayerPositionId') assistPlayerPositionId: number,
+        @QueryParam('assistPlayerId') assistPlayerId: number,
         @Res() response: Response
     ) {
         if (this.matchEventService.isGameStatGoalOrPoints(gameStatCode) &&
@@ -2449,7 +2537,10 @@ export class MatchController extends BaseController {
             positionId,
             recordPoints,
             points,
-            foul
+            foul,
+            recordAssistPlayer,
+            assistPlayerPositionId,
+            assistPlayerId,
         );
 
         try {
@@ -2472,7 +2563,7 @@ export class MatchController extends BaseController {
                     }
                     this.matchService.createOrUpdate(match);
                     this.sendMatchEvent(match, true, {user: user});
-                } else if (gameStatCode == 'F') {
+                } else if (gameStatCode == GameStatCodeEnum.F) {
                     await this.matchService.removeMatchFoul(matchId, teamSequence, foul);
                     await this.matchService.removeMatchSinBin(
                         matchId,
@@ -2499,10 +2590,11 @@ export class MatchController extends BaseController {
     @Get('/matchEvents')
     async getMatchEvents(
         @QueryParam('matchId', { required: true }) matchId: number,
+        @QueryParam('period') period: number,
         @Res() response: Response
     ) {
         try {
-            const matchEvents = await this.matchEventService.findEventsByMatchId(matchId);
+            const matchEvents = await this.matchEventService.findEventsByMatchId(matchId, period);
             return matchEvents;
         } catch (error) {
             return response.status(400).send({

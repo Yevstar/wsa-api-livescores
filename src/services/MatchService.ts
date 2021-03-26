@@ -25,6 +25,8 @@ import {MatchFouls} from "../models/MatchFouls";
 import {MatchTimeout} from "../models/MatchTimeout";
 import {MatchSinBin} from "../models/MatchSinBin";
 import AWS from "aws-sdk";
+import axios from "axios";
+import {QueryParam} from "routing-controllers";
 
 const s3 = new AWS.S3({
     accessKeyId: process.env.AWS_ACCESS_KEY,
@@ -121,6 +123,7 @@ export default class MatchService extends BaseService<Match> {
             rosters: []
         }
         let result = await this.entityManager.query("call wsa.usp_get_match(?,?)", [matchId, lineups]);
+
         if (result != null && result[0] != null) {
             // if(isArrayPopulated(result[0])){
             //     result[0].map((x) => {
@@ -379,6 +382,22 @@ export default class MatchService extends BaseService<Match> {
         if (from) query.andWhere("match.startTime >= :from", { from });
         if (to) query.andWhere("match.startTime <= :to", { to });
         if (competitionId) query.andWhere("match.competitionId = :competitionId", { competitionId });
+        return query.getMany()
+    }
+
+    public async findByDto({
+       from,
+       to,
+       competitionId,
+       courtId,
+       roundId
+   }): Promise<Match[]> {
+        let query = this.entityManager.createQueryBuilder(Match, 'match');
+        if (from) query.andWhere("match.startTime >= :from", { from });
+        if (to) query.andWhere("match.startTime <= :to", { to });
+        if (competitionId) query.andWhere("match.competitionId = :competitionId", { competitionId });
+        if (roundId) query.andWhere("match.roundId = :roundId", { roundId });
+        if (courtId) query.andWhere("match.venueCourtId IN (:courtId)", { courtId });
         return query.getMany()
     }
 
