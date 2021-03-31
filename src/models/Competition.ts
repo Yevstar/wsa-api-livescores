@@ -241,7 +241,7 @@ export class Competition extends BaseEntity {
 
     @IsString()
     @Column()
-    acceptScoring?: string;
+    acceptScoring?: "SCORER" | "REFEREE";
 
     @IsBoolean()
     @Column()
