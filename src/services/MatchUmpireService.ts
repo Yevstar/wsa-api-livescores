@@ -10,6 +10,7 @@ import {UmpirePaymentSetting} from "../models/UmpirePaymentSetting";
 import {UmpirePaymentFeeRate} from "../models/UmpirePaymentFeeRate";
 import {UmpirePaymentFeeTypeEnum} from "../models/enums/UmpirePaymentFeeTypeEnum";
 import {UmpirePool} from "../models/UmpirePool";
+import * as _ from "lodash";
 
 @Service()
 export default class MatchUmpireService extends BaseService<MatchUmpire> {
@@ -92,6 +93,18 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
         if (result != null) {
             let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
             let responseObject = paginationData(stringTONumber(totalCount), limit,offset);
+            const matches = result[0] as {umpireCoaches: [], umpireReserves: [], umpires: []}[];
+            for (const match of matches) {
+                if (match.umpires) {
+                    match.umpireCoaches = _.uniqBy(match.umpires, 'rosterId');
+                }
+                if (match.umpireReserves) {
+                    match.umpireReserves = _.uniqBy(match.umpireReserves, 'rosterId');
+                }
+                if (match.umpireCoaches) {
+                    match.umpireCoaches = _.uniqBy(match.umpireCoaches, 'rosterId');
+                }
+            }
             responseObject["results"] = result[0];
             let locationId = (result[2] && result[2].find(y=>y)) ? result[2].find(y=>y).locationId : 0;
             responseObject["locationId"] = locationId;
