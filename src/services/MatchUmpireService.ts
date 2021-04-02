@@ -93,16 +93,31 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
         if (result != null) {
             let totalCount = (result[1] && result[1].find(x=>x)) ? result[1].find(x=>x).totalCount : 0;
             let responseObject = paginationData(stringTONumber(totalCount), limit,offset);
-            const matches = result[0] as {umpireCoaches: [], umpireReserves: [], umpires: []}[];
+            const matches = result[0] as RawMatch[];
             for (const match of matches) {
                 if (match.umpires) {
-                    match.umpireCoaches = _.uniqBy(match.umpires, 'rosterId');
+                    match.umpires = _.uniqBy(match.umpires, 'rosterId');
+                    for (const umpire of match.umpires) {
+                        if (umpire.competitionOrganisations) {
+                            umpire.competitionOrganisations = this.sanitizeCompetitionOrgs(umpire.competitionOrganisations);
+                        }
+                    }
                 }
                 if (match.umpireReserves) {
                     match.umpireReserves = _.uniqBy(match.umpireReserves, 'rosterId');
+                    for (const umpireReserve of match.umpireReserves) {
+                        if (umpireReserve.competitionOrganisations) {
+                            umpireReserve.competitionOrganisations = this.sanitizeCompetitionOrgs(umpireReserve.competitionOrganisations);
+                        }
+                    }
                 }
                 if (match.umpireCoaches) {
                     match.umpireCoaches = _.uniqBy(match.umpireCoaches, 'rosterId');
+                    for (const umpireCoach of match.umpireCoaches) {
+                        if (umpireCoach.competitionOrganisations) {
+                            umpireCoach.competitionOrganisations = this.sanitizeCompetitionOrgs(umpireCoach.competitionOrganisations);
+                        }
+                    }
                 }
             }
             responseObject["results"] = result[0];
@@ -259,4 +274,28 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
 
         return umpirePaymentFeeRate?.rate ?? null;
     }
+
+    protected sanitizeCompetitionOrgs(compOrgs: RawCompetitionOrganisation[]): RawCompetitionOrganisation[] {
+        let sanitizedCompOrgs = compOrgs.filter(compOrg => {
+            return compOrg.id && compOrg.name;
+        });
+        sanitizedCompOrgs = _.uniqBy(sanitizedCompOrgs, 'name');
+
+        return sanitizedCompOrgs;
+    }
 }
+
+type RawMatch = {
+    umpireCoaches: RawUmpire[],
+    umpireReserves: RawUmpire[],
+    umpires: RawUmpire[],
+};
+
+type RawUmpire = {
+    competitionOrganisations: RawCompetitionOrganisation[];
+};
+
+type RawCompetitionOrganisation = {
+    id: number,
+    name: string,
+};
