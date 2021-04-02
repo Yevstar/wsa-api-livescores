@@ -5,8 +5,8 @@ import {
     Body,
     Res,
     HeaderParam,
-    Delete
- } from "routing-controllers";
+    Delete, Params
+} from "routing-controllers";
 import { get } from 'lodash';
 import {Competition} from '../models/Competition';
 import { CompetitionLadderSettings } from '../models/CompetitionLadderSettings';
@@ -27,6 +27,8 @@ import { LadderFormatDivision } from "../models/LadderFormatDivision";
 import { RequestFilterCompetitionDashboard } from "../services/CompetitionService";
 import {CompetitionInvitees} from '../models/CompetitionInvitees';
 import AppConstants from "../utils/AppConstants";
+import {UmpireAllocationPathParams} from "./dto/UmpireAllocationPathParams";
+import {RankedCountPathParams} from "./dto/RankedCountPathParams";
 
 @JsonController('/competitions')
 export class CompetitionController extends BaseController {
@@ -38,8 +40,12 @@ export class CompetitionController extends BaseController {
     }
 
     @Get('/id/:id/ranked-umpires-count')
-    async getRankedUmpiresCount(@Param("id") id: number): Promise<number> {
-        return this.competitionService.getRankedUmpiresCountForCompetition(id);
+    async getRankedUmpiresCount(
+        @Params() pathParams: RankedCountPathParams,
+        @Res() response: Response,
+    ): Promise<number> {
+        const {competitionId} = await this.validate(response, pathParams, RankedCountPathParams);
+        return this.competitionService.getRankedUmpiresCountForCompetition(competitionId);
     }
 
     @Authorized()
