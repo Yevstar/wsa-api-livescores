@@ -445,9 +445,6 @@ export class UserController extends BaseController {
             await this.add(user, "UMPIRE", entityId, entityTypeId, competitionId, userData, response);
             await this.add(user, "UMPIRE_COACH", entityId, entityTypeId, competitionId, userData, response);
 
-            console.log(`isUmpire && isUmpireCoach`);
-            console.log(`userData - ${JSON.stringify(userData)}`);
-
             return userData;
         } else if (isUmpire) {
             const foundUser = await this.userService.findByEmail(userData.email.toLowerCase());
