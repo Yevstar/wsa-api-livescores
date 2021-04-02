@@ -46,7 +46,10 @@ export default class RosterService extends BaseService<Roster> {
             .leftJoinAndSelect('competition.location', 'location')
             .leftJoinAndSelect('venueCourt.venue', 'venue')
             .andWhere('roster.userId = :userId', {userId})
-            .andWhere('(match.matchStatus is null or match.matchStatus != :status)', {status: 'ENDED'})
+            .andWhere('(match.matchStatus is null or ' +
+              '(match.matchStatus != :status or ' +
+                'match.resultStatus = :draftResultStatus))', {
+                  status: 'ENDED', draftResultStatus: 'Draft'})
             .andWhere('match.deleted_at is null')
             .getMany();
     }
