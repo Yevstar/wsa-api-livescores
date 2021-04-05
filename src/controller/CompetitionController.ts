@@ -39,7 +39,7 @@ export class CompetitionController extends BaseController {
         return this.competitionService.findById(id);
     }
 
-    @Get('/id/:id/ranked-umpires-count')
+    @Get('/id/:competitionId/ranked-umpires-count')
     async getRankedUmpiresCount(
         @Params() pathParams: RankedCountPathParams,
         @Res() response: Response,

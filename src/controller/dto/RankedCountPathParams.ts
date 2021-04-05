@@ -1,8 +1,10 @@
-import {IsNumber} from "class-validator";
+import {IsInt, IsNumber, Max, Min} from "class-validator";
 import {Type} from "class-transformer";
 
 export class RankedCountPathParams {
-    @IsNumber()
     @Type(() => Number)
+    @Min(1)
+    @Max(1000000)
+    @IsInt()
     competitionId: number;
 }
