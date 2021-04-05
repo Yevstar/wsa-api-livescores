@@ -232,6 +232,7 @@ export class MatchController extends BaseController {
         @QueryParam('teamId') teamId: number,
         @QueryParam('roleId') roleId: number,
         @QueryParam('userId') userId: number,
+        @QueryParam('showRosterAvailability') showRosterAvailability: boolean = false,
         @Body() requestFilter: RequestFilter,
         @Res() response: Response
     ): Promise<any> {
@@ -245,7 +246,8 @@ export class MatchController extends BaseController {
                 teamId,
                 roleId,
                 userId,
-                requestFilter
+                requestFilter,
+                {showRosterAvailability}
             );
         } else {
             return response.status(200).send({
@@ -446,6 +448,10 @@ export class MatchController extends BaseController {
                 let umpireSequence = 1;
                // logger.debug("Match Create Rosters" + JSON.stringify(match.rosters));
                 for (let newRoster of match.rosters) {
+                    const isAvailableToAssign = await this.matchService.checkIfAbleToAssignUmpireToMath(match.id, newRoster.userId);
+                    if (!isAvailableToAssign) {
+                        continue;
+                    }
                     newRoster.matchId = saved.id;
                     if (newRoster.roleId == Role.UMPIRE && isNotNullAndUndefined(newRoster.sequence)) {
                         // Increment the umpire sequence if the roster role is umpire

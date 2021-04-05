@@ -850,7 +850,7 @@ export class UserController extends BaseController {
 
             const itemsToCreate = loopData.filter((data) => {
                 const foundUserRole = !!foundUserRoles.find(userRole => {
-                    return userRole.userId === user.id && userRole.entityId === data.id
+                    return userRole.userId === user.id && userRole.entityId === data.id && userRole.roleId === roleId;
                 });
 
                 return !foundUserRole
