@@ -384,4 +384,26 @@ export default class RosterService extends BaseService<Roster> {
             return responseObject;
         }
     }
+
+    public async getUmpireRostersForDates(umpireId: number, startTime: Date, endTime: Date): Promise<Roster[]> {
+
+        return await this.entityManager.createQueryBuilder(Roster, 'ros')
+            .leftJoinAndSelect(subQuery => {
+                const query =  subQuery
+                    .select(['id', 'startTime', 'matchDuration', 'DATE_ADD(startTime, INTERVAL matchDuration MINUTE) AS approxEndTime'])
+                    .from(Match, 'm')
+                return query;
+            }, 'overlap', 'overlap.id = ros.matchId and ((overlap.startTime ' +
+                '<= :startTime and overlap.approxEndTime > :startTime) or (overlap.startTime ' +
+                '>= :startTime and overlap.startTime < :endTime))', {
+                startTime: startTime,
+                endTime: endTime
+            })
+            .leftJoinAndSelect('ros.match', 'match')
+            .where('ros.overlap.id is not null')
+            .andWhere('ros.userId = :umpireId', {umpireId})
+            .getMany();
+    }
+
+
 }

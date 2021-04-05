@@ -126,6 +126,10 @@ export class MatchUmpireController extends BaseController {
 
         let umpireWithDetailsList = await this.matchUmpireService.findByMatchIds([matchId]);
         const promises = umpires.map(async umpire => {
+            const ifAbleToAssign = await this.matchService.checkIfAbleToAssignUmpireToMath(umpire.matchId, umpire.userId);
+            if (!ifAbleToAssign) {
+                return;
+            }
             if (isNotNullAndUndefined(umpire.id)) {
                 if (isArrayPopulated(umpireWithDetailsList)) {
                     let existingUmpire = umpireWithDetailsList.find(u => (u.sequence == umpire.sequence));
@@ -152,7 +156,7 @@ export class MatchUmpireController extends BaseController {
             }
         });
 
-        const promisedUmpires = await Promise.all(promises);
+        const promisedUmpires = (await Promise.all(promises)).filter(umpire => !!umpire);
         const rosters = await this.rosterService.findAllRostersByParams(
             Role.UMPIRE,
             matchId
