@@ -444,6 +444,14 @@ export class UserController extends BaseController {
             /// then add a additional URE for coach
             await this.add(user, "UMPIRE", entityId, entityTypeId, competitionId, userData, response);
             await this.add(user, "UMPIRE_COACH", entityId, entityTypeId, competitionId, userData, response);
+            const foundUser = await this.userService.findByEmail(userData.email.toLowerCase());
+            let existsTeamUres = await this.ureService.getTeamUmpireUREs(foundUser.id);
+            for (const ure of existsTeamUres) {
+                await this.deleteRolesNecessary("UMPIRE_TEAM", foundUser, ure.entityId, EntityType.TEAM, compId);
+            }
+            const teamEntityId = 1;
+            const teamEntityTypeId = EntityType.TEAM;
+            await this.add(user, "UMPIRE_TEAM", teamEntityId, teamEntityTypeId, competitionId, userData, response);
 
             return userData;
         } else if (isUmpire) {
