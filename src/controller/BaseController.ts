@@ -385,6 +385,7 @@ export class BaseController {
         userId: number,
         userName: String,
         rosterLocked: boolean,
+        sequence: number,
         rosterStatus: "YES" | "NO" | "LATER" | "MAYBE" = undefined
     ) {
         if (roleId != Role.UMPIRE &&
@@ -406,6 +407,11 @@ export class BaseController {
             rosterStatus == "YES" || rosterStatus == "NO"
         )) {
             umpireRoster.status = rosterStatus;
+        }
+        if (sequence == 1) {
+            umpireRoster.additionalInfo = {
+              FIRST_UMPIRE_OR_REFEREE: true
+            };
         }
         let savedRoster = await this.rosterService.createOrUpdate(umpireRoster);
         if (savedRoster) {

@@ -4,7 +4,7 @@ import {Match} from "../Match";
 import {Team} from "../Team";
 import {User} from "../User";
 import {EventOccurrence} from "../EventOccurrence";
-import {IsNumber, IsBoolean} from "class-validator";
+import {IsNumber, IsBoolean, IsJSON} from "class-validator";
 
 @Entity()
 export class Roster extends BaseEntity {
@@ -63,6 +63,10 @@ export class Roster extends BaseEntity {
     @IsBoolean()
     @Column()
     locked: boolean;
+
+    @IsJSON()
+    @Column("json")
+    additionalInfo?: Record<string, any>;
 
     /// We will be using this parameter for umpire sequence while creating or
     /// editing a match.

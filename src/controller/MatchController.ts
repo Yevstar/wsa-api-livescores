@@ -583,7 +583,8 @@ export class MatchController extends BaseController {
                   matchId,
                   newRoster.userId,
                   `${user.firstName} ${user.lastName}`,
-                  false
+                  false,
+                  umpireSequence
               );
 
               /// If umpire role then create match umpire

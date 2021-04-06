@@ -236,7 +236,8 @@ export class MatchUmpireController extends BaseController {
                 umpire.matchId,
                 umpire.userId,
                 umpire.umpireName,
-                rosterLocked
+                rosterLocked,
+                umpire.sequence
             );
         }
     }
@@ -255,7 +256,8 @@ export class MatchUmpireController extends BaseController {
                 newUmpire.matchId,
                 newUmpire.userId,
                 newUmpire.umpireName,
-                rosterLocked
+                rosterLocked,
+                newUmpire.sequence
             );
         } else if (oldUmpire.userId && newUmpire.userId && oldUmpire.userId != newUmpire.userId) {
             // A umpire slot got updated to a new user
@@ -271,7 +273,8 @@ export class MatchUmpireController extends BaseController {
                 newUmpire.matchId,
                 newUmpire.userId,
                 newUmpire.umpireName,
-                rosterLocked
+                rosterLocked,
+                newUmpire.sequence
             );
         } else if (oldUmpire.userId && newUmpire.userId == null) {
             // A umpire got removed
