@@ -1184,6 +1184,11 @@ export class MatchController extends BaseController {
         @BodyParam("score", { required: true }) scores: MatchScores,
         @Res() response: Response
     ) {
+        let dbMatch;
+        if (match) {
+            dbMatch = await this.matchService.findById(match.id);
+        }
+
         if (match) {
             const result = await this.matchScorerService.findByMatchIdAndPeriod(
                 scores.matchId,
@@ -1210,21 +1215,28 @@ export class MatchController extends BaseController {
 
         this.sendMatchEvent(match, false, {user: user});
 
-        // log match event
-        let eventTimestamp;
-        let time = new Date(match.startTime);
-        if (startedMsFromStart) {
-            eventTimestamp = new Date(time.getTime() + startedMsFromStart);
-        } else {
-            const periodDuration = match.matchDuration / (match.type == 'FOUR_QUARTERS' ? 4 : 2);
-            eventTimestamp = startedMsFromStart
-                ? new Date(time.getTime() + startedMsFromStart)
-                : Date.now() - periodDuration * 1000;
-        }
-        await this.matchEventService.logMatchEvent(match.id, 'timer', 'periodStart', scores.period, eventTimestamp, user.id);
+        /// We will log period start and end only when the match is not
+        /// ended.
+        if (!isNotNullAndUndefined(dbMatch) ||
+            (!isNotNullAndUndefined(dbMatch.matchStatus) ||
+                dbMatch.matchStatus != "ENDED")
+        ) {
+            // log match event
+            let eventTimestamp;
+            let time = new Date(match.startTime);
+            if (startedMsFromStart) {
+                eventTimestamp = new Date(time.getTime() + startedMsFromStart);
+            } else {
+                const periodDuration = match.matchDuration / (match.type == 'FOUR_QUARTERS' ? 4 : 2);
+                eventTimestamp = startedMsFromStart
+                    ? new Date(time.getTime() + startedMsFromStart)
+                    : Date.now() - periodDuration * 1000;
+            }
+            await this.matchEventService.logMatchEvent(match.id, 'timer', 'periodStart', scores.period, eventTimestamp, user.id);
 
-        eventTimestamp = msFromStart ? new Date(time.getTime() + msFromStart) : Date.now();
-        this.matchEventService.logMatchEvent(match.id, 'timer', 'periodEnd', scores.period, eventTimestamp, user.id);
+            eventTimestamp = msFromStart ? new Date(time.getTime() + msFromStart) : Date.now();
+            this.matchEventService.logMatchEvent(match.id, 'timer', 'periodEnd', scores.period, eventTimestamp, user.id);
+        }
 
         return match;
     }
