@@ -444,6 +444,14 @@ export class UserController extends BaseController {
             /// then add a additional URE for coach
             await this.add(user, "UMPIRE", entityId, entityTypeId, competitionId, userData, response);
             await this.add(user, "UMPIRE_COACH", entityId, entityTypeId, competitionId, userData, response);
+            const foundUser = await this.userService.findByEmail(userData.email.toLowerCase());
+            let existsTeamUres = await this.ureService.getTeamUmpireUREs(foundUser.id);
+            for (const ure of existsTeamUres) {
+                await this.deleteRolesNecessary("UMPIRE_TEAM", foundUser, ure.entityId, EntityType.TEAM, compId);
+            }
+            const teamEntityId = 1;
+            const teamEntityTypeId = EntityType.TEAM;
+            await this.add(user, "UMPIRE_TEAM", teamEntityId, teamEntityTypeId, competitionId, userData, response);
 
             return userData;
         } else if (isUmpire) {
@@ -598,7 +606,6 @@ export class UserController extends BaseController {
 
             // Create necessary URE's and notify
             await this.createUREAndNotify(type, userData, compId, user.id);
-
             this.processSendMail(
                 type,
                 userData,
@@ -608,7 +615,7 @@ export class UserController extends BaseController {
                 user
             );
 
-            if (type === "UMPIRE") {
+            if (type === "UMPIRE_TEAM") {
                 userData.selectedTeams = await this.ureService.getSelectedTeamsForUmpire(userData.id);
             }
 
@@ -845,11 +852,13 @@ export class UserController extends BaseController {
         if (loopData && roleId && entityTypeId) {
             const foundUserRoles = await this.userService.findUserRoles({
                 userId: user.id,
+                entityTypeId,
+                roleId,
             });
 
             const itemsToCreate = loopData.filter((data) => {
                 const foundUserRole = !!foundUserRoles.find(userRole => {
-                    return userRole.userId === user.id && userRole.entityId === data.id
+                    return userRole.userId === user.id && userRole.entityId === data.id && userRole.roleId === roleId;
                 });
 
                 return !foundUserRole
@@ -891,7 +900,7 @@ export class UserController extends BaseController {
         }
 
         if (ureArray.length) {
-            await this.ureService.batchCreateOrUpdate(ureArray);
+            const res = await this.ureService.batchCreateOrUpdate(ureArray);
         }
         // Not keeping await for notifyChangeRole as its having wait times.
         await this.notifyChangeRole(user.id);
