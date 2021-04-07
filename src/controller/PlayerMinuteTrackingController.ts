@@ -49,63 +49,60 @@ export class PlayerMinuteTrackingController extends BaseController {
     @Res() response: Response
   ): Promise<any> {
     try {
-        if (trackingData && trackingData.length > 0) {
-            /// --- Deleting (Currently doing hard delete)
-            /// PMT items which are not send in the body
-            let matchPMTData = await this.playerMinuteTrackingService.findByMatch(matchId);
-            let matchGTAData = await this.gameTimeAttendanceService.findByMatch(matchId);
-            var deletePMTs = [];
-            const pmtIds = matchPMTData.filter(function(existingPMT){
-                // filter out (!) items in existing PMT which are not been
-                // provided in the body
-                return !trackingData.some(function(newPMT){
-                    return existingPMT.id === newPMT.id;
-                });
-            }).map(function(pmt){
-                deletePMTs.push(pmt);
-                return pmt.id;
-            });
-            if (pmtIds.length > 0) {
-                await this.playerMinuteTrackingService.deleteByIds(pmtIds);
-            }
-            /// GameTimeAttendance items matching the PMTs deleted with isPlaying true
-            var gtaIds = matchGTAData.filter(function(existingGTA){
-                // filter out items in matching deleted PMTs
-                return deletePMTs.some(function(pmt){
-                    return (existingGTA.playerId === pmt.playerId &&
-                        existingGTA.period === pmt.period &&
-                        isNotNullAndUndefined(existingGTA) &&
-                        existingGTA.isPlaying);
-                });
-            }).map(function(gta){
-                return gta.id;
-            });
-            if (gtaIds.length > 0) {
-                await this.gameTimeAttendanceService.deleteByIds(gtaIds);
-            }
-            /// ---
+        /// --- Deleting (Currently doing hard delete)
+        /// PMT items which are not send in the body
+        const matchPMTData = await this.playerMinuteTrackingService.findByMatch(matchId);
+        const matchGTAData = await this.gameTimeAttendanceService.findByMatch(matchId);
+        let deletePMTs = [];
+        const pmtIds = matchPMTData.filter(function(existingPMT){
+            // filter out (!) items in existing PMT which are not been
+            // provided in the body
+            return !(!!trackingData && trackingData.some(function(newPMT){
+                return existingPMT.id === newPMT.id;
+            }));
+        }).map(function(pmt){
+            deletePMTs.push(pmt);
+            return pmt.id;
+        });
 
-            const pmtPromises = [];
-
-            for (let i = 0; i < trackingData.length; i++) {
-              if (isNotNullAndUndefined(trackingData[i].matchId)
-                  && isNotNullAndUndefined(trackingData[i].teamId)
-                  && isNotNullAndUndefined(trackingData[i].playerId)
-                  && isNotNullAndUndefined(trackingData[i].period)
-                  && isNotNullAndUndefined(trackingData[i].duration)
-              ) {
-                  pmtPromises.push(
-                      this.createPMTRecord(trackingData[i], matchGTAData, user)
-                  );
-              }
-            }
-
-            await Promise.all(pmtPromises);
-
-            return response.status(200).send({ success: true });
-        } else {
-            return response.status(212).send({ success: false, message: 'No player minute tracking data has been sent' });
+        if (pmtIds.length > 0) {
+            await this.playerMinuteTrackingService.deleteByIds(pmtIds);
         }
+        /// GameTimeAttendance items matching the PMTs deleted with isPlaying true
+        var gtaIds = matchGTAData.filter(function(existingGTA){
+            // filter out items in matching deleted PMTs
+            return deletePMTs.some(function(pmt){
+                return (existingGTA.playerId === pmt.playerId &&
+                    existingGTA.period === pmt.period &&
+                    isNotNullAndUndefined(existingGTA) &&
+                    existingGTA.isPlaying);
+            });
+        }).map(function(gta){
+            return gta.id;
+        });
+        if (gtaIds.length > 0) {
+            await this.gameTimeAttendanceService.deleteByIds(gtaIds);
+        }
+        /// ---
+
+        const pmtPromises = [];
+
+        for (let i = 0; i < trackingData.length; i++) {
+            if (isNotNullAndUndefined(trackingData[i].matchId)
+                && isNotNullAndUndefined(trackingData[i].teamId)
+                && isNotNullAndUndefined(trackingData[i].playerId)
+                && isNotNullAndUndefined(trackingData[i].period)
+                && isNotNullAndUndefined(trackingData[i].duration)
+            ) {
+                pmtPromises.push(
+                    this.createPMTRecord(trackingData[i], matchGTAData, user)
+                );
+            }
+        }
+
+        await Promise.all(pmtPromises);
+
+        return response.status(200).send({ success: true });
     } catch (e) {
         logger.error(`Failed PMT record due to error -`, e);
         return response.status(500).send({ success: false, message: 'Recording tracking time failed' });
