@@ -240,6 +240,10 @@ export class Match extends BaseEntity {
     @Column("json")
     additionalDetails?: Record<string, any>;
 
+    @IsString()
+    @Column()
+    matchAction: "VERIFY_SCORES" | "VERIFY_ACTION_LOGS" | "SEND_OFF_REPORT";
+
     rosters: Roster[];
     matchUmpires: MatchUmpire[];
 }
