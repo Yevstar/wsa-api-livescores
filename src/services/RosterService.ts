@@ -50,7 +50,7 @@ export default class RosterService extends BaseService<Roster> {
               '(match.matchStatus != :status or ' +
                 'match.matchAction = :verifyScores or ' +
                 'match.matchAction = :verifyActonLogs or ' +
-                'match.matchAction = :sendOffReport or ' +
+                'match.matchAction = :sendOffReport' +
               '))', {
                   status: 'ENDED',
                   verifyScores: 'VERIFY_SCORES',
