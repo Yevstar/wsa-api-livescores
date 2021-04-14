@@ -2559,10 +2559,10 @@ export class MatchController extends BaseController {
                 });
         } else if (!recordPoints &&
             this.matchEventService.isGameStatMissOrMissedPoints(gameStatCode) &&
-            (!isNotNullAndUndefined(positionId) || !isNotNullAndUndefined(playerId))) {
+            (!isNotNullAndUndefined(playerId))) {
               return response.status(400).send({
                   name: 'validation_error',
-                  message: `PositionId and playerId can not be empty while deleting a miss match event`
+                  message: `PlayerId can not be empty while deleting a miss match event`
               });
         }
 

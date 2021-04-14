@@ -231,7 +231,7 @@ export default class MatchEventService extends BaseService<MatchEvent> {
                   attribute1Value: (recordPoints ||
                       (gameStatCode == GameStatCodeEnum.F && isNotNullAndUndefined(foul))) ?
                     this.getRecordPointsAttribute1Value(gameStatCode, points, foul) :
-                    positionId.toString()
+                    positionId ? positionId.toString() : ''
               })
               .andWhere('matchEvent.attribute2Key = :attribute2Key', {
                   attribute2Key: 'playerId'
