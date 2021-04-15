@@ -10,6 +10,8 @@ import {UmpireAllocationSetting} from "../models/UmpireAllocationSetting";
 import {UmpireAllocationTypeEnum} from "../models/enums/UmpireAllocationTypeEnum";
 import axios from "axios";
 import {AllocationDto} from "../controller/dto/AllocationDto";
+import {MatchUmpire} from "../models/MatchUmpire";
+import MatchUmpireService from "./MatchUmpireService";
 // TODO move to env
 // const competitionApi = process.env.COMPETITION_API_URL;
 const competitionApi = 'https://competition-api-dev.worldsportaction.com';
@@ -29,6 +31,9 @@ export default class UmpireAllocation {
     @Inject()
     private readonly bookingService: BookingService;
 
+    @Inject()
+    private readonly matchUmpireService: MatchUmpireService;
+
     modelName(): string {
         return Competition.name;
     }
@@ -37,10 +42,8 @@ export default class UmpireAllocation {
     public async allocateUmpires(allocationDto: AllocationDto, authToken: string, userId: number): Promise<void> {
         await this.competitionService.findOneOrFail(allocationDto.competitionId);
         const inputData = await this.prepareUmpiresAllocationAlgorithmInputData(allocationDto);
-        console.log('before');
-        const res = await this.callUmpireAllocationAlgorithm(inputData, authToken, userId);
-        console.log('after');
-        console.log(`res - ${JSON.stringify(res)}`);
+        const results = await this.callUmpireAllocationAlgorithm(inputData, authToken, userId);
+        await this.saveUmpiresAllocationsResult(results);
     }
 
     protected async prepareUmpiresAllocationAlgorithmInputData(
@@ -188,7 +191,7 @@ export default class UmpireAllocation {
         }
     }
 
-    protected async callUmpireAllocationAlgorithm(inputData: IUmpireAllocationAlgorithmInput, authToken: string, userId: number): Promise<void> {
+    protected async callUmpireAllocationAlgorithm(inputData: IUmpireAllocationAlgorithmInput, authToken: string, userId: number): Promise<UmpireAllocationsResult[]> {
 
         const response = await axios.post(
             `${competitionApi}/api/generatedraw?userId=${userId}`,
@@ -233,6 +236,16 @@ export default class UmpireAllocation {
 
         return ("0" + time).slice(-2);
     }
+
+    protected async saveUmpiresAllocationsResult(results: UmpireAllocationsResult[]): Promise<void> {
+        for (let result of results) {
+            const matchUmpire = new MatchUmpire();
+            // TODO form matchUmpire
+
+            await this.matchUmpireService.attachUmpireToMatch(result.match.matchId, [matchUmpire]);
+        }
+        // attachUmpireToMatch
+    }
 }
 
 export interface IUmpireAllocationAlgorithmInput {
@@ -252,4 +265,31 @@ export interface UnavailableDateTimeslot {
         startTime: string,
         endTime: string,
     }
+}
+
+export interface UmpireAllocationsResult {
+    fixtureId: number;
+    divisionId: number;
+    gradeId: number;
+    match: {
+        matchId: number;
+        team1: object;
+        team2: object;
+    };
+    roundName: string;
+    roundId: number;
+    venueId: number;
+    venueName: string;
+    courtId: number;
+    courtName: string;
+    date: Date;
+    endDate: Date;
+    timeslot: {
+        startTime: string,
+        endTime: string,
+    };
+    outOfRoundDate: boolean;
+    outOfCompetitionDate: boolean;
+    umpireId: number;
+    umpireName: string;
 }

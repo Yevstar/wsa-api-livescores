@@ -1,19 +1,40 @@
-import {Service} from "typedi";
+import {Inject, Service} from "typedi";
 import BaseService from "./BaseService";
 import {MatchUmpire} from "../models/MatchUmpire";
 import {UserRoleEntity} from "../models/security/UserRoleEntity";
 import {DeleteResult} from "typeorm-plus";
 import {RequestFilter} from "../models/RequestFilter";
-import {stringTONumber, paginationData, isNotNullAndUndefined} from "../utils/Utils";
+import {stringTONumber, paginationData, isNotNullAndUndefined, isArrayPopulated} from "../utils/Utils";
 import {Role} from '../models/security/Role';
 import {UmpirePaymentSetting} from "../models/UmpirePaymentSetting";
 import {UmpirePaymentFeeRate} from "../models/UmpirePaymentFeeRate";
 import {UmpirePaymentFeeTypeEnum} from "../models/enums/UmpirePaymentFeeTypeEnum";
 import {UmpirePool} from "../models/UmpirePool";
 import * as _ from "lodash";
+import MatchService from "./MatchService";
+import UserService from "./UserService";
+import RosterService from "./RosterService";
+import UserDeviceService from "./UserDeviceService";
+import {Roster} from "../models/security/Roster";
+import {StateTimezone} from "../models/StateTimezone";
+import {getMatchUmpireNotificationMessage} from "../utils/NotificationMessageUtils";
+import {logger} from "../logger";
 
 @Service()
 export default class MatchUmpireService extends BaseService<MatchUmpire> {
+
+    @Inject()
+    matchService: MatchService;
+
+    @Inject()
+    userService: UserService;
+
+    @Inject()
+    rosterService: RosterService;
+
+
+    @Inject()
+    deviceService: UserDeviceService;
 
     modelName(): string {
         return MatchUmpire.name;
@@ -282,6 +303,270 @@ export default class MatchUmpireService extends BaseService<MatchUmpire> {
         sanitizedCompOrgs = _.uniqBy(sanitizedCompOrgs, 'name');
 
         return sanitizedCompOrgs;
+    }
+
+    public async attachUmpireToMatch(matchId: number, matchUmpires: MatchUmpire[]): Promise<void> {
+        let umpireWithDetailsList = await this.findByMatchIds([matchId]);
+        const promises = matchUmpires.map(async matchUmpire => {
+            const ifAbleToAssign = await this.matchService.checkIfAbleToAssignUmpireToMath(matchId, matchUmpire.userId);
+            if (ifAbleToAssign) {
+                if (isNotNullAndUndefined(matchUmpire.userId)) {
+                    if (isArrayPopulated(umpireWithDetailsList)) {
+                        let existingUmpire = umpireWithDetailsList.find(u => (u.sequence == matchUmpire.sequence));
+
+                        let updatedUmpire = new MatchUmpire();
+                        updatedUmpire.id = matchUmpire.id;
+                        updatedUmpire.matchId = matchId;
+                        updatedUmpire.userId = matchUmpire.userId;
+                        updatedUmpire.competitionOrganisationId = matchUmpire.competitionOrganisationId;
+                        updatedUmpire.umpireName = matchUmpire.umpireName;
+                        updatedUmpire.umpireType = matchUmpire.umpireType;
+                        updatedUmpire.sequence = matchUmpire.sequence;
+                        updatedUmpire.createdBy = matchUmpire.createdBy;
+                        updatedUmpire.verifiedBy = matchUmpire.verifiedBy;
+
+                        let savedUmpire = await this.createOrUpdate(updatedUmpire);
+                        await this.updateUmpireRosters(existingUmpire, savedUmpire, true);
+                        return savedUmpire;
+                    } else {
+                        return await this.createUmpire(matchUmpire, true, umpireWithDetailsList);
+                    }
+                } else {
+                    return await this.createUmpire(matchUmpire, true, umpireWithDetailsList);
+                }
+            }
+        });
+
+        const promisedUmpires = (await Promise.all(promises)).filter(umpire => !!umpire);
+        const rosters = await this.rosterService.findAllRostersByParams(
+            Role.UMPIRE,
+            matchId
+        );
+
+        if (isArrayPopulated(promisedUmpires) && isArrayPopulated(rosters)) {
+            for (const roster of rosters) {
+                let mu = promisedUmpires.filter((matchUmpire) => (
+                    matchUmpire.userId == roster.userId
+                ))[0];
+                if (isNotNullAndUndefined(mu)) {
+                    mu.roster = roster;
+                }
+            }
+        }
+    }
+
+    private async createUmpire(
+        umpire: MatchUmpire,
+        rosterLocked: boolean,
+        exisitngUmpires: MatchUmpire[],
+    ): Promise<MatchUmpire> {
+        /// While creating umpire we will be checking if we already have one
+        /// existing umpire with same userId for the match. If we found one
+        /// then we will remove that first and then create a new one with the
+        /// data provided.
+        if (isNotNullAndUndefined(exisitngUmpires)) {
+            for (let mu of exisitngUmpires) {
+                if (mu.userId == umpire.userId && isNotNullAndUndefined(mu.id)) {
+                    await this.deleteById(mu.id);
+                    await this.rosterService.deleteByParams(
+                        Role.UMPIRE,
+                        mu.userId,
+                        mu.matchId
+                    );
+                }
+            }
+        }
+
+        let newUmpire = new MatchUmpire();
+        newUmpire.matchId = umpire.matchId;
+        newUmpire.userId = umpire.userId;
+        newUmpire.competitionOrganisationId = umpire.competitionOrganisationId;
+        newUmpire.umpireName = umpire.umpireName;
+        newUmpire.umpireType = umpire.umpireType;
+        newUmpire.sequence = umpire.sequence;
+        newUmpire.createdBy = umpire.createdBy;
+        newUmpire.verifiedBy = umpire.verifiedBy;
+
+        let savedUmpire = await this.createOrUpdate(newUmpire);
+        await this.createUmpireRosters(savedUmpire, rosterLocked);
+
+        let tokens = (await this.deviceService.findScorerDeviceFromRoster(umpire.matchId)).map(device => device.deviceId);
+        if (tokens && tokens.length > 0) {
+            this.firebaseService.sendMessageChunked({
+                tokens: tokens,
+                data: {
+                    type: 'match_umpires_added',
+                    matchId: umpire.matchId.toString(),
+                },
+            });
+        }
+
+        return savedUmpire;
+    }
+
+    private async createUmpireRosters(umpire: MatchUmpire, rosterLocked: boolean) {
+        if (umpire.umpireType == 'USERS' && umpire.userId) {
+            await this.umpireAddRoster(
+                Role.UMPIRE,
+                umpire.matchId,
+                umpire.userId,
+                umpire.umpireName,
+                rosterLocked,
+                umpire.sequence
+            );
+        }
+    }
+
+    protected async umpireAddRoster(
+        roleId: number,
+        matchId: number,
+        userId: number,
+        userName: String,
+        rosterLocked: boolean,
+        sequence: number,
+        rosterStatus: "YES" | "NO" | "LATER" | "MAYBE" = undefined
+    ) {
+        if (roleId != Role.UMPIRE &&
+            roleId != Role.UMPIRE_RESERVE &&
+            roleId != Role.UMPIRE_COACH) {
+            throw 'Got wrong roleId for umpire add roster';
+        }
+
+        let match = await this.matchService.findMatchById(matchId);
+
+        let umpireRoster = new Roster();
+        umpireRoster.roleId = roleId;
+        umpireRoster.matchId = matchId;
+        umpireRoster.userId = userId;
+        if (isNotNullAndUndefined(rosterLocked) && rosterLocked) {
+            umpireRoster.locked = rosterLocked;
+            umpireRoster.status = "YES";
+        } else if (isNotNullAndUndefined(rosterStatus) && (
+            rosterStatus == "YES" || rosterStatus == "NO"
+        )) {
+            umpireRoster.status = rosterStatus;
+        }
+        if (sequence == 1) {
+            umpireRoster.additionalInfo = {
+                FIRST_UMPIRE_OR_REFEREE: true
+            };
+        }
+        let savedRoster = await this.rosterService.createOrUpdate(umpireRoster);
+        if (savedRoster) {
+            let tokens = (await this.deviceService.getUserDevices(umpireRoster.userId)).map(device => device.deviceId);
+            if (tokens && tokens.length > 0) {
+                try {
+                    var locationRefId;
+                    if (isNotNullAndUndefined(match) &&
+                        isNotNullAndUndefined(match.venueCourt) &&
+                        isNotNullAndUndefined(match.venueCourt.venue) &&
+                        isNotNullAndUndefined(match.venueCourt.venue.stateRefId)) {
+                        locationRefId = match.venueCourt.venue.stateRefId;
+                    } else if (isNotNullAndUndefined(match.competition) &&
+                        isNotNullAndUndefined(match.competition.location) &&
+                        isNotNullAndUndefined(match.competition.location.id)) {
+                        locationRefId = match.competition.location.id;
+                    }
+
+                    if (isNotNullAndUndefined(locationRefId)) {
+                        let stateTimezone: StateTimezone = await this.matchService.getMatchTimezone(locationRefId);
+                        let messageBody: String = getMatchUmpireNotificationMessage(
+                            match,
+                            stateTimezone,
+                            rosterLocked
+                        );
+
+                        this.firebaseService.sendMessageChunked({
+                            tokens: tokens,
+                            title: `Hi ${userName}`,
+                            body: messageBody,
+                            data: {
+                                type: 'add_umpire_match',
+                                matchId: savedRoster.matchId.toString(),
+                                rosterId: savedRoster.id.toString()
+                            }
+                        });
+                    }
+                } catch (e) {
+                    logger.error(`Failed to send notification to umpire with error -`, e);
+                }
+            }
+        }
+    }
+
+    private async updateUmpireRosters(
+        oldUmpire: MatchUmpire,
+        newUmpire: MatchUmpire,
+        rosterLocked: boolean
+    ) {
+        let umpireRole = await this.userService.getRole('umpire');
+
+        if (oldUmpire.userId == null && newUmpire.umpireType == 'USERS') {
+            // Creating new roster for umpire as new user assigned
+            await this.umpireAddRoster(
+                Role.UMPIRE,
+                newUmpire.matchId,
+                newUmpire.userId,
+                newUmpire.umpireName,
+                rosterLocked,
+                newUmpire.sequence
+            );
+        } else if (oldUmpire.userId && newUmpire.userId && oldUmpire.userId != newUmpire.userId) {
+            // A umpire slot got updated to a new user
+            // Removing old roster
+            await this.umpireRemoveRoster(
+                Role.UMPIRE,
+                oldUmpire.userId,
+                oldUmpire.matchId
+            );
+            // Creating new roster
+            await this.umpireAddRoster(
+                Role.UMPIRE,
+                newUmpire.matchId,
+                newUmpire.userId,
+                newUmpire.umpireName,
+                rosterLocked,
+                newUmpire.sequence
+            );
+        } else if (oldUmpire.userId && newUmpire.userId == null) {
+            // A umpire got removed
+            await this.umpireRemoveRoster(
+                Role.UMPIRE,
+                oldUmpire.userId,
+                oldUmpire.matchId
+            );
+        }
+    }
+
+    protected async umpireRemoveRoster(
+        roleId: number,
+        userId: number,
+        matchId: number
+    ) {
+        if (roleId != Role.UMPIRE &&
+            roleId != Role.UMPIRE_RESERVE &&
+            roleId != Role.UMPIRE_COACH) {
+            throw 'Got wrong roleId for umpire remove roster';
+        }
+
+        let roster = await this.rosterService.findByParams(roleId, userId, matchId);
+        if (roster) {
+            const rosterId = roster.id;
+            let result = await this.rosterService.deleteById(rosterId);
+            if (result) {
+                let tokens = (await this.deviceService.getUserDevices(userId)).map(device => device.deviceId);
+                if (tokens && tokens.length > 0) {
+                    this.firebaseService.sendMessageChunked({
+                        tokens: tokens,
+                        data: {
+                            type: 'remove_umpire_match',
+                            rosterId: rosterId.toString(),
+                            matchId: roster.matchId.toString()
+                        }
+                    })
+                }
+            }
+        }
     }
 }
 
