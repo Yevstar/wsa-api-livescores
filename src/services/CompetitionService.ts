@@ -5,10 +5,10 @@ import {Brackets, DeleteResult} from "typeorm-plus";
 import {RequestFilter} from "../models/RequestFilter";
 import {paginationData, stringTONumber, objectIsNotEmpty, isNotNullAndUndefined, isArrayPopulated } from "../utils/Utils";
 import {CompetitionNotFoundError} from "../exceptions/CompetitionNotFoundError";
-import {Division} from "../models/Division";
 import {UmpireCompetitionRank} from "../models/UmpireCompetitionRank";
 import {UmpireAllocationSetting} from "../models/UmpireAllocationSetting";
 import {UmpireAllocatorTypeEnum} from "../models/enums/UmpireAllocatorTypeEnum";
+import {CompetitionOrganisation} from "../models/CompetitionOrganisation";
 
 @Service()
 export default class CompetitionService extends BaseService<Competition> {
@@ -255,6 +255,13 @@ export default class CompetitionService extends BaseService<Competition> {
     async findOneOrFail(competitionId: number): Promise<Competition> {
 
         return await this.entityManager.findOneOrFail(Competition, competitionId);
+    }
+
+    async findCompetitionOrganization(competitionId: number, orgId: number): Promise<CompetitionOrganisation> {
+
+        return await this.entityManager.createQueryBuilder(CompetitionOrganisation, 'co')
+            .where({competitionId, orgId})
+            .getOne();
     }
 }
 

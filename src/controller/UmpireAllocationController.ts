@@ -30,10 +30,11 @@ export class UmpireAllocationController extends BaseController {
         const authToken = this.helperService.getAuthTokenFromRequest(request);
 
         const {competitionId} = await this.validate(response, pathParams, UmpireAllocationPathParams);
-        const {rounds} = await this.validate(response, allocationQueryParams, UmpireAllocationBodyParams);
+        const {rounds, organisationId} = await this.validate(response, allocationQueryParams, UmpireAllocationBodyParams);
 
         const allocationDto = {
             competitionId,
+            organisationId,
             rounds,
         };
 

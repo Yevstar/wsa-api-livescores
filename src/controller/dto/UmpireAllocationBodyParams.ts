@@ -11,4 +11,10 @@ export class UmpireAllocationBodyParams {
     @IsInt({each: true})
     @Type(() => Number)
     rounds: number[];
+
+    @Type(() => Number)
+    @Min(1)
+    @Max(100000000)
+    @IsInt()
+    organisationId: number;
 }
