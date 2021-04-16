@@ -48,8 +48,15 @@ export default class RosterService extends BaseService<Roster> {
             .andWhere('roster.userId = :userId', {userId})
             .andWhere('(match.matchStatus is null or ' +
               '(match.matchStatus != :status or ' +
-                'match.resultStatus = :draftResultStatus))', {
-                  status: 'ENDED', draftResultStatus: 'Draft'})
+                'match.matchAction = :verifyScores or ' +
+                'match.matchAction = :verifyActonLogs or ' +
+                'match.matchAction = :sendOffReport' +
+              '))', {
+                  status: 'ENDED',
+                  verifyScores: 'VERIFY_SCORES',
+                  verifyActonLogs: 'VERIFY_ACTION_LOGS',
+                  sendOffReport: 'SEND_OFF_REPORT'
+            })
             .andWhere('match.deleted_at is null')
             .getMany();
     }
