@@ -1181,6 +1181,7 @@ export class MatchController extends BaseController {
         @QueryParam('msFromStart') msFromStart: number,
         @QueryParam('startedMsFromStart') startedMsFromStart: number,
         @QueryParam('isExtraTime') isExtraTime: boolean,
+        @QueryParam('sendOffReportRequired') sendOffReportRequired: boolean,
         @BodyParam("match", { required: true }) match: Match,
         @BodyParam("score", { required: true }) scores: MatchScores,
         @Res() response: Response
@@ -1198,9 +1199,29 @@ export class MatchController extends BaseController {
             scores.id = result ? result.id : null;
             this.matchScorerService.createOrUpdate(scores);
 
-            let endTime = Date.now();
-            match.endTime = new Date(endTime);
-            match.matchStatus = "ENDED";
+            /// If match has not ended then change the status of the match
+            /// and set the endTime.
+            if (!isNotNullAndUndefined(dbMatch)) {
+                if (!isNotNullAndUndefined(dbMatch.matchStatus) ||
+                    dbMatch.matchStatus != "ENDED")
+                {
+                    let endTime = Date.now();
+                    match.endTime = new Date(endTime);
+                    match.matchStatus = "ENDED";
+                    if (dbMatch.competition?.acceptScoring == "REFEREE") {
+                       match.matchAction = "VERIFY_SCORES";
+                    }
+                } else if (isNotNullAndUndefined(dbMatch.matchStatus) &&
+                    dbMatch.matchStatus == "ENDED") {
+                      if (match.matchAction == "VERIFY_SCORES") {
+                          match.matchAction = "VERIFY_ACTION_LOGS";
+                      } else if (match.matchAction == "VERIFY_ACTION_LOGS") {
+                          match.matchAction = sendOffReportRequired ?
+                              "SEND_OFF_REPORT" : null;
+                      }
+                }
+            }
+
             this.matchService.createOrUpdate(match);
         } else {
             return response.status(400).send({
@@ -2538,10 +2559,10 @@ export class MatchController extends BaseController {
                 });
         } else if (!recordPoints &&
             this.matchEventService.isGameStatMissOrMissedPoints(gameStatCode) &&
-            (!isNotNullAndUndefined(positionId) || !isNotNullAndUndefined(playerId))) {
+            (!isNotNullAndUndefined(playerId))) {
               return response.status(400).send({
                   name: 'validation_error',
-                  message: `PositionId and playerId can not be empty while deleting a miss match event`
+                  message: `PlayerId can not be empty while deleting a miss match event`
               });
         }
 
