@@ -13,10 +13,10 @@ import {AllocationDto} from "../controller/dto/AllocationDto";
 import {MatchUmpire} from "../models/MatchUmpire";
 import MatchUmpireService from "./MatchUmpireService";
 import {NotFoundError} from "../exceptions/NotFoundError";
+import MatchService from "./MatchService";
 // TODO move to env
 // const competitionApi = process.env.COMPETITION_API_URL;
-// const competitionApi = 'https://competition-api-dev.worldsportaction.com';
-const competitionApi = 'http://localhost:8087';
+const competitionApi = 'https://competition-api-dev.worldsportaction.com';
 
 @Service()
 export default class UmpireAllocation {
@@ -36,6 +36,9 @@ export default class UmpireAllocation {
     @Inject()
     private readonly matchUmpireService: MatchUmpireService;
 
+    @Inject()
+    private readonly matchService: MatchService;
+
     modelName(): string {
         return Competition.name;
     }
@@ -48,350 +51,10 @@ export default class UmpireAllocation {
         if (!competitionOrganization) {
             throw new NotFoundError();
         }
-        // const inputData = await this.prepareUmpiresAllocationAlgorithmInputData(allocationDto);
-        const inputData = {
-            "divisions": [
-                {
-                    "divisionId": 1974,
-                    "divisionName": "AllocDivD",
-                    "matchDetails": {
-                        "matchType": 0,
-                        "gameDuration": 20,
-                        "breakDuration": 0,
-                        "timeBetweenGames": 0,
-                        "mainBreakDuration": 5
-                    }
-                },
-                {
-                    "divisionId": 1973,
-                    "divisionName": "AllocDivC",
-                    "matchDetails": {
-                        "matchType": 0,
-                        "gameDuration": 20,
-                        "breakDuration": 0,
-                        "timeBetweenGames": 0,
-                        "mainBreakDuration": 5
-                    }
-                },
-                {
-                    "divisionId": 1972,
-                    "divisionName": "AllocDivB",
-                    "matchDetails": {
-                        "matchType": 0,
-                        "gameDuration": 20,
-                        "breakDuration": 0,
-                        "timeBetweenGames": 0,
-                        "mainBreakDuration": 5
-                    }
-                },
-                {
-                    "divisionId": 1971,
-                    "divisionName": "AllocDivA",
-                    "matchDetails": {
-                        "matchType": 0,
-                        "gameDuration": 20,
-                        "breakDuration": 0,
-                        "timeBetweenGames": 0,
-                        "mainBreakDuration": 5
-                    }
-                }
-            ],
-            "teams": [
-                {
-                    "teamId": 8423,
-                    "teamName": "Alloc team 4",
-                    "teamRank": 1,
-                    "organisation": "18238b32-1d44-40a3-b72a-0c106315bf9f",
-                    "division": {
-                        "divisionId": 1971,
-                        "divisionName": "AllocDivA"
-                    },
-                    "grade": {
-                        "rank": 1,
-                        "gradeId": 1971,
-                        "gradeName": "AllocDivA"
-                    },
-                    "venueId": 580
-                },
-                {
-                    "teamId": 8422,
-                    "teamName": "Alloc team 3",
-                    "teamRank": 2,
-                    "organisation": "18238b32-1d44-40a3-b72a-0c106315bf9f",
-                    "division": {
-                        "divisionId": 1971,
-                        "divisionName": "AllocDivA"
-                    },
-                    "grade": {
-                        "rank": 1,
-                        "gradeId": 1971,
-                        "gradeName": "AllocDivA"
-                    },
-                    "venueId": 580
-                },
-                {
-                    "teamId": 8421,
-                    "teamName": "Alloc team 2",
-                    "teamRank": 3,
-                    "organisation": "18238b32-1d44-40a3-b72a-0c106315bf9f",
-                    "division": {
-                        "divisionId": 1971,
-                        "divisionName": "AllocDivA"
-                    },
-                    "grade": {
-                        "rank": 1,
-                        "gradeId": 1971,
-                        "gradeName": "AllocDivA"
-                    },
-                    "venueId": 580
-                },
-                {
-                    "teamId": 8420,
-                    "teamName": "Alloc team 1",
-                    "teamRank": 3,
-                    "organisation": "18238b32-1d44-40a3-b72a-0c106315bf9f",
-                    "division": {
-                        "divisionId": 1971,
-                        "divisionName": "AllocDivA"
-                    },
-                    "grade": {
-                        "rank": 1,
-                        "gradeId": 1971,
-                        "gradeName": "AllocDivA"
-                    },
-                    "venueId": 580
-                }
-            ],
-            "draws": [
-                {
-                    "divisionId": 1971,
-                    "divisionName": "AllocDivA",
-                    "grades": [
-                        {
-                            "gradeName": "AllocDivA",
-                            "gradeId": 1971,
-                            "rank": 1,
-                            "rounds": [
-                                {
-                                    "roundNumber": 1,
-                                    "roundId": 0,
-                                    "roundName": 1,
-                                    "matches": [
-                                        {
-                                            "matchId": 26984,
-                                            "matchType": 0,
-                                            "gameDuration": 90,
-                                            "breakDuration": 15,
-                                            "timeBetweenGames": 0,
-                                            "mainBreakDuration": 15,
-                                            "matchStartTime": "2021-04-16T04:00:00.000Z",
-                                            "team1": {
-                                                "teamId": 8420,
-                                                "teamName": "Alloc team 1",
-                                                "organisation": "18238b32-1d44-40a3-b72a-0c106315bf9f",
-                                                "teamRank": 1,
-                                                "division": {
-                                                    "divisionId": 1971,
-                                                    "divisionName": "AllocDivA"
-                                                },
-                                                "venueId": 580
-                                            },
-                                            "team2": {
-                                                "teamId": 8421,
-                                                "teamName": "Alloc team 2",
-                                                "teamRank": 2,
-                                                "organisation": "18238b32-1d44-40a3-b72a-0c106315bf9f",
-                                                "division": {
-                                                    "divisionId": 1971,
-                                                    "divisionName": "AllocDivA"
-                                                },
-                                                "venueId": 580
-                                            }
-                                        },
-                                        {
-                                            "matchId": 26985,
-                                            "matchType": 0,
-                                            "gameDuration": 90,
-                                            "breakDuration": 15,
-                                            "timeBetweenGames": 0,
-                                            "mainBreakDuration": 15,
-                                            "matchStartTime": "2021-04-15T08:00:00.000Z",
-                                            "team1": {
-                                                "teamId": 8422,
-                                                "teamName": "Alloc team 3",
-                                                "organisation": "18238b32-1d44-40a3-b72a-0c106315bf9f",
-                                                "division": {
-                                                    "divisionId": 1971,
-                                                    "divisionName": "AllocDivA"
-                                                },
-                                                "venueId": 580
-                                            },
-                                            "team2": {
-                                                "teamId": 8423,
-                                                "teamName": "Alloc team 4",
-                                                "teamRank": 1,
-                                                "organisation": "18238b32-1d44-40a3-b72a-0c106315bf9f",
-                                                "division": {
-                                                    "divisionId": 1971,
-                                                    "divisionName": "AllocDivA"
-                                                },
-                                                "grade": {
-                                                    "rank": 1,
-                                                    "gradeId": 1971,
-                                                    "gradeName": "AllocDivA"
-                                                },
-                                                "venueId": 580
-                                            }
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ],
-                    "matchDetails": {
-                        "matchType": 0,
-                        "gameDuration": 20,
-                        "breakDuration": 0,
-                        "timeBetweenGames": 0,
-                        "mainBreakDuration": 5
-                    }
-                }
-            ],
-            "umpires": [
-                {
-                    "umpireId": 18372,
-                    "umpireName": "Mary Johnson",
-                    "organisationIds": [],
-                    "teamIds": [
-                        8421
-                    ],
-                    "divisionId": 1971,
-                    "gradeId": 1971,
-                    "unavailableDateTimeslots": []
-                },
-                {
-                    "umpireId": 18373,
-                    "umpireName": "John Williams",
-                    "organisationIds": [],
-                    "teamIds": [
-                        8423
-                    ],
-                    "divisionId": 1972,
-                    "gradeId": 1972,
-                    "unavailableDateTimeslots": []
-                },
-                {
-                    "umpireId": 18375,
-                    "umpireName": "Patricia Brown",
-                    "organisationIds": [],
-                    "teamIds": [
-                        8422
-                    ],
-                    "divisionId": 1971,
-                    "gradeId": 1971,
-                    "unavailableDateTimeslots": []
-                }
-            ],
-            "venues": [
-                {
-                    "venueId": 555,
-                    "venueName": "AS Sat 2 courts",
-                    "organisationId": null,
-                    "availableTimeslots": [
-                        {
-                            "venueId": 555,
-                            "day": "saturday",
-                            "timeslot": {
-                                "startTime": "01:00",
-                                "endTime": "23:00"
-                            }
-                        },
-                        {
-                            "venueId": 555,
-                            "day": "sunday",
-                            "timeslot": {
-                                "startTime": "01:00",
-                                "endTime": "23:00"
-                            }
-                        },
-                        {
-                            "venueId": 555,
-                            "day": "monday",
-                            "timeslot": {
-                                "startTime": "01:00",
-                                "endTime": "23:00"
-                            }
-                        },
-                        {
-                            "venueId": 555,
-                            "day": "tuesday",
-                            "timeslot": {
-                                "startTime": "01:00",
-                                "endTime": "23:00"
-                            }
-                        },
-                        {
-                            "venueId": 555,
-                            "day": "wednesday",
-                            "timeslot": {
-                                "startTime": "01:00",
-                                "endTime": "23:00"
-                            }
-                        },
-                        {
-                            "venueId": 555,
-                            "day": "thursday",
-                            "timeslot": {
-                                "startTime": "01:00",
-                                "endTime": "23:00"
-                            }
-                        },
-                        {
-                            "venueId": 555,
-                            "day": "friday",
-                            "timeslot": {
-                                "startTime": "01:00",
-                                "endTime": "23:00"
-                            }
-                        }
-                    ],
-                    "unavailableDateTimeslots": [],
-                    "courts": [
-                        {
-                            "courtId": 1036,
-                            "courtName": 1,
-                            "venueId": 555,
-                            "availableTimeslots": [],
-                            "unavailableDateTimeslots": []
-                        },
-                        {
-                            "courtId": 1037,
-                            "courtName": 2,
-                            "venueId": 555,
-                            "availableTimeslots": []
-                        }
-                    ]
-                }
-            ],
-            "umpireType": 3,
-            "competitionUniqueKey": "aa6c6d75-72f7-49d0-b511-c1da8654067d",
-            "organisationId": "18238b32-1d44-40a3-b72a-0c106315bf9f",
-            "timeslotRotation": 5,
-            "timeslotGeneration": 2,
-            "courtRotation": 8,
-            "homeTeamRotation": 2,
-            "competitionType": "enhancedRoundRobin",
-            "output": 2,
-            "competitionStartDate": "2020-12-27T00:00:00.000Z",
-            "roundsNumber": 5,
-            "roundRobinType": 2,
-            "nonPlayingDates": [],
-            "timeBetweenRounds": 10080,
-            "lockedFixtures": [],
-            "manualTimeslots": []
-        };
+        const inputDataCalc = await this.prepareUmpiresAllocationAlgorithmInputData(allocationDto);
 
-        const results = await this.callUmpireAllocationAlgorithm(inputData, authToken);
+        const results = await this.callUmpireAllocationAlgorithm(inputDataCalc, authToken);
+
         await this.saveUmpiresAllocationsResult(results, userId, competitionOrganization.id);
     }
 
@@ -419,6 +82,8 @@ export default class UmpireAllocation {
             this.mapSettingToUmpireType(umpiresAllocationSetting),
         ]);
 
+        const venues = await this.competitionService.getCompetitionVenuesForUmpiresAllocation(competitionId);
+
         return {
             divisions,
             teams,
@@ -427,17 +92,44 @@ export default class UmpireAllocation {
             umpireType,
             competitionUniqueKey,
             organisationId,
+            venues,
+            timeslotRotation: 5,
+            timeslotGeneration: 2,
+            courtRotation: 8,
+            homeTeamRotation: 2,
+            competitionType: "enhancedRoundRobin",
+            output: 2,
+            competitionStartDate: "2020-12-27T00:00:00.000Z",
+            roundsNumber: 5,
+            roundRobinType: 2,
+            nonPlayingDates: [],
+            timeBetweenRounds: 10080,
+            lockedFixtures: [],
+            manualTimeslots: [],
         };
     }
 
     protected async mapRawDataToDivisionsFormattedData(rawData: Competition): Promise<any[]> {
         const {divisions} = rawData;
 
+        const divisionMatches = await this.matchService.getMatchDetailsForDivisions(divisions.map(division => division.id));
+
         return divisions.map(division => {
+            const match = divisionMatches.find(divisionMatch => divisionMatch.divisionId === division.id);
+
+            const matchDetails = match ? {
+                matchType: this.mapMatchTypeToNumber(match.type),
+                gameDuration: match.matchDuration,
+                breakDuration: match.breakDuration,
+                // TODO
+                timeBetweenGames: 0,
+                mainBreakDuration: match.mainBreakDuration,
+            } : {};
 
             return {
                 divisionId: division.id,
                 divisionName: division.name,
+                matchDetails,
             }
         });
     }
@@ -461,40 +153,70 @@ export default class UmpireAllocation {
     }
 
     protected async mapRawDataToDrawsFormattedData(rawData: Division[]): Promise<any[]> {
+        const divisionMatches = await this.matchService.getMatchDetailsForDivisions(rawData.map(division => division.id));
 
         return rawData.map(division => {
+            const match = divisionMatches.find(divisionMatch => divisionMatch.divisionId === division.id);
+            const matchDetails = match ? {
+                matchType: this.mapMatchTypeToNumber(match.type),
+                gameDuration: match.matchDuration,
+                breakDuration: match.breakDuration,
+                // TODO
+                timeBetweenGames: 0,
+                mainBreakDuration: match.mainBreakDuration,
+            } : {};
 
             return {
                 divisionId: division.id,
                 divisionName: division.name,
-                rounds: division.rounds.map(round => {
-                    return {
-                        roundNumber: round.sequence,
-                        matches: round.matches.map(match => {
-                            return {
-                                matchId: match.id,
-                                matchType: this.mapMatchTypeToNumber(match.type),
-                                gameDuration: match.matchDuration,
-                                breakDuration: match.breakDuration,
-                                // TODO
-                                timeBetweenGames: 0,
-                                mainBreakDuration: match.mainBreakDuration,
-                                matchStartTime: match.startTime,
-                                team1: match.team1 ? {
-                                    teamId: match.team1.id,
-                                    teamName: match.team1.name,
-                                    organisation: match.team1.linkedCompetitionOrganisation ?
-                                        match.team1.linkedCompetitionOrganisation.organisation.organisationUniqueKey : null,
-                                    division: match.team1.division ?
-                                        {
-                                            divisionId: match.team1.division.id,
-                                            divisionName: match.team1.division.name
-                                        } : null,
-                                } : null,
-                            };
-                        }),
-                    };
-                }),
+                grades: [{
+                    gradeName: division.name,
+                    gradeId: division.id,
+                    // TODO
+                    rank: 1,
+                    rounds: division.rounds.map(round => {
+                        return {
+                            roundNumber: round.sequence,
+                            roundId: round.id,
+                            roundName: round.name,
+                            matches: round.matches.map(match => {
+                                return {
+                                    matchId: match.id,
+                                    matchType: this.mapMatchTypeToNumber(match.type),
+                                    gameDuration: match.matchDuration,
+                                    breakDuration: match.breakDuration,
+                                    // TODO
+                                    timeBetweenGames: 0,
+                                    mainBreakDuration: match.mainBreakDuration,
+                                    matchStartTime: match.startTime,
+                                    team1: match.team1 ? {
+                                        teamId: match.team1.id,
+                                        teamName: match.team1.name,
+                                        organisation: match.team1.linkedCompetitionOrganisation ?
+                                            match.team1.linkedCompetitionOrganisation.organisation.organisationUniqueKey : null,
+                                        division: match.team1.division ?
+                                            {
+                                                divisionId: match.team1.division.id,
+                                                divisionName: match.team1.division.name
+                                            } : null,
+                                    } : null,
+                                    team2: match.team2 ? {
+                                        teamId: match.team2.id,
+                                        teamName: match.team2.name,
+                                        organisation: match.team2.linkedCompetitionOrganisation ?
+                                            match.team2.linkedCompetitionOrganisation.organisation.organisationUniqueKey : null,
+                                        division: match.team2.division ?
+                                            {
+                                                divisionId: match.team2.division.id,
+                                                divisionName: match.team2.division.name
+                                            } : null,
+                                    } : null,
+                                };
+                            }),
+                        };
+                    }),
+                }],
+                matchDetails,
             };
         });
     }
@@ -517,7 +239,6 @@ export default class UmpireAllocation {
                 organisationIds: currentUmpiresTeamsAndOrgRefs ? currentUmpiresTeamsAndOrgRefs.organisationIds : [],
                 teamIds: currentUmpiresTeamsAndOrgRefs ? currentUmpiresTeamsAndOrgRefs.teamIds : [],
                 divisionId,
-                availableTimeslots: [],
                 unavailableDateTimeslots: currentUnavailableBookings.map(booking => this.mapBookingToUnavailableDateTimeslot(booking)),
             };
         });
@@ -625,8 +346,22 @@ export interface IUmpireAllocationAlgorithmInput {
     draws: any[],
     umpires: any[],
     umpireType: number,
+    venues: any[],
     competitionUniqueKey: string,
     organisationId: string,
+    timeslotRotation: number,
+    timeslotGeneration: number,
+    courtRotation: number,
+    homeTeamRotation: 2,
+    competitionType: string,
+    output: number,
+    competitionStartDate: string,
+    roundsNumber: number,
+    roundRobinType: number,
+    nonPlayingDates: any[],
+    timeBetweenRounds: number,
+    lockedFixtures: any[],
+    manualTimeslots: any[],
 }
 
 export interface UnavailableDateTimeslot {

@@ -945,6 +945,26 @@ export default class MatchService extends BaseService<Match> {
         return markedMatches[0].availableToAttach;
     }
 
+
+    async getMatchDetailsForDivisions(divisionIds: number[]): Promise<Match[]> {
+
+        const matches = await this.entityManager.createQueryBuilder(Match, 'm')
+            .where('m.divisionId in (:divisionIds)', {divisionIds})
+            .getMany();
+
+        const divs = [];
+        const uniqueDivsMatches = [];
+        for (let match of matches) {
+            const {divisionId} = match;
+            if (!divs.includes(divisionId)) {
+                divs.push(divisionId);
+                uniqueDivsMatches.push(match);
+            }
+        }
+
+        return uniqueDivsMatches;
+    }
+
 }
 
 export type MatchWithAvailability = Match & {availableToAttach: boolean};
