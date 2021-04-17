@@ -10,6 +10,10 @@ import {UmpireAllocationSetting} from "../models/UmpireAllocationSetting";
 import {UmpireAllocationTypeEnum} from "../models/enums/UmpireAllocationTypeEnum";
 import axios from "axios";
 import {AllocationDto} from "../controller/dto/AllocationDto";
+import {MatchUmpire} from "../models/MatchUmpire";
+import MatchUmpireService from "./MatchUmpireService";
+import {NotFoundError} from "../exceptions/NotFoundError";
+import MatchService from "./MatchService";
 // TODO move to env
 // const competitionApi = process.env.COMPETITION_API_URL;
 const competitionApi = 'https://competition-api-dev.worldsportaction.com';
@@ -29,18 +33,29 @@ export default class UmpireAllocation {
     @Inject()
     private readonly bookingService: BookingService;
 
+    @Inject()
+    private readonly matchUmpireService: MatchUmpireService;
+
+    @Inject()
+    private readonly matchService: MatchService;
+
     modelName(): string {
         return Competition.name;
     }
 
 
     public async allocateUmpires(allocationDto: AllocationDto, authToken: string, userId: number): Promise<void> {
-        await this.competitionService.findOneOrFail(allocationDto.competitionId);
-        const inputData = await this.prepareUmpiresAllocationAlgorithmInputData(allocationDto);
-        console.log('before');
-        const res = await this.callUmpireAllocationAlgorithm(inputData, authToken, userId);
-        console.log('after');
-        console.log(`res - ${JSON.stringify(res)}`);
+        const competitionOrganization = await this.competitionService.findCompetitionOrganization(
+            allocationDto.competitionId, allocationDto.organisationId
+        );
+        if (!competitionOrganization) {
+            throw new NotFoundError();
+        }
+        const inputDataCalc = await this.prepareUmpiresAllocationAlgorithmInputData(allocationDto);
+
+        const results = await this.callUmpireAllocationAlgorithm(inputDataCalc, authToken);
+
+        await this.saveUmpiresAllocationsResult(results, userId, competitionOrganization.id);
     }
 
     protected async prepareUmpiresAllocationAlgorithmInputData(
@@ -67,6 +82,8 @@ export default class UmpireAllocation {
             this.mapSettingToUmpireType(umpiresAllocationSetting),
         ]);
 
+        const venues = await this.competitionService.getCompetitionVenuesForUmpiresAllocation(competitionId);
+
         return {
             divisions,
             teams,
@@ -75,17 +92,44 @@ export default class UmpireAllocation {
             umpireType,
             competitionUniqueKey,
             organisationId,
+            venues,
+            timeslotRotation: 5,
+            timeslotGeneration: 2,
+            courtRotation: 8,
+            homeTeamRotation: 2,
+            competitionType: "enhancedRoundRobin",
+            output: 2,
+            competitionStartDate: "2020-12-27T00:00:00.000Z",
+            roundsNumber: 5,
+            roundRobinType: 2,
+            nonPlayingDates: [],
+            timeBetweenRounds: 10080,
+            lockedFixtures: [],
+            manualTimeslots: [],
         };
     }
 
     protected async mapRawDataToDivisionsFormattedData(rawData: Competition): Promise<any[]> {
         const {divisions} = rawData;
 
+        const divisionMatches = await this.matchService.getMatchDetailsForDivisions(divisions.map(division => division.id));
+
         return divisions.map(division => {
+            const match = divisionMatches.find(divisionMatch => divisionMatch.divisionId === division.id);
+
+            const matchDetails = match ? {
+                matchType: this.mapMatchTypeToNumber(match.type),
+                gameDuration: match.matchDuration,
+                breakDuration: match.breakDuration,
+                // TODO
+                timeBetweenGames: 0,
+                mainBreakDuration: match.mainBreakDuration,
+            } : {};
 
             return {
                 divisionId: division.id,
                 divisionName: division.name,
+                matchDetails,
             }
         });
     }
@@ -109,40 +153,70 @@ export default class UmpireAllocation {
     }
 
     protected async mapRawDataToDrawsFormattedData(rawData: Division[]): Promise<any[]> {
+        const divisionMatches = await this.matchService.getMatchDetailsForDivisions(rawData.map(division => division.id));
 
         return rawData.map(division => {
+            const match = divisionMatches.find(divisionMatch => divisionMatch.divisionId === division.id);
+            const matchDetails = match ? {
+                matchType: this.mapMatchTypeToNumber(match.type),
+                gameDuration: match.matchDuration,
+                breakDuration: match.breakDuration,
+                // TODO
+                timeBetweenGames: 0,
+                mainBreakDuration: match.mainBreakDuration,
+            } : {};
 
             return {
                 divisionId: division.id,
                 divisionName: division.name,
-                rounds: division.rounds.map(round => {
-                    return {
-                        roundNumber: round.sequence,
-                        matches: round.matches.map(match => {
-                            return {
-                                matchId: match.id,
-                                matchType: this.mapMatchTypeToNumber(match.type),
-                                gameDuration: match.matchDuration,
-                                breakDuration: match.breakDuration,
-                                // TODO
-                                timeBetweenGames: 0,
-                                mainBreakDuration: match.mainBreakDuration,
-                                matchStartTime: match.startTime,
-                                team1: match.team1 ? {
-                                    teamId: match.team1.id,
-                                    teamName: match.team1.name,
-                                    organisation: match.team1.linkedCompetitionOrganisation ?
-                                        match.team1.linkedCompetitionOrganisation.organisation.organisationUniqueKey : null,
-                                    division: match.team1.division ?
-                                        {
-                                            divisionId: match.team1.division.id,
-                                            divisionName: match.team1.division.name
-                                        } : null,
-                                } : null,
-                            };
-                        }),
-                    };
-                }),
+                grades: [{
+                    gradeName: division.name,
+                    gradeId: division.id,
+                    // TODO
+                    rank: 1,
+                    rounds: division.rounds.map(round => {
+                        return {
+                            roundNumber: round.sequence,
+                            roundId: round.id,
+                            roundName: round.name,
+                            matches: round.matches.map(match => {
+                                return {
+                                    matchId: match.id,
+                                    matchType: this.mapMatchTypeToNumber(match.type),
+                                    gameDuration: match.matchDuration,
+                                    breakDuration: match.breakDuration,
+                                    // TODO
+                                    timeBetweenGames: 0,
+                                    mainBreakDuration: match.mainBreakDuration,
+                                    matchStartTime: match.startTime,
+                                    team1: match.team1 ? {
+                                        teamId: match.team1.id,
+                                        teamName: match.team1.name,
+                                        organisation: match.team1.linkedCompetitionOrganisation ?
+                                            match.team1.linkedCompetitionOrganisation.organisation.organisationUniqueKey : null,
+                                        division: match.team1.division ?
+                                            {
+                                                divisionId: match.team1.division.id,
+                                                divisionName: match.team1.division.name
+                                            } : null,
+                                    } : null,
+                                    team2: match.team2 ? {
+                                        teamId: match.team2.id,
+                                        teamName: match.team2.name,
+                                        organisation: match.team2.linkedCompetitionOrganisation ?
+                                            match.team2.linkedCompetitionOrganisation.organisation.organisationUniqueKey : null,
+                                        division: match.team2.division ?
+                                            {
+                                                divisionId: match.team2.division.id,
+                                                divisionName: match.team2.division.name
+                                            } : null,
+                                    } : null,
+                                };
+                            }),
+                        };
+                    }),
+                }],
+                matchDetails,
             };
         });
     }
@@ -165,7 +239,6 @@ export default class UmpireAllocation {
                 organisationIds: currentUmpiresTeamsAndOrgRefs ? currentUmpiresTeamsAndOrgRefs.organisationIds : [],
                 teamIds: currentUmpiresTeamsAndOrgRefs ? currentUmpiresTeamsAndOrgRefs.teamIds : [],
                 divisionId,
-                availableTimeslots: [],
                 unavailableDateTimeslots: currentUnavailableBookings.map(booking => this.mapBookingToUnavailableDateTimeslot(booking)),
             };
         });
@@ -188,10 +261,10 @@ export default class UmpireAllocation {
         }
     }
 
-    protected async callUmpireAllocationAlgorithm(inputData: IUmpireAllocationAlgorithmInput, authToken: string, userId: number): Promise<void> {
+    protected async callUmpireAllocationAlgorithm(inputData: any, authToken: string): Promise<UmpireAllocationsResult[]> {
 
         const response = await axios.post(
-            `${competitionApi}/api/generatedraw?userId=${userId}`,
+            `${competitionApi}/api/generate-umpire-allocation`,
             inputData,
             {
                 headers: {
@@ -233,6 +306,38 @@ export default class UmpireAllocation {
 
         return ("0" + time).slice(-2);
     }
+
+    protected async saveUmpiresAllocationsResult(
+        results: UmpireAllocationsResult[],
+        createdBy: number,
+        competitionOrganisationId: number,
+    ): Promise<void> {
+        for (let round of results) {
+            const {venues} = round;
+
+            for (let venue of venues) {
+                const {courts} = venue;
+
+                for (let court of courts) {
+                    const {fixtures} = court;
+
+                    for (let fixture of fixtures) {
+                        const {match, umpireId, umpireName} = fixture;
+                        const matchUmpire = new MatchUmpire();
+                        matchUmpire.createdBy = createdBy;
+                        matchUmpire.matchId = match.matchId;
+                        matchUmpire.competitionOrganisationId = competitionOrganisationId;
+                        matchUmpire.sequence = 1;
+                        matchUmpire.userId = umpireId;
+                        matchUmpire.umpireName = umpireName;
+                        matchUmpire.umpireType = "USERS";
+
+                        await this.matchUmpireService.attachUmpireToMatch(match.matchId, [matchUmpire]);
+                    }
+                }
+            }
+        }
+    }
 }
 
 export interface IUmpireAllocationAlgorithmInput {
@@ -241,8 +346,22 @@ export interface IUmpireAllocationAlgorithmInput {
     draws: any[],
     umpires: any[],
     umpireType: number,
+    venues: any[],
     competitionUniqueKey: string,
     organisationId: string,
+    timeslotRotation: number,
+    timeslotGeneration: number,
+    courtRotation: number,
+    homeTeamRotation: 2,
+    competitionType: string,
+    output: number,
+    competitionStartDate: string,
+    roundsNumber: number,
+    roundRobinType: number,
+    nonPlayingDates: any[],
+    timeBetweenRounds: number,
+    lockedFixtures: any[],
+    manualTimeslots: any[],
 }
 
 export interface UnavailableDateTimeslot {
@@ -252,4 +371,45 @@ export interface UnavailableDateTimeslot {
         startTime: string,
         endTime: string,
     }
+}
+
+export interface UmpireAllocationsResult {
+    roundName: string;
+    roundId: number;
+    roundStart: Date;
+    roundFinish: Date;
+    venues: {
+        venueName: string;
+        venueId: number;
+        courts: {
+            courtName: string;
+            courtId: number;
+            fixtures: {
+                fixtureId: number;
+                divisionId: number;
+                gradeId: number;
+                match: {
+                    matchId: number;
+                    team1: object;
+                    team2: object;
+                };
+                roundName: string;
+                roundId: number;
+                venueId: number;
+                venueName: string;
+                courtId: number;
+                courtName: string;
+                date: Date;
+                endDate: Date;
+                timeslot: {
+                    startTime: string,
+                    endTime: string,
+                };
+                outOfRoundDate: boolean;
+                outOfCompetitionDate: boolean;
+                umpireId: number;
+                umpireName: string;
+            }[];
+        }[];
+    }[];
 }

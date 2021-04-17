@@ -5,10 +5,10 @@ import {Brackets, DeleteResult} from "typeorm-plus";
 import {RequestFilter} from "../models/RequestFilter";
 import {paginationData, stringTONumber, objectIsNotEmpty, isNotNullAndUndefined, isArrayPopulated } from "../utils/Utils";
 import {CompetitionNotFoundError} from "../exceptions/CompetitionNotFoundError";
-import {Division} from "../models/Division";
 import {UmpireCompetitionRank} from "../models/UmpireCompetitionRank";
 import {UmpireAllocationSetting} from "../models/UmpireAllocationSetting";
 import {UmpireAllocatorTypeEnum} from "../models/enums/UmpireAllocatorTypeEnum";
+import {CompetitionOrganisation} from "../models/CompetitionOrganisation";
 
 @Service()
 export default class CompetitionService extends BaseService<Competition> {
@@ -255,6 +255,58 @@ export default class CompetitionService extends BaseService<Competition> {
     async findOneOrFail(competitionId: number): Promise<Competition> {
 
         return await this.entityManager.findOneOrFail(Competition, competitionId);
+    }
+
+    async findCompetitionOrganization(competitionId: number, orgId: number): Promise<CompetitionOrganisation> {
+
+        return await this.entityManager.createQueryBuilder(CompetitionOrganisation, 'co')
+            .where({competitionId, orgId})
+            .getOne();
+    }
+
+    async getCompetitionVenuesForUmpiresAllocation(competitionId: number): Promise<any[]> {
+        const rawVenues = await this.entityManager.query(`
+            select v.id as venueId,
+                   v.name as venueName,
+                   null as organisationId,
+                   JSON_ARRAYAGG(JSON_OBJECT('day', LOWER(r.description), 'venueId', v.id, 'timeslot', JSON_OBJECT('startTime',vg.startTime,'endTime',vg.endTime))) as availableTimeslots,
+                   CONCAT(
+                       '[',
+                       GROUP_CONCAT(JSON_OBJECT(
+                           'courtId', vc.id,
+                           'courtName', vc.courtNumber,
+                           'venueId', vc.venueId                           
+                           )),
+                       ']'
+                   ) as courts 
+            from competition c
+            left join competitionVenue cv
+                on cv.competitionId = c.id
+            left join wsa_common.venue v
+                on v.id = cv.venueId and v.isDeleted = 0
+            left join wsa_common.venueGameDay vg
+                on vg.venueId = v.id and vg.isDeleted = 0
+            inner join wsa_common.reference r
+                on r.id = vg.dayRefId and r.referenceGroupId = 25 and r.isDeleted = 0
+            left join wsa_common.venueCourt vc
+                on vc.venueId = v.id and vc.isDeleted = 0
+            where c.id = ?
+            group by v.id
+        `, [competitionId]);
+
+        return rawVenues.map(rawVenue => {
+
+            return {
+                ...rawVenue,
+                courts: JSON.parse(rawVenue.courts).map(court => {
+                    court.availableTimeslots = [];
+                    court.unavailableDateTimeslots = [];
+
+                    return court;
+                }),
+                unavailableDateTimeslots: [],
+            };
+        });
     }
 }
 

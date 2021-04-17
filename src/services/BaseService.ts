@@ -11,7 +11,7 @@ export default abstract class BaseService<T extends BaseEntity> {
     protected entityManager: EntityManager;
 
     @Inject()
-    private firebaseService: FirebaseService;
+    protected firebaseService: FirebaseService;
 
     abstract modelName(): string;
 

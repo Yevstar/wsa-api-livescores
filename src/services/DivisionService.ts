@@ -4,6 +4,7 @@ import BaseService from "./BaseService";
 import {Division} from "../models/Division";
 import {Team} from "../models/Team";
 import { isArrayPopulated } from "../utils/Utils";
+import {Match} from "../models/Match";
 
 @Service()
 export default class DivisionService extends BaseService<Division> {
@@ -83,12 +84,15 @@ export default class DivisionService extends BaseService<Division> {
         query
             .leftJoinAndSelect('r.matches', 'm', 'm.deleted_at is null')
             .leftJoinAndSelect('m.team1', 't1', 't1.deleted_at is null')
+            .leftJoinAndSelect('m.team2', 't2', 't2.deleted_at is null')
             .leftJoinAndSelect('t1.division', 'td', 'td.deleted_at is null')
+            .leftJoinAndSelect('t2.division', 't2d', 't2d.deleted_at is null')
             .leftJoinAndSelect('t1.linkedCompetitionOrganisation', 'linkedTeamOrg')
+            .leftJoinAndSelect('t2.linkedCompetitionOrganisation', 'linkedTeamOrg2')
             .leftJoinAndSelect('linkedTeamOrg.organisation', 'teamOrg')
+            .leftJoinAndSelect('linkedTeamOrg2.organisation', 'teamOrg2')
             .where('m.competitionId = :competitionId', {competitionId})
 
         return await query.getMany();
     }
-
 }
