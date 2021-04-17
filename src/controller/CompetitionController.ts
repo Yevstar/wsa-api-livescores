@@ -130,7 +130,7 @@ export class CompetitionController extends BaseController {
                 c.extraTimeDuration = competition.extraTimeDuration;
                 c.extraTimeMainBreak = competition.extraTimeMainBreak;
                 c.extraTimeQuarterBreak = competition.extraTimeQuarterBreak;
-                c.foulsSettings = competition.foulsSettings;
+                c.foulsSettings = JSON.parse(competition.foulsSettings);
                 c.additionalSettings = {
                     ...currentAdditionalSettings,
                     ALLOWED_ADDITIONAL_TIME: !!competition.additionalTime
