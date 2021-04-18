@@ -1,7 +1,7 @@
-import {Match} from '../models/Match';
-import {MatchUmpire} from '../models/MatchUmpire';
-import {StateTimezone} from "../models/StateTimezone";
-import { convertMatchStartTimeByTimezone } from "../utils/TimeFormatterUtils";
+import { Match } from '../models/Match';
+import { MatchUmpire } from '../models/MatchUmpire';
+import { StateTimezone } from '../models/StateTimezone';
+import { convertMatchStartTimeByTimezone } from '../utils/TimeFormatterUtils';
 let constants = require('../constants/Constants');
 
 const getMatchSheetTemplate = (
@@ -11,22 +11,28 @@ const getMatchSheetTemplate = (
   team2players: any[],
   umpires: MatchUmpire[],
   match: Match,
-  matchTimezone: StateTimezone
+  matchTimezone: StateTimezone,
 ) => {
-  const team1PlayersRef = team1players.length < 15
-    ? [...team1players, ...Array(15 - team1players.length).fill(null)]
-    : team1players;
-  const team2PlayersRef = team2players.length < 15
-    ? [...team2players, ...Array(15 - team2players.length).fill(null)]
-    : team2players;
+  const team1PlayersRef =
+    team1players.length < 15
+      ? [...team1players, ...Array(15 - team1players.length).fill(null)]
+      : team1players;
+  const team2PlayersRef =
+    team2players.length < 15
+      ? [...team2players, ...Array(15 - team2players.length).fill(null)]
+      : team2players;
 
   const matchDate = convertMatchStartTimeByTimezone(
-            match.startTime, matchTimezone != null ? matchTimezone.timezone : null,
-            `${constants.DATE_FORMATTER_KEY}`);
+    match.startTime,
+    matchTimezone != null ? matchTimezone.timezone : null,
+    `${constants.DATE_FORMATTER_KEY}`,
+  );
 
   const matchStartTime = convertMatchStartTimeByTimezone(
-        match.startTime, matchTimezone != null ? matchTimezone.timezone : null,
-        `${constants.TIME_FORMATTER_KEY}`);
+    match.startTime,
+    matchTimezone != null ? matchTimezone.timezone : null,
+    `${constants.TIME_FORMATTER_KEY}`,
+  );
 
   return `
     <!doctype html>
@@ -60,8 +66,9 @@ const getMatchSheetTemplate = (
              .associationName {
                 font-family: 'Arial Bold', sans-serif;
              }
-             ${templateType !== 'Simple' && templateType !== 'Scorecard' ? (
-             `.page {
+             ${
+               templateType !== 'Simple' && templateType !== 'Scorecard'
+                 ? `.page {
                 width: 100%;
                 max-width: 800px;
                 padding: 16px;
@@ -318,10 +325,12 @@ const getMatchSheetTemplate = (
                 text-align: center;
                 border-bottom: 1px solid black;
              }`
-           ) : ''} 
+                 : ''
+             } 
 
-          ${templateType == 'Simple'? (
-            `.page {
+          ${
+            templateType == 'Simple'
+              ? `.page {
                width: 100%;
                max-width: 800px;
                padding: 40px 2px 2px 2px;
@@ -533,10 +542,13 @@ const getMatchSheetTemplate = (
                flex-wrap: wrap;
                flex-direction: row;
                font-size: 16px;
-            }`) : ''}
+            }`
+              : ''
+          }
 
-          ${templateType == 'Scorecard'? (
-            `.page {
+          ${
+            templateType == 'Scorecard'
+              ? `.page {
                width: 100%;
                max-width: 400px;
                max-height:350px;
@@ -712,24 +724,32 @@ const getMatchSheetTemplate = (
                flex-direction: row;
                font-size: 16px;
             }`
-          ) : ''}
+              : ''
+          }
 
           </style>
        </head>
        <body>
           <div class="page no-break">
-          ${templateType !== 'Scorecard' ? (
-            `<div class="header no-break">
+          ${
+            templateType !== 'Scorecard'
+              ? `<div class="header no-break">
                 <div class="title">
                     <div class="associationName">${organisation.name || 'Association'}</div>
                     <div class="templateType">${templateType} Scoresheet</div>
                 </div>
-                <img class="logo" src="${organisation.logoUrl || "https://img.icons8.com/color/myspace"}"/>
+                <img class="logo" src="${
+                  organisation.logoUrl || 'https://img.icons8.com/color/myspace'
+                }"/>
             </div>
             <div class="matchInfo no-break">
                 <div class="infoContentLeft">
-                <div class="infodiv">${match.round ? match.round.name : ''} - Court ${match.venueCourt?match.venueCourt.courtNumber:""} - ${match.division?match.division.name:""}</div>
-                    <div class="infodiv">${match.venueCourt && match.venueCourt.venue ? match.venueCourt.venue.name : ''}</div>
+                <div class="infodiv">${match.round ? match.round.name : ''} - Court ${
+                  match.venueCourt ? match.venueCourt.courtNumber : ''
+                } - ${match.division ? match.division.name : ''}</div>
+                    <div class="infodiv">${
+                      match.venueCourt && match.venueCourt.venue ? match.venueCourt.venue.name : ''
+                    }</div>
                     <div class="infodiv">${match.team1 ? match.team1.name : ''}</div>
                 </div>
                 <div class="infoContentRight">
@@ -738,8 +758,7 @@ const getMatchSheetTemplate = (
                     <div class="infodiv">${match.team2 ? match.team2.name : ''}</div>
                 </div>
             </div>`
-            ) : (
-            `<div class="matchInfo no-break">
+              : `<div class="matchInfo no-break">
                <div class="infoContentLeft">
                   <div class="infodiv">${match.division ? match.division.name : ''}</div>
                   <div class="infodiv">Time: ${matchStartTime}</div>
@@ -751,9 +770,10 @@ const getMatchSheetTemplate = (
                   <div class="infodiv">${match.team2 ? match.team2.name : ''}</div>
                </div>
             </div>`
-            )}
-            ${templateType !== 'Carnival' && templateType !== 'Scorecard' ? (
-                `<div class="tableContent">
+          }
+            ${
+              templateType !== 'Carnival' && templateType !== 'Scorecard'
+                ? `<div class="tableContent">
                     <div class="signTable" id="attendance1">
                         <div class="table">
                             <div class="row">
@@ -765,17 +785,28 @@ const getMatchSheetTemplate = (
                                 <div class="cell" id="quarter3">3</div>
                                 <div class="cell" id="quarter4">4</div>
                             </div>
-                            ${team1PlayersRef.length > 0 ? team1PlayersRef.map((player, index) => (
-                                `<div class="row">
-                                    <div class="cell" id="playerid">${player && player.playerId || ''}</div>
-                                    <div class="largeCell" id="player">${player && player.firstName || ''} ${player && player.lastName || ''}</div>
+                            ${
+                              team1PlayersRef.length > 0
+                                ? team1PlayersRef
+                                    .map(
+                                      (player, index) =>
+                                        `<div class="row">
+                                    <div class="cell" id="playerid">${
+                                      (player && player.playerId) || ''
+                                    }</div>
+                                    <div class="largeCell" id="player">${
+                                      (player && player.firstName) || ''
+                                    } ${(player && player.lastName) || ''}</div>
                                     <div class="largeCell" id="signature"></div>
                                     <div class="cell" id="quarter1"></div>
                                     <div class="cell" id="quarter2"></div>
                                     <div class="cell" id="quarter3"></div>
                                     <div class="cell" id="quarter4"></div>
-                                </div>`
-                            )).join('') : ''}
+                                </div>`,
+                                    )
+                                    .join('')
+                                : ''
+                            }
                         </div>
                     </div>
                     <div class="signTable" id="attendance2">
@@ -789,117 +820,175 @@ const getMatchSheetTemplate = (
                                 <div class="cell" id="quarter3">3</div>
                                 <div class="cell" id="quarter4">4</div>
                             </div>
-                            ${team2PlayersRef.length > 0 ? team2PlayersRef.map((player, index) => (
-                                `<div class="row">
-                                    <div class="cell" id="playerid">${player && player.playerId || ''}</div>
-                                    <div class="largeCell" id="player">${player && player.firstName || ''} ${player && player.lastName || ''}</div>
+                            ${
+                              team2PlayersRef.length > 0
+                                ? team2PlayersRef
+                                    .map(
+                                      (player, index) =>
+                                        `<div class="row">
+                                    <div class="cell" id="playerid">${
+                                      (player && player.playerId) || ''
+                                    }</div>
+                                    <div class="largeCell" id="player">${
+                                      (player && player.firstName) || ''
+                                    } ${(player && player.lastName) || ''}</div>
                                     <div class="largeCell" id="signature"></div>
                                     <div class="cell" id="quarter1"></div>
                                     <div class="cell" id="quarter2"></div>
                                     <div class="cell" id="quarter3"></div>
                                     <div class="cell" id="quarter4"></div>
-                                </div>`
-                            )).join('') : ''}
+                                </div>`,
+                                    )
+                                    .join('')
+                                : ''
+                            }
                         </div>
                     </div>
                 </div>`
-            ) : ''}
-            ${templateType !== 'Simple' && templateType !== 'Scorecard' ? (
-            `<div class="subTitle">Centre Pass</div>
+                : ''
+            }
+            ${
+              templateType !== 'Simple' && templateType !== 'Scorecard'
+                ? `<div class="subTitle">Centre Pass</div>
             <div class="tableContent">
                 <div class="passTable">
                     <div class="table">
-                        ${[...Array(4).keys()].map((rowIndex) => (
-                           `<div class="passRow">
-                              ${[...Array(40).keys()].map((cellIndex) => (
-                                  `<div class="passCell"></div>`
-                              )).join('')}
-                            </div>`
-                        )).join('')}
+                        ${[...Array(4).keys()]
+                          .map(
+                            rowIndex =>
+                              `<div class="passRow">
+                              ${[...Array(40).keys()]
+                                .map(cellIndex => `<div class="passCell"></div>`)
+                                .join('')}
+                            </div>`,
+                          )
+                          .join('')}
                     </div>
                 </div>
             </div>`
-            ) : ''}
-            ${templateType !== 'Simple' && templateType !== 'Scorecard'? (
-            `<div class="subTitle">Progressive Score</div>
+                : ''
+            }
+            ${
+              templateType !== 'Simple' && templateType !== 'Scorecard'
+                ? `<div class="subTitle">Progressive Score</div>
             <div class="tableContent">
                 <div class="scoreTableLeft">
                     <div class="tableTitle">Team 1</div>
-                    ${[...Array(4).keys()].map((rowIndex) => (
-                        `<div class="scoreRow">
-                          ${[...Array(20).keys()].map((cellIndex) => (
-                              `<div class="scoreCell">${cellIndex + 1 + 20 * rowIndex}</div>`
-                            )).join('')}
-                        </div>`
-                    )).join('')}
+                    ${[...Array(4).keys()]
+                      .map(
+                        rowIndex =>
+                          `<div class="scoreRow">
+                          ${[...Array(20).keys()]
+                            .map(
+                              cellIndex =>
+                                `<div class="scoreCell">${cellIndex + 1 + 20 * rowIndex}</div>`,
+                            )
+                            .join('')}
+                        </div>`,
+                      )
+                      .join('')}
                 </div>
                 <div class="scoreTableRight">
                     <div class="tableTitle">Team 2</div>
-                    ${[...Array(4).keys()].map((rowIndex) => (
-                        `<div class="scoreRow">
-                            ${[...Array(20).keys()].map((cellIndex) => (
-                                `<div class="scoreCell">${cellIndex + 1 + 20 * rowIndex}</div>`
-                            )).join('')}
-                        </div>`
-                    )).join('')}
+                    ${[...Array(4).keys()]
+                      .map(
+                        rowIndex =>
+                          `<div class="scoreRow">
+                            ${[...Array(20).keys()]
+                              .map(
+                                cellIndex =>
+                                  `<div class="scoreCell">${cellIndex + 1 + 20 * rowIndex}</div>`,
+                              )
+                              .join('')}
+                        </div>`,
+                      )
+                      .join('')}
                 </div>
             </div>`
-            ) : '' }
-            ${templateType == 'Simple' ? (
-                `<div class="subTitle">Progressive Score</div>
+                : ''
+            }
+            ${
+              templateType == 'Simple'
+                ? `<div class="subTitle">Progressive Score</div>
                 <div class="tableContent">
                     <div class="scoreTableLeft">
                         <div class="tableTitle">Team 1</div>
-                        ${[...Array(4).keys()].map((rowIndex) => (
-                            `<div class="scoreRow">
-                              ${[...Array(10).keys()].map((cellIndex) => (
-                                  `<div class="scoreCell">${cellIndex + 1 + 10 * rowIndex}</div>`
-                                )).join('')}
-                            </div>`
-                        )).join('')}
+                        ${[...Array(4).keys()]
+                          .map(
+                            rowIndex =>
+                              `<div class="scoreRow">
+                              ${[...Array(10).keys()]
+                                .map(
+                                  cellIndex =>
+                                    `<div class="scoreCell">${cellIndex + 1 + 10 * rowIndex}</div>`,
+                                )
+                                .join('')}
+                            </div>`,
+                          )
+                          .join('')}
                     </div>
                     <div class="scoreTableRight">
                         <div class="tableTitle">Team 2</div>
-                        ${[...Array(4).keys()].map((rowIndex) => (
-                            `<div class="scoreRow">
-                                ${[...Array(10).keys()].map((cellIndex) => (
-                                    `<div class="scoreCell">${cellIndex + 1 + 10 * rowIndex}</div>`
-                                )).join('')}
-                            </div>`
-                        )).join('')}
+                        ${[...Array(4).keys()]
+                          .map(
+                            rowIndex =>
+                              `<div class="scoreRow">
+                                ${[...Array(10).keys()]
+                                  .map(
+                                    cellIndex =>
+                                      `<div class="scoreCell">${
+                                        cellIndex + 1 + 10 * rowIndex
+                                      }</div>`,
+                                  )
+                                  .join('')}
+                            </div>`,
+                          )
+                          .join('')}
                     </div>
                 </div>`
-            ) : '' }
-            ${templateType == 'Scorecard' ? (
-               `<div class="tableContent">
+                : ''
+            }
+            ${
+              templateType == 'Scorecard'
+                ? `<div class="tableContent">
                    <div class="scoreTableLeft">
-                       ${[...Array(4).keys()].map((rowIndex) => (
-                           `<div class="scoreRow">
-                             ${[...Array(7).keys()].map((cellIndex) => (
-                                 `<div class="scoreCell">&nbsp;</div>`
-                               )).join('')}
-                           </div>`
-                       )).join('')}
+                       ${[...Array(4).keys()]
+                         .map(
+                           rowIndex =>
+                             `<div class="scoreRow">
+                             ${[...Array(7).keys()]
+                               .map(cellIndex => `<div class="scoreCell">&nbsp;</div>`)
+                               .join('')}
+                           </div>`,
+                         )
+                         .join('')}
                    </div>
                    <div class="scoreTableRight">
-                       ${[...Array(4).keys()].map((rowIndex) => (
-                           `<div class="scoreRow">
-                               ${[...Array(7).keys()].map((cellIndex) => (
-                                   `<div class="scoreCell">&nbsp;</div>`
-                               )).join('')}
-                           </div>`
-                       )).join('')}
+                       ${[...Array(4).keys()]
+                         .map(
+                           rowIndex =>
+                             `<div class="scoreRow">
+                               ${[...Array(7).keys()]
+                                 .map(cellIndex => `<div class="scoreCell">&nbsp;</div>`)
+                                 .join('')}
+                           </div>`,
+                         )
+                         .join('')}
                    </div>
                </div>`
-           ) : '' }
-            ${templateType !== 'Social' && templateType !== 'Simple' && templateType !== 'Scorecard' ? (
-                `<div>
+                : ''
+            }
+            ${
+              templateType !== 'Social' && templateType !== 'Simple' && templateType !== 'Scorecard'
+                ? `<div>
                     <div class="subTitle">Goal Statistics</div>
                     <div class="tableContent">
                         <div class="goalTable">
                             <div class="table">
-                                ${[...Array(4).keys()].map((rowIndex) => (
-                                    `<div class="goalRow">
+                                ${[...Array(4).keys()]
+                                  .map(
+                                    rowIndex =>
+                                      `<div class="goalRow">
                                         <div class="goalCell">
                                             <div class="goalSubCell">Q ${rowIndex + 1}</div>
                                             <div></div>
@@ -930,8 +1019,9 @@ const getMatchSheetTemplate = (
                                             <div></div>
                                         </div>
                                         <div class="goalCell"></div>
-                                    </div>`
-                                )).join('')}
+                                    </div>`,
+                                  )
+                                  .join('')}
                             </div>
                         </div>
                     </div>
@@ -958,9 +1048,11 @@ const getMatchSheetTemplate = (
                         </div>
                     </div>
                 </div>`
-            ) : ''}
-            ${templateType !== 'Scorecard' ? (
-            `<div class="tableContent">
+                : ''
+            }
+            ${
+              templateType !== 'Scorecard'
+                ? `<div class="tableContent">
                 <div class="summaryTable">
                     <div class="table">
                         <div class="summaryRow" id="scorers">
@@ -991,8 +1083,7 @@ const getMatchSheetTemplate = (
                     </div>
                 </div>
             </div>`
-            ) :  (
-            `<div class="tableContent">
+                : `<div class="tableContent">
                <div class="summaryTable">
                    <div class="table">
                      <div class="summaryRow">
@@ -1010,7 +1101,7 @@ const getMatchSheetTemplate = (
                    </div>
                </div>
            </div>`
-            )}
+            }
         </div>
        </body>
     </html>

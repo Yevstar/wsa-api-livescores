@@ -1,84 +1,81 @@
-import {ViewColumn, ViewEntity} from "typeorm-plus";
-import {IsNumber, IsString, IsDate} from "class-validator";
-
+import { ViewColumn, ViewEntity } from 'typeorm-plus';
+import { IsNumber, IsString, IsDate } from 'class-validator';
 
 @ViewEntity()
 export class TeamPlayerActivity {
+  @IsNumber()
+  @ViewColumn()
+  matchId: number;
 
-    @IsNumber()
-    @ViewColumn()
-    matchId: number;
+  @IsNumber()
+  @ViewColumn()
+  teamId: number;
 
-    @IsNumber()
-    @ViewColumn()
-    teamId: number;
+  @IsNumber()
+  @ViewColumn()
+  playerId: number;
 
-    @IsNumber()
-    @ViewColumn()
-    playerId: number;
+  @IsNumber()
+  @ViewColumn()
+  mnbMatchId: number;
 
-    @IsNumber()
-    @ViewColumn()
-    mnbMatchId: number;
+  @IsDate()
+  @ViewColumn()
+  startTime: Date;
 
-    @IsDate()
-    @ViewColumn()
-    startTime: Date;
+  @IsNumber()
+  @ViewColumn()
+  divisionId: number;
 
-    @IsNumber()
-    @ViewColumn()
-    divisionId: number;
+  @IsString()
+  @ViewColumn()
+  divisionName: String;
 
-    @IsString()
-    @ViewColumn()
-    divisionName: String;
+  @IsString()
+  @ViewColumn()
+  teamName: String;
 
-    @IsString()
-    @ViewColumn()
-    teamName: String;
+  @IsString()
+  @ViewColumn()
+  name: String;
 
-    @IsString()
-    @ViewColumn()
-    name: String;
+  @IsNumber()
+  @ViewColumn()
+  mnbPlayerId: number;
 
-    @IsNumber()
-    @ViewColumn()
-    mnbPlayerId: number;
+  @IsString()
+  @ViewColumn()
+  firstName: String;
 
-    @IsString()
-    @ViewColumn()
-    firstName: String;
+  @IsString()
+  @ViewColumn()
+  lastName: String;
 
-    @IsString()
-    @ViewColumn()
-    lastName: String;
+  @IsNumber()
+  @ViewColumn()
+  period: number;
 
-    @IsNumber()
-    @ViewColumn()
-    period: number;
+  @IsDate()
+  @ViewColumn()
+  activityTimestamp: Date;
 
-    @IsDate()
-    @ViewColumn()
-    activityTimestamp: Date;
+  @IsString()
+  @ViewColumn()
+  status: String;
 
-    @IsString()
-    @ViewColumn()
-    status: String;
+  @IsNumber()
+  @ViewColumn()
+  sortOrder: number;
 
-    @IsNumber()
-    @ViewColumn()
-    sortOrder: number;
+  @IsNumber()
+  @ViewColumn()
+  competitionId: number;
 
-    @IsNumber()
-    @ViewColumn()
-    competitionId: number;
+  @IsNumber()
+  @ViewColumn()
+  positionId: number;
 
-    @IsNumber()
-    @ViewColumn()
-    positionId: number;
-
-    @IsString()
-    @ViewColumn()
-    positionName: String;
-
+  @IsString()
+  @ViewColumn()
+  positionName: String;
 }

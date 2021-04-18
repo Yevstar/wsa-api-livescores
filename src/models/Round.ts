@@ -1,52 +1,51 @@
 import {
-    BaseEntity,
-    Column,
-    Entity,
-    JoinColumn,
-    ManyToOne,
-    OneToMany,
-    OneToOne,
-    PrimaryGeneratedColumn
+  BaseEntity,
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
 } from 'typeorm-plus';
-import {Competition} from "./Competition";
-import {Division} from "./Division";
-import {Match} from "./Match";
-import {IsArray, IsNumber, IsString, ValidateNested} from "class-validator";
+import { Competition } from './Competition';
+import { Division } from './Division';
+import { Match } from './Match';
+import { IsArray, IsNumber, IsString, ValidateNested } from 'class-validator';
 
 @Entity()
 export class Round extends BaseEntity {
+  @IsNumber()
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @IsNumber()
-    @PrimaryGeneratedColumn()
-    id: number;
+  @IsString()
+  @Column()
+  name: string;
 
-    @IsString()
-    @Column()
-    name: string;
+  @IsNumber()
+  @Column()
+  sequence: number;
 
-    @IsNumber()
-    @Column()
-    sequence: number;
+  @IsNumber()
+  @Column()
+  competitionId: number;
 
-    @IsNumber()
-    @Column()
-    competitionId: number;
+  @ValidateNested()
+  @OneToOne(type => Competition)
+  @JoinColumn()
+  competition: Competition;
 
-    @ValidateNested()
-    @OneToOne(type => Competition)
-    @JoinColumn()
-    competition: Competition;
+  @IsNumber()
+  @Column()
+  divisionId: number;
 
-    @IsNumber()
-    @Column()
-    divisionId: number;
+  @ValidateNested()
+  @ManyToOne(type => Division)
+  @JoinColumn()
+  division: Division;
 
-    @ValidateNested()
-    @ManyToOne(type => Division)
-    @JoinColumn()
-    division: Division;
-
-    @IsArray({each: true})
-    @OneToMany(type => Match, match => match.round)
-    matches: Match[];
+  @IsArray({ each: true })
+  @OneToMany(type => Match, match => match.round)
+  matches: Match[];
 }

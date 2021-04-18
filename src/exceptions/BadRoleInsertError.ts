@@ -1,4 +1,3 @@
-import {BadRequestError} from "routing-controllers";
+import { BadRequestError } from 'routing-controllers';
 
-export class BadRoleInsertError extends Error {
-}
+export class BadRoleInsertError extends Error {}

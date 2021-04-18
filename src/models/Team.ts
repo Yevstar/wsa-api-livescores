@@ -1,73 +1,81 @@
-import {Player} from './Player';
-import {User} from './User';
-import {Division} from './Division';
-import {Competition} from './Competition';
-import {BaseEntity, Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn, DeleteDateColumn} from 'typeorm-plus';
-import {LinkedCompetitionOrganisation} from "./LinkedCompetitionOrganisation";
-import {IsArray, IsBoolean, IsNumber, IsString, ValidateNested} from "class-validator";
+import { Player } from './Player';
+import { User } from './User';
+import { Division } from './Division';
+import { Competition } from './Competition';
+import {
+  BaseEntity,
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+  DeleteDateColumn,
+} from 'typeorm-plus';
+import { LinkedCompetitionOrganisation } from './LinkedCompetitionOrganisation';
+import { IsArray, IsBoolean, IsNumber, IsString, ValidateNested } from 'class-validator';
 
 @Entity()
 export class Team extends BaseEntity {
+  @IsNumber()
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @IsNumber()
-    @PrimaryGeneratedColumn()
-    id: number;
+  @IsString()
+  @Column()
+  name: string;
 
-    @IsString()
-    @Column()
-    name: string;
+  @IsString()
+  @Column()
+  alias: string;
 
-    @IsString()
-    @Column()
-    alias: string;
+  @IsNumber()
+  @Column()
+  divisionId: number;
 
-    @IsNumber()
-    @Column()
-    divisionId: number;
+  @IsString()
+  @Column()
+  logoUrl: string;
 
-    @IsString()
-    @Column()
-    logoUrl: string;
+  @IsNumber()
+  @Column()
+  competitionId: number;
 
-    @IsNumber()
-    @Column()
-    competitionId: number;
+  @IsString()
+  @Column()
+  nameFilter: 'SHOW' | 'HIDE' | 'SHOW_FIRST_NAME';
 
-    @IsString()
-    @Column()
-    nameFilter: "SHOW" | "HIDE" | "SHOW_FIRST_NAME";
+  @IsNumber()
+  @Column()
+  competitionOrganisationId: number;
 
-    @IsNumber()
-    @Column()
-    competitionOrganisationId: number;
+  @IsBoolean()
+  @Column()
+  gameTimeTrackingOverride: boolean;
 
-    @IsBoolean()
-    @Column()
-    gameTimeTrackingOverride: boolean;
+  @IsBoolean()
+  @Column()
+  positionTracking: boolean;
 
-    @IsBoolean()
-    @Column()
-    positionTracking: boolean;
+  @ValidateNested()
+  @OneToOne(type => Competition)
+  @JoinColumn()
+  competition: Competition;
 
-    @ValidateNested()
-    @OneToOne(type => Competition)
-    @JoinColumn()
-    competition: Competition;
+  @ValidateNested()
+  @OneToOne(type => LinkedCompetitionOrganisation)
+  @JoinColumn({ name: 'competitionOrganisationId', referencedColumnName: 'id' })
+  linkedCompetitionOrganisation: LinkedCompetitionOrganisation;
 
-    @ValidateNested()
-    @OneToOne(type => LinkedCompetitionOrganisation)
-    @JoinColumn({name: 'competitionOrganisationId', referencedColumnName: 'id'})
-    linkedCompetitionOrganisation: LinkedCompetitionOrganisation;
+  @ValidateNested()
+  @ManyToOne(type => Division, division => division.teams)
+  division: Division;
 
-    @ValidateNested()
-    @ManyToOne(type => Division, division => division.teams)
-    division: Division;
+  @IsArray({ each: true })
+  @OneToMany(type => Player, player => player.team)
+  players: Player[];
 
-    @IsArray({each: true})
-    @OneToMany(type => Player, player => player.team)
-    players: Player[];
-
-    @DeleteDateColumn({ nullable:true, default:null, name: 'deleted_at' })
-    public deleted_at: Date;
-
+  @DeleteDateColumn({ nullable: true, default: null, name: 'deleted_at' })
+  public deleted_at: Date;
 }

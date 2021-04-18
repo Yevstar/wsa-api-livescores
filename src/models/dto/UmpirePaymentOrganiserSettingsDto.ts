@@ -1,16 +1,16 @@
-import {IsArray, IsBoolean, IsNotEmpty, IsOptional} from "class-validator";
-import {UmpirePaymentSetting} from "../UmpirePaymentSetting";
-import {UmpirePaymentAllowedDivisionsSetting} from "../UmpirePaymentAllowedDivisionsSetting";
+import { IsArray, IsBoolean, IsNotEmpty, IsOptional } from 'class-validator';
+import { UmpirePaymentSetting } from '../UmpirePaymentSetting';
+import { UmpirePaymentAllowedDivisionsSetting } from '../UmpirePaymentAllowedDivisionsSetting';
 
 export class UmpirePaymentOrganiserSettingsDto {
-    @IsArray()
-    @IsOptional()
-    umpirePaymentSettings: UmpirePaymentSetting[];
+  @IsArray()
+  @IsOptional()
+  umpirePaymentSettings: UmpirePaymentSetting[];
 
-    @IsNotEmpty()
-    allowedDivisionsSetting: UmpirePaymentAllowedDivisionsSetting;
+  @IsNotEmpty()
+  allowedDivisionsSetting: UmpirePaymentAllowedDivisionsSetting;
 
-    @IsBoolean()
-    @IsOptional()
-    noPaymentThroughPlatform: boolean;
+  @IsBoolean()
+  @IsOptional()
+  noPaymentThroughPlatform: boolean;
 }

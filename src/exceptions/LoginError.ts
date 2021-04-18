@@ -1,9 +1,8 @@
-import {HttpError} from "routing-controllers";
+import { HttpError } from 'routing-controllers';
 
 export class LoginError extends HttpError {
-
-    constructor() {
-        super(404, `Invalid username or password.`);
-        super.name = 'LoginError';
-    }
+  constructor() {
+    super(404, `Invalid username or password.`);
+    super.name = 'LoginError';
+  }
 }
