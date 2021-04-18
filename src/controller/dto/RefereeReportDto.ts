@@ -1,10 +1,4 @@
-import {
-  IsArray,
-  IsDateString,
-  IsNumber,
-  IsOptional,
-  IsString,
-} from "class-validator";
+import { IsArray, IsDateString, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class RefereeReportDto {
   @IsNumber()

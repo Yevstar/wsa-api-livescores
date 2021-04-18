@@ -1,5 +1,5 @@
 export class AllocationDto {
-    organisationId: number;
-    competitionId: number;
-    rounds: number[];
+  organisationId: number;
+  competitionId: number;
+  rounds: number[];
 }

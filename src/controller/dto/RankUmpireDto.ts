@@ -1,12 +1,6 @@
-import {
-  IsIn,
-  IsInt,
-  IsOptional,
-  Max,
-  Min,
-} from "class-validator";
-import {UpdateRankType} from "../../services/UmpireService";
-import {Type} from "class-transformer";
+import { IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { UpdateRankType } from '../../services/UmpireService';
+import { Type } from 'class-transformer';
 
 export class RankUmpireDto {
   @Type(() => Number)
@@ -16,6 +10,6 @@ export class RankUmpireDto {
   rank: number;
 
   @IsOptional()
-  @IsIn(["shift", "replace"])
+  @IsIn(['shift', 'replace'])
   updateRankType: UpdateRankType;
 }

@@ -1,9 +1,5 @@
-import {
-  IsInt,
-  Max,
-  Min,
-} from "class-validator";
-import {Type} from "class-transformer";
+import { IsInt, Max, Min } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class RankUmpireQueryParams {
   @Type(() => Number)

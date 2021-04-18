@@ -1,67 +1,61 @@
-import {
-    BaseEntity,
-    Column,
-    Entity,
-    PrimaryGeneratedColumn
-} from 'typeorm-plus';
-import {IsDate, IsNumber, IsString, IsBoolean} from "class-validator";
+import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from 'typeorm-plus';
+import { IsDate, IsNumber, IsString, IsBoolean } from 'class-validator';
 
 @Entity('matchEvent')
 export class MatchEvent extends BaseEntity {
+  @IsNumber()
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @IsNumber()
-    @PrimaryGeneratedColumn()
-    id: number;
+  @IsNumber()
+  @Column()
+  matchId: number;
 
-    @IsNumber()
-    @Column()
-    matchId: number;
+  @IsString()
+  @Column()
+  eventCategory: string;
 
-    @IsString()
-    @Column()
-    eventCategory: string;
+  @IsString()
+  @Column()
+  type: string;
 
-    @IsString()
-    @Column()
-    type: string;
+  @IsDate()
+  @Column()
+  eventTimestamp: Date;
 
-    @IsDate()
-    @Column()
-    eventTimestamp: Date;
+  @IsNumber()
+  @Column()
+  period: number;
 
-    @IsNumber()
-    @Column()
-    period: number;
+  @IsString()
+  @Column()
+  attribute1Key: string;
 
-    @IsString()
-    @Column()
-    attribute1Key: string;
+  @IsString()
+  @Column()
+  attribute1Value: string;
 
-    @IsString()
-    @Column()
-    attribute1Value: string;
+  @IsString()
+  @Column()
+  attribute2Key: string;
 
-    @IsString()
-    @Column()
-    attribute2Key: string;
+  @IsString()
+  @Column()
+  attribute2Value: string;
 
-    @IsString()
-    @Column()
-    attribute2Value: string;
+  @IsNumber()
+  @Column()
+  userId: number;
 
-    @IsNumber()
-    @Column()
-    userId: number;
+  @IsString()
+  @Column()
+  source: string;
 
-    @IsString()
-    @Column()
-    source: string;
+  @IsBoolean()
+  @Column()
+  processed: boolean;
 
-    @IsBoolean()
-    @Column()
-    processed: boolean;
-
-    @IsDate()
-    @Column()
-    updated_at: Date;
+  @IsDate()
+  @Column()
+  updated_at: Date;
 }

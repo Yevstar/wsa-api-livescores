@@ -1,18 +1,17 @@
-import {BaseEntity, Column, Entity, PrimaryGeneratedColumn} from 'typeorm-plus';
-import {IsNumber, IsString} from "class-validator";
+import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from 'typeorm-plus';
+import { IsNumber, IsString } from 'class-validator';
 
-@Entity("gameStat")
+@Entity('gameStat')
 export class GameStat extends BaseEntity {
+  @IsNumber()
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @IsNumber()
-    @PrimaryGeneratedColumn()
-    id: number;
+  @IsString()
+  @Column()
+  name: string;
 
-    @IsString()
-    @Column()
-    name: string;
-
-    @IsString()
-    @Column()
-    code: string;
+  @IsString()
+  @Column()
+  code: string;
 }

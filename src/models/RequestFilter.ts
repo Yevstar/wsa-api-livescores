@@ -1,9 +1,9 @@
 export interface RequestFilter {
-    paging: Paging;
-    search: string;
+  paging: Paging;
+  search: string;
 }
 
 export interface Paging {
-    limit: number,
-    offset: number
+  limit: number;
+  offset: number;
 }

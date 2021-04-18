@@ -1,156 +1,155 @@
-import { IsBoolean, IsDate, IsNumber, IsString, IsArray } from "class-validator";
+import { IsBoolean, IsDate, IsNumber, IsString, IsArray } from 'class-validator';
 import {
-    BaseEntity,
-    Column,
-    Entity,
-    PrimaryGeneratedColumn,
-    OneToMany,
-    ManyToMany,
-    OneToOne,
-} from "typeorm-plus";
+  BaseEntity,
+  Column,
+  Entity,
+  PrimaryGeneratedColumn,
+  OneToMany,
+  ManyToMany,
+  OneToOne,
+} from 'typeorm-plus';
 
 import { Team } from './Team';
 import { LinkedCompetitionOrganisation } from './LinkedCompetitionOrganisation';
 import { UserRoleEntity } from './security/UserRoleEntity';
-import { UmpirePool } from "./UmpirePool";
-import { UmpireCompetitionRank } from "./UmpireCompetitionRank";
-import { MatchUmpire } from "./MatchUmpire";
-import {UmpirePoolRank} from "./UmpirePoolRank";
+import { UmpirePool } from './UmpirePool';
+import { UmpireCompetitionRank } from './UmpireCompetitionRank';
+import { MatchUmpire } from './MatchUmpire';
+import { UmpirePoolRank } from './UmpirePoolRank';
 
 /// For referring the data model of another db we are giving the
 /// name as below wsa_users.<name>.
 /// https://github.com/typeorm/typeorm/issues/323 as Goodmain commented on 2 Mar 2017
 @Entity({
-    database: 'wsa_users'
+  database: 'wsa_users',
 })
 export class User extends BaseEntity {
+  @IsNumber()
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @IsNumber()
-    @PrimaryGeneratedColumn()
-    id: number;
+  @IsString()
+  @Column()
+  firstName: string;
 
-    @IsString()
-    @Column()
-    firstName: string;
+  @IsString()
+  @Column()
+  lastName: string;
 
-    @IsString()
-    @Column()
-    lastName: string;
+  @IsString()
+  @Column()
+  mobileNumber: string;
 
-    @IsString()
-    @Column()
-    mobileNumber: string;
+  @IsString()
+  @Column()
+  email: string;
 
-    @IsString()
-    @Column()
-    email: string;
+  @IsString()
+  @Column({ select: false })
+  password: string;
 
-    @IsString()
-    @Column({ select: false })
-    password: string;
+  @IsDate()
+  @Column()
+  dateOfBirth: Date;
 
-    @IsDate()
-    @Column()
-    dateOfBirth: Date;
+  @IsNumber()
+  @Column()
+  genderRefId: number;
 
-    @IsNumber()
-    @Column()
-    genderRefId: number;
+  @IsNumber()
+  @Column()
+  statusRefId: number;
 
-    @IsNumber()
-    @Column()
-    statusRefId: number;
+  @IsString()
+  @Column({ select: false })
+  reset: string;
 
-    @IsString()
-    @Column({ select: false })
-    reset: string;
+  @IsBoolean()
+  @Column()
+  marketingOptIn: boolean;
 
-    @IsBoolean()
-    @Column()
-    marketingOptIn: boolean;
+  @IsString()
+  @Column()
+  photoUrl: string;
 
-    @IsString()
-    @Column()
-    photoUrl: string;
+  @IsString()
+  @Column()
+  firebaseUID: string;
 
-    @IsString()
-    @Column()
-    firebaseUID: string;
+  teams: Team[];
+  competitionOrganisations: LinkedCompetitionOrganisation[];
+  affiliates: LinkedCompetitionOrganisation[];
 
-    teams: Team[];
-    competitionOrganisations: LinkedCompetitionOrganisation[];
-    affiliates: LinkedCompetitionOrganisation[];
+  @IsArray({ each: true })
+  @OneToMany(type => UserRoleEntity, userRoleEntity => userRoleEntity.user)
+  userRoleEntities: UserRoleEntity[];
 
-    @IsArray({ each: true })
-    @OneToMany(type => UserRoleEntity, userRoleEntity => userRoleEntity.user)
-    userRoleEntities: UserRoleEntity[];
+  @IsNumber()
+  @Column({ default: 0 })
+  isDeleted: number;
 
-    @IsNumber()
-    @Column({ default: 0 })
-    isDeleted: number;
+  @IsBoolean()
+  @Column()
+  tfaEnabled: boolean;
 
-    @IsBoolean()
-    @Column()
-    tfaEnabled: boolean;
+  @IsString()
+  @Column({ select: false })
+  tfaSecret: string;
 
-    @IsString()
-    @Column({ select: false })
-    tfaSecret: string;
+  @IsString()
+  @Column({ select: false })
+  tfaSecretUrl: string;
 
-    @IsString()
-    @Column({ select: false })
-    tfaSecretUrl: string;
+  @IsDate()
+  @Column({ nullable: true, default: null })
+  lastAppLogin: Date;
 
-    @IsDate()
-    @Column({ nullable: true, default: null })
-    lastAppLogin: Date;
+  @IsNumber()
+  @Column({ nullable: false, default: 0 })
+  isInActive: number;
 
-    @IsNumber()
-    @Column({ nullable: false, default: 0 })
-    isInActive: number;
+  @IsString()
+  @Column()
+  stripeCustomerAccountId: string;
 
-    @IsString()
-    @Column()
-    stripeCustomerAccountId: string;
+  @IsString()
+  @Column()
+  stripeAccountId: string;
 
-    @IsString()
-    @Column()
-    stripeAccountId: string;
+  @ManyToMany(type => UmpirePool, umpirePool => umpirePool)
+  umpirePools: UmpirePool[];
 
-    @ManyToMany(type => UmpirePool, umpirePool => umpirePool)
-    umpirePools: UmpirePool[];
+  @OneToMany(type => UmpireCompetitionRank, umpireCompetitionRank => umpireCompetitionRank.umpire)
+  umpireCompetitionRank: UmpireCompetitionRank[];
 
-    @OneToMany(type => UmpireCompetitionRank, umpireCompetitionRank => umpireCompetitionRank.umpire)
-    umpireCompetitionRank: UmpireCompetitionRank[];
+  @Column()
+  accreditationCoachExpiryDate?: Date;
 
-    @Column()
-    accreditationCoachExpiryDate?: Date;
+  @Column()
+  accreditationLevelCoachRefId?: number;
 
-    @Column()
-    accreditationLevelCoachRefId?: number;
+  @Column()
+  accreditationLevelUmpireRefId?: number;
 
-    @Column()
-    accreditationLevelUmpireRefId?: number;
+  @Column()
+  accreditationUmpireExpiryDate?: Date;
 
-    @Column()
-    accreditationUmpireExpiryDate?: Date;
+  @OneToMany(() => MatchUmpire, matchUmpire => matchUmpire.user)
+  matchUmpires: MatchUmpire[];
 
-    @OneToMany(() => MatchUmpire, matchUmpire => matchUmpire.user)
-    matchUmpires: MatchUmpire[];
+  @Column()
+  yearsUmpired: number;
 
-    @Column()
-    yearsUmpired: number;
+  @OneToOne(type => UmpireCompetitionRank, umpireCompetitionRank => umpireCompetitionRank.umpire)
+  competitionRank?: UmpireCompetitionRank;
 
-    @OneToOne(type => UmpireCompetitionRank, umpireCompetitionRank => umpireCompetitionRank.umpire)
-    competitionRank?: UmpireCompetitionRank;
+  @OneToOne(type => UmpirePoolRank, umpirePoolRank => umpirePoolRank.umpire)
+  umpirePoolRank?: UmpirePoolRank;
 
-    @OneToOne(type => UmpirePoolRank, umpirePoolRank => umpirePoolRank.umpire)
-    umpirePoolRank?: UmpirePoolRank;
+  poolRank?: number;
 
-    poolRank?: number;
+  rank?: number;
 
-    rank?: number;
-
-    organisationName?: string;
-    selectedTeams?: Team[];
+  organisationName?: string;
+  selectedTeams?: Team[];
 }

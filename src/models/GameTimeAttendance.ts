@@ -1,82 +1,88 @@
-import {BaseEntity, Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn} from "typeorm-plus";
-import {Team} from "./Team";
-import {Match} from "./Match";
-import {GamePosition} from "./GamePosition";
-import {Player} from "./Player";
-import {IsBoolean, IsDate, IsNumber, IsString, ValidateNested} from "class-validator";
+import {
+  BaseEntity,
+  Column,
+  Entity,
+  JoinColumn,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm-plus';
+import { Team } from './Team';
+import { Match } from './Match';
+import { GamePosition } from './GamePosition';
+import { Player } from './Player';
+import { IsBoolean, IsDate, IsNumber, IsString, ValidateNested } from 'class-validator';
 
-@Entity("gameTimeAttendance")
+@Entity('gameTimeAttendance')
 export class GameTimeAttendance extends BaseEntity {
+  @IsNumber()
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @IsNumber()
-    @PrimaryGeneratedColumn()
-    id: number;
+  @ValidateNested()
+  @OneToOne(type => Match)
+  @JoinColumn()
+  match: Match;
 
-    @ValidateNested()
-    @OneToOne(type => Match)
-    @JoinColumn()
-    match: Match;
+  @IsNumber()
+  @Column()
+  matchId: number;
 
-    @IsNumber()
-    @Column()
-    matchId: number;
+  @ValidateNested()
+  @OneToOne(type => Team)
+  @JoinColumn()
+  team: Team;
 
-    @ValidateNested()
-    @OneToOne(type => Team)
-    @JoinColumn()
-    team: Team;
+  @IsNumber()
+  @Column()
+  teamId: number;
 
-    @IsNumber()
-    @Column()
-    teamId: number;
+  @ValidateNested()
+  @OneToOne(type => Player)
+  @JoinColumn()
+  player: Player;
 
-    @ValidateNested()
-    @OneToOne(type => Player)
-    @JoinColumn()
-    player: Player;
+  @IsNumber()
+  @Column()
+  playerId: number;
 
-    @IsNumber()
-    @Column()
-    playerId: number;
+  @IsNumber()
+  @Column()
+  period: number;
 
-    @IsNumber()
-    @Column()
-    period: number;
+  @ValidateNested()
+  @OneToOne(type => GamePosition)
+  @JoinColumn()
+  position: GamePosition;
 
-    @ValidateNested()
-    @OneToOne(type => GamePosition)
-    @JoinColumn()
-    position: GamePosition;
+  @IsNumber()
+  @Column()
+  positionId: number;
 
-    @IsNumber()
-    @Column()
-    positionId: number;
+  @IsBoolean()
+  @Column()
+  isBorrowed: boolean;
 
-    @IsBoolean()
-    @Column()
-    isBorrowed: boolean;
+  @IsBoolean()
+  @Column()
+  isPlaying: boolean;
 
-    @IsBoolean()
-    @Column()
-    isPlaying: boolean;
+  @IsString()
+  @Column()
+  verifiedBy: string;
 
-    @IsString()
-    @Column()
-    verifiedBy: string;
+  @IsString()
+  @Column()
+  source: String;
 
-    @IsString()
-    @Column()
-    source: String;
-    
-    @IsDate()
-    @Column()
-    createdAt: Date;
+  @IsDate()
+  @Column()
+  createdAt: Date;
 
-    @IsNumber()
-    @Column()
-    createdBy: number;
+  @IsNumber()
+  @Column()
+  createdBy: number;
 
-    @IsBoolean()
-    @Column()
-    mnbPushed: boolean;
+  @IsBoolean()
+  @Column()
+  mnbPushed: boolean;
 }

@@ -1,4 +1,4 @@
 export enum CompetitionOrganisationRoleEnum {
-    ORGANISER = "ORGANISER",
-    AFFILIATE = "AFFILIATE",
+  ORGANISER = 'ORGANISER',
+  AFFILIATE = 'AFFILIATE',
 }

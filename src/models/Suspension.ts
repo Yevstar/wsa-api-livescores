@@ -1,8 +1,8 @@
-import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from "typeorm";
-import { JoinColumn, OneToOne } from "typeorm-plus";
-import { Incident } from "../models/Incident";
+import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { JoinColumn, OneToOne } from 'typeorm-plus';
+import { Incident } from '../models/Incident';
 
-@Entity("suspension")
+@Entity('suspension')
 export class Suspension extends BaseEntity {
   @PrimaryGeneratedColumn()
   id?: number;

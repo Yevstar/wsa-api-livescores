@@ -1,13 +1,13 @@
 export declare type UmpirePaymentTransferResponse = {
-    transfers: UmpirePaymentTransfer[],
-}
+  transfers: UmpirePaymentTransfer[];
+};
 
 type UmpirePaymentTransfer = {
-    success: boolean,
-    error?: string,
-    transfer: {
-        umpireId: number,
-        stripeId: string,
-        amount: number,
-    }
-}
+  success: boolean;
+  error?: string;
+  transfer: {
+    umpireId: number;
+    stripeId: string;
+    amount: number;
+  };
+};

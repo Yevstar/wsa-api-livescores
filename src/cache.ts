@@ -40,12 +40,14 @@ const DAY = 86400;
 // }
 //
 export {
-    TEN_MIN, HOUR, DAY,
-//     cacheManager,
-//     fromCache,
-//     fromCacheAsync,
-//     toCache,
-//     toCacheWithTtl,
-//     removeFromCache,
-//     flushAll
+  TEN_MIN,
+  HOUR,
+  DAY,
+  //     cacheManager,
+  //     fromCache,
+  //     fromCacheAsync,
+  //     toCache,
+  //     toCacheWithTtl,
+  //     removeFromCache,
+  //     flushAll
 };

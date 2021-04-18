@@ -1,19 +1,19 @@
-import {BaseEntity, Column, JoinTable, ManyToMany, PrimaryGeneratedColumn} from "typeorm-plus";
-import {IsBoolean} from "class-validator";
-import {Division} from "./Division";
+import { BaseEntity, Column, JoinTable, ManyToMany, PrimaryGeneratedColumn } from 'typeorm-plus';
+import { IsBoolean } from 'class-validator';
+import { Division } from './Division';
 
 export class BaseUmpireAllocationSetting extends BaseEntity {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column({default: false})
-    @IsBoolean()
-    allDivisions: boolean;
+  @Column({ default: false })
+  @IsBoolean()
+  allDivisions: boolean;
 
-    @ManyToMany(type => Division, division => division.umpireAllocationSettings)
-    @JoinTable()
-    divisions: Division[];
+  @ManyToMany(type => Division, division => division.umpireAllocationSettings)
+  @JoinTable()
+  divisions: Division[];
 
-    @Column()
-    competitionId!: number;
+  @Column()
+  competitionId!: number;
 }

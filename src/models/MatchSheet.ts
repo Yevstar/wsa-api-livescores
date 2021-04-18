@@ -1,9 +1,8 @@
-import {BaseEntity, Column, Entity, PrimaryGeneratedColumn} from 'typeorm-plus';
-import {IsNumber, IsString} from "class-validator";
+import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from 'typeorm-plus';
+import { IsNumber, IsString } from 'class-validator';
 
 @Entity('matchSheet')
 export class MatchSheet extends BaseEntity {
-
   @IsNumber()
   @PrimaryGeneratedColumn()
   id: number;
@@ -28,9 +27,6 @@ export class MatchSheet extends BaseEntity {
   @Column()
   competitionName: String;
 
-  @Column({name: 'created_at'})
+  @Column({ name: 'created_at' })
   createdAt: Date;
 }
-
-
-
